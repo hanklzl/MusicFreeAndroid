@@ -23,7 +23,7 @@ The original RN app at `/Users/zili/code/android/MusicFree` is a live reference 
 
 - Min SDK: 29 (Android 10), Target SDK: 36
 - Java compatibility: VERSION_11
-- Gradle wrapper: 9.5.0-milestone-5, AGP: 9.1.0, Kotlin: 2.2.10
+- Gradle wrapper: 9.5.0-milestone-5, AGP: 9.2.0-alpha04, Kotlin: 2.2.10
 
 ## Planned Module Architecture
 
