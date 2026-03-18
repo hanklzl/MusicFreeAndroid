@@ -23,5 +23,13 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "MusicFreeAndroid"
+
 include(":app")
- 
+include(":core")
+include(":data")
+include(":player")
+include(":plugin")
+include(":feature:home")
+include(":feature:player-ui")
+include(":feature:search")
+include(":feature:settings")
