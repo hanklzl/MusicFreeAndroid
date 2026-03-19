@@ -222,4 +222,75 @@ class PlayQueueTest {
         assertNull(queue.skipTo(5))
         assertEquals(0, queue.currentIndex)
     }
+
+    // --- shuffle / unshuffle ---
+
+    @Test
+    fun `shuffle randomizes order but keeps currentItem the same`() {
+        val items = (1..20).map { item(it.toString()) }
+        queue.setQueue(items, startIndex = 5)
+        val currentBefore = queue.currentItem
+
+        queue.shuffle()
+
+        assertEquals(currentBefore, queue.currentItem)
+        assertEquals(20, queue.size)
+        assertEquals(0, queue.currentIndex)
+        assertEquals(currentBefore, queue.items[0])
+    }
+
+    @Test
+    fun `unshuffle restores original order and finds current item`() {
+        val items = listOf(song1, song2, song3, song4)
+        queue.setQueue(items, startIndex = 1)
+
+        queue.shuffle()
+        val currentAfterShuffle = queue.currentItem
+        assertEquals(song2, currentAfterShuffle)
+
+        queue.unshuffle()
+        assertEquals(items, queue.items)
+        assertEquals(song2, queue.currentItem)
+        assertEquals(1, queue.currentIndex)
+    }
+
+    @Test
+    fun `shuffle on empty queue does nothing`() {
+        queue.shuffle()
+        assertTrue(queue.isEmpty)
+    }
+
+    @Test
+    fun `shuffle single item queue keeps it`() {
+        queue.setQueue(listOf(song1), startIndex = 0)
+        queue.shuffle()
+        assertEquals(listOf(song1), queue.items)
+        assertEquals(0, queue.currentIndex)
+    }
+
+    @Test
+    fun `items added after shuffle are included in unshuffle`() {
+        queue.setQueue(listOf(song1, song2), startIndex = 0)
+        queue.shuffle()
+        queue.add(song3)
+        queue.unshuffle()
+        assertEquals(song1, queue.items[0])
+        assertEquals(song2, queue.items[1])
+        assertEquals(song3, queue.items[2])
+    }
+
+    @Test
+    fun `items removed during shuffle stay removed after unshuffle`() {
+        queue.setQueue(listOf(song1, song2, song3, song4), startIndex = 0)
+        queue.shuffle()
+        val song3Index = queue.items.indexOfFirst { it.id == "3" }
+        queue.remove(song3Index)
+        assertEquals(3, queue.size)
+
+        queue.unshuffle()
+        assertEquals(3, queue.size)
+        assertEquals(song1, queue.items[0])
+        assertEquals(song2, queue.items[1])
+        assertEquals(song4, queue.items[2])
+    }
 }

@@ -97,8 +97,47 @@ class PlayQueue {
         return currentItem
     }
 
+    private var originalOrder: List<MusicItem>? = null
+    val isShuffled: Boolean get() = originalOrder != null
+
+    fun shuffle() {
+        if (_items.size <= 1) return
+        val current = currentItem ?: return
+        originalOrder = _items.toList()
+
+        _items.remove(current)
+        _items.shuffle()
+        _items.add(0, current)
+        currentIndex = 0
+    }
+
+    fun unshuffle() {
+        val saved = originalOrder ?: return
+        val current = currentItem
+        val survivingIds = _items.map { "${it.platform}:${it.id}" }.toSet()
+        val originalIds = saved.map { "${it.platform}:${it.id}" }.toSet()
+        val newItems = _items.filter { "${it.platform}:${it.id}" !in originalIds }
+
+        _items.clear()
+        for (item in saved) {
+            if ("${item.platform}:${item.id}" in survivingIds) {
+                _items.add(item)
+            }
+        }
+        _items.addAll(newItems)
+
+        currentIndex = if (current != null) {
+            _items.indexOfFirst { it.id == current.id && it.platform == current.platform }
+                .coerceAtLeast(0)
+        } else {
+            -1
+        }
+        originalOrder = null
+    }
+
     fun clear() {
         _items.clear()
         currentIndex = -1
+        originalOrder = null
     }
 }
