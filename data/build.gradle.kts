@@ -22,6 +22,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
 }
 
 room {
@@ -48,6 +49,8 @@ dependencies {
     // Unit tests
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Provide real org.json for JVM unit tests (Android stubs throw by default)
+    testImplementation("org.json:json:20231013")
 
     // Instrumented tests
     androidTestImplementation(libs.androidx.junit)
