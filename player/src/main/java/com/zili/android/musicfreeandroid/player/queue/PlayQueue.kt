@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.player.queue
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.RepeatMode
 
 class PlayQueue {
 
@@ -60,6 +61,40 @@ class PlayQueue {
             fromIndex > currentIndex && toIndex <= currentIndex -> currentIndex + 1
             else -> currentIndex
         }
+    }
+
+    fun next(repeatMode: RepeatMode): MusicItem? {
+        if (isEmpty) return null
+        val nextIndex = when (repeatMode) {
+            RepeatMode.ONE -> currentIndex
+            RepeatMode.ALL -> (currentIndex + 1) % _items.size
+            RepeatMode.OFF -> {
+                val idx = currentIndex + 1
+                if (idx > _items.lastIndex) return null else idx
+            }
+        }
+        currentIndex = nextIndex
+        return currentItem
+    }
+
+    fun previous(repeatMode: RepeatMode): MusicItem? {
+        if (isEmpty) return null
+        val prevIndex = when (repeatMode) {
+            RepeatMode.ONE -> currentIndex
+            RepeatMode.ALL -> (currentIndex - 1 + _items.size) % _items.size
+            RepeatMode.OFF -> {
+                val idx = currentIndex - 1
+                if (idx < 0) return null else idx
+            }
+        }
+        currentIndex = prevIndex
+        return currentItem
+    }
+
+    fun skipTo(index: Int): MusicItem? {
+        if (index !in _items.indices) return null
+        currentIndex = index
+        return currentItem
     }
 
     fun clear() {

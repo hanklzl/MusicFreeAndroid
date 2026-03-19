@@ -138,4 +138,88 @@ class PlayQueueTest {
         assertEquals(listOf(song2, song3, song1), queue.items)
         assertEquals(2, queue.currentIndex)
     }
+
+    // --- next / previous with RepeatMode ---
+
+    @Test
+    fun `next advances to next item in OFF mode`() {
+        queue.setQueue(listOf(song1, song2, song3), startIndex = 0)
+        assertEquals(song2, queue.next(RepeatMode.OFF))
+        assertEquals(1, queue.currentIndex)
+    }
+
+    @Test
+    fun `next at end returns null in OFF mode`() {
+        queue.setQueue(listOf(song1, song2), startIndex = 1)
+        assertNull(queue.next(RepeatMode.OFF))
+        assertEquals(1, queue.currentIndex)
+    }
+
+    @Test
+    fun `next at end wraps to first in ALL mode`() {
+        queue.setQueue(listOf(song1, song2), startIndex = 1)
+        assertEquals(song1, queue.next(RepeatMode.ALL))
+        assertEquals(0, queue.currentIndex)
+    }
+
+    @Test
+    fun `next in ONE mode returns same item`() {
+        queue.setQueue(listOf(song1, song2), startIndex = 0)
+        assertEquals(song1, queue.next(RepeatMode.ONE))
+        assertEquals(0, queue.currentIndex)
+    }
+
+    @Test
+    fun `previous goes to previous item in OFF mode`() {
+        queue.setQueue(listOf(song1, song2, song3), startIndex = 2)
+        assertEquals(song2, queue.previous(RepeatMode.OFF))
+        assertEquals(1, queue.currentIndex)
+    }
+
+    @Test
+    fun `previous at start returns null in OFF mode`() {
+        queue.setQueue(listOf(song1, song2), startIndex = 0)
+        assertNull(queue.previous(RepeatMode.OFF))
+        assertEquals(0, queue.currentIndex)
+    }
+
+    @Test
+    fun `previous at start wraps to last in ALL mode`() {
+        queue.setQueue(listOf(song1, song2, song3), startIndex = 0)
+        assertEquals(song3, queue.previous(RepeatMode.ALL))
+        assertEquals(2, queue.currentIndex)
+    }
+
+    @Test
+    fun `next on empty queue returns null`() {
+        assertNull(queue.next(RepeatMode.ALL))
+    }
+
+    @Test
+    fun `previous on empty queue returns null`() {
+        assertNull(queue.previous(RepeatMode.ALL))
+    }
+
+    @Test
+    fun `next with single item in ALL mode returns same item`() {
+        queue.setQueue(listOf(song1), startIndex = 0)
+        assertEquals(song1, queue.next(RepeatMode.ALL))
+        assertEquals(0, queue.currentIndex)
+    }
+
+    // --- skipTo ---
+
+    @Test
+    fun `skipTo sets currentIndex and returns item`() {
+        queue.setQueue(listOf(song1, song2, song3), startIndex = 0)
+        assertEquals(song3, queue.skipTo(2))
+        assertEquals(2, queue.currentIndex)
+    }
+
+    @Test
+    fun `skipTo with invalid index returns null`() {
+        queue.setQueue(listOf(song1), startIndex = 0)
+        assertNull(queue.skipTo(5))
+        assertEquals(0, queue.currentIndex)
+    }
 }
