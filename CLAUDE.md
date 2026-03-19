@@ -90,3 +90,5 @@ When implementing features, consult these paths in `/Users/zili/code/android/Mus
 
 - Design spec: `docs/superpowers/specs/2026-03-19-musicfree-android-native-rewrite-design.md`
 - Milestone 1 plan: `docs/superpowers/plans/2026-03-19-milestone1-project-scaffolding.md`
+- Milestone 2 plan: `docs/superpowers/plans/2026-03-19-milestone2-data-layer.md`
+- Milestone 3 plan: `docs/superpowers/plans/2026-03-20-milestone3-player-engine.md`
