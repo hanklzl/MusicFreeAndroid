@@ -191,6 +191,13 @@ class PlayQueueTest {
     }
 
     @Test
+    fun `previous in ONE mode returns same item`() {
+        queue.setQueue(listOf(song1, song2), startIndex = 1)
+        assertEquals(song2, queue.previous(RepeatMode.ONE))
+        assertEquals(1, queue.currentIndex)
+    }
+
+    @Test
     fun `next on empty queue returns null`() {
         assertNull(queue.next(RepeatMode.ALL))
     }
