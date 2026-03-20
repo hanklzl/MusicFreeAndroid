@@ -3,7 +3,12 @@ package com.zili.android.musicfreeandroid.plugin.manager
 import android.util.Log
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.plugin.api.AlbumInfoResult
+import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
+import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
+import com.zili.android.musicfreeandroid.plugin.api.ArtistWorksResult
 import com.zili.android.musicfreeandroid.plugin.api.LyricResult
+import com.zili.android.musicfreeandroid.plugin.api.MusicComment
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetInfoResult
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
@@ -126,6 +131,58 @@ class LoadedPlugin(
                     JsBridge.parseLyricResult(parsed)
                 } catch (e: Exception) {
                     Log.e(TAG, "getLyric failed for ${musicItem.id} on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
+    override suspend fun getAlbumInfo(albumItem: AlbumItemBase, page: Int): AlbumInfoResult? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("getAlbumInfo")) {
+                        return@runOnJsThread null
+                    }
+                    engine.setGlobalMap("__albumItem", JsBridge.albumItemToMap(albumItem))
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.getAlbumInfo(__albumItem, $page); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToMap(jsonStr)
+                    JsBridge.parseAlbumInfoResult(parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getAlbumInfo failed for ${albumItem.id} on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
+    override suspend fun getArtistWorks(
+        artistItem: ArtistItemBase,
+        page: Int,
+        type: String,
+    ): ArtistWorksResult? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("getArtistWorks")) {
+                        return@runOnJsThread null
+                    }
+                    engine.setGlobalMap("__artistItem", JsBridge.artistItemToMap(artistItem))
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.getArtistWorks(__artistItem, $page, '${escapeJsString(type)}'); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToMap(jsonStr)
+                    JsBridge.parseArtistWorksResult(parsed, type)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getArtistWorks failed for ${artistItem.id} on ${info.platform}", e)
                     null
                 }
             }
@@ -297,6 +354,33 @@ class LoadedPlugin(
                     JsBridge.parseRecommendSheetsByTagResult(parsed)
                 } catch (e: Exception) {
                     Log.e(TAG, "getRecommendSheetsByTag failed on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
+    override suspend fun getMusicComments(
+        musicItem: MusicItem,
+        page: Int,
+    ): PaginationResult<MusicComment>? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("getMusicComments")) {
+                        return@runOnJsThread null
+                    }
+                    engine.setGlobalMap("__musicItem", JsBridge.musicItemToMap(musicItem))
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.getMusicComments(__musicItem, $page); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToMap(jsonStr)
+                    JsBridge.parseMusicCommentsResult(parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getMusicComments failed for ${musicItem.id} on ${info.platform}", e)
                     null
                 }
             }

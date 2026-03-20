@@ -9,6 +9,8 @@ interface PluginApi {
     suspend fun getMediaSource(musicItem: MusicItem, quality: String = "standard"): MediaSourceResult?
     suspend fun getMusicInfo(musicItem: MusicItem): MusicItem?
     suspend fun getLyric(musicItem: MusicItem): LyricResult?
+    suspend fun getAlbumInfo(albumItem: AlbumItemBase, page: Int): AlbumInfoResult?
+    suspend fun getArtistWorks(artistItem: ArtistItemBase, page: Int, type: String = "music"): ArtistWorksResult?
     suspend fun importMusicSheet(urlLike: String): List<MusicItem>?
     suspend fun importMusicItem(urlLike: String): MusicItem?
     suspend fun getTopLists(): List<MusicSheetGroupItem>
@@ -19,4 +21,5 @@ interface PluginApi {
         tag: Map<String, Any?>,
         page: Int = 1,
     ): PaginationResult<MusicSheetItemBase>?
+    suspend fun getMusicComments(musicItem: MusicItem, page: Int = 1): PaginationResult<MusicComment>?
 }

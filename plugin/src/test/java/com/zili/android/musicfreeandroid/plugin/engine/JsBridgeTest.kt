@@ -228,4 +228,67 @@ class JsBridgeTest {
         assertEquals(1_000L, result.lines[0].timeMs)
         assertEquals("Hello", result.lines[0].text)
     }
+
+    @Test
+    fun `parseAlbumInfoResult parses album payload`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to false,
+            "albumItem" to mapOf(
+                "id" to "album-1",
+                "platform" to "demo",
+                "title" to "Album A",
+                "artist" to "Artist A",
+            ),
+            "musicList" to listOf(
+                mapOf("id" to "m-1", "platform" to "demo", "title" to "Song 1", "artist" to "A"),
+            ),
+        )
+        val result = JsBridge.parseAlbumInfoResult(payload)
+        assertFalse(result.isEnd)
+        assertEquals("album-1", result.albumItem?.id)
+        assertEquals(1, result.musicList.size)
+    }
+
+    @Test
+    fun `parseArtistWorksResult parses music payload`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "data" to listOf(
+                mapOf("id" to "m-1", "platform" to "demo", "title" to "Song 1", "artist" to "A"),
+            ),
+        )
+        val result = JsBridge.parseArtistWorksResult(payload, "music")
+        assertTrue(result.isEnd)
+        assertEquals("music", result.type)
+        assertEquals(1, result.musicList.size)
+        assertEquals(1, result.rawData.size)
+    }
+
+    @Test
+    fun `parseMusicCommentsResult parses nested replies`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to false,
+            "data" to listOf(
+                mapOf(
+                    "id" to "c-1",
+                    "nickName" to "User A",
+                    "comment" to "Great song",
+                    "like" to 10,
+                    "replies" to listOf(
+                        mapOf(
+                            "id" to "c-1-1",
+                            "nickName" to "User B",
+                            "comment" to "Agree",
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val result = JsBridge.parseMusicCommentsResult(payload)
+        assertFalse(result.isEnd)
+        assertEquals(1, result.data.size)
+        assertEquals("User A", result.data[0].nickName)
+        assertEquals(1, result.data[0].replies.size)
+        assertEquals("Agree", result.data[0].replies[0].comment)
+    }
 }
