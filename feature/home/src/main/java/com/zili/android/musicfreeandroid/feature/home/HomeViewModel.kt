@@ -3,6 +3,8 @@ package com.zili.android.musicfreeandroid.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.data.repository.MusicRepository
+import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +18,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val scanner: LocalMusicScanner,
     private val playerController: PlayerController,
+    private val playlistRepository: PlaylistRepository,
+    private val musicRepository: MusicRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -37,5 +41,13 @@ class HomeViewModel @Inject constructor(
     fun playItem(item: MusicItem, queue: List<MusicItem>) {
         val index = queue.indexOf(item)
         playerController.playQueue(queue, if (index >= 0) index else 0)
+    }
+
+    fun addToPlaylist(playlistId: String, item: MusicItem) {
+        viewModelScope.launch {
+            // Ensure music item exists in DB for foreign key
+            musicRepository.insert(item)
+            playlistRepository.addMusicToPlaylist(playlistId, item)
+        }
     }
 }
