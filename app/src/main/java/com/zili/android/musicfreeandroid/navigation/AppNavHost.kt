@@ -42,6 +42,7 @@ fun AppNavHost(
         )
         searchScreen(
             onBack = { navController.popBackStack() },
+            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
         settingsScreen(
             onBack = { navController.popBackStack() },
