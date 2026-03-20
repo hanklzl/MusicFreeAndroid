@@ -27,7 +27,7 @@
   │
   ├─ 主对话：审阅 top 3，用户确认或调整
   │
-  ├─ 阶段2: 实现 subagent（可并行，如果功能点互相独立）
+  ├─ 阶段2: 实现 subagent（严格串行，依次执行）
   │   → 每个 subagent 实现 1 个功能点
   │   → 编写技术方案 + 代码实现 + UI 截图对比 + commit
   │   → 写入 docs/convergence/iteration-N/impl-{feature}.md
@@ -146,11 +146,12 @@ adb pull /sdcard/screen.png ./docs/convergence/screenshots/
 
 ### 2.1 Subagent 分派策略
 
-主对话确认 top 3 后，评估依赖关系：
+主对话确认 top 3 后，**始终串行执行**：按依赖顺序和优先级依次分派 subagent，一个完成后再启动下一个。
 
-- **无依赖**：3 个 subagent 并行执行
-- **有依赖链**：按依赖顺序串行（如先实现 PluginApi 方法，再做依赖该方法的页面）
-- **部分依赖**：能并行的并行，有依赖的串行
+串行原因：
+- 避免并行 commit 冲突
+- 后续功能可利用前序功能的代码/模型变更
+- 便于及时发现和修正问题
 
 ### 2.2 实现 subagent 工作流
 
@@ -234,8 +235,7 @@ master
         └── ...
 ```
 
-- 实现 subagent 串行 commit 到迭代分支（避免并行冲突）
-- 如 3 个功能点完全无文件交集，可并行 commit
+- 实现 subagent 严格串行 commit 到迭代分支
 - 验证通过后 merge 回 master
 
 ## 失败处理
