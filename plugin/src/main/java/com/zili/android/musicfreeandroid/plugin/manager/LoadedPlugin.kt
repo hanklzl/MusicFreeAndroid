@@ -4,6 +4,7 @@ import android.util.Log
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
+import com.zili.android.musicfreeandroid.plugin.api.MusicSheetInfoResult
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import com.zili.android.musicfreeandroid.plugin.api.PaginationResult
 import com.zili.android.musicfreeandroid.plugin.api.PluginApi
@@ -125,6 +126,33 @@ class LoadedPlugin(
                     JsBridge.parseTopListDetailResult(parsed)
                 } catch (e: Exception) {
                     Log.e(TAG, "getTopListDetail failed on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
+    override suspend fun getMusicSheetInfo(
+        sheetItem: MusicSheetItemBase,
+        page: Int,
+    ): MusicSheetInfoResult? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("getMusicSheetInfo")) {
+                        return@runOnJsThread null
+                    }
+                    engine.setGlobalMap("__sheetItem", JsBridge.musicSheetItemToMap(sheetItem))
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.getMusicSheetInfo(__sheetItem, $page); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToMap(jsonStr)
+                    JsBridge.parseMusicSheetInfoResult(parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getMusicSheetInfo failed on ${info.platform}", e)
                     null
                 }
             }

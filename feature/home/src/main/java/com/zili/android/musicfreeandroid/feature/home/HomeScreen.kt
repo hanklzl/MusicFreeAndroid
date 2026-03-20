@@ -69,6 +69,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     onNavigateToPlayer: () -> Unit,
     onNavigateToSearch: () -> Unit,
+    onNavigateToRecommendSheets: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
@@ -121,7 +122,7 @@ fun HomeScreen(
         )
 
         HomeOperations(
-            onRecommendClick = onNavigateToSearch,
+            onRecommendClick = onNavigateToRecommendSheets,
             onTopListClick = onNavigateToTopList,
             onHistoryClick = onNavigateToPlayer,
             onLocalMusicClick = { scope.launch { pagerState.animateScrollToPage(0) } },

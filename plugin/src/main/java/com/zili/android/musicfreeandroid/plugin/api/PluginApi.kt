@@ -9,6 +9,7 @@ interface PluginApi {
     suspend fun getMediaSource(musicItem: MusicItem, quality: String = "standard"): MediaSourceResult?
     suspend fun getTopLists(): List<MusicSheetGroupItem>
     suspend fun getTopListDetail(topListItem: MusicSheetItemBase, page: Int): TopListDetailResult?
+    suspend fun getMusicSheetInfo(sheetItem: MusicSheetItemBase, page: Int): MusicSheetInfoResult?
     suspend fun getRecommendSheetTags(): RecommendSheetTagsResult?
     suspend fun getRecommendSheetsByTag(
         tag: Map<String, Any?>,

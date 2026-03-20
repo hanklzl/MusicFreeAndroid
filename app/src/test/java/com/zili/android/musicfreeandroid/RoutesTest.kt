@@ -2,6 +2,8 @@ package com.zili.android.musicfreeandroid
 
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
+import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
@@ -59,6 +61,27 @@ class RoutesTest {
         val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
         val decoded = Json.decodeFromString<TopListDetailRoute>(json)
+        assertNotNull(decoded)
+    }
+
+    @Test
+    fun `RecommendSheetsRoute is serializable`() {
+        val json = Json.encodeToString(serializer(), RecommendSheetsRoute)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<RecommendSheetsRoute>(json)
+        assertNotNull(decoded)
+    }
+
+    @Test
+    fun `PluginSheetDetailRoute is serializable`() {
+        val route = PluginSheetDetailRoute(
+            pluginPlatform = "demo",
+            sheetId = "sheet-9",
+            title = "热门推荐",
+        )
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<PluginSheetDetailRoute>(json)
         assertNotNull(decoded)
     }
 }

@@ -4,6 +4,7 @@ import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
+import com.zili.android.musicfreeandroid.plugin.api.MusicSheetInfoResult
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import com.zili.android.musicfreeandroid.plugin.api.PaginationResult
 import com.zili.android.musicfreeandroid.plugin.api.RecommendSheetTagsResult
@@ -112,6 +113,20 @@ object JsBridge {
         return TopListDetailResult(
             isEnd = isEnd,
             topListItem = topListItem,
+            musicList = musicList,
+        )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun parseMusicSheetInfoResult(map: Map<String, Any?>): MusicSheetInfoResult {
+        val isEnd = map["isEnd"] as? Boolean ?: true
+        val sheetItem = (map["sheetItem"] as? Map<String, Any?>)?.let(::toMusicSheetItemBase)
+        val musicList = (map["musicList"] as? List<*>)?.mapNotNull { entry ->
+            (entry as? Map<String, Any?>)?.let(::toMusicItem)
+        } ?: emptyList()
+        return MusicSheetInfoResult(
+            isEnd = isEnd,
+            sheetItem = sheetItem,
             musicList = musicList,
         )
     }
