@@ -19,3 +19,12 @@ data class PlaylistDetailRoute(val playlistId: String)
 
 @Serializable
 data object PlayQueueRoute
+
+@Serializable
+data object TopListRoute
+
+@Serializable
+data class TopListDetailRoute(
+    val pluginPlatform: String,
+    val topListId: String,
+)

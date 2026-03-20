@@ -3,11 +3,18 @@ package com.zili.android.musicfreeandroid.plugin.manager
 import android.util.Log
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
+import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
+import com.zili.android.musicfreeandroid.plugin.api.PaginationResult
 import com.zili.android.musicfreeandroid.plugin.api.PluginApi
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.plugin.api.RecommendSheetTagsResult
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
+import com.zili.android.musicfreeandroid.plugin.api.TopListDetailResult
 import com.zili.android.musicfreeandroid.plugin.engine.JsBridge
 import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
+import com.whl.quickjs.wrapper.JSArray
+import com.whl.quickjs.wrapper.JSObject
 import kotlinx.coroutines.withTimeout
 
 /**
@@ -29,6 +36,9 @@ class LoadedPlugin(
         return withTimeout(TIMEOUT_MS) {
             engine.runOnJsThread {
                 try {
+                    if (!hasMethod("search")) {
+                        return@runOnJsThread SearchResult(isEnd = true, data = emptyList())
+                    }
                     val escapedQuery = query.replace("\\", "\\\\").replace("'", "\\'")
                     val asyncExpr =
                         "async function() { var r = await __plugin.search('$escapedQuery', $page, '$type'); return JSON.stringify(r); }()"
@@ -51,6 +61,9 @@ class LoadedPlugin(
         return withTimeout(TIMEOUT_MS) {
             engine.runOnJsThread {
                 try {
+                    if (!hasMethod("getMediaSource")) {
+                        return@runOnJsThread null
+                    }
                     val itemMap = JsBridge.musicItemToMap(musicItem)
                     engine.setGlobalMap("__musicItem", itemMap)
                     val asyncExpr =
@@ -70,21 +83,129 @@ class LoadedPlugin(
         }
     }
 
+    override suspend fun getTopLists(): List<MusicSheetGroupItem> {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("getTopLists")) {
+                        return@runOnJsThread emptyList()
+                    }
+                    val jsonStr =
+                        engine.evaluateAsync(
+                            "async function() { var r = await __plugin.getTopLists(); return JSON.stringify(r); }()",
+                        )
+                    val parsed = parseJsonToAny(jsonStr) as? List<*> ?: return@runOnJsThread emptyList()
+                    JsBridge.parseTopListGroups(parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getTopLists failed on ${info.platform}", e)
+                    emptyList()
+                }
+            }
+        }
+    }
+
+    override suspend fun getTopListDetail(
+        topListItem: MusicSheetItemBase,
+        page: Int,
+    ): TopListDetailResult? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("getTopListDetail")) {
+                        return@runOnJsThread null
+                    }
+                    engine.setGlobalMap("__topListItem", JsBridge.musicSheetItemToMap(topListItem))
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.getTopListDetail(__topListItem, $page); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToMap(jsonStr)
+                    JsBridge.parseTopListDetailResult(parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getTopListDetail failed on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
+    override suspend fun getRecommendSheetTags(): RecommendSheetTagsResult? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("getRecommendSheetTags")) {
+                        return@runOnJsThread null
+                    }
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.getRecommendSheetTags(); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToMap(jsonStr)
+                    JsBridge.parseRecommendSheetTagsResult(parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getRecommendSheetTags failed on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
+    override suspend fun getRecommendSheetsByTag(
+        tag: Map<String, Any?>,
+        page: Int,
+    ): PaginationResult<MusicSheetItemBase>? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("getRecommendSheetsByTag")) {
+                        return@runOnJsThread null
+                    }
+                    engine.setGlobalMap("__recommendTag", tag)
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.getRecommendSheetsByTag(__recommendTag, $page); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToMap(jsonStr)
+                    JsBridge.parseRecommendSheetsByTagResult(parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getRecommendSheetsByTag failed on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
     fun destroy() {
         engine.destroy()
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun parseJsonToMap(json: String): Map<String, Any?> {
-        // Use kotlinx.serialization or a simple JS-side parse.
-        // Leverage the engine itself to parse JSON back to a map.
+    private fun hasMethod(name: String): Boolean {
+        val result = engine.evaluate("typeof __plugin.$name === 'function'")
+        return result as? Boolean ?: false
+    }
+
+    private fun parseJsonToAny(json: String?): Any? {
+        if (json.isNullOrBlank() || json == "undefined" || json == "null") {
+            return null
+        }
         val ctx = engine.context
             ?: throw IllegalStateException("Engine context is null")
         val parsed = ctx.parse(json)
-        return if (parsed is com.whl.quickjs.wrapper.JSObject) {
-            engine.jsObjectToMap(parsed)
-        } else {
-            emptyMap()
+        return when (parsed) {
+            is JSObject -> engine.jsObjectToMap(parsed)
+            is JSArray -> engine.jsArrayToList(parsed)
+            else -> parsed
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun parseJsonToMap(json: String): Map<String, Any?> {
+        return parseJsonToAny(json) as? Map<String, Any?> ?: emptyMap()
     }
 }

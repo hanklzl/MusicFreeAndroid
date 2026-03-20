@@ -37,6 +37,12 @@ class SearchViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            pluginManager.loadAllPlugins()
+        }
+    }
+
     fun selectPlugin(platform: String) {
         _selectedPlugin.value = platform
         _uiState.value = SearchUiState.Idle
