@@ -6,6 +6,8 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,12 +23,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,8 +41,6 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults.SecondaryIndicator
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,7 +50,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -56,31 +59,31 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.feature.home.playlist.AddToPlaylistDialog
 import com.zili.android.musicfreeandroid.feature.home.playlist.PlaylistSection
 import com.zili.android.musicfreeandroid.feature.home.playlist.PlaylistViewModel
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     onNavigateToPlayer: () -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
 
     var addToPlaylistItem by remember { mutableStateOf<MusicItem?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) viewModel.scanLocalMusic()
     }
@@ -98,7 +101,6 @@ fun HomeScreen(
         }
     }
 
-    // Add to playlist dialog
     addToPlaylistItem?.let { item ->
         AddToPlaylistDialog(
             playlists = playlists,
@@ -113,25 +115,16 @@ fun HomeScreen(
     val pagerState = rememberPagerState(pageCount = { tabs.size })
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = "MusicFree",
-                    color = MusicFreeTheme.colors.appBarText,
-                    fontSize = FontSizes.appBar,
-                )
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MusicFreeTheme.colors.appBar,
-            ),
-            actions = {
-                IconButton(onClick = onNavigateToSearch) {
-                    Icon(Icons.Default.Search, contentDescription = "搜索", tint = MusicFreeTheme.colors.appBarText)
-                }
-                IconButton(onClick = onNavigateToSettings) {
-                    Icon(Icons.Default.Settings, contentDescription = "设置", tint = MusicFreeTheme.colors.appBarText)
-                }
-            },
+        HomeHeader(
+            onOpenMenu = onNavigateToSettings,
+            onOpenSearch = onNavigateToSearch,
+        )
+
+        HomeOperations(
+            onRecommendClick = onNavigateToSearch,
+            onTopListClick = onNavigateToTopList,
+            onHistoryClick = onNavigateToPlayer,
+            onLocalMusicClick = { scope.launch { pagerState.animateScrollToPage(0) } },
         )
 
         TabRow(
@@ -170,6 +163,7 @@ fun HomeScreen(
                     onItemLongClick = { item -> addToPlaylistItem = item },
                     onRetry = { viewModel.scanLocalMusic() },
                 )
+
                 1 -> PlaylistSection(
                     playlists = playlists,
                     onPlaylistClick = { onNavigateToPlaylistDetail(it.id) },
@@ -179,6 +173,125 @@ fun HomeScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun HomeHeader(
+    onOpenMenu: () -> Unit,
+    onOpenSearch: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onOpenMenu) {
+            Icon(
+                imageVector = Icons.Default.Menu,
+                contentDescription = "菜单",
+                tint = MusicFreeTheme.colors.text,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 8.dp)
+                .background(
+                    color = MusicFreeTheme.colors.placeholder,
+                    shape = RoundedCornerShape(999.dp),
+                )
+                .clickable(onClick = onOpenSearch)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MusicFreeTheme.colors.textSecondary,
+                )
+                Text(
+                    text = "点击这里开始搜索",
+                    modifier = Modifier.padding(start = 8.dp),
+                    color = MusicFreeTheme.colors.textSecondary,
+                    fontSize = FontSizes.subTitle,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeOperations(
+    onRecommendClick: () -> Unit,
+    onTopListClick: () -> Unit,
+    onHistoryClick: () -> Unit,
+    onLocalMusicClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OperationCard(
+            modifier = Modifier.weight(1f),
+            title = "推荐歌单",
+            icon = Icons.Default.Whatshot,
+            onClick = onRecommendClick,
+        )
+        OperationCard(
+            modifier = Modifier.weight(1f),
+            title = "榜单",
+            icon = Icons.Default.EmojiEvents,
+            onClick = onTopListClick,
+        )
+        OperationCard(
+            modifier = Modifier.weight(1f),
+            title = "播放历史",
+            icon = Icons.Default.History,
+            onClick = onHistoryClick,
+        )
+        OperationCard(
+            modifier = Modifier.weight(1f),
+            title = "本地音乐",
+            icon = Icons.Default.LibraryMusic,
+            onClick = onLocalMusicClick,
+        )
+    }
+}
+
+@Composable
+private fun OperationCard(
+    modifier: Modifier,
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .height(80.dp)
+            .background(
+                color = MusicFreeTheme.colors.card,
+                shape = RoundedCornerShape(12.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MusicFreeTheme.colors.text,
+        )
+        Text(
+            text = title,
+            color = MusicFreeTheme.colors.text,
+            fontSize = FontSizes.description,
+            modifier = Modifier.padding(top = 6.dp),
+        )
     }
 }
 
@@ -195,6 +308,7 @@ private fun LocalMusicPage(
                 CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
             }
         }
+
         is HomeUiState.Error -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -206,6 +320,7 @@ private fun LocalMusicPage(
                 }
             }
         }
+
         is HomeUiState.Success -> {
             if (uiState.musicItems.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -267,7 +382,7 @@ private fun MusicListItem(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CoverImage(
+        com.zili.android.musicfreeandroid.core.ui.CoverImage(
             uri = item.artwork,
             size = 48.dp,
             cornerRadius = 4.dp,

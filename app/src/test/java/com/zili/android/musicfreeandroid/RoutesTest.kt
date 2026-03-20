@@ -4,6 +4,8 @@ import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
+import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import org.junit.Assert.assertNotNull
@@ -40,6 +42,23 @@ class RoutesTest {
         val json = Json.encodeToString(serializer(), SettingsRoute)
         assertNotNull(json)
         val decoded = Json.decodeFromString<SettingsRoute>(json)
+        assertNotNull(decoded)
+    }
+
+    @Test
+    fun `TopListRoute is serializable`() {
+        val json = Json.encodeToString(serializer(), TopListRoute)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<TopListRoute>(json)
+        assertNotNull(decoded)
+    }
+
+    @Test
+    fun `TopListDetailRoute is serializable`() {
+        val route = TopListDetailRoute(pluginPlatform = "demo", topListId = "sheet-1")
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<TopListDetailRoute>(json)
         assertNotNull(decoded)
     }
 }

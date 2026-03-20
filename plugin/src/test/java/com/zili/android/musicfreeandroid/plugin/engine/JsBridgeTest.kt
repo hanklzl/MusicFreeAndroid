@@ -72,4 +72,77 @@ class JsBridgeTest {
         assertNotNull(result)
         assertEquals("http://example.com/song.mp3", result!!.url)
     }
+
+    @Test
+    fun `toMusicSheetItemBase keeps raw fields`() {
+        val map = mapOf<String, Any?>(
+            "id" to "sheet-1",
+            "platform" to "demo",
+            "title" to "Top 100",
+            "extraField" to "x",
+        )
+        val item = JsBridge.toMusicSheetItemBase(map)
+        assertEquals("sheet-1", item.id)
+        assertEquals("demo", item.platform)
+        assertEquals("x", item.raw["extraField"])
+    }
+
+    @Test
+    fun `parseTopListGroups parses groups and items`() {
+        val list = listOf(
+            mapOf(
+                "title" to "官方榜",
+                "data" to listOf(
+                    mapOf("id" to "sheet-1", "platform" to "demo", "title" to "热歌榜"),
+                ),
+            ),
+        )
+        val groups = JsBridge.parseTopListGroups(list)
+        assertEquals(1, groups.size)
+        assertEquals("官方榜", groups[0].title)
+        assertEquals("sheet-1", groups[0].data[0].id)
+    }
+
+    @Test
+    fun `parseTopListDetailResult parses page payload`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to false,
+            "topListItem" to mapOf(
+                "id" to "sheet-1",
+                "platform" to "demo",
+                "title" to "热歌榜",
+            ),
+            "musicList" to listOf(
+                mapOf("id" to "1", "platform" to "demo", "title" to "Song", "artist" to "A"),
+            ),
+        )
+        val result = JsBridge.parseTopListDetailResult(payload)
+        assertFalse(result.isEnd)
+        assertEquals("sheet-1", result.topListItem?.id)
+        assertEquals(1, result.musicList.size)
+    }
+
+    @Test
+    fun `parseRecommendSheetTagsResult parses pinned and grouped tags`() {
+        val payload = mapOf<String, Any?>(
+            "pinned" to listOf(
+                mapOf("id" to "tag-1", "platform" to "demo", "title" to "流行"),
+            ),
+            "data" to listOf(
+                mapOf(
+                    "title" to "风格",
+                    "data" to listOf(
+                        mapOf("id" to "tag-2", "platform" to "demo", "title" to "摇滚"),
+                    ),
+                ),
+            ),
+        )
+
+        val result = JsBridge.parseRecommendSheetTagsResult(payload)
+        assertEquals(1, result.pinned.size)
+        assertEquals("tag-1", result.pinned.first().id)
+        assertEquals(1, result.data.size)
+        assertEquals("风格", result.data.first().title)
+        assertEquals("tag-2", result.data.first().data.first().id)
+    }
 }

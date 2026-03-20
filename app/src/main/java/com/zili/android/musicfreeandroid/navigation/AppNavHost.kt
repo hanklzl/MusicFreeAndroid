@@ -9,8 +9,12 @@ import com.zili.android.musicfreeandroid.core.navigation.PlaylistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
+import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
 import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScreen
+import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListDetailScreen
+import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListScreen
 import com.zili.android.musicfreeandroid.feature.playerui.navigation.playerScreen
 import com.zili.android.musicfreeandroid.feature.search.navigation.searchScreen
 import com.zili.android.musicfreeandroid.feature.settings.navigation.settingsScreen
@@ -29,6 +33,7 @@ fun AppNavHost(
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onNavigateToSearch = { navController.navigate(SearchRoute) },
             onNavigateToSettings = { navController.navigate(SettingsRoute) },
+            onNavigateToTopList = { navController.navigate(TopListRoute) },
             onNavigateToPlaylistDetail = { playlistId ->
                 navController.navigate(PlaylistDetailRoute(playlistId))
             },
@@ -46,6 +51,21 @@ fun AppNavHost(
         )
         settingsScreen(
             onBack = { navController.popBackStack() },
+        )
+        topListScreen(
+            onBack = { navController.popBackStack() },
+            onOpenTopListDetail = { pluginPlatform, topListId ->
+                navController.navigate(
+                    TopListDetailRoute(
+                        pluginPlatform = pluginPlatform,
+                        topListId = topListId,
+                    ),
+                )
+            },
+        )
+        topListDetailScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
     }
 }
