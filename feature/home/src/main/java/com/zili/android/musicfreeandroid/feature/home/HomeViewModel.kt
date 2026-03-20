@@ -21,10 +21,6 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState
 
-    init {
-        scanLocalMusic()
-    }
-
     fun scanLocalMusic() {
         _uiState.value = HomeUiState.Loading
         viewModelScope.launch {

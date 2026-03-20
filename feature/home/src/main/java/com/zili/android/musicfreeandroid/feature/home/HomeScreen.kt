@@ -69,7 +69,9 @@ fun HomeScreen(
         } else {
             Manifest.permission.READ_EXTERNAL_STORAGE
         }
-        if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+            viewModel.scanLocalMusic()
+        } else {
             permissionLauncher.launch(permission)
         }
     }

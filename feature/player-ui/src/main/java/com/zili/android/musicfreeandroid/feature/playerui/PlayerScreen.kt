@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
@@ -46,10 +47,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import coil3.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,15 +112,34 @@ fun PlayerScreen(
                     .padding(horizontal = 48.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                AsyncImage(
-                    model = currentItem?.artwork,
-                    contentDescription = "专辑封面",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Crop,
-                )
+                val coverShape = RoundedCornerShape(12.dp)
+                if (currentItem?.artwork.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clip(coverShape)
+                            .background(MusicFreeTheme.colors.placeholder),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = MusicFreeTheme.colors.textSecondary,
+                            modifier = Modifier.size(96.dp),
+                        )
+                    }
+                } else {
+                    AsyncImage(
+                        model = currentItem?.artwork,
+                        contentDescription = "专辑封面",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clip(coverShape),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
             }
 
             Spacer(Modifier.weight(1f))

@@ -38,20 +38,20 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `initial state is Loading`() = runTest {
-        whenever(scanner.scan()).thenReturn(flowOf(emptyList()))
+    fun `initial state is Loading before scan`() = runTest {
         val viewModel = HomeViewModel(scanner, playerController)
         assertEquals(HomeUiState.Loading, viewModel.uiState.value)
     }
 
     @Test
-    fun `scan returns music items updates state to Success`() = runTest {
+    fun `scanLocalMusic updates state to Success`() = runTest {
         val items = listOf(
             MusicItem(id = "1", platform = "local", title = "Song 1", artist = "Artist", album = "Album", duration = 180_000L, url = null, artwork = null, qualities = null),
         )
         whenever(scanner.scan()).thenReturn(flowOf(items))
 
         val viewModel = HomeViewModel(scanner, playerController)
+        viewModel.scanLocalMusic()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -67,6 +67,7 @@ class HomeViewModelTest {
         whenever(scanner.scan()).thenReturn(flowOf(items))
 
         val viewModel = HomeViewModel(scanner, playerController)
+        viewModel.scanLocalMusic()
         advanceUntilIdle()
 
         viewModel.playItem(items[0], items)
