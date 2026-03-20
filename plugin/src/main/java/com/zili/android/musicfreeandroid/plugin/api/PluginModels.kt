@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.plugin.api
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.LyricLine
 
 data class MusicSheetItemBase(
     val id: String,
@@ -39,4 +40,10 @@ data class RecommendSheetTagsResult(
 data class PaginationResult<T>(
     val isEnd: Boolean,
     val data: List<T>,
+)
+
+data class LyricResult(
+    val rawLrc: String?,
+    val rawLrcTxt: String?,
+    val lines: List<LyricLine>,
 )

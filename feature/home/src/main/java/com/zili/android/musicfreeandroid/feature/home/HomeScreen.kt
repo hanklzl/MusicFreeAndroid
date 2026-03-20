@@ -70,6 +70,7 @@ fun HomeScreen(
     onNavigateToPlayer: () -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToRecommendSheets: () -> Unit,
+    onNavigateToHistory: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
@@ -124,7 +125,7 @@ fun HomeScreen(
         HomeOperations(
             onRecommendClick = onNavigateToRecommendSheets,
             onTopListClick = onNavigateToTopList,
-            onHistoryClick = onNavigateToPlayer,
+            onHistoryClick = onNavigateToHistory,
             onLocalMusicClick = { scope.launch { pagerState.animateScrollToPage(0) } },
         )
 

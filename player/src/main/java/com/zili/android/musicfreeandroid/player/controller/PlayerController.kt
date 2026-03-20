@@ -41,6 +41,8 @@ class PlayerController @Inject constructor(
 
     private val _playerState = MutableStateFlow(PlayerState.EMPTY)
     val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
+    private val _playHistory = MutableStateFlow<List<MusicItem>>(emptyList())
+    val playHistory: StateFlow<List<MusicItem>> = _playHistory.asStateFlow()
 
     private var repeatMode: RepeatMode = RepeatMode.OFF
     private var shuffleEnabled: Boolean = false
@@ -154,6 +156,10 @@ class PlayerController @Inject constructor(
         playQueue.addNext(item)
     }
 
+    fun clearHistory() {
+        _playHistory.value = emptyList()
+    }
+
     fun removeFromQueue(index: Int): MusicItem? {
         val wasCurrentItem = playQueue.currentItem
         val newCurrent = playQueue.remove(index)
@@ -179,10 +185,19 @@ class PlayerController @Inject constructor(
 
     private fun setMediaItemAndPlay(item: MusicItem) {
         val controller = mediaController ?: return
+        recordHistory(item)
         val mediaItem = item.toMediaItem()
         controller.setMediaItem(mediaItem)
         controller.prepare()
         controller.play()
+    }
+
+    private fun recordHistory(item: MusicItem) {
+        val current = _playHistory.value
+        val deduped = current.filterNot {
+            it.id == item.id && it.platform == item.platform
+        }
+        _playHistory.value = listOf(item) + deduped.take(HISTORY_MAX_SIZE - 1)
     }
 
     private val playerListener = object : Player.Listener {
@@ -257,6 +272,7 @@ class PlayerController @Inject constructor(
 
     companion object {
         private const val POSITION_UPDATE_INTERVAL_MS = 200L
+        private const val HISTORY_MAX_SIZE = 200
     }
 }
 

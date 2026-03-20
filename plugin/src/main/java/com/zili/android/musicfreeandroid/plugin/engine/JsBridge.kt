@@ -1,8 +1,10 @@
 package com.zili.android.musicfreeandroid.plugin.engine
 
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
+import com.zili.android.musicfreeandroid.core.model.LyricLine
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.plugin.api.LyricResult
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetInfoResult
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
@@ -12,6 +14,8 @@ import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.api.TopListDetailResult
 
 object JsBridge {
+    private val LrcRegex = Regex("\\[(\\d{1,2}):(\\d{1,2})(?:\\.(\\d{1,3}))?]([^\\n]*)")
+
     fun toMusicItem(map: Map<String, Any?>): MusicItem {
         val durationRaw = (map["duration"] as? Number)?.toDouble() ?: 0.0
         return MusicItem(
@@ -59,6 +63,59 @@ object JsBridge {
                 runCatching { PlayQuality.valueOf(it.uppercase()) }.getOrNull()
             },
         )
+    }
+
+    fun parseMusicInfoResult(base: MusicItem, map: Map<String, Any?>): MusicItem {
+        val merged = musicItemToMap(base) + map
+        return toMusicItem(merged)
+    }
+
+    fun parseImportMusicSheetResult(payload: Any?): List<MusicItem> {
+        val list = payload as? List<*> ?: return emptyList()
+        return list.mapNotNull { entry ->
+            (entry as? Map<String, Any?>)?.let(::toMusicItem)
+        }
+    }
+
+    fun parseImportMusicItemResult(map: Map<String, Any?>): MusicItem {
+        return toMusicItem(map)
+    }
+
+    fun parseLyricResult(map: Map<String, Any?>): LyricResult {
+        val rawLrc = map["rawLrc"]?.toString()
+            ?: map["lrc"]?.toString()
+            ?: map["lyric"]?.toString()
+        val rawLrcTxt = map["rawLrcTxt"]?.toString()
+            ?: map["txt"]?.toString()
+        val source = rawLrc ?: rawLrcTxt
+        return LyricResult(
+            rawLrc = rawLrc,
+            rawLrcTxt = rawLrcTxt,
+            lines = parseLrcLines(source.orEmpty()),
+        )
+    }
+
+    private fun parseLrcLines(raw: String): List<LyricLine> {
+        if (raw.isBlank()) return emptyList()
+        val lines = mutableListOf<LyricLine>()
+        raw.lineSequence().forEach { line ->
+            LrcRegex.findAll(line).forEach { m ->
+                val minute = m.groupValues[1].toLongOrNull() ?: return@forEach
+                val second = m.groupValues[2].toLongOrNull() ?: return@forEach
+                val fractionRaw = m.groupValues[3]
+                val fractionMs = when (fractionRaw.length) {
+                    0 -> 0L
+                    1 -> (fractionRaw.toLongOrNull() ?: 0L) * 100L
+                    2 -> (fractionRaw.toLongOrNull() ?: 0L) * 10L
+                    else -> fractionRaw.take(3).toLongOrNull() ?: 0L
+                }
+                lines += LyricLine(
+                    timeMs = (minute * 60_000L) + (second * 1000L) + fractionMs,
+                    text = m.groupValues[4].trim(),
+                )
+            }
+        }
+        return lines.sortedBy { it.timeMs }
     }
 
     fun toMusicSheetItemBase(map: Map<String, Any?>): MusicSheetItemBase {

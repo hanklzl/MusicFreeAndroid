@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid
 
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
+import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
@@ -36,6 +37,14 @@ class RoutesTest {
         val json = Json.encodeToString(serializer(), SearchRoute)
         assertNotNull(json)
         val decoded = Json.decodeFromString<SearchRoute>(json)
+        assertNotNull(decoded)
+    }
+
+    @Test
+    fun `HistoryRoute is serializable`() {
+        val json = Json.encodeToString(serializer(), HistoryRoute)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<HistoryRoute>(json)
         assertNotNull(decoded)
     }
 

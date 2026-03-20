@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.plugin.manager
 import android.util.Log
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.plugin.api.LyricResult
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetInfoResult
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
@@ -40,9 +41,8 @@ class LoadedPlugin(
                     if (!hasMethod("search")) {
                         return@runOnJsThread SearchResult(isEnd = true, data = emptyList())
                     }
-                    val escapedQuery = query.replace("\\", "\\\\").replace("'", "\\'")
                     val asyncExpr =
-                        "async function() { var r = await __plugin.search('$escapedQuery', $page, '$type'); return JSON.stringify(r); }()"
+                        "async function() { var r = await __plugin.search('${escapeJsString(query)}', $page, '${escapeJsString(type)}'); return JSON.stringify(r); }()"
                     val jsonStr = engine.evaluateAsync(asyncExpr)
                     if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
                         Log.w(TAG, "search returned empty for query='$query' on ${info.platform}")
@@ -78,6 +78,100 @@ class LoadedPlugin(
                     JsBridge.parseMediaSourceResult(parsed)
                 } catch (e: Exception) {
                     Log.e(TAG, "getMediaSource failed for ${musicItem.id} on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
+    override suspend fun getMusicInfo(musicItem: MusicItem): MusicItem? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("getMusicInfo")) {
+                        return@runOnJsThread null
+                    }
+                    engine.setGlobalMap("__musicBase", JsBridge.musicItemToMap(musicItem))
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.getMusicInfo(__musicBase); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToMap(jsonStr)
+                    JsBridge.parseMusicInfoResult(musicItem, parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getMusicInfo failed for ${musicItem.id} on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
+    override suspend fun getLyric(musicItem: MusicItem): LyricResult? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("getLyric")) {
+                        return@runOnJsThread null
+                    }
+                    engine.setGlobalMap("__musicBase", JsBridge.musicItemToMap(musicItem))
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.getLyric(__musicBase); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToMap(jsonStr)
+                    JsBridge.parseLyricResult(parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "getLyric failed for ${musicItem.id} on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
+    override suspend fun importMusicSheet(urlLike: String): List<MusicItem>? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("importMusicSheet")) {
+                        return@runOnJsThread null
+                    }
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.importMusicSheet('${escapeJsString(urlLike)}'); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToAny(jsonStr)
+                    JsBridge.parseImportMusicSheetResult(parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "importMusicSheet failed on ${info.platform}", e)
+                    null
+                }
+            }
+        }
+    }
+
+    override suspend fun importMusicItem(urlLike: String): MusicItem? {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
+                try {
+                    if (!hasMethod("importMusicItem")) {
+                        return@runOnJsThread null
+                    }
+                    val jsonStr = engine.evaluateAsync(
+                        "async function() { var r = await __plugin.importMusicItem('${escapeJsString(urlLike)}'); return JSON.stringify(r); }()",
+                    )
+                    if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
+                        return@runOnJsThread null
+                    }
+                    val parsed = parseJsonToMap(jsonStr)
+                    JsBridge.parseImportMusicItemResult(parsed)
+                } catch (e: Exception) {
+                    Log.e(TAG, "importMusicItem failed on ${info.platform}", e)
                     null
                 }
             }
@@ -235,5 +329,9 @@ class LoadedPlugin(
     @Suppress("UNCHECKED_CAST")
     private fun parseJsonToMap(json: String): Map<String, Any?> {
         return parseJsonToAny(json) as? Map<String, Any?> ?: emptyMap()
+    }
+
+    private fun escapeJsString(value: String): String {
+        return value.replace("\\", "\\\\").replace("'", "\\'")
     }
 }
