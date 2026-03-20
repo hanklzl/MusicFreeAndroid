@@ -4,7 +4,12 @@ import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.LyricLine
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.plugin.api.AlbumInfoResult
+import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
+import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
+import com.zili.android.musicfreeandroid.plugin.api.ArtistWorksResult
 import com.zili.android.musicfreeandroid.plugin.api.LyricResult
+import com.zili.android.musicfreeandroid.plugin.api.MusicComment
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetInfoResult
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
@@ -132,6 +137,58 @@ object JsBridge {
         )
     }
 
+    fun toAlbumItemBase(map: Map<String, Any?>): AlbumItemBase {
+        return AlbumItemBase(
+            id = map["id"]?.toString() ?: "",
+            platform = map["platform"]?.toString() ?: "",
+            title = map["title"]?.toString(),
+            date = map["date"]?.toString(),
+            artist = map["artist"]?.toString(),
+            description = map["description"]?.toString(),
+            artwork = map["artwork"]?.toString(),
+            worksNum = (map["worksNum"] as? Number)?.toInt(),
+            raw = map.toMap(),
+        )
+    }
+
+    fun albumItemToMap(item: AlbumItemBase): Map<String, Any?> {
+        return item.raw + mapOf(
+            "id" to item.id,
+            "platform" to item.platform,
+            "title" to item.title,
+            "date" to item.date,
+            "artist" to item.artist,
+            "description" to item.description,
+            "artwork" to item.artwork,
+            "worksNum" to item.worksNum,
+        )
+    }
+
+    fun toArtistItemBase(map: Map<String, Any?>): ArtistItemBase {
+        return ArtistItemBase(
+            id = map["id"]?.toString() ?: "",
+            platform = map["platform"]?.toString() ?: "",
+            name = map["name"]?.toString(),
+            avatar = map["avatar"]?.toString(),
+            fans = (map["fans"] as? Number)?.toInt(),
+            description = map["description"]?.toString(),
+            worksNum = (map["worksNum"] as? Number)?.toInt(),
+            raw = map.toMap(),
+        )
+    }
+
+    fun artistItemToMap(item: ArtistItemBase): Map<String, Any?> {
+        return item.raw + mapOf(
+            "id" to item.id,
+            "platform" to item.platform,
+            "name" to item.name,
+            "avatar" to item.avatar,
+            "fans" to item.fans,
+            "description" to item.description,
+            "worksNum" to item.worksNum,
+        )
+    }
+
     fun musicSheetItemToMap(item: MusicSheetItemBase): Map<String, Any?> {
         return item.raw + mapOf(
             "id" to item.id,
@@ -185,6 +242,72 @@ object JsBridge {
             isEnd = isEnd,
             sheetItem = sheetItem,
             musicList = musicList,
+        )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun parseAlbumInfoResult(map: Map<String, Any?>): AlbumInfoResult {
+        val isEnd = map["isEnd"] as? Boolean ?: true
+        val albumMap =
+            (map["albumItem"] as? Map<String, Any?>)
+                ?: (map["sheetItem"] as? Map<String, Any?>)
+        val albumItem = albumMap?.let(::toAlbumItemBase)
+        val musicList = (map["musicList"] as? List<*>)?.mapNotNull { entry ->
+            (entry as? Map<String, Any?>)?.let(::toMusicItem)
+        } ?: emptyList()
+        return AlbumInfoResult(
+            isEnd = isEnd,
+            albumItem = albumItem,
+            musicList = musicList,
+        )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun parseArtistWorksResult(map: Map<String, Any?>, type: String): ArtistWorksResult {
+        val isEnd = map["isEnd"] as? Boolean ?: false
+        val rawData = (map["data"] as? List<*>)?.mapNotNull { entry ->
+            entry as? Map<String, Any?>
+        } ?: emptyList()
+        val musicList = if (type == "music") {
+            rawData.map(::toMusicItem)
+        } else {
+            emptyList()
+        }
+        return ArtistWorksResult(
+            isEnd = isEnd,
+            type = type,
+            musicList = musicList,
+            rawData = rawData,
+        )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun parseMusicCommentsResult(map: Map<String, Any?>): PaginationResult<MusicComment> {
+        val isEnd = map["isEnd"] as? Boolean ?: false
+        val data = (map["data"] as? List<*>)?.mapNotNull { entry ->
+            (entry as? Map<String, Any?>)?.let(::toMusicComment)
+        } ?: emptyList()
+        return PaginationResult(
+            isEnd = isEnd,
+            data = data,
+        )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun toMusicComment(map: Map<String, Any?>): MusicComment {
+        val replies = (map["replies"] as? List<*>)?.mapNotNull { entry ->
+            (entry as? Map<String, Any?>)?.let(::toMusicComment)
+        } ?: emptyList()
+        return MusicComment(
+            id = map["id"]?.toString(),
+            nickName = map["nickName"]?.toString() ?: map["name"]?.toString().orEmpty(),
+            avatar = map["avatar"]?.toString(),
+            comment = map["comment"]?.toString() ?: map["content"]?.toString().orEmpty(),
+            likeCount = (map["like"] as? Number)?.toInt(),
+            createAt = (map["createAt"] as? Number)?.toLong(),
+            location = map["location"]?.toString(),
+            replies = replies,
+            raw = map.toMap(),
         )
     }
 
