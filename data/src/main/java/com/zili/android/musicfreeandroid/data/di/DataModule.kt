@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.data.di
 
+import android.content.ContentResolver
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -46,4 +47,9 @@ object DataModule {
     @Provides
     @Singleton
     fun provideConverters(): Converters = Converters()
+
+    @Provides
+    @Singleton
+    fun provideContentResolver(@ApplicationContext context: Context): ContentResolver =
+        context.contentResolver
 }
