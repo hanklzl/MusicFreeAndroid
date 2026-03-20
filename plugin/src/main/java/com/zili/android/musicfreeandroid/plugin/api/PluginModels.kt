@@ -25,6 +25,12 @@ data class TopListDetailResult(
     val musicList: List<MusicItem>,
 )
 
+data class MusicSheetInfoResult(
+    val isEnd: Boolean,
+    val sheetItem: MusicSheetItemBase?,
+    val musicList: List<MusicItem>,
+)
+
 data class RecommendSheetTagsResult(
     val pinned: List<MusicSheetItemBase>,
     val data: List<MusicSheetGroupItem>,

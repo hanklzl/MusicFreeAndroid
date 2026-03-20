@@ -8,6 +8,7 @@ import com.zili.android.musicfreeandroid.feature.home.HomeScreen
 fun NavGraphBuilder.homeScreen(
     onNavigateToPlayer: () -> Unit,
     onNavigateToSearch: () -> Unit,
+    onNavigateToRecommendSheets: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
@@ -16,6 +17,7 @@ fun NavGraphBuilder.homeScreen(
         HomeScreen(
             onNavigateToPlayer = onNavigateToPlayer,
             onNavigateToSearch = onNavigateToSearch,
+            onNavigateToRecommendSheets = onNavigateToRecommendSheets,
             onNavigateToSettings = onNavigateToSettings,
             onNavigateToTopList = onNavigateToTopList,
             onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,

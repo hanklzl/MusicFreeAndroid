@@ -123,6 +123,27 @@ class JsBridgeTest {
     }
 
     @Test
+    fun `parseMusicSheetInfoResult parses sheet detail payload`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "sheetItem" to mapOf(
+                "id" to "sheet-2",
+                "platform" to "demo",
+                "title" to "推荐歌单",
+            ),
+            "musicList" to listOf(
+                mapOf("id" to "101", "platform" to "demo", "title" to "Song A", "artist" to "A"),
+                mapOf("id" to "102", "platform" to "demo", "title" to "Song B", "artist" to "B"),
+            ),
+        )
+
+        val result = JsBridge.parseMusicSheetInfoResult(payload)
+        assertTrue(result.isEnd)
+        assertEquals("sheet-2", result.sheetItem?.id)
+        assertEquals(2, result.musicList.size)
+    }
+
+    @Test
     fun `parseRecommendSheetTagsResult parses pinned and grouped tags`() {
         val payload = mapOf<String, Any?>(
             "pinned" to listOf(
