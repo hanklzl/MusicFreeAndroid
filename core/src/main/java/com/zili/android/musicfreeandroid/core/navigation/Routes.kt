@@ -12,6 +12,9 @@ data object PlayerRoute
 data object SearchRoute
 
 @Serializable
+data object HistoryRoute
+
+@Serializable
 data object SettingsRoute
 
 @Serializable

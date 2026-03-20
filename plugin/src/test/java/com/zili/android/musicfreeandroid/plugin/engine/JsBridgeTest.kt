@@ -166,4 +166,66 @@ class JsBridgeTest {
         assertEquals("风格", result.data.first().title)
         assertEquals("tag-2", result.data.first().data.first().id)
     }
+
+    @Test
+    fun `parseMusicInfoResult merges partial payload`() {
+        val base = com.zili.android.musicfreeandroid.core.model.MusicItem(
+            id = "1",
+            platform = "demo",
+            title = "Old",
+            artist = "Old Artist",
+            album = null,
+            duration = 120_000L,
+            url = null,
+            artwork = null,
+            qualities = null,
+        )
+        val patch = mapOf<String, Any?>(
+            "title" to "New",
+            "artist" to "New Artist",
+            "duration" to 180.0,
+        )
+        val merged = JsBridge.parseMusicInfoResult(base, patch)
+        assertEquals("1", merged.id)
+        assertEquals("demo", merged.platform)
+        assertEquals("New", merged.title)
+        assertEquals("New Artist", merged.artist)
+        assertEquals(180_000L, merged.duration)
+    }
+
+    @Test
+    fun `parseImportMusicSheetResult parses list payload`() {
+        val payload = listOf(
+            mapOf("id" to "1", "platform" to "demo", "title" to "Song A", "artist" to "A"),
+            mapOf("id" to "2", "platform" to "demo", "title" to "Song B", "artist" to "B"),
+        )
+        val result = JsBridge.parseImportMusicSheetResult(payload)
+        assertEquals(2, result.size)
+        assertEquals("1", result.first().id)
+    }
+
+    @Test
+    fun `parseImportMusicItemResult parses single item`() {
+        val payload = mapOf<String, Any?>(
+            "id" to "99",
+            "platform" to "demo",
+            "title" to "Single",
+            "artist" to "A",
+        )
+        val result = JsBridge.parseImportMusicItemResult(payload)
+        assertEquals("99", result.id)
+        assertEquals("Single", result.title)
+    }
+
+    @Test
+    fun `parseLyricResult parses lines from lrc text`() {
+        val payload = mapOf<String, Any?>(
+            "rawLrc" to "[00:01.00]Hello\n[00:02.50]World",
+            "rawLrcTxt" to "Hello\nWorld",
+        )
+        val result = JsBridge.parseLyricResult(payload)
+        assertEquals(2, result.lines.size)
+        assertEquals(1_000L, result.lines[0].timeMs)
+        assertEquals("Hello", result.lines[0].text)
+    }
 }

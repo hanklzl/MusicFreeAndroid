@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
+import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlaylistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
@@ -17,6 +18,7 @@ import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.pluginSheetDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.recommendsheets.navigation.recommendSheetsScreen
+import com.zili.android.musicfreeandroid.feature.home.history.navigation.historyScreen
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListScreen
 import com.zili.android.musicfreeandroid.feature.playerui.navigation.playerScreen
@@ -37,6 +39,7 @@ fun AppNavHost(
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onNavigateToSearch = { navController.navigate(SearchRoute) },
             onNavigateToRecommendSheets = { navController.navigate(RecommendSheetsRoute) },
+            onNavigateToHistory = { navController.navigate(HistoryRoute) },
             onNavigateToSettings = { navController.navigate(SettingsRoute) },
             onNavigateToTopList = { navController.navigate(TopListRoute) },
             onNavigateToPlaylistDetail = { playlistId ->
@@ -51,6 +54,10 @@ fun AppNavHost(
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
         searchScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+        )
+        historyScreen(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
