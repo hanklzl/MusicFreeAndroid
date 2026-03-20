@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid.feature.home
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.data.repository.MusicRepository
+import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +28,8 @@ class HomeViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val scanner: LocalMusicScanner = mock()
     private val playerController: PlayerController = mock()
+    private val playlistRepository: PlaylistRepository = mock()
+    private val musicRepository: MusicRepository = mock()
 
     @Before
     fun setup() {
@@ -39,7 +43,7 @@ class HomeViewModelTest {
 
     @Test
     fun `initial state is Loading before scan`() = runTest {
-        val viewModel = HomeViewModel(scanner, playerController)
+        val viewModel = HomeViewModel(scanner, playerController, playlistRepository, musicRepository)
         assertEquals(HomeUiState.Loading, viewModel.uiState.value)
     }
 
@@ -50,7 +54,7 @@ class HomeViewModelTest {
         )
         whenever(scanner.scan()).thenReturn(flowOf(items))
 
-        val viewModel = HomeViewModel(scanner, playerController)
+        val viewModel = HomeViewModel(scanner, playerController, playlistRepository, musicRepository)
         viewModel.scanLocalMusic()
         advanceUntilIdle()
 
@@ -66,7 +70,7 @@ class HomeViewModelTest {
         )
         whenever(scanner.scan()).thenReturn(flowOf(items))
 
-        val viewModel = HomeViewModel(scanner, playerController)
+        val viewModel = HomeViewModel(scanner, playerController, playlistRepository, musicRepository)
         viewModel.scanLocalMusic()
         advanceUntilIdle()
 

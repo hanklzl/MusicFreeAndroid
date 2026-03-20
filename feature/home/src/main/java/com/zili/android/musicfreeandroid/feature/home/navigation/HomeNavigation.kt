@@ -9,12 +9,14 @@ fun NavGraphBuilder.homeScreen(
     onNavigateToPlayer: () -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToPlaylistDetail: (String) -> Unit,
 ) {
     composable<HomeRoute> {
         HomeScreen(
             onNavigateToPlayer = onNavigateToPlayer,
             onNavigateToSearch = onNavigateToSearch,
             onNavigateToSettings = onNavigateToSettings,
+            onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,
         )
     }
 }
