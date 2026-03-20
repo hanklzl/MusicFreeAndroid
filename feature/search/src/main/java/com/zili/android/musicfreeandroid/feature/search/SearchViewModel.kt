@@ -86,11 +86,11 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    suspend fun resolveAndPlay(item: MusicItem, queue: List<MusicItem>) {
-        val platform = _selectedPlugin.value ?: return
-        val plugin = pluginManager.getPlugin(platform) ?: return
+    suspend fun resolveAndPlay(item: MusicItem, queue: List<MusicItem>): Boolean {
+        val platform = _selectedPlugin.value ?: return false
+        val plugin = pluginManager.getPlugin(platform) ?: return false
 
-        try {
+        return try {
             val source = plugin.getMediaSource(item)
             if (source != null) {
                 val resolvedItem = item.copy(url = source.url)
@@ -103,11 +103,14 @@ class SearchViewModel @Inject constructor(
                     }
                 }
                 playerController.playQueue(resolvedQueue, index.coerceAtLeast(0))
+                true
             } else {
                 Log.w(TAG, "Failed to resolve media source for ${item.title}")
+                false
             }
         } catch (e: Exception) {
             Log.e(TAG, "resolveAndPlay failed for ${item.title}", e)
+            false
         }
     }
 }

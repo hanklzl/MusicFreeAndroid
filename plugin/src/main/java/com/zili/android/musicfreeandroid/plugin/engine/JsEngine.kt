@@ -6,6 +6,9 @@ import com.whl.quickjs.wrapper.JSArray
 import com.whl.quickjs.wrapper.JSCallFunction
 import com.whl.quickjs.wrapper.JSObject
 import com.whl.quickjs.wrapper.QuickJSContext
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.withContext
+import java.util.concurrent.Executors
 
 /**
  * Wrapper around [QuickJSContext] providing lifecycle management and
@@ -27,11 +30,16 @@ class JsEngine {
         }
     }
 
+    /** Single-thread dispatcher ensuring all QuickJS operations run on the same thread. */
+    val jsDispatcher = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "quickjs-engine-${System.identityHashCode(this)}")
+    }.asCoroutineDispatcher()
+
     /** The underlying QuickJS context. Accessible for advanced use (e.g. AxiosShim). */
     var context: QuickJSContext? = null
         private set
 
-    /** Create a new QuickJS context. Must be called before any evaluation. */
+    /** Create a new QuickJS context. Must be called on the JS thread. */
     fun create() {
         ensureNativeLoaded()
         context = QuickJSContext.create().also {
@@ -48,13 +56,59 @@ class JsEngine {
             Log.w(TAG, "Error destroying QuickJS context", e)
         } finally {
             context = null
+            jsDispatcher.close()
         }
+    }
+
+    /**
+     * Run a block on the dedicated JS thread, ensuring QuickJS thread affinity.
+     */
+    suspend fun <T> runOnJsThread(block: () -> T): T = withContext(jsDispatcher) {
+        block()
     }
 
     /** Evaluate JavaScript code and return the result. */
     fun evaluate(code: String): Any? {
         val ctx = requireContext()
         return ctx.evaluate(code)
+    }
+
+    /**
+     * Evaluate an async JS expression that returns a Promise.
+     * Uses `.then()` to capture the resolved value into a global variable,
+     * then triggers microtask flushing via a second evaluate call.
+     *
+     * Must be called on the JS thread.
+     *
+     * @param asyncExpr A JS expression that returns a Promise (e.g., an async IIFE).
+     * @return The resolved string value, or null if resolution failed.
+     */
+    fun evaluateAsync(asyncExpr: String): String? {
+        val ctx = requireContext()
+        // Reset the result holder
+        ctx.evaluate("globalThis.__asyncResult = undefined; globalThis.__asyncError = undefined;")
+        // Evaluate the async expression and capture result via .then()
+        ctx.evaluate(
+            """
+            ($asyncExpr).then(
+                function(v) { globalThis.__asyncResult = v; },
+                function(e) { globalThis.__asyncError = (e && e.message) ? e.message : String(e); }
+            );
+            """.trimIndent()
+        )
+        // Trigger microtask queue flush by evaluating a no-op expression.
+        // QuickJS flushes pending jobs (including Promise callbacks) during evaluate().
+        ctx.evaluate("void 0")
+
+        // Check for error
+        val error = ctx.evaluate("globalThis.__asyncError")
+        if (error != null && error.toString() != "undefined") {
+            throw RuntimeException("JS async error: $error")
+        }
+
+        val result = ctx.evaluate("globalThis.__asyncResult")
+        val str = result?.toString()
+        return if (str == "undefined" || str == "null") null else str
     }
 
     /** Get the JS global object. */

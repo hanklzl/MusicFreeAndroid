@@ -224,8 +224,8 @@ fun SearchScreen(
                                 item = item,
                                 onClick = {
                                     scope.launch {
-                                        viewModel.resolveAndPlay(item, state.items)
-                                        onNavigateToPlayer()
+                                        val success = viewModel.resolveAndPlay(item, state.items)
+                                        if (success) onNavigateToPlayer()
                                     }
                                 },
                             )

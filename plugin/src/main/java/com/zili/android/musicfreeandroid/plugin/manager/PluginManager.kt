@@ -160,58 +160,66 @@ class PluginManager @Inject constructor(
      * 3. Wrap the plugin code in a CommonJS-style module wrapper
      * 4. Extract plugin metadata from `__plugin`
      * 5. Return a [LoadedPlugin]
+     *
+     * All QuickJS operations run on the engine's dedicated JS thread to
+     * satisfy QuickJSContext's thread affinity requirement.
      */
-    private fun loadPluginFromFile(file: File): LoadedPlugin? {
+    private suspend fun loadPluginFromFile(file: File): LoadedPlugin? {
         val jsCode = file.readText()
         val engine = JsEngine()
-        engine.create()
 
-        val ctx = engine.context
-            ?: throw IllegalStateException("Failed to create QuickJS context")
+        engine.runOnJsThread {
+            engine.create()
 
-        // Register axios shim
-        AxiosShim.register(ctx, engine)
+            val ctx = engine.context
+                ?: throw IllegalStateException("Failed to create QuickJS context")
 
-        // Register __require shim: currently only supports 'axios'
-        ctx.globalObject.setProperty("__require", JSCallFunction { args ->
-            val moduleName = args.getOrNull(0)?.toString() ?: ""
-            when (moduleName) {
-                "axios" -> ctx.globalObject.getProperty("axios")
-                else -> {
-                    Log.w(TAG, "require('$moduleName') not supported, returning empty object")
-                    ctx.createNewJSObject()
+            // Register axios shim
+            AxiosShim.register(ctx, engine)
+
+            // Register __require shim: currently only supports 'axios'
+            ctx.globalObject.setProperty("__require", JSCallFunction { args ->
+                val moduleName = args.getOrNull(0)?.toString() ?: ""
+                when (moduleName) {
+                    "axios" -> ctx.globalObject.getProperty("axios")
+                    else -> {
+                        Log.w(TAG, "require('$moduleName') not supported, returning empty object")
+                        ctx.createNewJSObject()
+                    }
                 }
+            })
+
+            // Wrap plugin code in CommonJS-style module pattern and assign to __plugin
+            val wrappedCode = """
+                var module = {exports: {}};
+                var exports = module.exports;
+                (function(require, module, exports, console, env) {
+                    $jsCode
+                })(globalThis.__require, module, exports, console, {os: 'android'});
+                globalThis.__plugin = module.exports;
+            """.trimIndent()
+
+            try {
+                engine.evaluate(wrappedCode)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to evaluate plugin code from ${file.name}", e)
+                engine.destroy()
+                return@runOnJsThread null
             }
-        })
 
-        // Wrap plugin code in CommonJS-style module pattern and assign to __plugin
-        val wrappedCode = """
-            var module = {exports: {}};
-            var exports = module.exports;
-            (function(require, module, exports, console, env) {
-                $jsCode
-            })(globalThis.__require, module, exports, console, {os: 'android'});
-            globalThis.__plugin = module.exports;
-        """.trimIndent()
-
-        try {
-            engine.evaluate(wrappedCode)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to evaluate plugin code from ${file.name}", e)
-            engine.destroy()
-            return null
+            // Extract metadata from __plugin
+            try {
+                extractPluginInfo(engine)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to extract plugin info from ${file.name}", e)
+                engine.destroy()
+                null
+            }
+        }?.let { info ->
+            return LoadedPlugin(info = info, engine = engine, filePath = file.absolutePath)
         }
 
-        // Extract metadata from __plugin
-        val info = try {
-            extractPluginInfo(engine)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to extract plugin info from ${file.name}", e)
-            engine.destroy()
-            return null
-        }
-
-        return LoadedPlugin(info = info, engine = engine, filePath = file.absolutePath)
+        return null
     }
 
     /**

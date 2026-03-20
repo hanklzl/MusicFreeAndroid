@@ -61,7 +61,7 @@ object AxiosShim {
             applyHeaders(requestBuilder, config)
 
             val response = client.newCall(requestBuilder.build()).execute()
-            return buildResponse(context, response.code, response.body?.string())
+            return response.use { buildResponse(context, it.code, it.body?.string()) }
         } catch (e: Exception) {
             Log.e(TAG, "axios.get failed", e)
             return buildErrorResponse(context, e.message ?: "Unknown error")
@@ -88,7 +88,7 @@ object AxiosShim {
             applyHeaders(requestBuilder, config)
 
             val response = client.newCall(requestBuilder.build()).execute()
-            return buildResponse(context, response.code, response.body?.string())
+            return response.use { buildResponse(context, it.code, it.body?.string()) }
         } catch (e: Exception) {
             Log.e(TAG, "axios.post failed", e)
             return buildErrorResponse(context, e.message ?: "Unknown error")

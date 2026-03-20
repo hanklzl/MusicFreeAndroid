@@ -8,8 +8,6 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.engine.JsBridge
 import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
 /**
@@ -28,16 +26,16 @@ class LoadedPlugin(
     }
 
     override suspend fun search(query: String, page: Int, type: String): SearchResult {
-        return withContext(Dispatchers.IO) {
-            withTimeout(TIMEOUT_MS) {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
                 try {
                     val escapedQuery = query.replace("\\", "\\\\").replace("'", "\\'")
-                    val js = "JSON.stringify(__plugin.search('$escapedQuery', $page, '$type'))"
-                    val result = engine.evaluate(js)
-                    val jsonStr = result?.toString()
+                    val asyncExpr =
+                        "async function() { var r = await __plugin.search('$escapedQuery', $page, '$type'); return JSON.stringify(r); }()"
+                    val jsonStr = engine.evaluateAsync(asyncExpr)
                     if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
                         Log.w(TAG, "search returned empty for query='$query' on ${info.platform}")
-                        return@withTimeout SearchResult(isEnd = true, data = emptyList())
+                        return@runOnJsThread SearchResult(isEnd = true, data = emptyList())
                     }
                     val parsed = parseJsonToMap(jsonStr)
                     JsBridge.parseSearchResult(parsed)
@@ -50,17 +48,17 @@ class LoadedPlugin(
     }
 
     override suspend fun getMediaSource(musicItem: MusicItem, quality: String): MediaSourceResult? {
-        return withContext(Dispatchers.IO) {
-            withTimeout(TIMEOUT_MS) {
+        return withTimeout(TIMEOUT_MS) {
+            engine.runOnJsThread {
                 try {
                     val itemMap = JsBridge.musicItemToMap(musicItem)
                     engine.setGlobalMap("__musicItem", itemMap)
-                    val js = "JSON.stringify(__plugin.getMediaSource(__musicItem, '$quality'))"
-                    val result = engine.evaluate(js)
-                    val jsonStr = result?.toString()
+                    val asyncExpr =
+                        "async function() { var r = await __plugin.getMediaSource(__musicItem, '$quality'); return JSON.stringify(r); }()"
+                    val jsonStr = engine.evaluateAsync(asyncExpr)
                     if (jsonStr.isNullOrBlank() || jsonStr == "undefined" || jsonStr == "null") {
                         Log.w(TAG, "getMediaSource returned empty for ${musicItem.id} on ${info.platform}")
-                        return@withTimeout null
+                        return@runOnJsThread null
                     }
                     val parsed = parseJsonToMap(jsonStr)
                     JsBridge.parseMediaSourceResult(parsed)
