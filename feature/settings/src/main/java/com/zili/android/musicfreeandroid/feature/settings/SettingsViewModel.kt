@@ -1,0 +1,72 @@
+package com.zili.android.musicfreeandroid.feature.settings
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+sealed interface InstallState {
+    data object Idle : InstallState
+    data object Loading : InstallState
+    data object Success : InstallState
+    data class Error(val message: String) : InstallState
+}
+
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    private val pluginManager: PluginManager,
+) : ViewModel() {
+
+    val plugins: StateFlow<List<PluginInfo>> = pluginManager.plugins
+        .map { list -> list.map { it.info } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _installState = MutableStateFlow<InstallState>(InstallState.Idle)
+    val installState: StateFlow<InstallState> = _installState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            pluginManager.loadAllPlugins()
+        }
+    }
+
+    fun installFromUrl(url: String) {
+        if (url.isBlank()) {
+            _installState.value = InstallState.Error("URL 不能为空")
+            return
+        }
+        _installState.value = InstallState.Loading
+        viewModelScope.launch {
+            try {
+                val fileName = url.substringAfterLast("/").ifBlank { "plugin.js" }
+                val result = pluginManager.installFromUrl(url, fileName)
+                _installState.value = if (result != null) {
+                    InstallState.Success
+                } else {
+                    InstallState.Error("插件安装失败")
+                }
+            } catch (e: Exception) {
+                _installState.value = InstallState.Error(e.message ?: "未知错误")
+            }
+        }
+    }
+
+    fun uninstallPlugin(platform: String) {
+        viewModelScope.launch {
+            pluginManager.uninstall(platform)
+        }
+    }
+
+    fun resetInstallState() {
+        _installState.value = InstallState.Idle
+    }
+}
