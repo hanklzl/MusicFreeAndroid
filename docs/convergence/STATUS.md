@@ -1,7 +1,7 @@
 # MusicFree 收敛状态
 
 ## 功能覆盖率
-- 页面: 14/19
+- 页面: 15/19
 - PluginApi: 14/14
 - 面板/弹窗: 5/23（原版 panel 18 + 业务 dialog 5）
 
@@ -20,15 +20,14 @@
 | 10 | 2026-03-21 | 完成分析、实现与验证（`MusicItem` 扩展字段透传，修复 `getMediaSource` 点击播放失败 + 集成测试覆盖 `search -> getMediaSource`） | 14/19 → 14/19 | 已确认根因为 `songmid` 等字段在桥接链路丢失；WY 真插件与本地 runtime-shim 集成测试通过 |
 | 11 | 2026-03-21 | 完成分析、实现与验证（搜索页播放兜底：主插件失败回退 `元力WY` + 匹配算法与单测） | 14/19 → 14/19 | “搜索可用但点击失败”场景可自动回退；仍需端上真实点击链路截图验收 |
 | 12 | 2026-03-21 | 完成分析、实现与验证（默认订阅真实集成测试：`installFromSubscriptionUrl -> WY search -> getMediaSource`） | 14/19 → 14/19 | 默认订阅导入与 WY 搜索/解析链路已在 connected instrumentation 通过 |
+| 13 | 2026-03-21 | 完成分析、实现与验证（`searchMusicList` 页面落地 + 启动导航修复 + iteration-13 文档/截图基线刷新） | 14/19 → 15/19 | `searchMusicList` 已不再属于缺页；但 UI fidelity、能力密度与 plugin-backed 详情流仍未收敛 |
 
 ## 当前 Backlog（按综合分降序）
 | # | 差异项 | 粒度 | 综合分 | 来源 |
 |---|--------|------|--------|------|
-| 1 | 剩余页面仍缺失（`downloading/fileSelector/musicListEditor/setCustomTheme/searchMusicList`） | 粗 | 5.6 | 迭代7分析 |
-| 2 | 真实订阅导入 -> 搜索 -> 播放端上全链路验收与截图待补（默认订阅+WY 搜索/解析已通过集成测试，待端上点击实测与截图） | 中 | 5.4 | 迭代7/8/9/10/11/12验证 |
-| 3 | 首页结构视觉仍未完全对齐（深色风格、Drawer 细节、歌单区视觉） | 细 | 5.0 | 迭代7验证 |
-| 4 | `musicDetail -> albumDetail/artistDetail` 真实插件数据态与截图验收待补 | 中 | 4.6 | 迭代6/7验证 |
-| 5 | TopListDetail 真实数据态未完成验收（缺稳定插件环境） | 中 | 3.8 | 迭代1/2/3/4/5/6/7验证 |
-| 6 | PluginSheetDetail 真实数据态与播放链路待端上复验 | 中 | 3.6 | 迭代2/3/4/5/6/7验证 |
-| 7 | History 列表态与回放链路（有数据）待补验收 | 中 | 3.5 | 迭代3/4/5/6/7验证 |
-| 8 | 数据模型不完整（IMusicItem 字段与媒体实体缺口） | 中 | 3.5 | 迭代1分析 |
+| 1 | 剩余页面仍缺失（`musicListEditor/fileSelector/downloading/setCustomTheme`）；其中 `musicListEditor` 是当前最高优先级缺页，`fileSelector` 是子系统 unlock | 粗 | 5.8 | 迭代13分析 |
+| 2 | Plugin-backed 详情流仍缺端上强验证（`pluginSheetDetail`、`topListDetail`、`musicDetail -> albumDetail/artistDetail`） | 中 | 5.5 | 迭代13分析/验证 |
+| 3 | 首页 / Drawer / History 已有 iteration-13 当前截图，但与用户提供原版相比 UI fidelity 与能力密度差距仍大 | 细 | 5.1 | 迭代13截图对比 |
+| 4 | `searchMusicList` 已实现，但目前只完成路由、单测、编译与启动稳定性验证，尚无独立截图与原版能力对照 | 中 | 4.7 | 迭代13验证 |
+| 5 | 真实订阅导入 -> 搜索 -> 播放端上全链路截图仍待补齐（默认订阅/WY 链路已通过集成测试） | 中 | 4.3 | 迭代7/8/9/10/11/12/13验证 |
+| 6 | 数据模型不完整（IMusicItem 字段与媒体实体缺口） | 中 | 3.5 | 迭代1分析 |
