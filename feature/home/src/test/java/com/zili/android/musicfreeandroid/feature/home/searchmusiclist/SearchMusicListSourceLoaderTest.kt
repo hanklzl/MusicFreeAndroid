@@ -1,7 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.home.searchmusiclist
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListSource
+import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,7 +29,7 @@ class SearchMusicListSourceLoaderTest {
 
         val loader = SearchMusicListSourceLoader(playlistRepository, playerController)
 
-        val actual = loader.observe(SearchMusicListSource.Playlist("playlist-1")).first()
+        val actual = loader.observe(SearchMusicListRoute.playlist("playlist-1")).first()
 
         assertEquals(playlistItems, actual)
         verify(playlistRepository).observeMusicInPlaylist("playlist-1")
@@ -42,7 +42,7 @@ class SearchMusicListSourceLoaderTest {
 
         val loader = SearchMusicListSourceLoader(playlistRepository, playerController)
 
-        val actual = loader.observe(SearchMusicListSource.History).first()
+        val actual = loader.observe(SearchMusicListRoute.history()).first()
 
         assertEquals(historyItems, actual)
     }

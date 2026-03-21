@@ -11,7 +11,6 @@ import com.zili.android.musicfreeandroid.core.navigation.PermissionsRoute
 import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
-import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListSource
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
@@ -57,9 +56,7 @@ class RoutesTest {
 
     @Test
     fun `SearchMusicListRoute is serializable for playlist source`() {
-        val route = SearchMusicListRoute(
-            source = SearchMusicListSource.Playlist(playlistId = "playlist-42"),
-        )
+        val route = SearchMusicListRoute.playlist(playlistId = "playlist-42")
         val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
         val decoded = Json.decodeFromString<SearchMusicListRoute>(json)
@@ -68,11 +65,27 @@ class RoutesTest {
 
     @Test
     fun `SearchMusicListRoute is serializable for history source`() {
-        val route = SearchMusicListRoute(source = SearchMusicListSource.History)
+        val route = SearchMusicListRoute.history()
         val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
         val decoded = Json.decodeFromString<SearchMusicListRoute>(json)
         assertEquals(route, decoded)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `SearchMusicListRoute rejects playlist source without playlist id`() {
+        SearchMusicListRoute(
+            sourceType = SearchMusicListRoute.SOURCE_TYPE_PLAYLIST,
+            playlistId = null,
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `SearchMusicListRoute rejects history source with playlist id`() {
+        SearchMusicListRoute(
+            sourceType = SearchMusicListRoute.SOURCE_TYPE_HISTORY,
+            playlistId = "playlist-42",
+        )
     }
 
     @Test

@@ -16,8 +16,35 @@ data object HistoryRoute
 
 @Serializable
 data class SearchMusicListRoute(
-    val source: SearchMusicListSource,
-)
+    val sourceType: String,
+    val playlistId: String? = null,
+) {
+    init {
+        require(sourceType == SOURCE_TYPE_PLAYLIST || sourceType == SOURCE_TYPE_HISTORY) {
+            "Unsupported search music list source type: $sourceType"
+        }
+        require(sourceType != SOURCE_TYPE_PLAYLIST || !playlistId.isNullOrBlank()) {
+            "playlistId is required for playlist search music list routes"
+        }
+        require(sourceType != SOURCE_TYPE_HISTORY || playlistId == null) {
+            "playlistId must be null for history search music list routes"
+        }
+    }
+
+    companion object {
+        const val SOURCE_TYPE_PLAYLIST = "playlist"
+        const val SOURCE_TYPE_HISTORY = "history"
+
+        fun playlist(playlistId: String): SearchMusicListRoute = SearchMusicListRoute(
+            sourceType = SOURCE_TYPE_PLAYLIST,
+            playlistId = playlistId,
+        )
+
+        fun history(): SearchMusicListRoute = SearchMusicListRoute(
+            sourceType = SOURCE_TYPE_HISTORY,
+        )
+    }
+}
 
 @Serializable
 sealed interface SearchMusicListSource {

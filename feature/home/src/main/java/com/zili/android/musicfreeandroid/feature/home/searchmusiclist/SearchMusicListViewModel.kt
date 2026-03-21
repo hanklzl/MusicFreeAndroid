@@ -35,7 +35,7 @@ class SearchMusicListViewModel internal constructor(
 
     val uiState = combine(
         query,
-        sourceLoader.observe(route.source),
+        sourceLoader.observe(route),
     ) { currentQuery, sourceItems ->
         SearchMusicListUiState(
             query = currentQuery,

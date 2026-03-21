@@ -2,7 +2,6 @@ package com.zili.android.musicfreeandroid.feature.home.searchmusiclist
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
-import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListSource
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +47,7 @@ class SearchMusicListViewModelTest {
         whenever(playlistRepository.observeMusicInPlaylist("playlist-1"))
             .thenReturn(MutableStateFlow(items))
         val viewModel = SearchMusicListViewModel(
-            route = SearchMusicListRoute(SearchMusicListSource.Playlist("playlist-1")),
+            route = SearchMusicListRoute.playlist("playlist-1"),
             sourceLoader = SearchMusicListSourceLoader(playlistRepository, playerController),
             playerController = playerController,
         )
@@ -68,7 +67,7 @@ class SearchMusicListViewModelTest {
         )
         whenever(playerController.playHistory).thenReturn(MutableStateFlow(historyItems))
         val viewModel = SearchMusicListViewModel(
-            route = SearchMusicListRoute(SearchMusicListSource.History),
+            route = SearchMusicListRoute.history(),
             sourceLoader = SearchMusicListSourceLoader(playlistRepository, playerController),
             playerController = playerController,
         )
@@ -89,7 +88,7 @@ class SearchMusicListViewModelTest {
         )
         whenever(playerController.playHistory).thenReturn(MutableStateFlow(historyItems))
         val viewModel = SearchMusicListViewModel(
-            route = SearchMusicListRoute(SearchMusicListSource.History),
+            route = SearchMusicListRoute.history(),
             sourceLoader = SearchMusicListSourceLoader(playlistRepository, playerController),
             playerController = playerController,
         )

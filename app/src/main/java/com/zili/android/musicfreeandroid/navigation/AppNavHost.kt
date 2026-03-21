@@ -16,7 +16,6 @@ import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
-import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListSource
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
@@ -65,11 +64,7 @@ fun AppNavHost(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onNavigateToSearchMusicList = { playlistId ->
-                navController.navigate(
-                    SearchMusicListRoute(
-                        source = SearchMusicListSource.Playlist(playlistId = playlistId),
-                    ),
-                )
+                navController.navigate(SearchMusicListRoute.playlist(playlistId = playlistId))
             },
         )
         searchScreen(
@@ -80,9 +75,7 @@ fun AppNavHost(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onNavigateToSearchMusicList = {
-                navController.navigate(
-                    SearchMusicListRoute(source = SearchMusicListSource.History),
-                )
+                navController.navigate(SearchMusicListRoute.history())
             },
         )
         searchMusicListScreen(
