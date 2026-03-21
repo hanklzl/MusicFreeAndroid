@@ -34,13 +34,17 @@
 | 播放历史（空态） | 用户提供原版历史页截图（2026-03-21 会话） | `docs/convergence/screenshots/iteration-13/android-history-current.png` | 已确认 history 页截图链路恢复可用 | 仍需有数据状态和回放链路验收 |
 | 搜索结果 | 用户提供原版搜索页截图（2026-03-21 会话） | `docs/convergence/screenshots/iteration-13/android-search-results-current.png` | 已确认真实插件 tabs 与 `in the end` 搜索结果可达 | 仍需对结果点击后的真实播放终态做收口 |
 | 播放器（搜索结果点击后） | 用户提供原版播放器截图（2026-03-21 会话） | `docs/convergence/screenshots/iteration-13/android-player-from-search-current.png` | 已能进入播放器页 | 当前仍停留在空状态：`0:00 / 0:00`，播放按钮仍显示 `播放`，不能记作成功播放 |
+| 推荐歌单 | 原版推荐歌单页面参考（RN 代码 + 用户首页截图中的入口语义） | `docs/convergence/screenshots/iteration-13/android-recommend-sheets-current.png` | 已确认真实 plugin 数据列表可达 | 仍需逐条验证点击进入详情后的数据一致性 |
+| 歌单详情 -> 音乐详情 | 原版 `pluginSheetDetail -> musicDetail` 代码路径 | `docs/convergence/screenshots/iteration-13/android-plugin-sheet-detail-current.png`, `docs/convergence/screenshots/iteration-13/android-music-detail-from-sheet-current.png` | 已确认可从推荐歌单进入歌单详情并点进音乐详情 | 当前音乐详情直接出现 `插件不存在：`，专辑/歌手统计为 `--`，说明 detail hydration 仍有缺口 |
 
 ## 尚未完成的真实端上验收
 - `Settings -> default subscription import -> Search -> tap result -> Player`
   - 当前状态: 已打通到播放器页，但播放器仍为空状态，未形成可信的“成功播放”终态
 - `Home -> Recommend Sheets -> Plugin Sheet Detail -> tap song -> Music Detail`
+  - 当前状态: 已验证到 `PluginSheetDetail` 与 `MusicDetail` 页面可达，但 `MusicDetail` 当前报 `插件不存在：`，不能视为稳定通过
 - `Home -> Top List -> Top List Detail -> tap song -> Music Detail`
 - `Music Detail -> Album Detail / Artist Detail`
+  - 当前状态: 尚未独立完成，因为从 `PluginSheetDetail` 进入的 `MusicDetail` 仍未拿到可信 detail 数据
 
 ## 回归检查
 | 已有功能 | 状态 | 备注 |
@@ -51,7 +55,9 @@
 | plugin 默认订阅搜索/解析链路 | ✅ | connected instrumentation 通过 |
 | 默认订阅 -> 搜索结果列表 | ✅ | 端上已看到 `in the end` 搜索结果与 plugin tabs |
 | 默认订阅 -> 搜索结果点击 -> 播放器 | ⚠️ | 端上可进入播放器页，但当前仍为空状态，未验证出真实播放 |
-| plugin-backed detail flows | ⚠️ | 代码存在但端上真实点击/截图未补齐 |
+| 推荐歌单 -> 歌单详情 | ✅ | 已看到真实推荐歌单数据与详情页歌曲列表 |
+| 推荐歌单 -> 歌单详情 -> 音乐详情 | ⚠️ | 页面可达，但 `MusicDetail` 当前出现 `插件不存在：`，detail hydration 失败 |
+| plugin-backed detail flows | ⚠️ | 已从“未触达”推进到“可触达但仍有 hydration / playback 缺口” |
 
 ## 遗留问题（进入下轮迭代 backlog）
 - `musicListEditor-lite` 与共享 collection tooling 尚未开始实现。
