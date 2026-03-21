@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.home.scanner
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import kotlinx.coroutines.Dispatchers
@@ -15,10 +16,17 @@ import javax.inject.Singleton
 @Singleton
 class LocalMusicScanner @Inject constructor(
     private val contentResolver: ContentResolver,
+    private val documentMapper: LocalMusicDocumentMapper,
 ) {
 
-    fun scan(): Flow<List<MusicItem>> = flow {
-        emit(queryMediaStore())
+    fun scan(storageDirectoryUri: String? = null): Flow<List<MusicItem>> = flow {
+        emit(
+            if (storageDirectoryUri.isNullOrBlank()) {
+                queryMediaStore()
+            } else {
+                queryDocumentTree(storageDirectoryUri)
+            }
+        )
     }.flowOn(Dispatchers.IO)
 
     private fun queryMediaStore(): List<MusicItem> {
@@ -79,10 +87,82 @@ class LocalMusicScanner @Inject constructor(
         return items
     }
 
+    private fun queryDocumentTree(treeUriString: String): List<MusicItem> {
+        val treeUri = Uri.parse(treeUriString)
+        val rootDocumentId = DocumentsContract.getTreeDocumentId(treeUri)
+
+        return scanDocumentTree(treeUri, rootDocumentId)
+            .sortedBy { it.title.lowercase() }
+    }
+
+    private fun scanDocumentTree(
+        treeUri: Uri,
+        documentId: String,
+    ): List<MusicItem> {
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, documentId)
+        val cursor = contentResolver.query(
+            childrenUri,
+            DOCUMENT_TREE_PROJECTION,
+            null,
+            null,
+            null,
+        ) ?: return emptyList()
+
+        val items = mutableListOf<MusicItem>()
+
+        cursor.use {
+            val idCol = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+            val nameCol = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+            val mimeTypeCol = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
+
+            while (it.moveToNext()) {
+                val childDocumentId = it.getString(idCol) ?: continue
+                val displayName = it.getString(nameCol) ?: ""
+                val mimeType = it.getString(mimeTypeCol) ?: ""
+
+                when {
+                    mimeType == DocumentsContract.Document.MIME_TYPE_DIR -> {
+                        items += scanDocumentTree(treeUri, childDocumentId)
+                    }
+
+                    mimeType.isAudioMimeType() || displayName.hasAudioExtension() -> {
+                        val documentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, childDocumentId)
+                        items += documentMapper.map(documentUri, displayName)
+                    }
+                }
+            }
+        }
+
+        return items
+    }
+
     companion object {
         const val PLATFORM_LOCAL = "local"
+        private val DOCUMENT_TREE_PROJECTION = arrayOf(
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE,
+        )
     }
 }
 
-private fun String.cleanUnknown(): String =
+internal fun String.cleanUnknown(): String =
     if (this == "<unknown>" || this == "Unknown" || this == "未知歌手" || this == "未知专辑") "" else this
+
+private fun String.isAudioMimeType(): Boolean = startsWith("audio/", ignoreCase = true)
+
+private fun String.hasAudioExtension(): Boolean {
+    val extension = substringAfterLast('.', "").lowercase()
+    return extension in AUDIO_FILE_EXTENSIONS
+}
+
+private val AUDIO_FILE_EXTENSIONS = setOf(
+    "aac",
+    "flac",
+    "m4a",
+    "mp3",
+    "ogg",
+    "opus",
+    "wav",
+    "wma",
+)

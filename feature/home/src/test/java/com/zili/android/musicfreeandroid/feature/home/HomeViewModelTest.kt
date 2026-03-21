@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.home
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
@@ -30,6 +31,7 @@ class HomeViewModelTest {
     private val playerController: PlayerController = mock()
     private val playlistRepository: PlaylistRepository = mock()
     private val musicRepository: MusicRepository = mock()
+    private val appPreferences: AppPreferences = mock()
 
     @Before
     fun setup() {
@@ -43,7 +45,9 @@ class HomeViewModelTest {
 
     @Test
     fun `initial state is Loading before scan`() = runTest {
-        val viewModel = HomeViewModel(scanner, playerController, playlistRepository, musicRepository)
+        whenever(appPreferences.storageDirectoryUri).thenReturn(flowOf(null))
+
+        val viewModel = HomeViewModel(scanner, playerController, playlistRepository, musicRepository, appPreferences)
         assertEquals(HomeUiState.Loading, viewModel.uiState.value)
     }
 
@@ -52,9 +56,10 @@ class HomeViewModelTest {
         val items = listOf(
             MusicItem(id = "1", platform = "local", title = "Song 1", artist = "Artist", album = "Album", duration = 180_000L, url = null, artwork = null, qualities = null),
         )
-        whenever(scanner.scan()).thenReturn(flowOf(items))
+        whenever(appPreferences.storageDirectoryUri).thenReturn(flowOf(null))
+        whenever(scanner.scan(null)).thenReturn(flowOf(items))
 
-        val viewModel = HomeViewModel(scanner, playerController, playlistRepository, musicRepository)
+        val viewModel = HomeViewModel(scanner, playerController, playlistRepository, musicRepository, appPreferences)
         viewModel.scanLocalMusic()
         advanceUntilIdle()
 
@@ -64,13 +69,27 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `scanLocalMusic uses configured storage directory when available`() = runTest {
+        val treeUri = "content://com.android.externalstorage.documents/tree/primary%3AMusicFree"
+        whenever(appPreferences.storageDirectoryUri).thenReturn(flowOf(treeUri))
+        whenever(scanner.scan(treeUri)).thenReturn(flowOf(emptyList()))
+
+        val viewModel = HomeViewModel(scanner, playerController, playlistRepository, musicRepository, appPreferences)
+        viewModel.scanLocalMusic()
+        advanceUntilIdle()
+
+        verify(scanner).scan(treeUri)
+    }
+
+    @Test
     fun `playItem calls playerController playQueue`() = runTest {
         val items = listOf(
             MusicItem(id = "1", platform = "local", title = "Song 1", artist = "Artist", album = "Album", duration = 180_000L, url = null, artwork = null, qualities = null),
         )
-        whenever(scanner.scan()).thenReturn(flowOf(items))
+        whenever(appPreferences.storageDirectoryUri).thenReturn(flowOf(null))
+        whenever(scanner.scan(null)).thenReturn(flowOf(items))
 
-        val viewModel = HomeViewModel(scanner, playerController, playlistRepository, musicRepository)
+        val viewModel = HomeViewModel(scanner, playerController, playlistRepository, musicRepository, appPreferences)
         viewModel.scanLocalMusic()
         advanceUntilIdle()
 

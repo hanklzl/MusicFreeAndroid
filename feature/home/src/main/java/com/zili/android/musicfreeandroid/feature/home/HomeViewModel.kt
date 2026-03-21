@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
@@ -11,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,6 +22,7 @@ class HomeViewModel @Inject constructor(
     private val playerController: PlayerController,
     private val playlistRepository: PlaylistRepository,
     private val musicRepository: MusicRepository,
+    private val appPreferences: AppPreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -28,7 +31,14 @@ class HomeViewModel @Inject constructor(
     fun scanLocalMusic() {
         _uiState.value = HomeUiState.Loading
         viewModelScope.launch {
-            scanner.scan()
+            val storageDirectoryUri = try {
+                appPreferences.storageDirectoryUri.first()
+            } catch (e: Exception) {
+                _uiState.value = HomeUiState.Error(e.message ?: "扫描失败")
+                return@launch
+            }
+
+            scanner.scan(storageDirectoryUri)
                 .catch { e ->
                     _uiState.value = HomeUiState.Error(e.message ?: "扫描失败")
                 }
