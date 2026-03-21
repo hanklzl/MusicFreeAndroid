@@ -68,51 +68,12 @@ fun SearchScreen(
     Column(
         modifier = modifier.fillMaxSize(),
     ) {
-        // Top bar with back button and search field
         TopAppBar(
             title = {
-                OutlinedTextField(
-                    value = queryText,
-                    onValueChange = { queryText = it },
-                    placeholder = {
-                        Text(
-                            text = "搜索音乐",
-                            color = MusicFreeTheme.colors.textSecondary,
-                            fontSize = FontSizes.content,
-                        )
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(
-                        onSearch = {
-                            if (queryText.isNotBlank()) {
-                                viewModel.search(queryText.trim())
-                            }
-                        },
-                    ),
-                    trailingIcon = {
-                        IconButton(
-                            onClick = {
-                                if (queryText.isNotBlank()) {
-                                    viewModel.search(queryText.trim())
-                                }
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "搜索",
-                                tint = MusicFreeTheme.colors.text,
-                            )
-                        }
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = MusicFreeTheme.colors.text,
-                        unfocusedTextColor = MusicFreeTheme.colors.text,
-                        cursorColor = MusicFreeTheme.colors.primary,
-                        focusedBorderColor = MusicFreeTheme.colors.primary,
-                        unfocusedBorderColor = MusicFreeTheme.colors.divider,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
+                Text(
+                    text = "搜索",
+                    color = MusicFreeTheme.colors.appBarText,
+                    fontSize = FontSizes.title,
                 )
             },
             navigationIcon = {
@@ -129,7 +90,52 @@ fun SearchScreen(
             ),
         )
 
-        // Plugin selector
+        OutlinedTextField(
+            value = queryText,
+            onValueChange = { queryText = it },
+            placeholder = {
+                Text(
+                    text = "搜索音乐",
+                    color = MusicFreeTheme.colors.textSecondary,
+                    fontSize = FontSizes.content,
+                )
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    if (queryText.isNotBlank()) {
+                        viewModel.search(queryText.trim())
+                    }
+                },
+            ),
+            trailingIcon = {
+                IconButton(
+                    onClick = {
+                        if (queryText.isNotBlank()) {
+                            viewModel.search(queryText.trim())
+                        }
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "搜索",
+                        tint = MusicFreeTheme.colors.text,
+                    )
+                }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MusicFreeTheme.colors.text,
+                unfocusedTextColor = MusicFreeTheme.colors.text,
+                cursorColor = MusicFreeTheme.colors.primary,
+                focusedBorderColor = MusicFreeTheme.colors.primary,
+                unfocusedBorderColor = MusicFreeTheme.colors.divider,
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+
         if (plugins.isEmpty()) {
             Box(
                 modifier = Modifier

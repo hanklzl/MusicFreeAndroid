@@ -20,6 +20,48 @@ import com.zili.android.musicfreeandroid.plugin.api.TopListDetailResult
 
 object JsBridge {
     private val LrcRegex = Regex("\\[(\\d{1,2}):(\\d{1,2})(?:\\.(\\d{1,3}))?]([^\\n]*)")
+    private val MusicImageFieldKeys = listOf(
+        "artwork",
+        "coverimg",
+        "cover_img",
+        "cover",
+        "coverurl",
+        "cover_url",
+        "pic",
+        "picurl",
+        "pic_url",
+        "img",
+        "imgurl",
+        "img_url",
+        "image",
+        "imageurl",
+        "image_url",
+        "avatar",
+        "thumbnail",
+        "poster",
+        "albumart",
+        "albumpic",
+    )
+    private val SheetImageFieldKeys = listOf(
+        "coverimg",
+        "cover_img",
+        "cover",
+        "coverurl",
+        "cover_url",
+        "artwork",
+        "pic",
+        "picurl",
+        "pic_url",
+        "img",
+        "imgurl",
+        "img_url",
+        "image",
+        "imageurl",
+        "image_url",
+        "avatar",
+        "thumbnail",
+        "poster",
+    )
 
     fun toMusicItem(map: Map<String, Any?>, fallbackPlatform: String? = null): MusicItem {
         val durationRaw = (map["duration"] as? Number)?.toDouble() ?: 0.0
@@ -34,7 +76,7 @@ object JsBridge {
             album = map["album"]?.toString(),
             duration = (durationRaw * 1000).toLong(),
             url = map["url"]?.toString(),
-            artwork = map["artwork"]?.toString(),
+            artwork = firstImageUrl(map, MusicImageFieldKeys),
             qualities = null,
             raw = map.toMap(),
         )
@@ -131,6 +173,8 @@ object JsBridge {
         map: Map<String, Any?>,
         fallbackPlatform: String? = null,
     ): MusicSheetItemBase {
+        val resolvedArtwork = firstImageUrl(map, MusicImageFieldKeys)
+        val resolvedCover = firstImageUrl(map, SheetImageFieldKeys) ?: resolvedArtwork
         return MusicSheetItemBase(
             id = map["id"]?.toString() ?: "",
             platform = normalizedPlatform(
@@ -140,8 +184,8 @@ object JsBridge {
             title = map["title"]?.toString(),
             artist = map["artist"]?.toString(),
             description = map["description"]?.toString(),
-            coverImg = map["coverImg"]?.toString(),
-            artwork = map["artwork"]?.toString(),
+            coverImg = resolvedCover,
+            artwork = resolvedArtwork ?: resolvedCover,
             worksNum = (map["worksNum"] as? Number)?.toInt(),
             raw = map.toMap(),
         )
@@ -364,5 +408,23 @@ object JsBridge {
             ?.toString()
             ?.takeIf { it.isNotBlank() }
             ?: fallbackPlatform.orEmpty()
+    }
+
+    private fun firstImageUrl(map: Map<String, Any?>, keys: List<String>): String? {
+        val normalizedEntries = map.entries.associate { it.key.lowercase() to it.value }
+        for (key in keys) {
+            normalizedImageUrl(normalizedEntries[key])?.let { return it }
+        }
+        return null
+    }
+
+    private fun normalizedImageUrl(raw: Any?): String? {
+        val value = raw?.toString()?.trim().orEmpty()
+        if (value.isBlank()) return null
+        return if (value.startsWith("//")) {
+            "https:$value"
+        } else {
+            value
+        }
     }
 }

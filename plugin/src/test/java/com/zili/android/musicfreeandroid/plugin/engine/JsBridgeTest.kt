@@ -39,6 +39,20 @@ class JsBridgeTest {
     }
 
     @Test
+    fun `toMusicItem falls back to alternative image keys and normalizes protocol relative url`() {
+        val map = mapOf<String, Any?>(
+            "id" to "1",
+            "platform" to "test",
+            "title" to "Song",
+            "artist" to "Artist",
+            "pic" to "//img.example.com/cover.jpg",
+        )
+
+        val item = JsBridge.toMusicItem(map)
+        assertEquals("https://img.example.com/cover.jpg", item.artwork)
+    }
+
+    @Test
     fun `musicItemToMap converts correctly`() {
         val item = com.zili.android.musicfreeandroid.core.model.MusicItem(
             id = "1", platform = "test", title = "Song", artist = "Artist",
@@ -85,6 +99,20 @@ class JsBridgeTest {
         assertEquals("sheet-1", item.id)
         assertEquals("demo", item.platform)
         assertEquals("x", item.raw["extraField"])
+    }
+
+    @Test
+    fun `toMusicSheetItemBase falls back to image aliases and normalizes protocol relative url`() {
+        val map = mapOf<String, Any?>(
+            "id" to "sheet-1",
+            "platform" to "demo",
+            "title" to "Top 100",
+            "cover" to "//img.example.com/sheet-cover.jpg",
+        )
+
+        val item = JsBridge.toMusicSheetItemBase(map)
+        assertEquals("https://img.example.com/sheet-cover.jpg", item.coverImg)
+        assertEquals("https://img.example.com/sheet-cover.jpg", item.artwork)
     }
 
     @Test
