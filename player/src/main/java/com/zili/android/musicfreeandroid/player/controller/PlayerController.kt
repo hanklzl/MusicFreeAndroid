@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.player.controller
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Looper
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -16,6 +17,7 @@ import com.zili.android.musicfreeandroid.player.service.PlaybackService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +26,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import java.util.concurrent.CountDownLatch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -34,8 +40,10 @@ class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val connectionMutex = Mutex()
     private var mediaController: MediaController? = null
     private var positionUpdateJob: kotlinx.coroutines.Job? = null
+    private var connectJob: Job? = null
 
     val playQueue = PlayQueue()
 
@@ -48,41 +56,51 @@ class PlayerController @Inject constructor(
     private var shuffleEnabled: Boolean = false
 
     suspend fun connect() {
-        if (mediaController != null) return
-        val sessionToken = SessionToken(
-            context,
-            ComponentName(context, PlaybackService::class.java),
-        )
-        val controller = suspendCancellableCoroutine { cont ->
-            val future = MediaController.Builder(context, sessionToken).buildAsync()
-            future.addListener(
-                {
-                    try {
-                        cont.resume(future.get())
-                    } catch (e: Exception) {
-                        cont.resumeWithException(e)
-                    }
-                },
-                MoreExecutors.directExecutor(),
-            )
-            cont.invokeOnCancellation { MediaController.releaseFuture(future) }
+        connectionMutex.withLock {
+            if (mediaController != null) return
+            withContext(Dispatchers.Main.immediate) {
+                if (mediaController != null) return@withContext
+                val sessionToken = SessionToken(
+                    context,
+                    ComponentName(context, PlaybackService::class.java),
+                )
+                val controller = suspendCancellableCoroutine { cont ->
+                    val future = MediaController.Builder(context, sessionToken).buildAsync()
+                    future.addListener(
+                        {
+                            try {
+                                cont.resume(future.get())
+                            } catch (e: Exception) {
+                                cont.resumeWithException(e)
+                            }
+                        },
+                        MoreExecutors.directExecutor(),
+                    )
+                    cont.invokeOnCancellation { MediaController.releaseFuture(future) }
+                }
+                mediaController = controller
+                controller.addListener(playerListener)
+                emitState()
+            }
         }
-        mediaController = controller
-        controller.addListener(playerListener)
-        emitState()
     }
 
     fun play() {
-        mediaController?.play()
+        withConnectedController { controller ->
+            controller.play()
+        }
     }
 
     fun pause() {
-        mediaController?.pause()
+        withConnectedController { controller ->
+            controller.pause()
+        }
     }
 
     fun seekTo(positionMs: Long) {
-        mediaController?.seekTo(positionMs)
-        emitState()
+        withConnectedController { controller ->
+            controller.seekTo(positionMs)
+        }
     }
 
     fun playItem(item: MusicItem) {
@@ -110,13 +128,19 @@ class PlayerController @Inject constructor(
     }
 
     fun skipToPrevious() {
-        val position = mediaController?.currentPosition ?: 0L
-        if (position > 3_000L) {
-            mediaController?.seekTo(0L)
-            return
+        withConnectedController { controller ->
+            val position = controller.currentPosition
+            if (position > 3_000L) {
+                controller.seekTo(0L)
+                return@withConnectedController
+            }
+            val prev = playQueue.previous(repeatMode) ?: return@withConnectedController
+            val mediaItem = prev.toMediaItem()
+            recordHistory(prev)
+            controller.setMediaItem(mediaItem)
+            controller.prepare()
+            controller.play()
         }
-        val prev = playQueue.previous(repeatMode) ?: return
-        setMediaItemAndPlay(prev)
     }
 
     fun skipTo(index: Int) {
@@ -126,7 +150,9 @@ class PlayerController @Inject constructor(
 
     fun setRepeatMode(mode: RepeatMode) {
         repeatMode = mode
-        emitState()
+        runOnControllerThread {
+            emitState()
+        }
     }
 
     fun cycleRepeatMode() {
@@ -135,7 +161,9 @@ class PlayerController @Inject constructor(
             RepeatMode.ALL -> RepeatMode.ONE
             RepeatMode.ONE -> RepeatMode.OFF
         }
-        emitState()
+        runOnControllerThread {
+            emitState()
+        }
     }
 
     fun toggleShuffle() {
@@ -145,7 +173,9 @@ class PlayerController @Inject constructor(
         } else {
             playQueue.unshuffle()
         }
-        emitState()
+        runOnControllerThread {
+            emitState()
+        }
     }
 
     fun addToQueue(item: MusicItem) {
@@ -166,10 +196,14 @@ class PlayerController @Inject constructor(
         if (newCurrent != null && newCurrent != wasCurrentItem) {
             setMediaItemAndPlay(newCurrent)
         } else if (newCurrent == null) {
-            mediaController?.stop()
-            mediaController?.clearMediaItems()
+            runOnControllerThread {
+                mediaController?.stop()
+                mediaController?.clearMediaItems()
+            }
         }
-        emitState()
+        runOnControllerThread {
+            emitState()
+        }
         return newCurrent
     }
 
@@ -178,18 +212,81 @@ class PlayerController @Inject constructor(
     }
 
     fun release() {
-        positionUpdateJob?.cancel()
-        mediaController?.release()
-        mediaController = null
+        connectJob?.cancel()
+        runOnControllerThread {
+            connectJob = null
+            positionUpdateJob?.cancel()
+            positionUpdateJob = null
+            val controller = mediaController
+            mediaController = null
+            controller?.removeListener(playerListener)
+            controller?.release()
+        }
     }
 
     private fun setMediaItemAndPlay(item: MusicItem) {
-        val controller = mediaController ?: return
-        recordHistory(item)
-        val mediaItem = item.toMediaItem()
-        controller.setMediaItem(mediaItem)
-        controller.prepare()
-        controller.play()
+        withConnectedController { controller ->
+            recordHistory(item)
+            val mediaItem = item.toMediaItem()
+            controller.setMediaItem(mediaItem)
+            controller.prepare()
+            controller.play()
+        }
+    }
+
+    private fun withConnectedController(action: (MediaController) -> Unit) {
+        mediaController?.let { controller ->
+            runOnControllerThread {
+                action(controller)
+                emitState()
+            }
+            return
+        }
+
+        val existingConnectJob = connectJob
+        if (existingConnectJob?.isActive == true) {
+            scope.launch {
+                existingConnectJob.join()
+                runOnControllerThread {
+                    mediaController?.let { controller ->
+                        action(controller)
+                        emitState()
+                    }
+                }
+            }
+            return
+        }
+
+        connectJob = scope.launch {
+            runCatching {
+                connect()
+            }.onFailure {
+                return@launch
+            }
+
+            runOnControllerThread {
+                mediaController?.let { controller ->
+                    action(controller)
+                    emitState()
+                }
+            }
+        }
+    }
+
+    private fun runOnControllerThread(block: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            block()
+            return
+        }
+        val latch = CountDownLatch(1)
+        context.mainExecutor.execute {
+            try {
+                block()
+            } finally {
+                latch.countDown()
+            }
+        }
+        latch.await()
     }
 
     private fun recordHistory(item: MusicItem) {

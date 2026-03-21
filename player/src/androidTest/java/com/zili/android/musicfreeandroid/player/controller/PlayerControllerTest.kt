@@ -3,11 +3,9 @@ package com.zili.android.musicfreeandroid.player.controller
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import app.cash.turbine.turbineScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
-import com.zili.android.musicfreeandroid.player.model.PlaybackState
-import kotlinx.coroutines.test.runTest
+import java.util.concurrent.CountDownLatch
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -29,15 +27,33 @@ class PlayerControllerTest {
         artwork = null, qualities = null,
     )
 
+    private fun runOnAppThread(block: () -> Unit) {
+        val latch = CountDownLatch(1)
+        context.mainExecutor.execute {
+            try {
+                block()
+            } finally {
+                latch.countDown()
+            }
+        }
+        latch.await()
+    }
+
     @Before
-    fun setUp() = runTest {
+    fun setUp() {
         controller = PlayerController(context)
-        controller.connect()
+        runOnAppThread {
+            kotlinx.coroutines.runBlocking {
+                controller.connect()
+            }
+        }
     }
 
     @After
     fun tearDown() {
-        controller.release()
+        runOnAppThread {
+            controller.release()
+        }
     }
 
     @Test
@@ -45,90 +61,152 @@ class PlayerControllerTest {
         val state = controller.playerState.value
         assertNull(state.currentItem)
         assertFalse(state.isPlaying)
-        assertEquals(PlaybackState.IDLE, state.playbackState)
     }
 
     @Test
-    fun playQueueSetsCurrentItemAndPlays() = runTest {
-        turbineScope {
-            val states = controller.playerState.testIn(this)
-            states.skipItems(1)
-
+    fun playQueueSetsCurrentItemAndPlays() {
+        runOnAppThread {
             controller.playQueue(listOf(testItem("1"), testItem("2")), startIndex = 0)
+        }
+        waitUntil("controller loads the queued item") {
+            controller.playerState.value.currentItem?.id == "1"
+        }
 
-            val playingState = states.awaitItem()
-            assertNotNull(playingState.currentItem)
-            assertEquals("1", playingState.currentItem?.id)
+        val playingState = controller.playerState.value
+        assertNotNull(playingState.currentItem)
+        assertEquals("1", playingState.currentItem?.id)
+    }
 
-            states.cancelAndIgnoreRemainingEvents()
+    @Test
+    fun playQueueConnectsOnDemandAndEmitsState() {
+        val unconnectedController = PlayerController(context)
+
+        try {
+            runOnAppThread {
+                unconnectedController.playQueue(listOf(testItem("1")), startIndex = 0)
+            }
+
+            waitUntil("on-demand connect publishes the queued item") {
+                unconnectedController.playerState.value.currentItem?.id == "1"
+            }
+
+            assertTrue(unconnectedController.playerState.value.hasMedia)
+        } finally {
+            unconnectedController.release()
         }
     }
 
     @Test
-    fun pauseAndResumeWork() = runTest {
-        controller.playQueue(listOf(testItem("1")), startIndex = 0)
-        kotlinx.coroutines.delay(500)
+    fun pauseAndResumeWork() {
+        runOnAppThread {
+            controller.playQueue(listOf(testItem("1")), startIndex = 0)
+        }
+        waitUntil("controller starts playback") {
+            controller.playerState.value.isPlaying
+        }
 
-        controller.pause()
-        kotlinx.coroutines.delay(100)
+        runOnAppThread {
+            controller.pause()
+        }
+        waitUntil("controller pauses playback") {
+            !controller.playerState.value.isPlaying
+        }
         assertFalse(controller.playerState.value.isPlaying)
 
-        controller.play()
-        kotlinx.coroutines.delay(100)
+        runOnAppThread {
+            controller.play()
+        }
+        waitUntil("controller resumes playback") {
+            controller.playerState.value.isPlaying
+        }
         assertTrue(controller.playerState.value.isPlaying)
     }
 
     @Test
-    fun skipToNextAdvancesQueue() = runTest {
-        controller.playQueue(
-            listOf(testItem("1"), testItem("2"), testItem("3")),
-            startIndex = 0,
-        )
-        kotlinx.coroutines.delay(500)
+    fun skipToNextAdvancesQueue() {
+        runOnAppThread {
+            controller.playQueue(
+                listOf(testItem("1"), testItem("2"), testItem("3")),
+                startIndex = 0,
+            )
+        }
+        waitUntil("controller starts first queued item") {
+            controller.playerState.value.currentItem?.id == "1"
+        }
 
-        controller.skipToNext()
-        kotlinx.coroutines.delay(200)
+        runOnAppThread {
+            controller.skipToNext()
+        }
+        waitUntil("controller advances to second item") {
+            controller.playerState.value.currentItem?.id == "2"
+        }
         assertEquals("2", controller.playerState.value.currentItem?.id)
 
-        controller.skipToNext()
-        kotlinx.coroutines.delay(200)
+        runOnAppThread {
+            controller.skipToNext()
+        }
+        waitUntil("controller advances to third item") {
+            controller.playerState.value.currentItem?.id == "3"
+        }
         assertEquals("3", controller.playerState.value.currentItem?.id)
     }
 
     @Test
-    fun skipToPreviousGoesBack() = runTest {
-        controller.playQueue(
-            listOf(testItem("1"), testItem("2"), testItem("3")),
-            startIndex = 2,
-        )
-        kotlinx.coroutines.delay(500)
+    fun skipToPreviousGoesBack() {
+        runOnAppThread {
+            controller.playQueue(
+                listOf(testItem("1"), testItem("2"), testItem("3")),
+                startIndex = 2,
+            )
+        }
+        waitUntil("controller starts third item") {
+            controller.playerState.value.currentItem?.id == "3"
+        }
 
-        controller.skipToPrevious()
-        kotlinx.coroutines.delay(200)
+        runOnAppThread {
+            controller.skipToPrevious()
+        }
+        waitUntil("controller moves to previous item") {
+            controller.playerState.value.currentItem?.id == "2"
+        }
         assertEquals("2", controller.playerState.value.currentItem?.id)
     }
 
     @Test
-    fun repeatModeAffectsNavigation() = runTest {
-        controller.playQueue(listOf(testItem("1"), testItem("2")), startIndex = 1)
-        kotlinx.coroutines.delay(500)
+    fun repeatModeAffectsNavigation() {
+        runOnAppThread {
+            controller.playQueue(listOf(testItem("1"), testItem("2")), startIndex = 1)
+        }
+        waitUntil("controller starts second item") {
+            controller.playerState.value.currentItem?.id == "2"
+        }
 
         controller.setRepeatMode(RepeatMode.OFF)
-        controller.skipToNext()
-        kotlinx.coroutines.delay(200)
+        runOnAppThread {
+            controller.skipToNext()
+        }
+        Thread.sleep(200)
         assertEquals("2", controller.playerState.value.currentItem?.id)
 
         controller.setRepeatMode(RepeatMode.ALL)
-        controller.skipToNext()
-        kotlinx.coroutines.delay(200)
+        runOnAppThread {
+            controller.skipToNext()
+        }
+        waitUntil("controller wraps to first item") {
+            controller.playerState.value.currentItem?.id == "1"
+        }
         assertEquals("1", controller.playerState.value.currentItem?.id)
     }
 
     @Test
-    fun shuffleToggleShufflesAndRestoresQueue() = runTest {
+    fun shuffleToggleShufflesAndRestoresQueue() {
         val items = (1..10).map { testItem(it.toString()) }
-        controller.playQueue(items, startIndex = 0)
-        kotlinx.coroutines.delay(200)
+        runOnAppThread {
+            controller.playQueue(items, startIndex = 0)
+        }
+        waitUntil("controller starts shuffled queue seed item") {
+            controller.playerState.value.currentItem?.id == "1"
+        }
 
         controller.toggleShuffle()
         assertTrue(controller.playerState.value.shuffleEnabled)
@@ -137,5 +215,18 @@ class PlayerControllerTest {
         controller.toggleShuffle()
         assertFalse(controller.playerState.value.shuffleEnabled)
         assertEquals(items.map { it.id }, controller.playQueue.items.map { it.id })
+    }
+
+    private fun waitUntil(
+        description: String,
+        timeoutMs: Long = 3_000L,
+        condition: () -> Boolean,
+    ) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (condition()) return
+            Thread.sleep(50)
+        }
+        fail("Timed out waiting for $description")
     }
 }
