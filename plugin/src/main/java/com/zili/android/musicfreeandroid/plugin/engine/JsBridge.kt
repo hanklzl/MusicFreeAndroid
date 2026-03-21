@@ -21,11 +21,14 @@ import com.zili.android.musicfreeandroid.plugin.api.TopListDetailResult
 object JsBridge {
     private val LrcRegex = Regex("\\[(\\d{1,2}):(\\d{1,2})(?:\\.(\\d{1,3}))?]([^\\n]*)")
 
-    fun toMusicItem(map: Map<String, Any?>): MusicItem {
+    fun toMusicItem(map: Map<String, Any?>, fallbackPlatform: String? = null): MusicItem {
         val durationRaw = (map["duration"] as? Number)?.toDouble() ?: 0.0
         return MusicItem(
             id = map["id"]?.toString() ?: "",
-            platform = map["platform"]?.toString() ?: "",
+            platform = normalizedPlatform(
+                rawPlatform = map["platform"],
+                fallbackPlatform = fallbackPlatform,
+            ),
             title = map["title"]?.toString() ?: "",
             artist = map["artist"]?.toString() ?: "",
             album = map["album"]?.toString(),
@@ -73,7 +76,7 @@ object JsBridge {
 
     fun parseMusicInfoResult(base: MusicItem, map: Map<String, Any?>): MusicItem {
         val merged = musicItemToMap(base) + map
-        return toMusicItem(merged)
+        return toMusicItem(merged, fallbackPlatform = base.platform)
     }
 
     fun parseImportMusicSheetResult(payload: Any?): List<MusicItem> {
@@ -124,10 +127,16 @@ object JsBridge {
         return lines.sortedBy { it.timeMs }
     }
 
-    fun toMusicSheetItemBase(map: Map<String, Any?>): MusicSheetItemBase {
+    fun toMusicSheetItemBase(
+        map: Map<String, Any?>,
+        fallbackPlatform: String? = null,
+    ): MusicSheetItemBase {
         return MusicSheetItemBase(
             id = map["id"]?.toString() ?: "",
-            platform = map["platform"]?.toString() ?: "",
+            platform = normalizedPlatform(
+                rawPlatform = map["platform"],
+                fallbackPlatform = fallbackPlatform,
+            ),
             title = map["title"]?.toString(),
             artist = map["artist"]?.toString(),
             description = map["description"]?.toString(),
@@ -219,11 +228,18 @@ object JsBridge {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun parseTopListDetailResult(map: Map<String, Any?>): TopListDetailResult {
+    fun parseTopListDetailResult(
+        map: Map<String, Any?>,
+        fallbackPlatform: String? = null,
+    ): TopListDetailResult {
         val isEnd = map["isEnd"] as? Boolean ?: true
-        val topListItem = (map["topListItem"] as? Map<String, Any?>)?.let(::toMusicSheetItemBase)
+        val topListItem = (map["topListItem"] as? Map<String, Any?>)?.let {
+            toMusicSheetItemBase(it, fallbackPlatform = fallbackPlatform)
+        }
         val musicList = (map["musicList"] as? List<*>)?.mapNotNull { entry ->
-            (entry as? Map<String, Any?>)?.let(::toMusicItem)
+            (entry as? Map<String, Any?>)?.let {
+                toMusicItem(it, fallbackPlatform = fallbackPlatform)
+            }
         } ?: emptyList()
         return TopListDetailResult(
             isEnd = isEnd,
@@ -233,11 +249,18 @@ object JsBridge {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun parseMusicSheetInfoResult(map: Map<String, Any?>): MusicSheetInfoResult {
+    fun parseMusicSheetInfoResult(
+        map: Map<String, Any?>,
+        fallbackPlatform: String? = null,
+    ): MusicSheetInfoResult {
         val isEnd = map["isEnd"] as? Boolean ?: true
-        val sheetItem = (map["sheetItem"] as? Map<String, Any?>)?.let(::toMusicSheetItemBase)
+        val sheetItem = (map["sheetItem"] as? Map<String, Any?>)?.let {
+            toMusicSheetItemBase(it, fallbackPlatform = fallbackPlatform)
+        }
         val musicList = (map["musicList"] as? List<*>)?.mapNotNull { entry ->
-            (entry as? Map<String, Any?>)?.let(::toMusicItem)
+            (entry as? Map<String, Any?>)?.let {
+                toMusicItem(it, fallbackPlatform = fallbackPlatform)
+            }
         } ?: emptyList()
         return MusicSheetInfoResult(
             isEnd = isEnd,
@@ -334,5 +357,12 @@ object JsBridge {
             isEnd = isEnd,
             data = data,
         )
+    }
+
+    private fun normalizedPlatform(rawPlatform: Any?, fallbackPlatform: String?): String {
+        return rawPlatform
+            ?.toString()
+            ?.takeIf { it.isNotBlank() }
+            ?: fallbackPlatform.orEmpty()
     }
 }

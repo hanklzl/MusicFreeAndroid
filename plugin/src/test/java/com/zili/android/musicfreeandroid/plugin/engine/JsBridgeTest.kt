@@ -123,6 +123,25 @@ class JsBridgeTest {
     }
 
     @Test
+    fun `parseTopListDetailResult backfills blank platforms from loaded plugin`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to false,
+            "topListItem" to mapOf(
+                "id" to "sheet-1",
+                "platform" to "",
+                "title" to "热歌榜",
+            ),
+            "musicList" to listOf(
+                mapOf("id" to "1", "platform" to "", "title" to "Song", "artist" to "A"),
+            ),
+        )
+
+        val result = JsBridge.parseTopListDetailResult(payload, fallbackPlatform = "demo")
+        assertEquals("demo", result.topListItem?.platform)
+        assertEquals(listOf("demo"), result.musicList.map { it.platform })
+    }
+
+    @Test
     fun `parseMusicSheetInfoResult parses sheet detail payload`() {
         val payload = mapOf<String, Any?>(
             "isEnd" to true,
@@ -141,6 +160,26 @@ class JsBridgeTest {
         assertTrue(result.isEnd)
         assertEquals("sheet-2", result.sheetItem?.id)
         assertEquals(2, result.musicList.size)
+    }
+
+    @Test
+    fun `parseMusicSheetInfoResult backfills blank platforms from loaded plugin`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "sheetItem" to mapOf(
+                "id" to "sheet-2",
+                "platform" to "",
+                "title" to "推荐歌单",
+            ),
+            "musicList" to listOf(
+                mapOf("id" to "101", "platform" to "", "title" to "Song A", "artist" to "A"),
+                mapOf("id" to "102", "title" to "Song B", "artist" to "B"),
+            ),
+        )
+
+        val result = JsBridge.parseMusicSheetInfoResult(payload, fallbackPlatform = "demo")
+        assertEquals("demo", result.sheetItem?.platform)
+        assertEquals(listOf("demo", "demo"), result.musicList.map { it.platform })
     }
 
     @Test
@@ -191,6 +230,29 @@ class JsBridgeTest {
         assertEquals("New", merged.title)
         assertEquals("New Artist", merged.artist)
         assertEquals(180_000L, merged.duration)
+    }
+
+    @Test
+    fun `parseMusicInfoResult keeps base platform when payload platform is blank`() {
+        val base = com.zili.android.musicfreeandroid.core.model.MusicItem(
+            id = "1",
+            platform = "demo",
+            title = "Old",
+            artist = "Old Artist",
+            album = null,
+            duration = 120_000L,
+            url = null,
+            artwork = null,
+            qualities = null,
+        )
+        val patch = mapOf<String, Any?>(
+            "platform" to "",
+            "title" to "New",
+        )
+
+        val merged = JsBridge.parseMusicInfoResult(base, patch)
+        assertEquals("demo", merged.platform)
+        assertEquals("New", merged.title)
     }
 
     @Test

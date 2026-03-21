@@ -274,7 +274,10 @@ class LoadedPlugin(
                         return@runOnJsThread null
                     }
                     val parsed = parseJsonToMap(jsonStr)
-                    JsBridge.parseTopListDetailResult(parsed)
+                    JsBridge.parseTopListDetailResult(
+                        parsed,
+                        fallbackPlatform = info.platform,
+                    )
                 } catch (e: Exception) {
                     Log.e(TAG, "getTopListDetail failed on ${info.platform}", e)
                     null
@@ -301,7 +304,10 @@ class LoadedPlugin(
                         return@runOnJsThread null
                     }
                     val parsed = parseJsonToMap(jsonStr)
-                    JsBridge.parseMusicSheetInfoResult(parsed)
+                    JsBridge.parseMusicSheetInfoResult(
+                        parsed,
+                        fallbackPlatform = info.platform,
+                    )
                 } catch (e: Exception) {
                     Log.e(TAG, "getMusicSheetInfo failed on ${info.platform}", e)
                     null
