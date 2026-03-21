@@ -65,6 +65,9 @@ data object PermissionsRoute
 data class PlaylistDetailRoute(val playlistId: String)
 
 @Serializable
+data class MusicListEditorLiteRoute(val playlistId: String)
+
+@Serializable
 data object PlayQueueRoute
 
 @Serializable

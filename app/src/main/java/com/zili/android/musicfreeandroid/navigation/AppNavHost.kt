@@ -9,6 +9,7 @@ import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.MusicListEditorLiteRoute
 import com.zili.android.musicfreeandroid.core.navigation.PermissionsRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlaylistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
@@ -23,6 +24,7 @@ import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
 import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.albumDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.artistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.musicDetailScreen
+import com.zili.android.musicfreeandroid.feature.home.musiclisteditor.navigation.musicListEditorLiteScreen
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.pluginSheetDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.recommendsheets.navigation.recommendSheetsScreen
@@ -66,6 +68,12 @@ fun AppNavHost(
             onNavigateToSearchMusicList = { playlistId ->
                 navController.navigate(SearchMusicListRoute.playlist(playlistId = playlistId))
             },
+            onNavigateToMusicListEditorLite = { playlistId ->
+                navController.navigate(MusicListEditorLiteRoute(playlistId))
+            },
+        )
+        musicListEditorLiteScreen(
+            onBack = { navController.popBackStack() },
         )
         searchScreen(
             onBack = { navController.popBackStack() },

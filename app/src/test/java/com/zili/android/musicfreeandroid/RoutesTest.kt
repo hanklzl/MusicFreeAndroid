@@ -5,6 +5,7 @@ import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.MusicListEditorLiteRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PermissionsRoute
@@ -158,6 +159,15 @@ class RoutesTest {
         assertNotNull(json)
         val decoded = Json.decodeFromString<MusicDetailRoute>(json)
         assertNotNull(decoded)
+    }
+
+    @Test
+    fun `MusicListEditorLiteRoute is serializable`() {
+        val route = MusicListEditorLiteRoute(playlistId = "playlist-42")
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<MusicListEditorLiteRoute>(json)
+        assertEquals(route, decoded)
     }
 
     @Test

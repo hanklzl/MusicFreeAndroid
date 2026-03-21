@@ -8,12 +8,14 @@ fun NavGraphBuilder.playlistDetailScreen(
     onBack: () -> Unit,
     onNavigateToPlayer: () -> Unit,
     onNavigateToSearchMusicList: (String) -> Unit,
+    onNavigateToMusicListEditorLite: (String) -> Unit,
 ) {
     composable<PlaylistDetailRoute> {
         PlaylistDetailScreen(
             onBack = onBack,
             onNavigateToPlayer = onNavigateToPlayer,
             onNavigateToSearchMusicList = onNavigateToSearchMusicList,
+            onNavigateToMusicListEditorLite = onNavigateToMusicListEditorLite,
         )
     }
 }
