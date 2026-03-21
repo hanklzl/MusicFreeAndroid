@@ -90,6 +90,67 @@ class MusicListEditorLiteViewModelTest {
     }
 
     @Test
+    fun `save reconciles staged deletions against latest playlist snapshot`() = runTest {
+        val playlistItems = MutableStateFlow(
+            listOf(
+                track(id = "1"),
+                track(id = "2"),
+                track(id = "3"),
+            )
+        )
+        whenever(playlistRepository.getPlaylistById("playlist-1"))
+            .thenReturn(Playlist(id = "playlist-1", name = "Favorites", coverUri = null))
+        whenever(playlistRepository.observeMusicInPlaylist("playlist-1"))
+            .thenReturn(playlistItems)
+        whenever(playlistRepository.observeAllPlaylists())
+            .thenReturn(
+                MutableStateFlow(
+                    listOf(Playlist(id = "playlist-1", name = "Favorites", coverUri = null))
+                )
+            )
+
+        val viewModel = MusicListEditorLiteViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
+            playlistRepository = playlistRepository,
+            playerController = playerController,
+        )
+        advanceUntilIdle()
+
+        viewModel.toggleSelection(playlistItems.value[0])
+        viewModel.removeSelectedFromPlaylist()
+        advanceUntilIdle()
+
+        val externalTrack = track(id = "4")
+        playlistItems.value = playlistItems.value + externalTrack
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                playlistItems.value[1],
+                playlistItems.value[2],
+                externalTrack,
+            ),
+            viewModel.uiState.value.items,
+        )
+        assertTrue(viewModel.uiState.value.hasPendingChanges)
+
+        viewModel.saveChanges()
+        advanceUntilIdle()
+
+        verify(playlistRepository).removeMusicFromPlaylist("playlist-1", track(id = "1"))
+        verify(playlistRepository, never()).removeMusicFromPlaylist("playlist-1", externalTrack)
+        assertEquals(
+            listOf(
+                track(id = "2"),
+                track(id = "3"),
+                externalTrack,
+            ),
+            viewModel.uiState.value.items,
+        )
+        assertFalse(viewModel.uiState.value.hasPendingChanges)
+    }
+
+    @Test
     fun `addSelectedToNextQueue preserves selected order in upcoming queue`() = runTest {
         val items = listOf(
             track(id = "1"),

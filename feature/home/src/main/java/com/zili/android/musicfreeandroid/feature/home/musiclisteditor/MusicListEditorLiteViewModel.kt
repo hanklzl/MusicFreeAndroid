@@ -62,13 +62,22 @@ class MusicListEditorLiteViewModel @Inject constructor(
         }
         viewModelScope.launch {
             playlistRepository.observeMusicInPlaylist(playlistId).collect { items ->
-                if (!hasPendingChanges.value) {
-                    baselineItems = items
-                    editableItems.value = items
-                    selectedItemKeys.value = selectedItemKeys.value.filter { selectedKey ->
-                        items.any { itemKey(it) == selectedKey }
-                    }.toSet()
+                val stagedRemovedKeys = if (hasPendingChanges.value) {
+                    stagedRemovedKeys()
+                } else {
+                    emptySet()
                 }
+
+                baselineItems = items
+                editableItems.value = if (stagedRemovedKeys.isEmpty()) {
+                    items
+                } else {
+                    items.filterNot { itemKey(it) in stagedRemovedKeys }
+                }
+                selectedItemKeys.value = selectedItemKeys.value.filter { selectedKey ->
+                    editableItems.value.any { itemKey(it) == selectedKey }
+                }.toSet()
+                hasPendingChanges.value = hasChangedFromBaseline()
             }
         }
     }
@@ -137,6 +146,11 @@ class MusicListEditorLiteViewModel @Inject constructor(
         val currentKeys = editableItems.value.map(::itemKey)
         val baselineKeys = baselineItems.map(::itemKey)
         return currentKeys != baselineKeys
+    }
+
+    private fun stagedRemovedKeys(): Set<String> {
+        val editableKeys = editableItems.value.mapTo(mutableSetOf(), ::itemKey)
+        return baselineItems.mapTo(mutableSetOf(), ::itemKey).filterNot(editableKeys::contains).toSet()
     }
 
     private fun itemKey(item: MusicItem): String = "${item.platform}:${item.id}"
