@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
@@ -39,6 +40,7 @@ import kotlinx.coroutines.launch
 fun TopListDetailScreen(
     onBack: () -> Unit,
     onNavigateToPlayer: () -> Unit,
+    onOpenMusicDetail: (MusicItem) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TopListDetailViewModel = hiltViewModel(),
 ) {
@@ -151,6 +153,9 @@ fun TopListDetailScreen(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
+                            }
+                            TextButton(onClick = { onOpenMusicDetail(item) }) {
+                                Text("详情", color = MusicFreeTheme.colors.primary)
                             }
                         }
                     }

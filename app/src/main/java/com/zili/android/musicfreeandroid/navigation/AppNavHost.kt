@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
+import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlaylistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
@@ -15,6 +16,7 @@ import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
+import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.musicDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.pluginSheetDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.recommendsheets.navigation.recommendSheetsScreen
@@ -78,6 +80,19 @@ fun AppNavHost(
         topListDetailScreen(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+            onOpenMusicDetail = { item ->
+                navController.navigate(
+                    MusicDetailRoute(
+                        pluginPlatform = item.platform,
+                        musicId = item.id,
+                        title = item.title,
+                        artist = item.artist,
+                        album = item.album,
+                        artwork = item.artwork,
+                        durationMs = item.duration,
+                    ),
+                )
+            },
         )
         recommendSheetsScreen(
             onBack = { navController.popBackStack() },
@@ -97,6 +112,22 @@ fun AppNavHost(
         pluginSheetDetailScreen(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+            onOpenMusicDetail = { item ->
+                navController.navigate(
+                    MusicDetailRoute(
+                        pluginPlatform = item.platform,
+                        musicId = item.id,
+                        title = item.title,
+                        artist = item.artist,
+                        album = item.album,
+                        artwork = item.artwork,
+                        durationMs = item.duration,
+                    ),
+                )
+            },
+        )
+        musicDetailScreen(
+            onBack = { navController.popBackStack() },
         )
     }
 }

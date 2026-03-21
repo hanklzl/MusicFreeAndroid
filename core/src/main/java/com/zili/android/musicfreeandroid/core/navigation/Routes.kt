@@ -44,3 +44,14 @@ data class PluginSheetDetailRoute(
     val coverImg: String? = null,
     val artwork: String? = null,
 )
+
+@Serializable
+data class MusicDetailRoute(
+    val pluginPlatform: String,
+    val musicId: String,
+    val title: String,
+    val artist: String,
+    val album: String? = null,
+    val artwork: String? = null,
+    val durationMs: Long = 0L,
+)
