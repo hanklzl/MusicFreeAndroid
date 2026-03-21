@@ -32,9 +32,12 @@
 | 首页 | 用户提供原版首页截图（2026-03-21 会话） | `docs/convergence/screenshots/iteration-13/android-home-current.png` | 已能对位首页信息架构 | 顶栏色系、入口卡片细节、底部播放器、列表密度仍偏离 |
 | Drawer | 用户提供原版 Drawer 截图（2026-03-21 会话） | `docs/convergence/screenshots/iteration-13/android-drawer-current.png` | Android Drawer 现已可抓当前基线 | 菜单层级和功能深度差距很大 |
 | 播放历史（空态） | 用户提供原版历史页截图（2026-03-21 会话） | `docs/convergence/screenshots/iteration-13/android-history-current.png` | 已确认 history 页截图链路恢复可用 | 仍需有数据状态和回放链路验收 |
+| 搜索结果 | 用户提供原版搜索页截图（2026-03-21 会话） | `docs/convergence/screenshots/iteration-13/android-search-results-current.png` | 已确认真实插件 tabs 与 `in the end` 搜索结果可达 | 仍需对结果点击后的真实播放终态做收口 |
+| 播放器（搜索结果点击后） | 用户提供原版播放器截图（2026-03-21 会话） | `docs/convergence/screenshots/iteration-13/android-player-from-search-current.png` | 已能进入播放器页 | 当前仍停留在空状态：`0:00 / 0:00`，播放按钮仍显示 `播放`，不能记作成功播放 |
 
 ## 尚未完成的真实端上验收
 - `Settings -> default subscription import -> Search -> tap result -> Player`
+  - 当前状态: 已打通到播放器页，但播放器仍为空状态，未形成可信的“成功播放”终态
 - `Home -> Recommend Sheets -> Plugin Sheet Detail -> tap song -> Music Detail`
 - `Home -> Top List -> Top List Detail -> tap song -> Music Detail`
 - `Music Detail -> Album Detail / Artist Detail`
@@ -46,10 +49,13 @@
 | `searchMusicList` 过滤/播放逻辑 | ✅ | `SearchMusicListViewModelTest` / `SearchMusicListSourceLoaderTest` 通过 |
 | `MainActivity` 启动不因新路由崩溃 | ✅ | `MainActivityStartupTest` 通过 |
 | plugin 默认订阅搜索/解析链路 | ✅ | connected instrumentation 通过 |
+| 默认订阅 -> 搜索结果列表 | ✅ | 端上已看到 `in the end` 搜索结果与 plugin tabs |
+| 默认订阅 -> 搜索结果点击 -> 播放器 | ⚠️ | 端上可进入播放器页，但当前仍为空状态，未验证出真实播放 |
 | plugin-backed detail flows | ⚠️ | 代码存在但端上真实点击/截图未补齐 |
 
 ## 遗留问题（进入下轮迭代 backlog）
 - `musicListEditor-lite` 与共享 collection tooling 尚未开始实现。
+- `musicListEditor-lite` 已开始进入代码 lane，但尚未纳入本节最终验收结论。
 - `searchMusicList` 仍需扩展 local music / generic sheet source。
 - `fileSelector` / SAF 基础设施尚缺。
 - downloader core 仍未建设，`downloading` 页面不应先行。
