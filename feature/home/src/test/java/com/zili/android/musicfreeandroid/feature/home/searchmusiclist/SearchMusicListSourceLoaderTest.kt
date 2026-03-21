@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.home.searchmusiclist
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
+import com.zili.android.musicfreeandroid.feature.home.collection.CollectionSource
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,6 +46,24 @@ class SearchMusicListSourceLoaderTest {
         val actual = loader.observe(SearchMusicListRoute.history()).first()
 
         assertEquals(historyItems, actual)
+    }
+
+    @Test
+    fun `local library source returns empty list in minimal foundation implementation`() = runTest {
+        val loader = SearchMusicListSourceLoader(playlistRepository, playerController)
+
+        val actual = loader.observe(CollectionSource.LocalLibrary).first()
+
+        assertEquals(emptyList<MusicItem>(), actual)
+    }
+
+    @Test
+    fun `transient source returns empty list in minimal foundation implementation`() = runTest {
+        val loader = SearchMusicListSourceLoader(playlistRepository, playerController)
+
+        val actual = loader.observe(CollectionSource.Transient(sourceId = "session-42")).first()
+
+        assertEquals(emptyList<MusicItem>(), actual)
     }
 
     private fun track(

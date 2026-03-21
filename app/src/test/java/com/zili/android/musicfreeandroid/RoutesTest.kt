@@ -91,6 +91,16 @@ class RoutesTest {
         assertEquals(route, decoded)
     }
 
+    @Test
+    fun `SearchMusicListRoute decodes legacy playlistId payload`() {
+        val legacyJson = """{"sourceType":"playlist","playlistId":"playlist-42"}"""
+
+        val decoded = Json.decodeFromString<SearchMusicListRoute>(legacyJson)
+
+        assertEquals(SearchMusicListRoute.playlist("playlist-42"), decoded)
+        assertEquals("playlist-42", decoded.playlistId)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun `SearchMusicListRoute rejects playlist source without playlist id`() {
         SearchMusicListRoute(

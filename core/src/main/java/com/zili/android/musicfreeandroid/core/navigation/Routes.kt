@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid.core.navigation
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 
 @Serializable
 data object HomeRoute
@@ -17,6 +19,8 @@ data object HistoryRoute
 @Serializable
 data class SearchMusicListRoute(
     val sourceType: String,
+    @OptIn(ExperimentalSerializationApi::class)
+    @JsonNames("playlistId")
     val sourceId: String? = null,
 ) {
     init {
