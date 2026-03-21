@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid
 
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
+import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
@@ -91,6 +92,23 @@ class RoutesTest {
         val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
         val decoded = Json.decodeFromString<PluginSheetDetailRoute>(json)
+        assertNotNull(decoded)
+    }
+
+    @Test
+    fun `MusicDetailRoute is serializable`() {
+        val route = MusicDetailRoute(
+            pluginPlatform = "demo",
+            musicId = "m-1",
+            title = "Song A",
+            artist = "Artist A",
+            album = "Album A",
+            artwork = "https://example.com/a.jpg",
+            durationMs = 180_000L,
+        )
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<MusicDetailRoute>(json)
         assertNotNull(decoded)
     }
 }
