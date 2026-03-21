@@ -26,9 +26,9 @@
 | # | 差异项 | 粒度 | 综合分 | 来源 |
 |---|--------|------|--------|------|
 | 1 | 剩余页面仍缺失（`fileSelector/downloading/setCustomTheme`）；其中 `fileSelector` 是当前最高优先级缺页和子系统 unlock | 粗 | 5.8 | 迭代13分析 |
-| 2 | Plugin-backed 详情流仍缺端上强验证（`pluginSheetDetail`、`topListDetail`、`musicDetail -> albumDetail/artistDetail`） | 中 | 5.5 | 迭代13分析/验证 |
+| 2 | Plugin-backed 详情流已从“不可触达”推进到“可触达”，但仍缺完整端上强验证（`pluginSheetDetail`、`topListDetail`、`musicDetail -> albumDetail/artistDetail`） | 中 | 5.5 | 迭代13分析/验证 |
 | 3 | 首页 / Drawer / History 已有 iteration-13 当前截图，但与用户提供原版相比 UI fidelity 与能力密度差距仍大 | 细 | 5.1 | 迭代13截图对比 |
 | 4 | `searchMusicList` 已实现，但仍只覆盖 `playlist/history`，尚未扩展到 local music / generic sheet source | 中 | 4.7 | 迭代13验证 |
-| 5 | 真实订阅导入 -> 搜索 -> 播放端上全链路仍未收口：结果可达、播放器可达，但仍停留在空状态 `0:00 / 0:00` | 中 | 4.5 | 迭代13验证 |
+| 5 | 真实订阅导入 -> 搜索 -> 播放端上全链路已推进到带元数据的播放器页，但仍缺更完整的播放控制/截图自动化收口 | 中 | 4.5 | 迭代13验证 |
 | 6 | `musicListEditor-lite` 已实现为 playlist-first MVP，但尚未扩展到 local music / history / shared collection source | 中 | 4.0 | 迭代13实现/复核 |
 | 7 | 数据模型不完整（IMusicItem 字段与媒体实体缺口） | 中 | 3.5 | 迭代1分析 |
