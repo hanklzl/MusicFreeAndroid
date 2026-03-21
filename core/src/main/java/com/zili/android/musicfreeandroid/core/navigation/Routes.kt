@@ -17,42 +17,58 @@ data object HistoryRoute
 @Serializable
 data class SearchMusicListRoute(
     val sourceType: String,
-    val playlistId: String? = null,
+    val sourceId: String? = null,
 ) {
     init {
-        require(sourceType == SOURCE_TYPE_PLAYLIST || sourceType == SOURCE_TYPE_HISTORY) {
+        require(
+            sourceType == SOURCE_TYPE_PLAYLIST ||
+                sourceType == SOURCE_TYPE_HISTORY ||
+                sourceType == SOURCE_TYPE_LOCAL_LIBRARY ||
+                sourceType == SOURCE_TYPE_TRANSIENT,
+        ) {
             "Unsupported search music list source type: $sourceType"
         }
-        require(sourceType != SOURCE_TYPE_PLAYLIST || !playlistId.isNullOrBlank()) {
-            "playlistId is required for playlist search music list routes"
+        require(sourceType != SOURCE_TYPE_PLAYLIST || !sourceId.isNullOrBlank()) {
+            "sourceId is required for playlist search music list routes"
         }
-        require(sourceType != SOURCE_TYPE_HISTORY || playlistId == null) {
-            "playlistId must be null for history search music list routes"
+        require(sourceType != SOURCE_TYPE_HISTORY || sourceId == null) {
+            "sourceId must be null for history search music list routes"
+        }
+        require(sourceType != SOURCE_TYPE_LOCAL_LIBRARY || sourceId == null) {
+            "sourceId must be null for local-library search music list routes"
+        }
+        require(sourceType != SOURCE_TYPE_TRANSIENT || !sourceId.isNullOrBlank()) {
+            "sourceId is required for transient search music list routes"
         }
     }
 
     companion object {
         const val SOURCE_TYPE_PLAYLIST = "playlist"
         const val SOURCE_TYPE_HISTORY = "history"
+        const val SOURCE_TYPE_LOCAL_LIBRARY = "local-library"
+        const val SOURCE_TYPE_TRANSIENT = "transient"
 
         fun playlist(playlistId: String): SearchMusicListRoute = SearchMusicListRoute(
             sourceType = SOURCE_TYPE_PLAYLIST,
-            playlistId = playlistId,
+            sourceId = playlistId,
         )
 
         fun history(): SearchMusicListRoute = SearchMusicListRoute(
             sourceType = SOURCE_TYPE_HISTORY,
         )
+
+        fun localLibrary(): SearchMusicListRoute = SearchMusicListRoute(
+            sourceType = SOURCE_TYPE_LOCAL_LIBRARY,
+        )
+
+        fun transient(sourceId: String): SearchMusicListRoute = SearchMusicListRoute(
+            sourceType = SOURCE_TYPE_TRANSIENT,
+            sourceId = sourceId,
+        )
     }
-}
 
-@Serializable
-sealed interface SearchMusicListSource {
-    @Serializable
-    data class Playlist(val playlistId: String) : SearchMusicListSource
-
-    @Serializable
-    data object History : SearchMusicListSource
+    val playlistId: String?
+        get() = sourceId?.takeIf { sourceType == SOURCE_TYPE_PLAYLIST }
 }
 
 @Serializable

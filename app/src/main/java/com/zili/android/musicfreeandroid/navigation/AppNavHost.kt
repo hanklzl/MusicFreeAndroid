@@ -67,7 +67,7 @@ fun AppNavHost(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onNavigateToSearchMusicList = { playlistId ->
-                navController.navigate(SearchMusicListRoute.playlist(playlistId = playlistId))
+                navController.navigate(SearchMusicListRoute.playlist(playlistId))
             },
             onNavigateToMusicListEditorLite = { playlistId ->
                 navController.navigate(MusicListEditorLiteRoute(playlistId))

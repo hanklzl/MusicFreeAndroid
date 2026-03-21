@@ -73,11 +73,29 @@ class RoutesTest {
         assertEquals(route, decoded)
     }
 
+    @Test
+    fun `SearchMusicListRoute is serializable for local-library source`() {
+        val route = SearchMusicListRoute.localLibrary()
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<SearchMusicListRoute>(json)
+        assertEquals(route, decoded)
+    }
+
+    @Test
+    fun `SearchMusicListRoute is serializable for transient source`() {
+        val route = SearchMusicListRoute.transient(sourceId = "session-42")
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<SearchMusicListRoute>(json)
+        assertEquals(route, decoded)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun `SearchMusicListRoute rejects playlist source without playlist id`() {
         SearchMusicListRoute(
             sourceType = SearchMusicListRoute.SOURCE_TYPE_PLAYLIST,
-            playlistId = null,
+            sourceId = null,
         )
     }
 
@@ -85,7 +103,23 @@ class RoutesTest {
     fun `SearchMusicListRoute rejects history source with playlist id`() {
         SearchMusicListRoute(
             sourceType = SearchMusicListRoute.SOURCE_TYPE_HISTORY,
-            playlistId = "playlist-42",
+            sourceId = "playlist-42",
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `SearchMusicListRoute rejects local-library source with source id`() {
+        SearchMusicListRoute(
+            sourceType = SearchMusicListRoute.SOURCE_TYPE_LOCAL_LIBRARY,
+            sourceId = "local-1",
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `SearchMusicListRoute rejects transient source without source id`() {
+        SearchMusicListRoute(
+            sourceType = SearchMusicListRoute.SOURCE_TYPE_TRANSIENT,
+            sourceId = null,
         )
     }
 
