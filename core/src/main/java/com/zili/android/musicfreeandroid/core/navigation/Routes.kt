@@ -101,6 +101,7 @@ data class MusicDetailRoute(
     val album: String? = null,
     val artwork: String? = null,
     val durationMs: Long = 0L,
+    val seedToken: String? = null,
 )
 
 @Serializable

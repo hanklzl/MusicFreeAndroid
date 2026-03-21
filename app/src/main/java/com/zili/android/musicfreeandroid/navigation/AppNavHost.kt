@@ -24,6 +24,7 @@ import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
 import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.albumDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.artistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.musicDetailScreen
+import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.MusicDetailSeedStore
 import com.zili.android.musicfreeandroid.feature.home.musiclisteditor.navigation.musicListEditorLiteScreen
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.pluginSheetDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScreen
@@ -112,6 +113,7 @@ fun AppNavHost(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onOpenMusicDetail = { item ->
+                val seedToken = MusicDetailSeedStore.put(item)
                 navController.navigate(
                     MusicDetailRoute(
                         pluginPlatform = item.platform,
@@ -121,6 +123,7 @@ fun AppNavHost(
                         album = item.album,
                         artwork = item.artwork,
                         durationMs = item.duration,
+                        seedToken = seedToken,
                     ),
                 )
             },
@@ -144,6 +147,7 @@ fun AppNavHost(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onOpenMusicDetail = { item ->
+                val seedToken = MusicDetailSeedStore.put(item)
                 navController.navigate(
                     MusicDetailRoute(
                         pluginPlatform = item.platform,
@@ -153,6 +157,7 @@ fun AppNavHost(
                         album = item.album,
                         artwork = item.artwork,
                         durationMs = item.duration,
+                        seedToken = seedToken,
                     ),
                 )
             },

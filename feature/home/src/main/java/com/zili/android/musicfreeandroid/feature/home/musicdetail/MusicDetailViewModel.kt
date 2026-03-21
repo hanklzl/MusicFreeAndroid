@@ -41,7 +41,7 @@ class MusicDetailViewModel @Inject constructor(
     }
 
     private suspend fun load() {
-        val base = baseMusicItem()
+        val base = MusicDetailSeedResolver.baseMusicItem(route)
         _uiState.value = MusicDetailUiState(loading = true, musicItem = base)
 
         val plugin = pluginManager.getPlugin(route.pluginPlatform)
@@ -59,51 +59,17 @@ class MusicDetailViewModel @Inject constructor(
             val lyric = plugin.getLyric(fullMusic)
             val comments = plugin.getMusicComments(fullMusic, page = 1)
 
-            val albumPreview = fullMusic.album
-                ?.takeIf { it.isNotBlank() }
-                ?.let { albumTitle ->
-                    val albumSeed = AlbumItemBase(
-                        id = albumTitle,
-                        platform = fullMusic.platform,
-                        title = albumTitle,
-                        date = null,
-                        artist = fullMusic.artist,
-                        description = null,
-                        artwork = fullMusic.artwork,
-                        worksNum = null,
-                        raw = mapOf(
-                            "id" to albumTitle,
-                            "platform" to fullMusic.platform,
-                            "title" to albumTitle,
-                            "artist" to fullMusic.artist,
-                        ),
-                    )
-                    plugin.getAlbumInfo(albumSeed, page = 1)
-                }
+            val albumPreview = MusicDetailSeedResolver.albumPreviewSeed(fullMusic)?.let { albumSeed ->
+                plugin.getAlbumInfo(albumSeed, page = 1)
+            }
 
-            val artistPreview = fullMusic.artist
-                .takeIf { it.isNotBlank() }
-                ?.let { artistName ->
-                    val artistSeed = ArtistItemBase(
-                        id = artistName,
-                        platform = fullMusic.platform,
-                        name = artistName,
-                        avatar = fullMusic.artwork,
-                        fans = null,
-                        description = null,
-                        worksNum = null,
-                        raw = mapOf(
-                            "id" to artistName,
-                            "platform" to fullMusic.platform,
-                            "name" to artistName,
-                        ),
-                    )
-                    plugin.getArtistWorks(
-                        artistItem = artistSeed,
-                        page = 1,
-                        type = "music",
-                    )
-                }
+            val artistPreview = MusicDetailSeedResolver.artistPreviewSeed(fullMusic)?.let { artistSeed ->
+                plugin.getArtistWorks(
+                    artistItem = artistSeed,
+                    page = 1,
+                    type = "music",
+                )
+            }
 
             MusicDetailUiState(
                 loading = false,
@@ -126,17 +92,4 @@ class MusicDetailViewModel @Inject constructor(
         }
     }
 
-    private fun baseMusicItem(): MusicItem {
-        return MusicItem(
-            id = route.musicId,
-            platform = route.pluginPlatform,
-            title = route.title,
-            artist = route.artist,
-            album = route.album,
-            duration = route.durationMs,
-            url = null,
-            artwork = route.artwork,
-            qualities = null,
-        )
-    }
 }

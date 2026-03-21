@@ -154,11 +154,12 @@ class RoutesTest {
             album = "Album A",
             artwork = "https://example.com/a.jpg",
             durationMs = 180_000L,
+            seedToken = "seed-123",
         )
         val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
         val decoded = Json.decodeFromString<MusicDetailRoute>(json)
-        assertNotNull(decoded)
+        assertEquals(route, decoded)
     }
 
     @Test
