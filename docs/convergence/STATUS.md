@@ -1,7 +1,7 @@
 # MusicFree 收敛状态
 
 ## 功能覆盖率
-- 页面: 15/19
+- 页面: 16/19
 - PluginApi: 14/14
 - 面板/弹窗: 5/23（原版 panel 18 + 业务 dialog 5）
 
@@ -20,14 +20,15 @@
 | 10 | 2026-03-21 | 完成分析、实现与验证（`MusicItem` 扩展字段透传，修复 `getMediaSource` 点击播放失败 + 集成测试覆盖 `search -> getMediaSource`） | 14/19 → 14/19 | 已确认根因为 `songmid` 等字段在桥接链路丢失；WY 真插件与本地 runtime-shim 集成测试通过 |
 | 11 | 2026-03-21 | 完成分析、实现与验证（搜索页播放兜底：主插件失败回退 `元力WY` + 匹配算法与单测） | 14/19 → 14/19 | “搜索可用但点击失败”场景可自动回退；仍需端上真实点击链路截图验收 |
 | 12 | 2026-03-21 | 完成分析、实现与验证（默认订阅真实集成测试：`installFromSubscriptionUrl -> WY search -> getMediaSource`） | 14/19 → 14/19 | 默认订阅导入与 WY 搜索/解析链路已在 connected instrumentation 通过 |
-| 13 | 2026-03-21 | 完成分析、实现与验证（`searchMusicList` 页面落地 + 启动导航修复 + iteration-13 文档/截图基线刷新） | 14/19 → 15/19 | `searchMusicList` 已不再属于缺页；但 UI fidelity、能力密度与 plugin-backed 详情流仍未收敛 |
+| 13 | 2026-03-21 | 完成分析、实现与验证（`searchMusicList` 页面落地 + 启动导航修复 + `musicListEditor-lite` 落地 + iteration-13 文档/截图基线刷新） | 14/19 → 16/19 | `searchMusicList` 与 `musicListEditor-lite` 已不再属于缺页；但 UI fidelity、能力密度与 plugin-backed 详情流仍未收敛 |
 
 ## 当前 Backlog（按综合分降序）
 | # | 差异项 | 粒度 | 综合分 | 来源 |
 |---|--------|------|--------|------|
-| 1 | 剩余页面仍缺失（`musicListEditor/fileSelector/downloading/setCustomTheme`）；其中 `musicListEditor` 是当前最高优先级缺页，`fileSelector` 是子系统 unlock | 粗 | 5.8 | 迭代13分析 |
+| 1 | 剩余页面仍缺失（`fileSelector/downloading/setCustomTheme`）；其中 `fileSelector` 是当前最高优先级缺页和子系统 unlock | 粗 | 5.8 | 迭代13分析 |
 | 2 | Plugin-backed 详情流仍缺端上强验证（`pluginSheetDetail`、`topListDetail`、`musicDetail -> albumDetail/artistDetail`） | 中 | 5.5 | 迭代13分析/验证 |
 | 3 | 首页 / Drawer / History 已有 iteration-13 当前截图，但与用户提供原版相比 UI fidelity 与能力密度差距仍大 | 细 | 5.1 | 迭代13截图对比 |
-| 4 | `searchMusicList` 已实现，但目前只完成路由、单测、编译与启动稳定性验证，尚无独立截图与原版能力对照 | 中 | 4.7 | 迭代13验证 |
-| 5 | 真实订阅导入 -> 搜索 -> 播放端上全链路截图仍待补齐（默认订阅/WY 链路已通过集成测试） | 中 | 4.3 | 迭代7/8/9/10/11/12/13验证 |
-| 6 | 数据模型不完整（IMusicItem 字段与媒体实体缺口） | 中 | 3.5 | 迭代1分析 |
+| 4 | `searchMusicList` 已实现，但仍只覆盖 `playlist/history`，尚未扩展到 local music / generic sheet source | 中 | 4.7 | 迭代13验证 |
+| 5 | 真实订阅导入 -> 搜索 -> 播放端上全链路仍未收口：结果可达、播放器可达，但仍停留在空状态 `0:00 / 0:00` | 中 | 4.5 | 迭代13验证 |
+| 6 | `musicListEditor-lite` 已实现为 playlist-first MVP，但尚未扩展到 local music / history / shared collection source | 中 | 4.0 | 迭代13实现/复核 |
+| 7 | 数据模型不完整（IMusicItem 字段与媒体实体缺口） | 中 | 3.5 | 迭代1分析 |

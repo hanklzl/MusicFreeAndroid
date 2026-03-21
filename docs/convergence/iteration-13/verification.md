@@ -5,6 +5,7 @@
 |--------|----------|------|------|
 | `searchMusicList` 页面（playlist/history source） | playlist/history 入口接线 + 路由/单测/编译 | ✅通过 | source 仍只覆盖 `playlist/history`，local music / generic sheet 待后续扩展 |
 | `searchMusicList` 启动回归修复 | 启动 `MainActivity` -> 构建 NavGraph -> 进入 RESUMED | ✅通过 | 运行时回归已修复，但 shell 启动链路曾受模拟器安装态影响 |
+| `musicListEditor-lite`（playlist-first MVP） | playlist detail -> 编辑 -> 多选/暂存删除/保存/加到下一首/添加到歌单 | ✅通过 | 当前仍只覆盖 playlist source，未扩展到 local music / history |
 | 默认订阅真实集成链路 | `installFromSubscriptionUrl -> WY search -> getMediaSource` | ✅通过 | 真实端上点击和截图仍需补齐 |
 
 ## 运行时回归说明
@@ -21,6 +22,7 @@
 
 ## 构建与测试
 - `./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.searchmusiclist.*"` ✅
+- `./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.musiclisteditor.*"` ✅
 - `./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.RoutesTest"` ✅
 - `./gradlew :feature:home:compileDebugKotlin :app:compileDebugKotlin` ✅
 - `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.MainActivityStartupTest` ✅
@@ -60,8 +62,7 @@
 | plugin-backed detail flows | ⚠️ | 已从“未触达”推进到“可触达但仍有 hydration / playback 缺口” |
 
 ## 遗留问题（进入下轮迭代 backlog）
-- `musicListEditor-lite` 与共享 collection tooling 尚未开始实现。
-- `musicListEditor-lite` 已开始进入代码 lane，但尚未纳入本节最终验收结论。
+- `musicListEditor-lite` 已完成 playlist-first MVP，但仍需扩展到 shared collection tooling、local music 与 history source。
 - `searchMusicList` 仍需扩展 local music / generic sheet source。
 - `fileSelector` / SAF 基础设施尚缺。
 - downloader core 仍未建设，`downloading` 页面不应先行。

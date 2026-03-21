@@ -2,13 +2,13 @@
 
 ## 当前状态快照
 - 分析时间: 2026-03-21
-- 页面覆盖率: 15/19
+- 页面覆盖率: 16/19
   - RN 基线仍以 `/Users/zili/code/android/MusicFree/src/core/router/routes.tsx` 的 19 个页面路由为准。
-  - Android 当前已在 `AppNavHost` 接线的页面为: `home`, `player`, `playlistDetail`, `search`, `history`, `settings`, `permissions`, `topList`, `topListDetail`, `recommendSheets`, `pluginSheetDetail`, `musicDetail`, `albumDetail`, `artistDetail`, `searchMusicList`。
+  - Android 当前已在 `AppNavHost` 接线的页面为: `home`, `player`, `playlistDetail`, `search`, `history`, `settings`, `permissions`, `topList`, `topListDetail`, `recommendSheets`, `pluginSheetDetail`, `musicDetail`, `albumDetail`, `artistDetail`, `searchMusicList`, `musicListEditorLite`。
   - `searchMusicList` 已在当前分支通过以下提交落地并修复启动问题:
     - `06e6d51 feat(convergence-13): add search music list screen`
     - `529a1c4 fix(convergence-13): repair search music list navigation startup`
-  - 因此，当前真正仍缺失的页面已收敛为 4 个: `musicListEditor`、`fileSelector`、`downloading`、`setCustomTheme`。
+  - `musicListEditor` 已在当前分支以 playlist-first MVP 形式落地为 `musicListEditor-lite`，因此当前真正仍缺失的页面已收敛为 3 个: `fileSelector`、`downloading`、`setCustomTheme`；但集合能力仍未完全收口。
 - PluginApi 覆盖率: 14/14
   - 当前分支仍可在 `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginApi.kt` 与相关实现中对齐 14 个接口。
 - 面板/弹窗覆盖率: 5/23
@@ -33,41 +33,23 @@
 ## 差异清单（按当前真实缺口排序）
 | # | 差异项 | 粒度 | 状态 | 影响面 | 可行性 | 成本 | 综合分 | 依赖/验证说明 | 原版参考文件 |
 |---|--------|------|------|--------|--------|------|--------|--------------|-------------|
-| 1 | `musicListEditor` 页面缺失 | 粗 | 缺失 | 5 | 3 | 4 | 3.8 | `searchMusicList` 已补齐后，集合类能力里最显眼的剩余缺口转为批量编辑、加歌单、批量操作 | `src/pages/musicListEditor/index.tsx`, `src/pages/musicListEditor/components/*` |
-| 2 | `fileSelector` 缺失且属于子系统 unlock | 粗 | 缺失 | 5 | 2 | 4 | 2.5 | 不只是单页；还关系到本地导入、路径选择、备份/导出等后续能力 | `src/pages/fileSelector/index.tsx`, `src/pages/fileSelector/fileItem.tsx` |
-| 3 | Plugin-backed detail flows 真实数据态仍缺强验证 | 中 | 部分实现 | 5 | 4 | 2 | 10.0 | `pluginSheetDetail`、`topListDetail`、`musicDetail -> albumDetail/artistDetail` 仍缺真实插件数据截图与回放记录 | `src/pages/musicDetail/index.tsx`, `src/pages/albumDetail/index.tsx`, `src/pages/artistDetail/index.tsx` |
-| 4 | `searchMusicList` 已实现，但仍只算“部分收敛” | 中 | 已实现但未收口 | 4 | 4 | 2 | 8.0 | 已有路由/单测/编译/启动验证，但还没有 dedicated screenshot 与原版能力边界核对 | `src/pages/searchMusicList/index.tsx`, `src/pages/searchMusicList/searchResult.tsx` |
+| 1 | `fileSelector` 缺失且属于子系统 unlock | 粗 | 缺失 | 5 | 2 | 4 | 2.5 | 不只是单页；还关系到本地导入、路径选择、备份/导出等后续能力 | `src/pages/fileSelector/index.tsx`, `src/pages/fileSelector/fileItem.tsx` |
+| 2 | Plugin-backed detail flows 真实数据态仍缺强验证 | 中 | 部分实现 | 5 | 4 | 2 | 10.0 | `pluginSheetDetail`、`topListDetail`、`musicDetail -> albumDetail/artistDetail` 仍缺真实插件数据截图与回放记录 | `src/pages/musicDetail/index.tsx`, `src/pages/albumDetail/index.tsx`, `src/pages/artistDetail/index.tsx` |
+| 3 | `musicListEditor-lite` 已实现，但仍只算“部分收敛” | 中 | 已实现但未收口 | 5 | 4 | 2 | 10.0 | playlist-first MVP 已落地，但 local/history/shared collection source 仍未补齐 | `src/pages/musicListEditor/index.tsx`, `src/pages/musicListEditor/components/*` |
+| 4 | `searchMusicList` 已实现，但仍只算“部分收敛” | 中 | 已实现但未收口 | 4 | 4 | 2 | 8.0 | 已有路由/单测/编译/启动验证，但能力边界仍窄于 RN | `src/pages/searchMusicList/index.tsx`, `src/pages/searchMusicList/searchResult.tsx` |
 | 5 | 首页 / Drawer / History 当前 UI 与原版差距仍大 | 细 | 已实现但有明显偏差 | 4 | 3 | 3 | 4.0 | iteration-13 截图已足够证明“当前长什么样”，也足够证明“还没收敛” | `src/pages/home/index.tsx`, `src/pages/home/components/drawer/index.tsx`, `src/pages/history/index.tsx` |
 | 6 | `downloading` 页面缺失 | 粗 | 缺失 | 4 | 1 | 5 | 0.8 | 依赖下载队列、状态枚举、下载列表 UI，目前仍缺下载基础设施 | `src/pages/downloading/index.tsx`, `src/pages/downloading/downloadingList.tsx` |
 | 7 | `setCustomTheme` 页面缺失 | 粗 | 缺失 | 3 | 1 | 5 | 0.6 | 依赖图片选择、背景模糊/透明度与运行时主题持久化，当前基础仍不足 | `src/pages/setCustomTheme/index.tsx`, `src/pages/setCustomTheme/body.tsx` |
 
 ## 依赖前置判断
-1. `searchMusicList` 已经从“缺页”转成“已实现但未收口”。后续判断它的优先级时，应看 fidelity 与 capability，而不是页面 existence。
-2. 在剩余 4 个缺页里，`musicListEditor` 应排第一，因为它最直接补齐集合操作密度，也是当前用户体感最容易察觉的能力缺口。
-3. `fileSelector` 不应被当成普通页面排期。它是 SAF/本地文件交互底座的入口，后续会影响本地扫描、路径选择和导入导出能力。
-4. Plugin-backed detail flows 虽然不是“缺页”，但验证债很重；在没有真实插件数据回放前，不适合把这些页面写成“已收敛”。
-5. `downloading` 与 `setCustomTheme` 仍需要额外基础设施，短期内的价值主要是完成页面计数，而不是提高高频主链路可用性。
+1. `searchMusicList` 与 `musicListEditor-lite` 都已经从“缺页”转成“已实现但未收口”。后续判断它们的优先级时，应看 fidelity、capability 与共享集合抽象，而不是页面 existence。
+2. 在真正仍缺失的页面里，`fileSelector` 应上升为第一优先，因为它是 SAF/本地文件交互底座的入口，后续会影响本地扫描、路径选择和导入导出能力。
+3. Plugin-backed detail flows 虽然不是“缺页”，但验证债和 hydration 缺陷都很重；在没有真实插件数据回放前，不适合把这些页面写成“已收敛”。
+4. `downloading` 与 `setCustomTheme` 仍需要额外基础设施，短期内的价值主要是完成页面计数，而不是提高高频主链路可用性。
 
 ## Top 3 推荐（本轮执行）
-### 功能点 1: `musicListEditor-lite`
+### 功能点 1: `fileSelector` / SAF 基础
 - 粒度: 中
-- 原版参考:
-  - `src/pages/musicListEditor/index.tsx`
-  - `src/pages/musicListEditor/components/*`
-- Android 现状依据:
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/*`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/*`
-- 实现范围:
-  - 先做 playlist source 的最小可用版，多选、删除、加歌单/队列等高频操作优先。
-  - 复用现有集合来源与 player queue，不把下载能力绑进第一版。
-- 前置依赖:
-  - 需要先明确共享 collection source / capability model，但不依赖 `fileSelector` 或下载底座。
-- 推荐理由:
-  - `searchMusicList` 已落地后，集合工具链最大的空洞就是编辑能力。
-  - 它比 `downloading` / `setCustomTheme` 更接近真实高频使用场景。
-
-### 功能点 2: `fileSelector` / SAF 基础
-- 粒度: 粗
 - 原版参考:
   - `src/pages/fileSelector/index.tsx`
   - `src/pages/fileSelector/fileItem.tsx`
@@ -81,16 +63,13 @@
   - 这是后续多个页面和能力的 unlock，不只是为了补路由数量。
   - 若没有它，本地能力相关的收敛会持续卡住。
 
-### 功能点 3: Plugin-backed detail flow 验证补强
+### 功能点 2: Plugin-backed detail flow 验证补强
 - 粒度: 中
 - 原版参考:
   - `src/pages/pluginSheetDetail/index.tsx`
   - `src/pages/topListDetail/index.tsx`
   - `src/pages/musicDetail/index.tsx`
 - Android 现状依据:
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheetdetail/*`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/*`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musicdetail/*`
 - 实现/验证范围:
   - 用真实插件数据回放 `recommendSheets`、`topList`、`musicDetail -> albumDetail/artistDetail`。
   - 为每个终态保留截图与失败记录，不再用“待补验收”笼统占位。
@@ -99,6 +78,23 @@
 - 推荐理由:
   - 当前最大风险之一不是“没有页面”，而是“页面在真实插件数据下是否可靠”。
   - 这类验证能直接决定后续状态文档是否可信。
+
+### 功能点 3: 共享 collection tooling 扩展
+- 粒度: 中
+- 原版参考:
+  - `src/pages/searchMusicList/index.tsx`
+  - `src/pages/musicListEditor/index.tsx`
+- Android 现状依据:
+  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/*`
+  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/*`
+- 实现范围:
+  - 将 playlist-first 能力继续抽到共享 collection source / capability model。
+  - 为后续 local music / history source 扩展做准备。
+- 前置依赖:
+  - 当前已有 `searchMusicList` 与 `musicListEditor-lite` 两个切入点，可逐步抽象。
+- 推荐理由:
+  - 当前剩余高频集合能力差距已经不再是“有没有页面”，而是“是否共享、是否可扩展”。
+  - 这条线能降低后续 local/history/editor/search 的重复开发成本。
 
 ## 截图对比
 | 页面/链路 | 原版截图 | Android 截图 | 当前结论 |
