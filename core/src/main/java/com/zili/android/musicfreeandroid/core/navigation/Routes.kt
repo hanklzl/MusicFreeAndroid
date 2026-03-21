@@ -15,6 +15,20 @@ data object SearchRoute
 data object HistoryRoute
 
 @Serializable
+data class SearchMusicListRoute(
+    val source: SearchMusicListSource,
+)
+
+@Serializable
+sealed interface SearchMusicListSource {
+    @Serializable
+    data class Playlist(val playlistId: String) : SearchMusicListSource
+
+    @Serializable
+    data object History : SearchMusicListSource
+}
+
+@Serializable
 data object SettingsRoute
 
 @Serializable

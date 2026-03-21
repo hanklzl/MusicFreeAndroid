@@ -7,11 +7,13 @@ import com.zili.android.musicfreeandroid.core.navigation.PlaylistDetailRoute
 fun NavGraphBuilder.playlistDetailScreen(
     onBack: () -> Unit,
     onNavigateToPlayer: () -> Unit,
+    onNavigateToSearchMusicList: (String) -> Unit,
 ) {
     composable<PlaylistDetailRoute> {
         PlaylistDetailScreen(
             onBack = onBack,
             onNavigateToPlayer = onNavigateToPlayer,
+            onNavigateToSearchMusicList = onNavigateToSearchMusicList,
         )
     }
 }

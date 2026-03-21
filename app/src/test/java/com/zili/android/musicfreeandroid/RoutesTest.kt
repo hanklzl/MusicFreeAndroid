@@ -10,6 +10,8 @@ import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PermissionsRoute
 import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
+import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
+import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListSource
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
@@ -51,6 +53,26 @@ class RoutesTest {
         assertNotNull(json)
         val decoded = Json.decodeFromString<HistoryRoute>(json)
         assertNotNull(decoded)
+    }
+
+    @Test
+    fun `SearchMusicListRoute is serializable for playlist source`() {
+        val route = SearchMusicListRoute(
+            source = SearchMusicListSource.Playlist(playlistId = "playlist-42"),
+        )
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<SearchMusicListRoute>(json)
+        assertEquals(route, decoded)
+    }
+
+    @Test
+    fun `SearchMusicListRoute is serializable for history source`() {
+        val route = SearchMusicListRoute(source = SearchMusicListSource.History)
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<SearchMusicListRoute>(json)
+        assertEquals(route, decoded)
     }
 
     @Test

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -42,6 +43,7 @@ import com.zili.android.musicfreeandroid.core.ui.CoverImage
 fun PlaylistDetailScreen(
     onBack: () -> Unit,
     onNavigateToPlayer: () -> Unit,
+    onNavigateToSearchMusicList: (String) -> Unit,
     viewModel: PlaylistDetailViewModel = hiltViewModel(),
 ) {
     val playlist by viewModel.playlist.collectAsStateWithLifecycle()
@@ -59,6 +61,15 @@ fun PlaylistDetailScreen(
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = MusicFreeTheme.colors.appBarText)
+                }
+            },
+            actions = {
+                IconButton(onClick = { onNavigateToSearchMusicList(viewModel.playlistId) }) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "搜索",
+                        tint = MusicFreeTheme.colors.appBarText,
+                    )
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MusicFreeTheme.colors.appBar),

@@ -15,6 +15,8 @@ import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
+import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
+import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListSource
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
@@ -25,6 +27,7 @@ import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.mus
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.pluginSheetDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.recommendsheets.navigation.recommendSheetsScreen
+import com.zili.android.musicfreeandroid.feature.home.searchmusiclist.navigation.searchMusicListScreen
 import com.zili.android.musicfreeandroid.feature.home.history.navigation.historyScreen
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListScreen
@@ -61,12 +64,28 @@ fun AppNavHost(
         playlistDetailScreen(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+            onNavigateToSearchMusicList = { playlistId ->
+                navController.navigate(
+                    SearchMusicListRoute(
+                        source = SearchMusicListSource.Playlist(playlistId = playlistId),
+                    ),
+                )
+            },
         )
         searchScreen(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
         historyScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+            onNavigateToSearchMusicList = {
+                navController.navigate(
+                    SearchMusicListRoute(source = SearchMusicListSource.History),
+                )
+            },
+        )
+        searchMusicListScreen(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )

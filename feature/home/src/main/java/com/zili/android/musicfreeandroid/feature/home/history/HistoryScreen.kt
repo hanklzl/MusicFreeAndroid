@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +36,7 @@ import com.zili.android.musicfreeandroid.core.theme.rpx
 fun HistoryScreen(
     onBack: () -> Unit,
     onNavigateToPlayer: () -> Unit,
+    onNavigateToSearchMusicList: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoryViewModel = hiltViewModel(),
 ) {
@@ -59,6 +61,13 @@ fun HistoryScreen(
                 }
             },
             actions = {
+                IconButton(onClick = onNavigateToSearchMusicList) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "搜索",
+                        tint = MusicFreeTheme.colors.appBarText,
+                    )
+                }
                 if (history.isNotEmpty()) {
                     IconButton(onClick = viewModel::clearHistory) {
                         Icon(
