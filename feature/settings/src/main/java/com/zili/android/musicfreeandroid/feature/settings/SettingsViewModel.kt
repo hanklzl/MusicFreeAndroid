@@ -2,6 +2,8 @@ package com.zili.android.musicfreeandroid.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zili.android.musicfreeandroid.core.storage.DocumentTreeDirectory
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,9 +23,17 @@ sealed interface InstallState {
     data class Error(val message: String) : InstallState
 }
 
+data class StorageAccessState(
+    val selectedDirectory: DocumentTreeDirectory? = null,
+) {
+    val isConfigured: Boolean
+        get() = selectedDirectory != null
+}
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val pluginManager: PluginManager,
+    private val appPreferences: AppPreferences,
 ) : ViewModel() {
 
     companion object {
@@ -36,6 +46,10 @@ class SettingsViewModel @Inject constructor(
 
     private val _installState = MutableStateFlow<InstallState>(InstallState.Idle)
     val installState: StateFlow<InstallState> = _installState.asStateFlow()
+
+    val storageAccessState: StateFlow<StorageAccessState> = appPreferences.storageDirectoryUri
+        .map { uri -> StorageAccessState(uri?.let(DocumentTreeDirectory::fromTreeUri)) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, StorageAccessState())
 
     init {
         viewModelScope.launch {
@@ -94,6 +108,12 @@ class SettingsViewModel @Inject constructor(
     fun uninstallPlugin(platform: String) {
         viewModelScope.launch {
             pluginManager.uninstall(platform)
+        }
+    }
+
+    fun setStorageDirectory(treeUri: String) {
+        viewModelScope.launch {
+            appPreferences.setStorageDirectoryUri(treeUri)
         }
     }
 

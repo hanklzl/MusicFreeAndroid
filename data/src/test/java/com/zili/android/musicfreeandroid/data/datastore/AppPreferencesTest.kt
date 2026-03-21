@@ -91,4 +91,27 @@ class AppPreferencesTest {
         prefs.setCurrentMusicIndex(5)
         assertEquals(5, prefs.currentMusicIndex.first())
     }
+
+    @Test
+    fun `default storage directory uri is null`() = testScope.runTest {
+        assertNull(prefs.storageDirectoryUri.first())
+    }
+
+    @Test
+    fun `set and get storage directory uri`() = testScope.runTest {
+        val treeUri = "content://com.android.externalstorage.documents/tree/primary%3AMusicFree"
+
+        prefs.setStorageDirectoryUri(treeUri)
+
+        assertEquals(treeUri, prefs.storageDirectoryUri.first())
+    }
+
+    @Test
+    fun `clearing storage directory uri removes persisted value`() = testScope.runTest {
+        prefs.setStorageDirectoryUri("content://com.android.externalstorage.documents/tree/primary%3AMusicFree")
+
+        prefs.setStorageDirectoryUri(null)
+
+        assertNull(prefs.storageDirectoryUri.first())
+    }
 }

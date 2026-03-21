@@ -60,11 +60,26 @@ class AppPreferences @Inject constructor(
         dataStore.edit { it[KEY_CURRENT_MUSIC_INDEX] = index }
     }
 
+    val storageDirectoryUri: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[KEY_STORAGE_DIRECTORY_URI]
+    }
+
+    suspend fun setStorageDirectoryUri(uri: String?) {
+        dataStore.edit {
+            if (uri == null) {
+                it.remove(KEY_STORAGE_DIRECTORY_URI)
+            } else {
+                it[KEY_STORAGE_DIRECTORY_URI] = uri
+            }
+        }
+    }
+
     private companion object {
         val KEY_REPEAT_MODE = stringPreferencesKey("repeat_mode")
         val KEY_PLAY_QUALITY = stringPreferencesKey("play_quality")
         val KEY_SHUFFLE_ENABLED = booleanPreferencesKey("shuffle_enabled")
         val KEY_DARK_MODE = booleanPreferencesKey("dark_mode")
         val KEY_CURRENT_MUSIC_INDEX = intPreferencesKey("current_music_index")
+        val KEY_STORAGE_DIRECTORY_URI = stringPreferencesKey("storage_directory_uri")
     }
 }
