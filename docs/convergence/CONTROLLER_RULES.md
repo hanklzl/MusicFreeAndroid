@@ -39,6 +39,15 @@ This file records controller-level rules from the user so future convergence loo
   - identify write-set conflicts
   - refine verification paths
   - keep the backlog and plan current
+- Convergence work is a loop, not a one-off batch.
+- Unless the user explicitly pauses or redirects, the controller should continue iterating:
+  - analyze current gap
+  - choose the next highest-leverage target
+  - implement or delegate
+  - run centralized acceptance
+  - update docs/backlog
+  - begin the next iteration
+- The default posture is to keep closing the gap toward the original app, not to stop after one completed task.
 
 ## Parallel Development Rule
 
@@ -93,4 +102,3 @@ This file records controller-level rules from the user so future convergence loo
 - A feature can pass compile, unit tests, spec review, and code review, and still fail final acceptance at runtime.
 - This happened with `searchMusicList`, where emulator validation exposed a startup crash caused by Navigation route typing.
 - Future iterations must preserve a single final runtime acceptance gate.
-
