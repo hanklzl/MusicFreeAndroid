@@ -33,10 +33,11 @@ object JsBridge {
             url = map["url"]?.toString(),
             artwork = map["artwork"]?.toString(),
             qualities = null,
+            raw = map.toMap(),
         )
     }
 
-    fun musicItemToMap(item: MusicItem): Map<String, Any?> = mapOf(
+    fun musicItemToMap(item: MusicItem): Map<String, Any?> = item.raw + mapOf(
         "id" to item.id,
         "platform" to item.platform,
         "title" to item.title,

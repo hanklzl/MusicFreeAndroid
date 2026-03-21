@@ -1,7 +1,7 @@
 # MusicFree 收敛状态
 
 ## 功能覆盖率
-- 页面: 13/19
+- 页面: 14/19
 - PluginApi: 14/14
 - 面板/弹窗: 5/23（原版 panel 18 + 业务 dialog 5）
 
@@ -14,14 +14,21 @@
 | 4 | 2026-03-21 | 完成分析、实现与验证（PluginApi 剩余 3 方法 + 模型/解析补齐） | 10/19 → 10/19 | PluginApi 覆盖率提升至 14/14；待后续页面消费与端到端验收 |
 | 5 | 2026-03-21 | 完成分析、实现与验证（新增 MusicDetail 页面 + 详情入口接线 + API 消费） | 10/19 → 11/19 | MusicDetail 端上截图与真实插件数据态待补验收 |
 | 6 | 2026-03-21 | 完成分析、实现与验证（新增 AlbumDetail/ArtistDetail 页面 + MusicDetail 导航入口） | 11/19 → 13/19 | 新增页面链路已接线；端上真实数据态截图待补 |
+| 7 | 2026-03-21 | 完成分析、实现与验证（新增 Permissions 页面 + 首页 Drawer/UI 收敛 + 默认订阅导入与搜索默认插件） | 13/19 → 14/19 | 真实端上“订阅导入->搜索->播放”截图与稳定复验待补 |
+| 8 | 2026-03-21 | 完成分析、实现与验证（插件运行时 `require` 兼容层补齐：`crypto-js/qs/he/dayjs/big-integer` + `axios.default`） | 14/19 → 14/19 | 已覆盖 logcat 根因；待端上复验搜索与播放链路 |
+| 9 | 2026-03-21 | 完成分析、实现与验证（允许明文流量 + `AxiosShim` POST/form/gzip 兼容 + 真实插件集成测试） | 14/19 → 14/19 | `KW/WY` 搜索已在 connected instrumentation 通过；`KG` 上游接口可返回 0 条但无运行时异常 |
+| 10 | 2026-03-21 | 完成分析、实现与验证（`MusicItem` 扩展字段透传，修复 `getMediaSource` 点击播放失败 + 集成测试覆盖 `search -> getMediaSource`） | 14/19 → 14/19 | 已确认根因为 `songmid` 等字段在桥接链路丢失；WY 真插件与本地 runtime-shim 集成测试通过 |
+| 11 | 2026-03-21 | 完成分析、实现与验证（搜索页播放兜底：主插件失败回退 `元力WY` + 匹配算法与单测） | 14/19 → 14/19 | “搜索可用但点击失败”场景可自动回退；仍需端上真实点击链路截图验收 |
+| 12 | 2026-03-21 | 完成分析、实现与验证（默认订阅真实集成测试：`installFromSubscriptionUrl -> WY search -> getMediaSource`） | 14/19 → 14/19 | 默认订阅导入与 WY 搜索/解析链路已在 connected instrumentation 通过 |
 
 ## 当前 Backlog（按综合分降序）
 | # | 差异项 | 粒度 | 综合分 | 来源 |
 |---|--------|------|--------|------|
-| 1 | 剩余页面仍缺失（`downloading/fileSelector/musicListEditor/setCustomTheme/permissions/searchMusicList`） | 粗 | 5.8 | 迭代6分析 |
-| 2 | 首页结构仍未完全对齐（Drawer、深色风格、歌单区视觉） | 细 | 5.5 | 迭代1/2/3/4/5/6验证 |
-| 3 | `musicDetail -> albumDetail/artistDetail` 真实插件数据态与截图验收待补 | 中 | 4.6 | 迭代6验证 |
-| 4 | TopListDetail 真实数据态未完成验收（缺稳定插件环境） | 中 | 3.8 | 迭代1/2/3/4/5/6验证 |
-| 5 | PluginSheetDetail 真实数据态与播放链路待端上复验 | 中 | 3.6 | 迭代2/3/4/5/6验证 |
-| 6 | History 列表态与回放链路（有数据）待补验收 | 中 | 3.5 | 迭代3/4/5/6验证 |
-| 7 | 数据模型不完整（IMusicItem 字段与媒体实体缺口） | 中 | 3.5 | 迭代1分析 |
+| 1 | 剩余页面仍缺失（`downloading/fileSelector/musicListEditor/setCustomTheme/searchMusicList`） | 粗 | 5.6 | 迭代7分析 |
+| 2 | 真实订阅导入 -> 搜索 -> 播放端上全链路验收与截图待补（默认订阅+WY 搜索/解析已通过集成测试，待端上点击实测与截图） | 中 | 5.4 | 迭代7/8/9/10/11/12验证 |
+| 3 | 首页结构视觉仍未完全对齐（深色风格、Drawer 细节、歌单区视觉） | 细 | 5.0 | 迭代7验证 |
+| 4 | `musicDetail -> albumDetail/artistDetail` 真实插件数据态与截图验收待补 | 中 | 4.6 | 迭代6/7验证 |
+| 5 | TopListDetail 真实数据态未完成验收（缺稳定插件环境） | 中 | 3.8 | 迭代1/2/3/4/5/6/7验证 |
+| 6 | PluginSheetDetail 真实数据态与播放链路待端上复验 | 中 | 3.6 | 迭代2/3/4/5/6/7验证 |
+| 7 | History 列表态与回放链路（有数据）待补验收 | 中 | 3.5 | 迭代3/4/5/6/7验证 |
+| 8 | 数据模型不完整（IMusicItem 字段与媒体实体缺口） | 中 | 3.5 | 迭代1分析 |

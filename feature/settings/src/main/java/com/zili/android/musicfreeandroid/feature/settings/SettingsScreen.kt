@@ -1,6 +1,5 @@
 package com.zili.android.musicfreeandroid.feature.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,6 +48,7 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onNavigateToPermissions: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -90,6 +89,31 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .padding(horizontal = rpx(24)),
         ) {
+            item {
+                Spacer(modifier = Modifier.height(rpx(24)))
+                SettingsEntryCard(
+                    title = "权限管理",
+                    description = "管理悬浮窗和存储/音频读取权限",
+                    actionText = "进入",
+                    onClick = onNavigateToPermissions,
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "默认订阅导入",
+                    description = "导入真实订阅中的插件列表，用于验证搜索与播放链路",
+                    actionText = "导入",
+                    enabled = installState !is InstallState.Loading,
+                    onClick = viewModel::installDefaultSubscription,
+                )
+                InstallStateSummary(
+                    installState = installState,
+                    modifier = Modifier.padding(top = rpx(12)),
+                )
+            }
+
             // Section header: 插件管理
             item {
                 Spacer(modifier = Modifier.height(rpx(24)))
@@ -151,6 +175,80 @@ fun SettingsScreen(
                 viewModel.resetInstallState()
             },
         )
+    }
+}
+
+@Composable
+private fun InstallStateSummary(
+    installState: InstallState,
+    modifier: Modifier = Modifier,
+) {
+    when (installState) {
+        is InstallState.Loading -> {
+            LinearProgressIndicator(
+                modifier = modifier.fillMaxWidth(),
+                color = MusicFreeTheme.colors.primary,
+            )
+        }
+        is InstallState.Error -> {
+            Text(
+                text = installState.message,
+                modifier = modifier,
+                fontSize = FontSizes.description,
+                color = MusicFreeTheme.colors.danger,
+            )
+        }
+        is InstallState.Success -> {
+            Text(
+                text = installState.message,
+                modifier = modifier,
+                fontSize = FontSizes.description,
+                color = MusicFreeTheme.colors.success,
+            )
+        }
+        InstallState.Idle -> Unit
+    }
+}
+
+@Composable
+private fun SettingsEntryCard(
+    title: String,
+    description: String,
+    actionText: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(rpx(16)),
+        colors = CardDefaults.cardColors(
+            containerColor = MusicFreeTheme.colors.card,
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = rpx(24), vertical = rpx(20)),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = FontSizes.content,
+                    color = MusicFreeTheme.colors.text,
+                )
+                Spacer(modifier = Modifier.height(rpx(6)))
+                Text(
+                    text = description,
+                    fontSize = FontSizes.description,
+                    color = MusicFreeTheme.colors.textSecondary,
+                )
+            }
+            TextButton(onClick = onClick, enabled = enabled) {
+                Text(text = actionText)
+            }
+        }
     }
 }
 
@@ -234,29 +332,7 @@ private fun InstallPluginDialog(
                     enabled = installState !is InstallState.Loading,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                when (installState) {
-                    is InstallState.Loading -> {
-                        LinearProgressIndicator(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MusicFreeTheme.colors.primary,
-                        )
-                    }
-                    is InstallState.Error -> {
-                        Text(
-                            text = installState.message,
-                            fontSize = FontSizes.description,
-                            color = MusicFreeTheme.colors.danger,
-                        )
-                    }
-                    is InstallState.Success -> {
-                        Text(
-                            text = "安装成功！",
-                            fontSize = FontSizes.description,
-                            color = MusicFreeTheme.colors.success,
-                        )
-                    }
-                    is InstallState.Idle -> { /* no-op */ }
-                }
+                InstallStateSummary(installState = installState)
             }
         },
         confirmButton = {

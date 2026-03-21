@@ -2,10 +2,10 @@ package com.zili.android.musicfreeandroid.plugin.manager
 
 import android.content.Context
 import android.util.Log
-import com.whl.quickjs.wrapper.JSCallFunction
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.engine.AxiosShim
 import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
+import com.zili.android.musicfreeandroid.plugin.engine.RequireShim
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +17,11 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.nio.charset.StandardCharsets
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -81,19 +86,7 @@ class PluginManager @Inject constructor(
      */
     suspend fun installFromFile(sourceFile: File): LoadedPlugin? = mutex.withLock {
         withContext(Dispatchers.IO) {
-            try {
-                val destFile = File(pluginsDir, sourceFile.name)
-                sourceFile.copyTo(destFile, overwrite = true)
-                val plugin = loadPluginFromFile(destFile)
-                if (plugin != null) {
-                    _plugins.value = _plugins.value + plugin
-                    Log.i(TAG, "Installed plugin: ${plugin.info.platform} from file")
-                }
-                plugin
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to install plugin from file: ${sourceFile.name}", e)
-                null
-            }
+            installFromFileLocked(sourceFile)
         }
     }
 
@@ -102,26 +95,16 @@ class PluginManager @Inject constructor(
      */
     suspend fun installFromUrl(url: String, fileName: String): LoadedPlugin? = mutex.withLock {
         withContext(Dispatchers.IO) {
-            try {
-                val request = Request.Builder().url(url).build()
-                val response = httpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    Log.e(TAG, "Failed to download plugin from $url: ${response.code}")
-                    return@withContext null
-                }
-                val destFile = File(pluginsDir, fileName)
-                destFile.writeBytes(response.body?.bytes() ?: return@withContext null)
+            installFromUrlLocked(url = url, fileName = fileName)
+        }
+    }
 
-                val plugin = loadPluginFromFile(destFile)
-                if (plugin != null) {
-                    _plugins.value = _plugins.value + plugin
-                    Log.i(TAG, "Installed plugin: ${plugin.info.platform} from URL")
-                }
-                plugin
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to install plugin from URL: $url", e)
-                null
-            }
+    /**
+     * Install plugins listed in a subscription JSON URL.
+     */
+    suspend fun installFromSubscriptionUrl(subscriptionUrl: String): SubscriptionInstallResult = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            installFromSubscriptionUrlLocked(subscriptionUrl)
         }
     }
 
@@ -151,6 +134,170 @@ class PluginManager @Inject constructor(
         return _plugins.value.find { it.info.platform == platform }
     }
 
+    private suspend fun installFromFileLocked(sourceFile: File): LoadedPlugin? {
+        return try {
+            installWithStagedFile(fileName = sourceFile.name) { stagedFile ->
+                sourceFile.copyTo(stagedFile, overwrite = true)
+                true
+            }?.also { plugin ->
+                Log.i(TAG, "Installed plugin: ${plugin.info.platform} from file")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to install plugin from file: ${sourceFile.name}", e)
+            null
+        }
+    }
+
+    private suspend fun installFromUrlLocked(url: String, fileName: String): LoadedPlugin? {
+        return try {
+            installWithStagedFile(fileName = fileName) { stagedFile ->
+                val bytes = downloadUrlBytes(url) ?: return@installWithStagedFile false
+                stagedFile.writeBytes(bytes)
+                true
+            }?.also { plugin ->
+                Log.i(TAG, "Installed plugin: ${plugin.info.platform} from URL")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to install plugin from URL: $url", e)
+            null
+        }
+    }
+
+    private suspend fun installFromSubscriptionUrlLocked(subscriptionUrl: String): SubscriptionInstallResult {
+        if (subscriptionUrl.isBlank()) {
+            return SubscriptionInstallResult(
+                totalEntries = 0,
+                successfulInstalls = 0,
+                failedInstalls = 0,
+                errorMessage = "订阅地址不能为空",
+            )
+        }
+
+        val rawJson = downloadUrlBytes(subscriptionUrl)?.toString(StandardCharsets.UTF_8)
+            ?: return SubscriptionInstallResult(
+                totalEntries = 0,
+                successfulInstalls = 0,
+                failedInstalls = 0,
+                errorMessage = "订阅下载失败",
+            )
+
+        val parsed = SubscriptionParser.parse(rawJson)
+        if (parsed.isMalformed) {
+            Log.e(TAG, "Malformed subscription JSON from $subscriptionUrl")
+            return SubscriptionInstallResult(
+                totalEntries = 0,
+                successfulInstalls = 0,
+                failedInstalls = 0,
+                errorMessage = "订阅格式无效",
+            )
+        }
+
+        var successfulInstalls = 0
+        for (entry in parsed.installableEntries) {
+            val fileName = SubscriptionFileNames.pluginFileName(entry)
+            if (installFromUrlLocked(url = entry.url, fileName = fileName) != null) {
+                successfulInstalls += 1
+            }
+        }
+
+        return SubscriptionInstallResult(
+            totalEntries = parsed.totalEntries,
+            successfulInstalls = successfulInstalls,
+            failedInstalls = parsed.totalEntries - successfulInstalls,
+        )
+    }
+
+    private suspend fun installWithStagedFile(
+        fileName: String,
+        populateStagedFile: (File) -> Boolean,
+    ): LoadedPlugin? {
+        val targetFile = File(pluginsDir, fileName)
+        val stagedFile = createStagedPluginFile(fileName)
+
+        try {
+            val populated = populateStagedFile(stagedFile)
+            if (!populated) {
+                return null
+            }
+
+            val plugin = loadPluginFromFile(stagedFile) ?: return null
+            val replaced = replaceFileAtomically(source = stagedFile, target = targetFile)
+            if (!replaced) {
+                plugin.destroy()
+                return null
+            }
+
+            plugin.filePath = targetFile.absolutePath
+            addOrReplacePlugin(plugin)
+            return plugin
+        } finally {
+            if (stagedFile.exists()) {
+                stagedFile.delete()
+            }
+        }
+    }
+
+    private fun downloadUrlBytes(url: String): ByteArray? {
+        return try {
+            val request = Request.Builder().url(url).build()
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.e(TAG, "Failed to download from $url: ${response.code}")
+                    return null
+                }
+                response.body?.bytes()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to download content from $url", e)
+            null
+        }
+    }
+
+    private fun addOrReplacePlugin(plugin: LoadedPlugin) {
+        val current = _plugins.value.toMutableList()
+        val replaced = current.filter {
+            it.info.platform == plugin.info.platform || it.filePath == plugin.filePath
+        }
+
+        replaced.forEach { existing ->
+            existing.destroy()
+            current.remove(existing)
+            if (existing.filePath != plugin.filePath) {
+                File(existing.filePath).delete()
+            }
+        }
+
+        current += plugin
+        _plugins.value = current
+    }
+
+    private fun createStagedPluginFile(fileName: String): File {
+        val safeBaseName = fileName.removeSuffix(".js").ifBlank { "plugin" }
+        return File(pluginsDir, "$safeBaseName-${UUID.randomUUID()}.tmp")
+    }
+
+    private fun replaceFileAtomically(source: File, target: File): Boolean {
+        return try {
+            Files.move(
+                source.toPath(),
+                target.toPath(),
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING,
+            )
+            true
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(
+                source.toPath(),
+                target.toPath(),
+                StandardCopyOption.REPLACE_EXISTING,
+            )
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to replace plugin file ${target.name}", e)
+            false
+        }
+    }
+
     /**
      * Load a single plugin from a JS file.
      *
@@ -177,17 +324,8 @@ class PluginManager @Inject constructor(
             // Register axios shim
             AxiosShim.register(ctx, engine)
 
-            // Register __require shim: currently only supports 'axios'
-            ctx.globalObject.setProperty("__require", JSCallFunction { args ->
-                val moduleName = args.getOrNull(0)?.toString() ?: ""
-                when (moduleName) {
-                    "axios" -> ctx.globalObject.getProperty("axios")
-                    else -> {
-                        Log.w(TAG, "require('$moduleName') not supported, returning empty object")
-                        ctx.createNewJSObject()
-                    }
-                }
-            })
+            // Register CommonJS require shim with built-in modules from assets.
+            RequireShim.register(appContext = context, context = ctx)
 
             // Wrap plugin code in CommonJS-style module pattern and assign to __plugin
             val wrappedCode = """

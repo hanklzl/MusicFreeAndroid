@@ -11,6 +11,7 @@ fun NavGraphBuilder.homeScreen(
     onNavigateToRecommendSheets: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToPermissions: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
 ) {
@@ -21,6 +22,7 @@ fun NavGraphBuilder.homeScreen(
             onNavigateToRecommendSheets = onNavigateToRecommendSheets,
             onNavigateToHistory = onNavigateToHistory,
             onNavigateToSettings = onNavigateToSettings,
+            onNavigateToPermissions = onNavigateToPermissions,
             onNavigateToTopList = onNavigateToTopList,
             onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,
         )

@@ -7,8 +7,12 @@ import com.zili.android.musicfreeandroid.feature.settings.SettingsScreen
 
 fun NavGraphBuilder.settingsScreen(
     onBack: () -> Unit,
+    onNavigateToPermissions: () -> Unit,
 ) {
     composable<SettingsRoute> {
-        SettingsScreen(onBack = onBack)
+        SettingsScreen(
+            onBack = onBack,
+            onNavigateToPermissions = onNavigateToPermissions,
+        )
     }
 }

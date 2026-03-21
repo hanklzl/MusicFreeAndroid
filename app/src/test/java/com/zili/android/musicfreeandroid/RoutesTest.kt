@@ -7,6 +7,7 @@ import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.PermissionsRoute
 import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
@@ -14,6 +15,7 @@ import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 
@@ -57,6 +59,15 @@ class RoutesTest {
         assertNotNull(json)
         val decoded = Json.decodeFromString<SettingsRoute>(json)
         assertNotNull(decoded)
+    }
+
+    @Test
+    fun `PermissionsRoute is serializable`() {
+        val json = Json.encodeToString(serializer(), PermissionsRoute)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<PermissionsRoute>(json)
+        assertNotNull(decoded)
+        assertEquals(PermissionsRoute, decoded)
     }
 
     @Test

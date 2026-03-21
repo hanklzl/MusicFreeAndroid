@@ -9,6 +9,7 @@ import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.PermissionsRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlaylistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
@@ -29,6 +30,7 @@ import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topList
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListScreen
 import com.zili.android.musicfreeandroid.feature.playerui.navigation.playerScreen
 import com.zili.android.musicfreeandroid.feature.search.navigation.searchScreen
+import com.zili.android.musicfreeandroid.feature.settings.navigation.permissionsScreen
 import com.zili.android.musicfreeandroid.feature.settings.navigation.settingsScreen
 
 @Composable
@@ -47,6 +49,7 @@ fun AppNavHost(
             onNavigateToRecommendSheets = { navController.navigate(RecommendSheetsRoute) },
             onNavigateToHistory = { navController.navigate(HistoryRoute) },
             onNavigateToSettings = { navController.navigate(SettingsRoute) },
+            onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
             onNavigateToTopList = { navController.navigate(TopListRoute) },
             onNavigateToPlaylistDetail = { playlistId ->
                 navController.navigate(PlaylistDetailRoute(playlistId))
@@ -68,6 +71,10 @@ fun AppNavHost(
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
         settingsScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
+        )
+        permissionsScreen(
             onBack = { navController.popBackStack() },
         )
         topListScreen(

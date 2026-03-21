@@ -1,8 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.home
 
-import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -18,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -31,11 +30,19 @@ import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults.SecondaryIndicator
@@ -50,6 +57,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -57,8 +65,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
+import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.feature.home.playlist.AddToPlaylistDialog
 import com.zili.android.musicfreeandroid.feature.home.playlist.PlaylistSection
 import com.zili.android.musicfreeandroid.feature.home.playlist.PlaylistViewModel
@@ -72,6 +83,7 @@ fun HomeScreen(
     onNavigateToRecommendSheets: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToPermissions: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -91,11 +103,7 @@ fun HomeScreen(
     }
 
     LaunchedEffect(Unit) {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.READ_MEDIA_AUDIO
-        } else {
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        }
+        val permission = requiredAudioPermission()
         if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
             viewModel.scanLocalMusic()
         } else {
@@ -115,64 +123,132 @@ fun HomeScreen(
 
     val tabs = listOf("本地音乐", "播放列表")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        HomeHeader(
-            onOpenMenu = onNavigateToSettings,
-            onOpenSearch = onNavigateToSearch,
+    val drawerState = androidx.compose.material3.rememberDrawerState(initialValue = DrawerValue.Closed)
+    val drawerItems = remember(onNavigateToSettings, onNavigateToPermissions) {
+        listOf(
+            HomeDrawerItem(
+                title = "基础设置",
+                icon = Icons.Default.Settings,
+                onClick = onNavigateToSettings,
+            ),
+            HomeDrawerItem(
+                title = "插件管理",
+                icon = Icons.Default.Extension,
+                onClick = onNavigateToSettings,
+            ),
+            HomeDrawerItem(
+                title = "权限管理",
+                icon = Icons.Default.Security,
+                onClick = onNavigateToPermissions,
+            ),
         )
+    }
 
-        HomeOperations(
-            onRecommendClick = onNavigateToRecommendSheets,
-            onTopListClick = onNavigateToTopList,
-            onHistoryClick = onNavigateToHistory,
-            onLocalMusicClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-        )
-
-        TabRow(
-            selectedTabIndex = pagerState.currentPage,
-            containerColor = MusicFreeTheme.colors.pageBackground,
-            contentColor = MusicFreeTheme.colors.text,
-            indicator = { tabPositions ->
-                SecondaryIndicator(
-                    Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                    color = MusicFreeTheme.colors.primary,
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = MusicFreeTheme.colors.card,
+                drawerContentColor = MusicFreeTheme.colors.text,
+            ) {
+                Text(
+                    text = "更多功能",
+                    modifier = Modifier.padding(horizontal = rpx(24), vertical = rpx(32)),
+                    color = MusicFreeTheme.colors.text,
+                    fontSize = FontSizes.title,
                 )
-            },
-        ) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = pagerState.currentPage == index,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                    text = {
-                        Text(
-                            title,
-                            color = if (pagerState.currentPage == index) MusicFreeTheme.colors.primary else MusicFreeTheme.colors.textSecondary,
-                        )
-                    },
-                )
+                drawerItems.forEach { item ->
+                    NavigationDrawerItem(
+                        label = {
+                            Text(
+                                text = item.title,
+                                fontSize = FontSizes.subTitle,
+                            )
+                        },
+                        selected = false,
+                        onClick = {
+                            scope.launch {
+                                runHomeDrawerNavigation(
+                                    navigate = item.onClick,
+                                    closeDrawer = { drawerState.close() },
+                                )
+                            }
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = null,
+                            )
+                        },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            unselectedContainerColor = MusicFreeTheme.colors.card,
+                            unselectedTextColor = MusicFreeTheme.colors.text,
+                            unselectedIconColor = MusicFreeTheme.colors.text,
+                        ),
+                        modifier = Modifier.padding(horizontal = rpx(12)),
+                    )
+                }
             }
-        }
+        },
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            HomeHeader(
+                onOpenMenu = { scope.launch { drawerState.open() } },
+                onOpenSearch = onNavigateToSearch,
+            )
 
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-            when (page) {
-                0 -> LocalMusicPage(
-                    uiState = uiState,
-                    onItemClick = { item, items ->
-                        viewModel.playItem(item, items)
-                        onNavigateToPlayer()
-                    },
-                    onItemLongClick = { item -> addToPlaylistItem = item },
-                    onRetry = { viewModel.scanLocalMusic() },
-                )
+            HomeOperations(
+                onRecommendClick = onNavigateToRecommendSheets,
+                onTopListClick = onNavigateToTopList,
+                onHistoryClick = onNavigateToHistory,
+                onLocalMusicClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+            )
 
-                1 -> PlaylistSection(
-                    playlists = playlists,
-                    onPlaylistClick = { onNavigateToPlaylistDetail(it.id) },
-                    onCreate = { playlistViewModel.createPlaylist(it) },
-                    onRename = { playlist, name -> playlistViewModel.renamePlaylist(playlist, name) },
-                    onDelete = { playlistViewModel.deletePlaylist(it) },
-                )
+            TabRow(
+                selectedTabIndex = pagerState.currentPage,
+                containerColor = MusicFreeTheme.colors.pageBackground,
+                contentColor = MusicFreeTheme.colors.text,
+                indicator = { tabPositions ->
+                    SecondaryIndicator(
+                        Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                        color = MusicFreeTheme.colors.primary,
+                    )
+                },
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = pagerState.currentPage == index,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                        text = {
+                            Text(
+                                title,
+                                color = if (pagerState.currentPage == index) MusicFreeTheme.colors.primary else MusicFreeTheme.colors.textSecondary,
+                            )
+                        },
+                    )
+                }
+            }
+
+            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                when (page) {
+                    0 -> LocalMusicPage(
+                        uiState = uiState,
+                        onItemClick = { item, items ->
+                            viewModel.playItem(item, items)
+                            onNavigateToPlayer()
+                        },
+                        onItemLongClick = { item -> addToPlaylistItem = item },
+                        onRetry = { viewModel.scanLocalMusic() },
+                    )
+
+                    1 -> PlaylistSection(
+                        playlists = playlists,
+                        onPlaylistClick = { onNavigateToPlaylistDetail(it.id) },
+                        onCreate = { playlistViewModel.createPlaylist(it) },
+                        onRename = { playlist, name -> playlistViewModel.renamePlaylist(playlist, name) },
+                        onDelete = { playlistViewModel.deletePlaylist(it) },
+                    )
+                }
             }
         }
     }
@@ -186,36 +262,46 @@ private fun HomeHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .height(rpx(88))
+            .padding(start = rpx(24), end = rpx(24)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onOpenMenu) {
+        IconButton(
+            onClick = onOpenMenu,
+            modifier = Modifier.size(rpx(40)),
+        ) {
             Icon(
                 imageVector = Icons.Default.Menu,
                 contentDescription = "菜单",
                 tint = MusicFreeTheme.colors.text,
+                modifier = Modifier.size(IconSizes.normal),
             )
         }
         Box(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 8.dp)
+                .padding(start = rpx(24))
+                .height(rpx(64))
                 .background(
                     color = MusicFreeTheme.colors.placeholder,
                     shape = RoundedCornerShape(999.dp),
                 )
                 .clickable(onClick = onOpenSearch)
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = rpx(20)),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
                     tint = MusicFreeTheme.colors.textSecondary,
+                    modifier = Modifier.size(IconSizes.small),
                 )
                 Text(
                     text = "点击这里开始搜索",
-                    modifier = Modifier.padding(start = 8.dp),
+                    modifier = Modifier.padding(start = rpx(12)),
                     color = MusicFreeTheme.colors.textSecondary,
                     fontSize = FontSizes.subTitle,
                 )
@@ -234,8 +320,8 @@ private fun HomeOperations(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = rpx(24), vertical = rpx(32)),
+        horizontalArrangement = Arrangement.spacedBy(rpx(24)),
     ) {
         OperationCard(
             modifier = Modifier.weight(1f),
@@ -273,13 +359,13 @@ private fun OperationCard(
 ) {
     Column(
         modifier = modifier
-            .height(80.dp)
+            .height(rpx(160))
             .background(
                 color = MusicFreeTheme.colors.card,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(rpx(18)),
             )
             .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
+            .padding(vertical = rpx(18)),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -287,15 +373,22 @@ private fun OperationCard(
             imageVector = icon,
             contentDescription = null,
             tint = MusicFreeTheme.colors.text,
+            modifier = Modifier.size(IconSizes.normal),
         )
         Text(
             text = title,
             color = MusicFreeTheme.colors.text,
             fontSize = FontSizes.description,
-            modifier = Modifier.padding(top = 6.dp),
+            modifier = Modifier.padding(top = rpx(12)),
         )
     }
 }
+
+private data class HomeDrawerItem(
+    val title: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+)
 
 @Composable
 private fun LocalMusicPage(

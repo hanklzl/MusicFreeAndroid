@@ -25,6 +25,7 @@ class SearchViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "SearchViewModel"
+        private const val WY_FALLBACK_PLATFORM = "元力WY"
     }
 
     val availablePlugins: StateFlow<List<PluginInfo>> = pluginManager.plugins
@@ -40,6 +41,17 @@ class SearchViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             pluginManager.loadAllPlugins()
+        }
+        viewModelScope.launch {
+            availablePlugins.collect { plugins ->
+                val selected = _selectedPlugin.value
+                _selectedPlugin.value = when {
+                    plugins.isEmpty() -> null
+                    selected == null -> plugins.first().platform
+                    plugins.any { it.platform == selected } -> selected
+                    else -> plugins.first().platform
+                }
+            }
         }
     }
 
@@ -97,18 +109,24 @@ class SearchViewModel @Inject constructor(
         val plugin = pluginManager.getPlugin(platform) ?: return false
 
         return try {
-            val source = plugin.getMediaSource(item)
-            if (source != null) {
-                val resolvedItem = item.copy(url = source.url)
-                val index = queue.indexOfFirst { it.id == item.id && it.platform == item.platform }
-                val resolvedQueue = queue.map { queueItem ->
-                    if (queueItem.id == item.id && queueItem.platform == item.platform) {
-                        resolvedItem
-                    } else {
-                        queueItem
-                    }
+            val resolvedItem = resolveMediaSourceWithFallback(
+                primaryPlugin = plugin,
+                selectedPlatform = platform,
+                targetItem = item,
+            )
+            if (resolvedItem != null) {
+                val index = queue.indexOfFirst {
+                    it.id == item.id && it.platform == item.platform
                 }
-                playerController.playQueue(resolvedQueue, index.coerceAtLeast(0))
+                val resolvedQueue = if (index >= 0) {
+                    queue.mapIndexed { i, queueItem ->
+                        if (i == index) resolvedItem else queueItem
+                    }
+                } else {
+                    listOf(resolvedItem) + queue
+                }
+                val startIndex = if (index >= 0) index else 0
+                playerController.playQueue(resolvedQueue, startIndex)
                 true
             } else {
                 Log.w(TAG, "Failed to resolve media source for ${item.title}")
@@ -118,5 +136,51 @@ class SearchViewModel @Inject constructor(
             Log.e(TAG, "resolveAndPlay failed for ${item.title}", e)
             false
         }
+    }
+
+    private suspend fun resolveMediaSourceWithFallback(
+        primaryPlugin: com.zili.android.musicfreeandroid.plugin.api.PluginApi,
+        selectedPlatform: String,
+        targetItem: MusicItem,
+    ): MusicItem? {
+        val directSource = primaryPlugin.getMediaSource(targetItem)
+        if (directSource?.url?.isNotBlank() == true) {
+            return targetItem.copy(url = directSource.url)
+        }
+
+        if (selectedPlatform == WY_FALLBACK_PLATFORM) {
+            return null
+        }
+
+        val wyPlugin = pluginManager.getPlugin(WY_FALLBACK_PLATFORM)
+        if (wyPlugin == null) {
+            Log.w(TAG, "Fallback plugin not installed: $WY_FALLBACK_PLATFORM")
+            return null
+        }
+
+        val fallbackQuery = MusicMatch.buildFallbackQuery(targetItem)
+        if (fallbackQuery.isBlank()) {
+            return null
+        }
+
+        val fallbackSearch = wyPlugin.search(fallbackQuery, page = 1)
+        val fallbackMatch = MusicMatch.pickBestCandidate(targetItem, fallbackSearch.data)
+        if (fallbackMatch == null) {
+            Log.w(TAG, "No WY fallback match for ${targetItem.title}")
+            return null
+        }
+
+        val fallbackSource = wyPlugin.getMediaSource(fallbackMatch)
+        val fallbackUrl = fallbackSource?.url
+        if (fallbackUrl.isNullOrBlank()) {
+            Log.w(TAG, "WY fallback getMediaSource failed for ${targetItem.title}")
+            return null
+        }
+
+        Log.i(
+            TAG,
+            "Fallback playback resolved by $WY_FALLBACK_PLATFORM for ${targetItem.title}",
+        )
+        return fallbackMatch.copy(url = fallbackUrl)
     }
 }

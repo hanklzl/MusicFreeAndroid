@@ -31,7 +31,7 @@ import kotlinx.coroutines.withTimeout
 class LoadedPlugin(
     override val info: PluginInfo,
     private val engine: JsEngine,
-    val filePath: String,
+    var filePath: String,
 ) : PluginApi {
 
     companion object {

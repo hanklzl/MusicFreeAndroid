@@ -218,6 +218,23 @@ class JsBridgeTest {
     }
 
     @Test
+    fun `music item round trip preserves plugin extension fields`() {
+        val payload = mapOf<String, Any?>(
+            "id" to "306948",
+            "platform" to "元力QQ",
+            "title" to "In The End",
+            "artist" to "Linkin Park",
+            "songmid" to "004Z8Ihr0JIu5s",
+        )
+        val item = JsBridge.toMusicItem(payload)
+        val roundTrip = JsBridge.musicItemToMap(item)
+        assertEquals(
+            "004Z8Ihr0JIu5s",
+            roundTrip["songmid"],
+        )
+    }
+
+    @Test
     fun `parseLyricResult parses lines from lrc text`() {
         val payload = mapOf<String, Any?>(
             "rawLrc" to "[00:01.00]Hello\n[00:02.50]World",

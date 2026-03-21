@@ -17,7 +17,7 @@ import javax.inject.Inject
 sealed interface InstallState {
     data object Idle : InstallState
     data object Loading : InstallState
-    data object Success : InstallState
+    data class Success(val message: String) : InstallState
     data class Error(val message: String) : InstallState
 }
 
@@ -25,6 +25,10 @@ sealed interface InstallState {
 class SettingsViewModel @Inject constructor(
     private val pluginManager: PluginManager,
 ) : ViewModel() {
+
+    companion object {
+        private const val DEFAULT_SUBSCRIPTION_URL = "https://13413.kstore.vip/yuanli/yuanli.json"
+    }
 
     val plugins: StateFlow<List<PluginInfo>> = pluginManager.plugins
         .map { list -> list.map { it.info } }
@@ -40,6 +44,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun installFromUrl(url: String) {
+        if (_installState.value is InstallState.Loading) {
+            return
+        }
         if (url.isBlank()) {
             _installState.value = InstallState.Error("URL 不能为空")
             return
@@ -50,12 +57,36 @@ class SettingsViewModel @Inject constructor(
                 val fileName = url.substringAfterLast("/").ifBlank { "plugin.js" }
                 val result = pluginManager.installFromUrl(url, fileName)
                 _installState.value = if (result != null) {
-                    InstallState.Success
+                    InstallState.Success("插件安装成功")
                 } else {
                     InstallState.Error("插件安装失败")
                 }
             } catch (e: Exception) {
                 _installState.value = InstallState.Error(e.message ?: "未知错误")
+            }
+        }
+    }
+
+    fun installDefaultSubscription() {
+        if (_installState.value is InstallState.Loading) {
+            return
+        }
+        _installState.value = InstallState.Loading
+        viewModelScope.launch {
+            try {
+                val result = pluginManager.installFromSubscriptionUrl(DEFAULT_SUBSCRIPTION_URL)
+                val errorMessage = result.errorMessage
+                _installState.value = when {
+                    errorMessage != null -> InstallState.Error(errorMessage)
+                    result.successfulInstalls == 0 -> InstallState.Error(
+                        "订阅导入失败：共 ${result.totalEntries} 项，成功 0，失败 ${result.failedInstalls}",
+                    )
+                    else -> InstallState.Success(
+                        "订阅导入完成：共 ${result.totalEntries} 项，成功 ${result.successfulInstalls}，失败 ${result.failedInstalls}",
+                    )
+                }
+            } catch (e: Exception) {
+                _installState.value = InstallState.Error(e.message ?: "订阅导入失败")
             }
         }
     }
