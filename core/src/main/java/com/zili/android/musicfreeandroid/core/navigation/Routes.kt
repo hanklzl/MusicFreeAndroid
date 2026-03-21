@@ -55,3 +55,20 @@ data class MusicDetailRoute(
     val artwork: String? = null,
     val durationMs: Long = 0L,
 )
+
+@Serializable
+data class AlbumDetailRoute(
+    val pluginPlatform: String,
+    val albumId: String,
+    val title: String? = null,
+    val artist: String? = null,
+    val artwork: String? = null,
+)
+
+@Serializable
+data class ArtistDetailRoute(
+    val pluginPlatform: String,
+    val artistId: String,
+    val name: String,
+    val avatar: String? = null,
+)

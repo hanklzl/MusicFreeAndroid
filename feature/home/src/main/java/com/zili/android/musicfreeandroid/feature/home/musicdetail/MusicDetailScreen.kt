@@ -26,16 +26,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.plugin.api.MusicComment
+import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.plugin.api.MusicComment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicDetailScreen(
     onBack: () -> Unit,
+    onOpenAlbumDetail: (MusicItem) -> Unit,
+    onOpenArtistDetail: (MusicItem) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MusicDetailViewModel = hiltViewModel(),
 ) {
@@ -150,16 +153,20 @@ fun MusicDetailScreen(
                                     .padding(horizontal = rpx(24)),
                                 horizontalArrangement = Arrangement.spacedBy(rpx(24)),
                             ) {
-                                Text(
-                                    text = "专辑预览: ${uiState.albumPreviewCount?.toString() ?: "--"} 首",
-                                    color = MusicFreeTheme.colors.textSecondary,
-                                    fontSize = FontSizes.description,
-                                )
-                                Text(
-                                    text = "歌手作品: ${uiState.artistPreviewCount?.toString() ?: "--"} 首",
-                                    color = MusicFreeTheme.colors.textSecondary,
-                                    fontSize = FontSizes.description,
-                                )
+                                TextButton(onClick = { onOpenAlbumDetail(item) }) {
+                                    Text(
+                                        text = "专辑预览: ${uiState.albumPreviewCount?.toString() ?: "--"} 首",
+                                        color = MusicFreeTheme.colors.primary,
+                                        fontSize = FontSizes.description,
+                                    )
+                                }
+                                TextButton(onClick = { onOpenArtistDetail(item) }) {
+                                    Text(
+                                        text = "歌手作品: ${uiState.artistPreviewCount?.toString() ?: "--"} 首",
+                                        color = MusicFreeTheme.colors.primary,
+                                        fontSize = FontSizes.description,
+                                    )
+                                }
                             }
                         }
                     }

@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
+import com.zili.android.musicfreeandroid.core.navigation.AlbumDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
@@ -16,6 +18,8 @@ import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
+import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.albumDetailScreen
+import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.artistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.musicDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.pluginSheetDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScreen
@@ -128,6 +132,37 @@ fun AppNavHost(
         )
         musicDetailScreen(
             onBack = { navController.popBackStack() },
+            onOpenAlbumDetail = { item ->
+                val albumId = item.album?.takeIf { it.isNotBlank() } ?: item.id
+                navController.navigate(
+                    AlbumDetailRoute(
+                        pluginPlatform = item.platform,
+                        albumId = albumId,
+                        title = item.album,
+                        artist = item.artist,
+                        artwork = item.artwork,
+                    ),
+                )
+            },
+            onOpenArtistDetail = { item ->
+                val artistId = item.artist.takeIf { it.isNotBlank() } ?: item.id
+                navController.navigate(
+                    ArtistDetailRoute(
+                        pluginPlatform = item.platform,
+                        artistId = artistId,
+                        name = item.artist.ifBlank { "未知歌手" },
+                        avatar = item.artwork,
+                    ),
+                )
+            },
+        )
+        albumDetailScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+        )
+        artistDetailScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
     }
 }
