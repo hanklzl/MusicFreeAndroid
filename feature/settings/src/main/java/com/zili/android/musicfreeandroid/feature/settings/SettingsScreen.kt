@@ -1,7 +1,5 @@
 package com.zili.android.musicfreeandroid.feature.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,11 +36,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.storage.DocumentTreeStorageAccess
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
@@ -53,35 +49,14 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateToPermissions: () -> Unit,
+    onNavigateToFileSelector: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
     val plugins by viewModel.plugins.collectAsStateWithLifecycle()
     val installState by viewModel.installState.collectAsStateWithLifecycle()
     val storageAccessState by viewModel.storageAccessState.collectAsStateWithLifecycle()
     var showInstallDialog by remember { mutableStateOf(false) }
-    val openDocumentTreeLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        if (uri != null) {
-            val previousUri = storageAccessState.selectedDirectory?.uri
-            runCatching {
-                DocumentTreeStorageAccess.persistReadWritePermission(
-                    contentResolver = context.contentResolver,
-                    treeUri = uri,
-                )
-            }.onSuccess {
-                if (previousUri != null && previousUri != uri) {
-                    DocumentTreeStorageAccess.releaseReadWritePermission(
-                        contentResolver = context.contentResolver,
-                        treeUri = previousUri,
-                    )
-                }
-                viewModel.setStorageDirectory(uri.toString())
-            }
-        }
-    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -147,9 +122,7 @@ fun SettingsScreen(
                     title = "存储目录",
                     description = storageDirectoryDescription(storageAccessState),
                     actionText = if (storageAccessState.isConfigured) "更换" else "选择",
-                    onClick = {
-                        openDocumentTreeLauncher.launch(storageAccessState.selectedDirectory?.uri)
-                    },
+                    onClick = onNavigateToFileSelector,
                 )
             }
 

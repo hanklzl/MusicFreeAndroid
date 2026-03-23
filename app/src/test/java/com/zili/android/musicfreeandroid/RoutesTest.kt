@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid
 
 import com.zili.android.musicfreeandroid.core.navigation.AlbumDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.FileSelectorRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
@@ -148,6 +149,15 @@ class RoutesTest {
         val decoded = Json.decodeFromString<PermissionsRoute>(json)
         assertNotNull(decoded)
         assertEquals(PermissionsRoute, decoded)
+    }
+
+    @Test
+    fun `FileSelectorRoute is serializable`() {
+        val json = Json.encodeToString(serializer(), FileSelectorRoute)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<FileSelectorRoute>(json)
+        assertNotNull(decoded)
+        assertEquals(FileSelectorRoute, decoded)
     }
 
     @Test

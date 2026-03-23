@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import com.zili.android.musicfreeandroid.core.navigation.AlbumDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.FileSelectorRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
@@ -35,6 +36,7 @@ import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topList
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListScreen
 import com.zili.android.musicfreeandroid.feature.playerui.navigation.playerScreen
 import com.zili.android.musicfreeandroid.feature.search.navigation.searchScreen
+import com.zili.android.musicfreeandroid.feature.settings.fileselector.navigation.fileSelectorLiteScreen
 import com.zili.android.musicfreeandroid.feature.settings.navigation.permissionsScreen
 import com.zili.android.musicfreeandroid.feature.settings.navigation.settingsScreen
 
@@ -94,6 +96,10 @@ fun AppNavHost(
         settingsScreen(
             onBack = { navController.popBackStack() },
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
+            onNavigateToFileSelector = { navController.navigate(FileSelectorRoute) },
+        )
+        fileSelectorLiteScreen(
+            onBack = { navController.popBackStack() },
         )
         permissionsScreen(
             onBack = { navController.popBackStack() },
