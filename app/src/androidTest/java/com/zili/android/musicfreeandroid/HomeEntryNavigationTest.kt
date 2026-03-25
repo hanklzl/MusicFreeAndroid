@@ -1,12 +1,17 @@
 package com.zili.android.musicfreeandroid
 
-import android.Manifest
+import android.content.pm.PackageManager
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -33,30 +38,36 @@ class HomeEntryNavigationTest {
 
     @Test
     fun searchEntry_opensSearchRoot() {
+        waitForHomeEntry(FidelityAnchors.Home.NavBarSearch)
         composeRule.onNodeWithTag(FidelityAnchors.Home.NavBarSearch).performClick()
         assertTagExists(FidelityAnchors.Screen.SearchRoot)
     }
 
     @Test
     fun recommendSheetsEntry_opensRecommendSheetsRoot() {
+        waitForHomeEntry(FidelityAnchors.Home.OperationsRecommendSheets)
         composeRule.onNodeWithTag(FidelityAnchors.Home.OperationsRecommendSheets).performClick()
         assertTagExists(FidelityAnchors.Screen.RecommendSheetsRoot)
     }
 
     @Test
     fun topListEntry_opensTopListRoot() {
+        waitForHomeEntry(FidelityAnchors.Home.OperationsTopList)
         composeRule.onNodeWithTag(FidelityAnchors.Home.OperationsTopList).performClick()
         assertTagExists(FidelityAnchors.Screen.TopListRoot)
     }
 
     @Test
     fun historyEntry_opensHistoryRoot() {
+        waitForHomeEntry(FidelityAnchors.Home.OperationsHistory)
         composeRule.onNodeWithTag(FidelityAnchors.Home.OperationsHistory).performClick()
         assertTagExists(FidelityAnchors.Screen.HistoryRoot)
     }
 
     @Test
     fun localEntry_opensLocalRoot() {
+        assertAudioPermissionGranted()
+        waitForHomeEntry(FidelityAnchors.Home.OperationsLocalMusic)
         composeRule.onNodeWithTag(FidelityAnchors.Home.OperationsLocalMusic).performClick()
         assertTagExists(FidelityAnchors.Screen.LocalRoot)
     }
@@ -77,13 +88,24 @@ class HomeEntryNavigationTest {
     fun pluginManagementEntry_exposesSettingsPluginAnchor() {
         openDrawerDestination(FidelityAnchors.Home.DrawerPluginManagement)
         assertTagExists(FidelityAnchors.Screen.SettingsRoot)
+        scrollToNode(FidelityAnchors.Settings.PluginManagementEntry)
         assertTagExists(FidelityAnchors.Settings.PluginManagementEntry)
     }
 
     private fun openDrawerDestination(destinationTag: String) {
+        waitForHomeEntry(FidelityAnchors.Home.NavBarMenu)
         composeRule.onNodeWithTag(FidelityAnchors.Home.NavBarMenu).performClick()
         assertTagExists(FidelityAnchors.Home.DrawerRoot)
         composeRule.onNodeWithTag(destinationTag).performClick()
+    }
+
+    private fun waitForHomeEntry(entryTag: String) {
+        assertTagExists(FidelityAnchors.Screen.HomeRoot)
+        assertTagExists(entryTag)
+    }
+
+    private fun scrollToNode(tag: String) {
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasTestTag(tag))
     }
 
     private fun assertTagExists(tag: String) {
@@ -98,15 +120,16 @@ class HomeEntryNavigationTest {
     private fun grantAudioPermissions() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val packageName = instrumentation.targetContext.packageName
-        listOf(
-            Manifest.permission.READ_MEDIA_AUDIO,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-        ).forEach { permission ->
-            runCatching {
-                instrumentation.uiAutomation
-                    .executeShellCommand("pm grant $packageName $permission")
-                    .close()
-            }
-        }
+        val permission = requiredAudioPermission()
+        instrumentation.uiAutomation.grantRuntimePermission(packageName, permission)
+        assertAudioPermissionGranted()
+    }
+
+    private fun assertAudioPermissionGranted() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val permission = requiredAudioPermission()
+        check(
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED,
+        ) { "Expected $permission to be granted before local entry navigation test." }
     }
 }
