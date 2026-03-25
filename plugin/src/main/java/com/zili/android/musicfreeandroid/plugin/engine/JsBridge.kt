@@ -62,6 +62,7 @@ object JsBridge {
         "thumbnail",
         "poster",
     )
+    private val AllImageFieldKeys = (MusicImageFieldKeys + SheetImageFieldKeys).toSet()
 
     fun toMusicItem(map: Map<String, Any?>, fallbackPlatform: String? = null): MusicItem {
         val durationRaw = (map["duration"] as? Number)?.toDouble() ?: 0.0
@@ -118,6 +119,12 @@ object JsBridge {
 
     fun parseMusicInfoResult(base: MusicItem, map: Map<String, Any?>): MusicItem {
         val merged = musicItemToMap(base) + map
+        if (hasExplicitBlankImageField(map) && !hasExplicitNonBlankImageField(map)) {
+            val mergedWithoutImageAliases = merged.filterKeys { key ->
+                key.lowercase() !in AllImageFieldKeys
+            }
+            return toMusicItem(mergedWithoutImageAliases, fallbackPlatform = base.platform)
+        }
         return toMusicItem(merged, fallbackPlatform = base.platform)
     }
 
@@ -425,6 +432,18 @@ object JsBridge {
             "https:$value"
         } else {
             value
+        }
+    }
+
+    private fun hasExplicitBlankImageField(map: Map<String, Any?>): Boolean {
+        return map.any { (key, value) ->
+            key.lowercase() in AllImageFieldKeys && value?.toString()?.trim().orEmpty().isBlank()
+        }
+    }
+
+    private fun hasExplicitNonBlankImageField(map: Map<String, Any?>): Boolean {
+        return map.any { (key, value) ->
+            key.lowercase() in AllImageFieldKeys && normalizedImageUrl(value) != null
         }
     }
 }

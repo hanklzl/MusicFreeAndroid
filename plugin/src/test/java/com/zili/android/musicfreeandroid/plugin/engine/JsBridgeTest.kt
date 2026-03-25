@@ -284,6 +284,30 @@ class JsBridgeTest {
     }
 
     @Test
+    fun `parseMusicInfoResult allows explicit blank artwork to clear stale base alias artwork`() {
+        val base = com.zili.android.musicfreeandroid.core.model.MusicItem(
+            id = "1",
+            platform = "demo",
+            title = "Old",
+            artist = "Old Artist",
+            album = null,
+            duration = 120_000L,
+            url = null,
+            artwork = "https://old.example.com/artwork.jpg",
+            qualities = null,
+            raw = mapOf(
+                "pic" to "https://old.example.com/pic.jpg",
+            ),
+        )
+        val patch = mapOf<String, Any?>(
+            "artwork" to "",
+        )
+
+        val merged = JsBridge.parseMusicInfoResult(base, patch)
+        assertNull(merged.artwork)
+    }
+
+    @Test
     fun `parseImportMusicSheetResult parses list payload`() {
         val payload = listOf(
             mapOf("id" to "1", "platform" to "demo", "title" to "Song A", "artist" to "A"),
