@@ -33,14 +33,19 @@ class StarredSheetDaoTest {
         db.close()
     }
 
-    private fun entity(id: String, updatedAt: Long) = StarredSheetEntity(
+    private fun entity(
+        id: String,
+        platform: String = "qq",
+        createdAt: Long = 1000L,
+        updatedAt: Long,
+    ) = StarredSheetEntity(
         id = id,
-        platform = "qq",
+        platform = platform,
         title = "Sheet $id",
         artist = "Artist",
         coverUri = null,
         sourceUrl = null,
-        createdAt = 1000L,
+        createdAt = createdAt,
         updatedAt = updatedAt,
     )
 
@@ -53,5 +58,43 @@ class StarredSheetDaoTest {
         val result = dao.observeAll().first()
 
         assertEquals(listOf("new", "mid", "old"), result.map { it.id })
+    }
+
+    @Test
+    fun upsert_allowsSameIdAcrossDifferentPlatforms() = runTest {
+        dao.upsert(entity(id = "sheet-1", platform = "qq", updatedAt = 1000L))
+        dao.upsert(entity(id = "sheet-1", platform = "kuwo", updatedAt = 2000L))
+
+        val result = dao.observeAll().first()
+
+        assertEquals(2, result.size)
+        assertEquals(setOf("qq", "kuwo"), result.map { it.platform }.toSet())
+    }
+
+    @Test
+    fun upsert_existingIdentity_replacesStoredRow() = runTest {
+        dao.upsert(entity(id = "sheet-1", platform = "qq", createdAt = 111L, updatedAt = 200L))
+        dao.upsert(entity(id = "sheet-1", platform = "qq", createdAt = 999L, updatedAt = 300L))
+
+        val stored = requireNotNull(dao.getByIdAndPlatform(id = "sheet-1", platform = "qq"))
+
+        assertEquals(999L, stored.createdAt)
+        assertEquals(300L, stored.updatedAt)
+    }
+
+    @Test
+    fun deleteByIdAndPlatform_deletesOnlyTargetIdentity() = runTest {
+        dao.upsert(entity(id = "sheet-1", platform = "qq", updatedAt = 1000L))
+        dao.upsert(entity(id = "sheet-1", platform = "kuwo", updatedAt = 2000L))
+        dao.upsert(entity(id = "sheet-2", platform = "qq", updatedAt = 3000L))
+
+        dao.deleteByIdAndPlatform(id = "sheet-1", platform = "qq")
+
+        val result = dao.observeAll().first()
+        assertEquals(2, result.size)
+        assertEquals(
+            setOf("sheet-1|kuwo", "sheet-2|qq"),
+            result.map { "${it.id}|${it.platform}" }.toSet()
+        )
     }
 }

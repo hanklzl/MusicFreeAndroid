@@ -15,6 +15,9 @@ interface StarredSheetDao {
     @Upsert
     suspend fun upsert(entity: StarredSheetEntity)
 
-    @Query("DELETE FROM starred_sheets WHERE id = :id")
-    suspend fun deleteById(id: String)
+    @Query("SELECT * FROM starred_sheets WHERE id = :id AND platform = :platform LIMIT 1")
+    suspend fun getByIdAndPlatform(id: String, platform: String): StarredSheetEntity?
+
+    @Query("DELETE FROM starred_sheets WHERE id = :id AND platform = :platform")
+    suspend fun deleteByIdAndPlatform(id: String, platform: String)
 }

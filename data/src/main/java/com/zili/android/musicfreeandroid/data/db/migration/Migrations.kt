@@ -17,7 +17,7 @@ object Migrations {
                     `sourceUrl` TEXT,
                     `createdAt` INTEGER NOT NULL,
                     `updatedAt` INTEGER NOT NULL,
-                    PRIMARY KEY(`id`)
+                    PRIMARY KEY(`id`, `platform`)
                 )
                 """.trimIndent()
             )

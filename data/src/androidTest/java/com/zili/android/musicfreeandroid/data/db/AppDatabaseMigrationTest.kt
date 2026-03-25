@@ -38,5 +38,18 @@ class AppDatabaseMigrationTest {
                 val exists = cursor.moveToFirst()
                 assertTrue(exists)
             }
+
+        db.query("PRAGMA table_info(`starred_sheets`)").use { cursor ->
+            var idPkOrder = 0
+            var platformPkOrder = 0
+            while (cursor.moveToNext()) {
+                val columnName = cursor.getString(cursor.getColumnIndexOrThrow("name"))
+                val pkOrder = cursor.getInt(cursor.getColumnIndexOrThrow("pk"))
+                if (columnName == "id") idPkOrder = pkOrder
+                if (columnName == "platform") platformPkOrder = pkOrder
+            }
+            assertTrue(idPkOrder == 1)
+            assertTrue(platformPkOrder == 2)
+        }
     }
 }

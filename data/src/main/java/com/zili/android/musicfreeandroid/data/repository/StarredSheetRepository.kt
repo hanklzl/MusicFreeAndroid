@@ -19,10 +19,15 @@ class StarredSheetRepository @Inject constructor(
 
     suspend fun upsert(sheet: StarredSheet) {
         val now = System.currentTimeMillis()
-        starredSheetDao.upsert(sheet.toEntity(createdAt = now, updatedAt = now))
+        val existing = starredSheetDao.getByIdAndPlatform(
+            id = sheet.id,
+            platform = sheet.platform,
+        )
+        val createdAt = existing?.createdAt ?: now
+        starredSheetDao.upsert(sheet.toEntity(createdAt = createdAt, updatedAt = now))
     }
 
-    suspend fun deleteById(id: String) {
-        starredSheetDao.deleteById(id)
+    suspend fun deleteByIdAndPlatform(id: String, platform: String) {
+        starredSheetDao.deleteByIdAndPlatform(id = id, platform = platform)
     }
 }

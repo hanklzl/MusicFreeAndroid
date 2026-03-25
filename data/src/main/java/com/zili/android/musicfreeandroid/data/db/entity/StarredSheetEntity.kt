@@ -1,11 +1,13 @@
 package com.zili.android.musicfreeandroid.data.db.entity
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
-@Entity(tableName = "starred_sheets")
+@Entity(
+    tableName = "starred_sheets",
+    primaryKeys = ["id", "platform"],
+)
 data class StarredSheetEntity(
-    @PrimaryKey val id: String,
+    val id: String,
     val platform: String,
     val title: String,
     val artist: String?,

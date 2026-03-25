@@ -6,9 +6,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.zili.android.musicfreeandroid.core.model.StarredSheet
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,6 +52,63 @@ class StarredSheetRepositoryTest {
             repository.upsert(target)
             assertEquals(listOf(target), awaitItem())
 
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun upsert_sameIdentity_preservesCreatedAtAndRefreshesUpdatedAt() = runTest {
+        val initial = StarredSheet(
+            id = "sheet-1",
+            platform = "qq",
+            title = "Top Hits",
+            artist = "Artist A",
+            coverUri = null,
+            sourceUrl = null,
+        )
+        repository.upsert(initial)
+        val first = requireNotNull(db.starredSheetDao().getByIdAndPlatform("sheet-1", "qq"))
+
+        delay(5)
+
+        repository.upsert(initial.copy(title = "Top Hits Updated"))
+        val second = requireNotNull(db.starredSheetDao().getByIdAndPlatform("sheet-1", "qq"))
+
+        assertEquals(first.createdAt, second.createdAt)
+        assertTrue(second.updatedAt >= first.updatedAt)
+        assertEquals("Top Hits Updated", second.title)
+    }
+
+    @Test
+    fun deleteByIdAndPlatform_deletesOnlyTargetIdentity() = runTest {
+        repository.upsert(
+            StarredSheet(
+                id = "sheet-1",
+                platform = "qq",
+                title = "QQ Sheet",
+                artist = null,
+                coverUri = null,
+                sourceUrl = null,
+            )
+        )
+        repository.upsert(
+            StarredSheet(
+                id = "sheet-1",
+                platform = "kuwo",
+                title = "Kuwo Sheet",
+                artist = null,
+                coverUri = null,
+                sourceUrl = null,
+            )
+        )
+
+        repository.deleteByIdAndPlatform(id = "sheet-1", platform = "qq")
+        val all = repository.observeAll()
+
+        all.test {
+            val items = awaitItem()
+            assertEquals(1, items.size)
+            assertEquals("kuwo", items.first().platform)
             cancelAndIgnoreRemainingEvents()
         }
     }
