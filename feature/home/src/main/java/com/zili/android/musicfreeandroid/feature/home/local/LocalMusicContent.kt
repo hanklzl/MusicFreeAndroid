@@ -30,18 +30,23 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
-import com.zili.android.musicfreeandroid.feature.home.HomeUiState
+
+sealed interface LocalMusicUiState {
+    data object Loading : LocalMusicUiState
+    data class Success(val musicItems: List<MusicItem>) : LocalMusicUiState
+    data class Error(val message: String) : LocalMusicUiState
+}
 
 @Composable
 fun LocalMusicContent(
-    uiState: HomeUiState,
+    uiState: LocalMusicUiState,
     onItemClick: (MusicItem, List<MusicItem>) -> Unit,
     onItemLongClick: (MusicItem) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
-        is HomeUiState.Loading -> {
+        LocalMusicUiState.Loading -> {
             Box(
                 modifier = modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
@@ -50,7 +55,7 @@ fun LocalMusicContent(
             }
         }
 
-        is HomeUiState.Error -> {
+        is LocalMusicUiState.Error -> {
             Box(
                 modifier = modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
@@ -69,7 +74,7 @@ fun LocalMusicContent(
             }
         }
 
-        is HomeUiState.Success -> {
+        is LocalMusicUiState.Success -> {
             if (uiState.musicItems.isEmpty()) {
                 Box(
                     modifier = modifier.fillMaxSize(),

@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.feature.home.HomeUiState
 import com.zili.android.musicfreeandroid.feature.home.HomeViewModel
 import com.zili.android.musicfreeandroid.feature.home.playlist.AddToPlaylistDialog
 import com.zili.android.musicfreeandroid.feature.home.playlist.PlaylistViewModel
@@ -33,18 +34,23 @@ fun LocalScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val permission = remember { requiredAudioPermission() }
 
     var addToPlaylistItem by remember { mutableStateOf<MusicItem?>(null) }
+    var hasAudioPermission by remember { mutableStateOf<Boolean?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        if (granted) viewModel.scanLocalMusic()
+        hasAudioPermission = granted
+        if (granted) {
+            viewModel.scanLocalMusic()
+        }
     }
 
     LaunchedEffect(Unit) {
-        val permission = requiredAudioPermission()
         if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+            hasAudioPermission = true
             viewModel.scanLocalMusic()
         } else {
             permissionLauncher.launch(permission)
@@ -61,16 +67,33 @@ fun LocalScreen(
         )
     }
 
+    val localUiState = when (hasAudioPermission) {
+        false -> LocalMusicUiState.Error("未授予音频读取权限，请授权后重试")
+        else -> uiState.toLocalMusicUiState()
+    }
+
     LocalMusicContent(
-        uiState = uiState,
+        uiState = localUiState,
         onItemClick = { item, items ->
             viewModel.playItem(item, items)
             onNavigateToPlayer()
         },
         onItemLongClick = { item -> addToPlaylistItem = item },
-        onRetry = viewModel::scanLocalMusic,
+        onRetry = {
+            if (hasAudioPermission == false) {
+                permissionLauncher.launch(permission)
+            } else {
+                viewModel.scanLocalMusic()
+            }
+        },
         modifier = modifier
             .fillMaxSize()
             .testTag(FidelityAnchors.Screen.LocalRoot),
     )
+}
+
+private fun HomeUiState.toLocalMusicUiState(): LocalMusicUiState = when (this) {
+    HomeUiState.Loading -> LocalMusicUiState.Loading
+    is HomeUiState.Success -> LocalMusicUiState.Success(musicItems)
+    is HomeUiState.Error -> LocalMusicUiState.Error(message)
 }
