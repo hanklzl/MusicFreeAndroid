@@ -20,6 +20,85 @@
 - 权限弹窗、加载态、错误态、空态的全状态矩阵
 - 首页以外页面的 100% 还原
 
+## 黄金样本环境
+
+首页专项的截图、`uiautomator dump`、差异判断和最终闭合结论，全部以同一黄金样本环境为准。
+
+### 当前锁定环境
+
+| 项目 | 值 |
+|------|----|
+| 设备标识 | `emulator-5554` |
+| AVD 名称 | `Medium_Phone_API_36.0` |
+| 设备型号 | `sdk_gphone64_x86_64` |
+| Android 版本 | `16` |
+| 分辨率 | `1080 x 2400` |
+| 物理 density | `420` |
+| 强制 density | 无 (`display_density_forced = null`) |
+| font scale | `1.0` |
+| 语言/地区 | `en-US` |
+| 当前顶层 Activity | `com.zili.android.musicfreeandroid/.MainActivity` |
+
+### 环境锁定规则
+
+- 后续首页专项的 RN 截图、Android 截图和 dump 采集，默认都基于该环境
+- 若黄金样本环境发生变化，原有证据包默认失效，需要重新采集
+- 实现计划不得把“换设备再比”当成关闭差异的方法
+
+### 黄金样本数据态
+
+首页专项的基线不仅锁设备，也锁数据态。未锁定数据态前，不允许关闭首页片段差异。
+
+数据态要求：
+
+- 使用固定 manifest 描述首页验收数据，不依赖临时人工状态
+- 首页主验收态默认使用非空数据，而不是空态
+- `我的歌单` 与 `收藏歌单` 都必须存在可见列表项，避免只对齐空态
+- 迷你播放器是否可见，也必须写入 manifest，不允许每次凭当前播放状态临时决定
+- 若某能力当前只能以空态验收，必须在 manifest 中显式记录该片段为“受控空态基线”
+
+推荐 manifest 路径：
+
+`docs/convergence/home-fidelity/manifests/golden-data-state.md`
+
+manifest 至少包含：
+
+- RN 参考提交或版本标识
+- Android 参考提交或版本标识
+- 首页当前选中 tab
+- `我的歌单` 列表项数量、顺序、标题、副文案、封面来源
+- `收藏歌单` 列表项数量、顺序、标题、副文案、封面来源
+- 迷你播放器可见性，以及展示中的歌曲标题/歌手
+- 是否允许某片段以受控空态参与验收
+
+### 黄金数据态落地方案
+
+首页专项的实现计划必须首先建设一套“可恢复的首页黄金数据态”，而不是依赖人工现配。
+
+最低落地要求：
+
+1. 版本化 manifest
+   - 固定路径：`docs/convergence/home-fidelity/manifests/golden-data-state.md`
+   - 作为 RN 与 Android 双侧共享的数据态说明
+
+2. 双侧恢复流程
+   - RN 侧：提供一条可重复执行的恢复流程，使 `fun.upup.musicfree` 首页进入 manifest 描述的数据态
+   - Android 侧：提供一条可重复执行的恢复流程，使 `com.zili.android.musicfreeandroid` 首页进入同一语义数据态
+
+3. 最小样例数据
+   - 首页默认选中 `我的歌单`
+   - `我的歌单` 至少 2 条
+   - `收藏歌单` 至少 2 条
+   - 4 条歌单都必须固定顺序、标题、副文案和封面来源
+   - 迷你播放器可见性固定，若可见则固定一首样例歌曲标题/歌手
+
+4. 恢复方式
+   - 优先使用 seed 数据导入、固定测试夹具、已有本地数据库初始化或可重复脚本
+   - 不依赖人工逐步点击配置
+   - 不要求一定引入 mock 开关；但若不用 mock，也必须能一键恢复到 manifest 描述状态
+
+在首页专项中，只有进入这套黄金数据态后采集的截图和 dump，才可作为正式验收证据。
+
 ## 原版参考
 
 原版 MusicFree 代码位于 `/Users/zili/code/android/MusicFree`。本次首页设计的直接参考如下：
@@ -151,6 +230,52 @@
 - `NavBar -> Operations -> SheetsHeader -> SheetsList`
 - 底部迷你播放器与页面可视区域关系
 
+## 首页入口最低验收
+
+首页专项只要求“入口可达”，不要求把目标页面一并做到 100% 还原；但每个入口的最低验收必须明确，避免计划范围失控。
+
+### 顶部入口
+
+| 入口 | 最低验收 |
+|------|----------|
+| 菜单按钮 | 可稳定打开 Drawer，且 `home.drawer.root` 可见 |
+| 搜索入口 | 必须进入 `SearchRoute`，且 `screen.search.root` 可见 |
+
+### 四快捷入口
+
+| 入口 | 最低验收 |
+|------|----------|
+| 推荐歌单 | 必须进入 `RecommendSheetsRoute`，且 `screen.recommendSheets.root` 可见 |
+| 榜单 | 必须进入 `TopListRoute`，且 `screen.topList.root` 可见 |
+| 播放历史 | 必须进入 `HistoryRoute`，且 `screen.history.root` 可见 |
+| 本地音乐 | 必须进入独立的 `LocalRoute`，且 `screen.local.root` 可见；仅在首页内部滚动到某个区域不算达标 |
+
+### Drawer 入口
+
+| 入口 | 最低验收 |
+|------|----------|
+| 基础设置 | 必须进入 `SettingsRoute` 根页面，且 `screen.settings.root` 可见 |
+| 插件管理 | 本 spec 允许进入 `SettingsRoute` 根页面，但页面内必须存在 `settings.pluginManagement.entry`；不要求在本轮完成深链到插件管理子页 |
+| 权限管理 | 必须进入 `PermissionsRoute` 根页面，且 `screen.permissions.root` 可见 |
+
+### 范围约束
+
+- 本节定义的是首页专项对“入口可达”的最低要求
+- 目标页面的完整视觉还原不在本 spec
+- 若某入口当前完全没有等价落点，则允许在实现计划中加入最小必要目标页壳层，以满足首页入口可达
+- 对于本地音乐入口，本 spec 明确允许新增最小 `LocalRoute` 壳页，并复用当前首页中的本地音乐内容能力
+
+### `LocalRoute` 最小边界
+
+若当前 Android 导航中不存在独立本地音乐页，则首页专项允许新增最小 `LocalRoute`。
+
+该壳页的最低边界为：
+
+- 暴露 `screen.local.root`
+- 呈现现有本地音乐列表能力
+- 支持从首页“本地音乐”入口独立进入
+- 不要求在本轮完成该页面的完整 fidelity 收敛
+
 ## 验收与证据体系
 
 ### 证据包结构
@@ -191,6 +316,28 @@
 - 颜色
 - 字号
 
+### 默认容差与度量方法
+
+若后续计划未为某个片段单独覆写，默认使用以下容差：
+
+| 维度 | 默认容差 | 判定方法 |
+|------|----------|----------|
+| 结构/节点/顺序 | `0` 容差 | 以 RN/Android dump 对比，必须一致 |
+| 文案 | `0` 容差 | 以截图和 dump 交叉确认，必须一致 |
+| 点击目标 | `0` 容差 | 以入口清单和实际导航结果确认，必须一致 |
+| 尺寸/间距/圆角 | 绝对误差 `<= 2dp`；满宽级区域允许 `<= 4dp` | 优先对照源码值与截图量测，必要时以黄金样本截图像素换算 |
+| 字号 | 绝对误差 `<= 1sp` | 对照设计 token、源码值和截图视觉结果 |
+| 颜色 | 优先同资源/同 token/同 hex；若需截图采样，单通道 RGB 差值 `<= 8`，alpha 差值 `<= 0.03` | 优先看资源与 token 是否一致，其次做截图采样 |
+| 图标/静态图片资源 | 必须使用同资源或从原工程拷贝的等价资源 | 不接受手绘近似替代 |
+
+度量优先级：
+
+1. 源码与资源值一致性
+2. 同时刻截图与 dump
+3. 黄金样本环境下的人工复核
+
+若不同度量方式冲突，以更接近源码和原始资源的一方为准。
+
 容差不能用于掩盖：
 
 - 错误的信息架构
@@ -219,7 +366,7 @@ Android 首页将收敛为与 RN 对齐的单一纵向滚动结构：
 - `Drawer` 容器
 - 顶部安全区处理
 - 页面背景
-- 底部迷你播放器预留
+- 与现有底部迷你播放器协同布局
 - 单一纵向滚动容器
 
 ### 内容块
@@ -250,6 +397,17 @@ Android 首页将收敛为与 RN 对齐的单一纵向滚动结构：
 #### `HomeDrawerContent`
 
 独立承载 Drawer 的标题、分组标题、列表项与页面跳转。
+
+### 底部迷你播放器边界
+
+当前底部迷你播放器并非首页局部实现，而是 `MainActivity` 中 `Scaffold.bottomBar` 承载的既有 `MiniPlayer`。
+
+边界定义如下：
+
+- 首页专项只负责处理首页内容与迷你播放器的共存关系
+- 首页内容不得被迷你播放器遮挡、裁切或产生错误的可视区域计算
+- 迷你播放器内部视觉、控件样式与播放器业务逻辑，不在本次首页专项内重做
+- 迷你播放器的实际占位，以运行时现有 `Scaffold.bottomBar` 行为为准，而不是首页另行定义一个“预留高度”
 
 ## 数据适配设计
 
@@ -311,6 +469,98 @@ Android 首页将收敛为与 RN 对齐的单一纵向滚动结构：
 - 需要整体读取的复合节点，在不损失信息的前提下进行合并
 - 不为测试便利而改变用户可见层级
 
+### 语义命名方案
+
+首页专项不要求 RN 与 Android 的原始 View 树完全同构；dump 比对口径固定为“语义锚点集合 + 顺序 + 状态”，而不是整棵原始树逐节点强行相等。
+
+首页专项的权威锚点集合是平台无关的 canonical anchor key，而不是某一侧框架原生节点名。
+
+命名约定：
+
+- 页面根节点：`screen.<route>.root`
+- 首页片段根节点：`home.<fragment>.root`
+- 首页动作节点：`home.<fragment>.<action>`
+- Drawer 动作节点：`home.drawer.<action>`
+- 目标页根节点：`screen.<route>.root`
+
+### 双侧锚点策略
+
+Android 侧：
+
+- 通过 Compose 语义标记实现 canonical anchor key
+- 以语义节点作为 dump 对比的直接来源
+
+RN 侧：
+
+- 优先复用现有 `accessibilityLabel`、可见文本和可稳定定位的节点
+- 若现有 RN dump 无法稳定映射到 canonical anchor key，允许在 RN 工程补最小必要的 `testID` 或无用户感知的可访问性标记
+- 若不修改 RN 工程，则必须提供一份权威映射清单，将 RN 源码节点、RN dump 线索与 canonical anchor key 建立稳定对应
+
+权威映射文件固定为：
+
+`docs/convergence/home-fidelity/manifests/rn-anchor-map.md`
+
+该文件至少记录：
+
+- canonical anchor key
+- RN 对应源码路径
+- RN 定位方式：`testID`、`accessibilityLabel`、可见文本或结构描述
+- 对应截图状态
+
+结构一致性的判断口径因此固定为：
+
+- Android dump 中的 canonical anchor 集合
+- RN dump 或 RN anchor map 可恢复出的 canonical anchor 集合
+- 两侧按同一 canonical anchor key、顺序和状态进行比较
+
+首页首批必备锚点包括：
+
+- `screen.home.root`
+- `home.navBar.root`
+- `home.navBar.menu`
+- `home.navBar.search`
+- `home.operations.root`
+- `home.operations.recommendSheets`
+- `home.operations.topList`
+- `home.operations.history`
+- `home.operations.localMusic`
+- `home.sheets.root`
+- `home.sheets.tab.mine`
+- `home.sheets.tab.starred`
+- `home.sheets.action.create`
+- `home.sheets.action.import`
+- `home.drawer.root`
+- `home.drawer.settings`
+- `home.drawer.pluginManagement`
+- `home.drawer.permissions`
+
+目标页最小锚点包括：
+
+- `screen.search.root`
+- `screen.recommendSheets.root`
+- `screen.topList.root`
+- `screen.history.root`
+- `screen.settings.root`
+- `settings.pluginManagement.entry`
+- `screen.permissions.root`
+- `screen.local.root`
+
+### dump 比对口径
+
+dump 比对时，至少检查以下字段：
+
+- 锚点是否存在
+- 锚点顺序是否符合 spec
+- 锚点是否可点击
+- 锚点文本或 `contentDescription`
+- 选中态与可见态
+
+不把以下内容作为首页专项的刚性比对对象：
+
+- 整棵底层原始 View 树
+- 平台自动插入的中间语义节点
+- 与功能无关的系统辅助节点
+
 ### Compose 约束
 
 结合首页专项涉及的 Compose 约束，设计阶段固定以下规则：
@@ -340,6 +590,41 @@ Android 首页将收敛为与 RN 对齐的单一纵向滚动结构：
 - Drawer 打开态
 - 首页关键入口点击前状态
 
+### 截图范围与裁剪口径
+
+截图对比默认以应用内容区域为准，不把系统状态栏和系统导航栏纳入首页视觉差异判断。
+
+规则如下：
+
+- 原始全屏截图可以保留归档
+- 用于视觉对比的标准截图，应裁剪到应用内容区域
+- 顶部裁剪边界以首页内容开始位置为准，不比较系统时间、电量、运营商等不稳定信息
+- 底部应保留应用自身迷你播放器，但不比较系统导航栏区域
+- 若某轮采集改用了沉浸式或系统栏显示策略，必须在 manifest 中记录
+
+### RN 侧取证流程
+
+RN 参考应用包名固定为：
+
+`fun.upup.musicfree`
+
+Android 原生应用包名固定为：
+
+`com.zili.android.musicfreeandroid`
+
+RN 侧证据采集要求：
+
+1. 使用与 Android 侧相同的黄金样本设备
+2. 先恢复到 `golden-data-state.md` 描述的数据态
+3. 通过稳定导航进入目标首页状态
+4. UI 静止后，连续执行一组采集：
+   - 原始截图
+   - `uiautomator dump`
+   - 基于统一口径的内容区裁剪截图
+5. 采集过程中不再插入新的点击或滚动，保证截图与 dump 属于同一稳定时刻
+
+RN 与 Android 双侧都应遵守同样的落盘目录、命名规则和裁剪规则。
+
 ### 调试基础设施
 
 允许纳入正式方案的基础设施包括：
@@ -351,6 +636,68 @@ Android 首页将收敛为与 RN 对齐的单一纵向滚动结构：
 - 差异清单模板
 
 这些能力属于首页专项正式交付的一部分，不视为一次性辅助文件。
+
+### 证据包落盘约定
+
+首页专项证据包默认落在：
+
+`docs/convergence/home-fidelity/`
+
+推荐目录结构：
+
+```text
+docs/convergence/home-fidelity/
+  rn/
+    screenshots/
+    dumps/
+  android/
+    screenshots/
+    dumps/
+  diffs/
+  manifests/
+```
+
+推荐命名规则：
+
+- 截图：`<state>-<fragment>.png`
+- dump：`<state>-<fragment>.xml`
+- 差异清单：`<state>-<fragment>.md`
+
+其中：
+
+- `state` 例如 `home-top`、`home-sheets`、`drawer-open`
+- `fragment` 例如 `nav-bar`、`operations`、`sheets-header`、`sheets-list`、`home-scroll`
+
+### 对比产物定义
+
+每个首页片段的最终差异清单必须是结构化产物，至少包含以下字段：
+
+- 片段名
+- 目标状态名
+- canonical anchor key 列表及顺序
+- RN 证据来源
+- Android 证据来源
+- 文案
+- 可点击性
+- 选中态/可见态
+- 尺寸
+- 间距
+- 圆角
+- 字号
+- 颜色 token 或 hex
+- 图标/静态资源来源
+- 当前差异结论：闭合 / 未闭合
+
+各字段的证据优先级固定为：
+
+1. 源码与资源值
+2. canonical anchor map / dump
+3. 裁剪后的标准截图
+4. 黄金样本环境下的人工复核
+
+推荐模板文件：
+
+`docs/convergence/home-fidelity/diffs/<state>-<fragment>.md`
 
 ## 错误处理与退化策略
 
@@ -377,6 +724,21 @@ Android 首页将收敛为与 RN 对齐的单一纵向滚动结构：
 
 - 允许少量 Android 原生化交互细节
 - 但入口位置、操作顺序、目标页面和用户可感知结果必须与 RN 保持一致
+
+允许的原生化细节包括：
+
+- ripple 样式差异
+- overscroll/回弹物理效果
+- 点击反馈时长的轻微差异
+- Drawer 手势灵敏度差异
+
+不允许的差异包括：
+
+- 入口位置变化
+- 操作顺序变化
+- 目标路由变化
+- 页面可见内容层级变化
+- 需要用户多一步才能到达原本一步可达的结果
 
 ## 测试与验证要求
 
