@@ -53,6 +53,7 @@ dependencies {
     testImplementation("org.json:json:20231013")
 
     // Instrumented tests
+    androidTestImplementation("androidx.test:runner:1.4.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
