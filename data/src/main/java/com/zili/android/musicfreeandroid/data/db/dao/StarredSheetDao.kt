@@ -1,0 +1,20 @@
+package com.zili.android.musicfreeandroid.data.db.dao
+
+import androidx.room.Dao
+import androidx.room.Query
+import androidx.room.Upsert
+import com.zili.android.musicfreeandroid.data.db.entity.StarredSheetEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface StarredSheetDao {
+
+    @Query("SELECT * FROM starred_sheets ORDER BY updatedAt DESC")
+    fun observeAll(): Flow<List<StarredSheetEntity>>
+
+    @Upsert
+    suspend fun upsert(entity: StarredSheetEntity)
+
+    @Query("DELETE FROM starred_sheets WHERE id = :id")
+    suspend fun deleteById(id: String)
+}

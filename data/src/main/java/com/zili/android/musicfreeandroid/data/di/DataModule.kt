@@ -11,6 +11,8 @@ import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
+import com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDao
+import com.zili.android.musicfreeandroid.data.db.migration.Migrations
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -28,6 +30,7 @@ object DataModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "musicfree.db")
+            .addMigrations(Migrations.MIGRATION_1_2)
             .build()
 
     @Provides
@@ -38,6 +41,9 @@ object DataModule {
 
     @Provides
     fun providePlayQueueDao(db: AppDatabase): PlayQueueDao = db.playQueueDao()
+
+    @Provides
+    fun provideStarredSheetDao(db: AppDatabase): StarredSheetDao = db.starredSheetDao()
 
     @Provides
     @Singleton
