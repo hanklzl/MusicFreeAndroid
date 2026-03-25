@@ -9,6 +9,7 @@ import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.FileSelectorRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
+import com.zili.android.musicfreeandroid.core.navigation.LocalRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicListEditorLiteRoute
 import com.zili.android.musicfreeandroid.core.navigation.PermissionsRoute
@@ -32,6 +33,7 @@ import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScr
 import com.zili.android.musicfreeandroid.feature.home.recommendsheets.navigation.recommendSheetsScreen
 import com.zili.android.musicfreeandroid.feature.home.searchmusiclist.navigation.searchMusicListScreen
 import com.zili.android.musicfreeandroid.feature.home.history.navigation.historyScreen
+import com.zili.android.musicfreeandroid.feature.home.local.navigation.localScreen
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListScreen
 import com.zili.android.musicfreeandroid.feature.playerui.navigation.playerScreen
@@ -51,16 +53,19 @@ fun AppNavHost(
         modifier = modifier,
     ) {
         homeScreen(
-            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onNavigateToSearch = { navController.navigate(SearchRoute) },
             onNavigateToRecommendSheets = { navController.navigate(RecommendSheetsRoute) },
             onNavigateToHistory = { navController.navigate(HistoryRoute) },
+            onNavigateToLocal = { navController.navigate(LocalRoute) },
             onNavigateToSettings = { navController.navigate(SettingsRoute) },
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
             onNavigateToTopList = { navController.navigate(TopListRoute) },
             onNavigateToPlaylistDetail = { playlistId ->
                 navController.navigate(PlaylistDetailRoute(playlistId))
             },
+        )
+        localScreen(
+            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
         playerScreen(
             onBack = { navController.popBackStack() },

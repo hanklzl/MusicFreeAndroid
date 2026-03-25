@@ -6,10 +6,10 @@ import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.feature.home.HomeScreen
 
 fun NavGraphBuilder.homeScreen(
-    onNavigateToPlayer: () -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToRecommendSheets: () -> Unit,
     onNavigateToHistory: () -> Unit,
+    onNavigateToLocal: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToTopList: () -> Unit,
@@ -17,10 +17,10 @@ fun NavGraphBuilder.homeScreen(
 ) {
     composable<HomeRoute> {
         HomeScreen(
-            onNavigateToPlayer = onNavigateToPlayer,
             onNavigateToSearch = onNavigateToSearch,
             onNavigateToRecommendSheets = onNavigateToRecommendSheets,
             onNavigateToHistory = onNavigateToHistory,
+            onNavigateToLocal = onNavigateToLocal,
             onNavigateToSettings = onNavigateToSettings,
             onNavigateToPermissions = onNavigateToPermissions,
             onNavigateToTopList = onNavigateToTopList,
