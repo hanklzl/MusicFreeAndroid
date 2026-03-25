@@ -24,12 +24,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +46,12 @@ fun HistoryScreen(
 ) {
     val history by viewModel.history.collectAsStateWithLifecycle()
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .testTag(FidelityAnchors.Screen.HistoryRoot)
+            .semantics { testTagsAsResourceId = true },
+    ) {
         TopAppBar(
             title = {
                 Text(
