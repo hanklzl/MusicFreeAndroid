@@ -41,6 +41,7 @@ class HomeSheetsViewModelTest {
         whenever(playlistRepository.observeAllPlaylists()).thenReturn(flowOf(listOf(
             Playlist(id = "pl-1", name = "Mine A", coverUri = null),
         )))
+        whenever(playlistRepository.countMusicInPlaylist("pl-1")).thenReturn(12)
         whenever(starredSheetRepository.observeAll()).thenReturn(flowOf(listOf(
             StarredSheet(id = "sheet-1", platform = "demo", title = "Starred A", artist = "Demo", coverUri = null, sourceUrl = null),
         )))
@@ -48,10 +49,22 @@ class HomeSheetsViewModelTest {
         val viewModel = HomeSheetsViewModel(playlistRepository, starredSheetRepository)
         advanceUntilIdle()
         assertEquals(HomeSheetTab.Mine, viewModel.uiState.value.selectedTab)
+        assertEquals(1, viewModel.uiState.value.mineCount)
+        assertEquals(1, viewModel.uiState.value.starredCount)
+        assertEquals("12 首歌曲", viewModel.uiState.value.items.single().subtitle)
+        val mineTitles = viewModel.uiState.value.items.map { it.title }
 
         viewModel.selectTab(HomeSheetTab.Starred)
         advanceUntilIdle()
 
         assertEquals(listOf("Starred A"), viewModel.uiState.value.items.map { it.title })
+        assertEquals("sheet-1", viewModel.uiState.value.items.single().id)
+        assertEquals("demo", viewModel.uiState.value.items.single().platform)
+
+        viewModel.selectTab(HomeSheetTab.Mine)
+        advanceUntilIdle()
+
+        assertEquals(mineTitles, viewModel.uiState.value.items.map { it.title })
+        assertEquals("12 首歌曲", viewModel.uiState.value.items.single().subtitle)
     }
 }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
@@ -20,17 +21,24 @@ class HomeSheetsViewModel @Inject constructor(
 
     private val selectedTab = MutableStateFlow(HomeSheetTab.Mine)
 
+    private val mineRows = playlistRepository.observeAllPlaylists().map { playlists ->
+        playlists.map { playlist ->
+            HomeSheetUiModel.fromPlaylist(
+                playlist = playlist,
+                musicCount = playlistRepository.countMusicInPlaylist(playlist.id),
+            )
+        }
+    }
+
+    private val starredRows = starredSheetRepository.observeAll().map { sheets ->
+        sheets.map(HomeSheetUiModel::fromStarredSheet)
+    }
+
     val uiState: StateFlow<HomeSheetsUiState> = combine(
-        playlistRepository.observeAllPlaylists(),
-        starredSheetRepository.observeAll(),
+        mineRows,
+        starredRows,
         selectedTab,
-    ) { playlists, starredSheets, tab ->
-        val mineRows = playlists.map { playlist ->
-            HomeSheetUiModel.fromPlaylist(playlist = playlist, musicCount = 0)
-        }
-        val starredRows = starredSheets.map { sheet ->
-            HomeSheetUiModel.fromStarredSheet(sheet)
-        }
+    ) { mineRows, starredRows, tab ->
         HomeSheetsUiState(
             selectedTab = tab,
             mineCount = mineRows.size,
