@@ -22,8 +22,8 @@ import com.zili.android.musicfreeandroid.feature.home.component.HomeDrawerConten
 import com.zili.android.musicfreeandroid.feature.home.component.HomeNavBar
 import com.zili.android.musicfreeandroid.feature.home.component.HomeOperations
 import com.zili.android.musicfreeandroid.feature.home.playlist.PlaylistViewModel
-import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsSection
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModel
+import com.zili.android.musicfreeandroid.feature.home.sheets.homeSheetsSection
 import kotlinx.coroutines.launch
 
 @Composable
@@ -86,15 +86,13 @@ fun HomeScreen(
                     onLocalMusicClick = onNavigateToLocal,
                 )
             }
-            item {
-                HomeSheetsSection(
-                    uiState = sheetsUiState,
-                    onSelectTab = homeSheetsViewModel::selectTab,
-                    onCreateSheet = playlistViewModel::createPlaylist,
-                    onImportSheet = {},
-                    onOpenMineSheet = onNavigateToPlaylistDetail,
-                )
-            }
+            homeSheetsSection(
+                uiState = sheetsUiState,
+                onSelectTab = homeSheetsViewModel::selectTab,
+                onCreateSheet = playlistViewModel::createPlaylist,
+                onImportSheet = {},
+                onOpenMineSheet = onNavigateToPlaylistDetail,
+            )
         }
     }
 }

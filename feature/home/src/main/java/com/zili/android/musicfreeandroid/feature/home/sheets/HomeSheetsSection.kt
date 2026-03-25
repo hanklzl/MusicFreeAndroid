@@ -20,7 +20,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,6 +31,8 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
@@ -41,15 +42,49 @@ import com.zili.android.musicfreeandroid.core.ui.FidelityAnchorPatterns
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.feature.home.playlist.CreatePlaylistDialog
 
-@Composable
-fun HomeSheetsSection(
+fun LazyListScope.homeSheetsSection(
     uiState: HomeSheetsUiState,
     onSelectTab: (HomeSheetTab) -> Unit,
     onCreateSheet: (String) -> Unit,
     onImportSheet: () -> Unit,
     onOpenMineSheet: (String) -> Unit,
     onOpenStarredSheet: (HomeSheetUiModel) -> Unit = {},
-    modifier: Modifier = Modifier,
+) {
+    item(key = FidelityAnchors.Home.SheetsRoot) {
+        HomeSheetsSectionHeader(
+            uiState = uiState,
+            onSelectTab = onSelectTab,
+            onCreateSheet = onCreateSheet,
+            onImportSheet = onImportSheet,
+        )
+    }
+
+    if (uiState.items.isNotEmpty()) {
+        items(
+            items = uiState.items,
+            key = { item -> "${item.tab}:${item.id}" },
+        ) { item ->
+            HomeSheetRow(
+                item = item,
+                modifier = Modifier.padding(horizontal = rpx(24)),
+                onClick = {
+                    if (item.tab == HomeSheetTab.Mine) {
+                        onOpenMineSheet(item.id)
+                    } else {
+                        onOpenStarredSheet(item)
+                    }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeSheetsSectionHeader(
+    uiState: HomeSheetsUiState,
+    onSelectTab: (HomeSheetTab) -> Unit,
+    onCreateSheet: (String) -> Unit,
+    onImportSheet: () -> Unit,
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
 
@@ -61,7 +96,7 @@ fun HomeSheetsSection(
     }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .testTag(FidelityAnchors.Home.SheetsRoot)
             .semantics { testTagsAsResourceId = true }
@@ -124,21 +159,6 @@ fun HomeSheetsSection(
                 fontSize = FontSizes.subTitle,
                 modifier = Modifier.padding(vertical = rpx(24)),
             )
-        } else {
-            uiState.items.forEach { item ->
-                key("${item.tab}:${item.id}") {
-                    HomeSheetRow(
-                        item = item,
-                        onClick = {
-                            if (item.tab == HomeSheetTab.Mine) {
-                                onOpenMineSheet(item.id)
-                            } else {
-                                onOpenStarredSheet(item)
-                            }
-                        },
-                    )
-                }
-            }
         }
     }
 }
@@ -176,6 +196,7 @@ private fun HomeSheetTabText(
 @Composable
 private fun HomeSheetRow(
     item: HomeSheetUiModel,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val rowTag = if (item.tab == HomeSheetTab.Mine) {
@@ -185,7 +206,7 @@ private fun HomeSheetRow(
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .testTag(rowTag)

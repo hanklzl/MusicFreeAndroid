@@ -36,7 +36,12 @@ class HomeFidelityHomeStructureTest {
         composeRule.onNodeWithTag(FidelityAnchors.Home.SheetsRoot).assertExists()
 
         composeRule.onNodeWithTag(FidelityAnchors.Home.NavBarMenu).performClick()
-        composeRule.onNodeWithTag(FidelityAnchors.Home.DrawerRoot).assertExists()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            runCatching {
+                composeRule.onNodeWithTag(FidelityAnchors.Home.DrawerRoot).assertIsDisplayed()
+            }.isSuccess
+        }
+        composeRule.onNodeWithTag(FidelityAnchors.Home.DrawerRoot).assertIsDisplayed()
     }
 
     @Test
