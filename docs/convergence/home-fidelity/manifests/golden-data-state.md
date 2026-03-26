@@ -64,9 +64,14 @@ Status: bootstrap scaffold only. This file documents the target golden-state con
 - Current export caveat:
   - ADB can list the external MMKV directory but cannot read file contents in the current device session, so `fixtures/rn/mmkv/` is present as a placeholder directory and still needs a successful export path.
 - Current runtime caveat:
-  - the installed debug app has required Metro during this session
-  - the original RN home root anchor `screen.home.root` has been added in source, but the runtime on device must be rebuilt/reloaded before this anchor can be relied on in capture
-- Current row inventory is unresolved until the RN app is restored into an approved seeded state
+  - the installed debug app requires Metro during this session
+  - restore automation is still blocked until a restorable MMKV fixture can be exported
+- Current live Metro-backed observation:
+  - `screen.home.root`, `home.navBar.root`, `home.navBar.search`, `home.operations.root`, and `home.sheets.root` are visible in `uiautomator dump`
+  - current `我的歌单` count: `1`
+  - current `收藏歌单` count: `0`
+  - current visible local row title: `我喜欢`
+  - current visible local row subtitle: `0首`
 
 ## Planned Row Inventory
 
@@ -98,12 +103,12 @@ Status: bootstrap scaffold only. This file documents the target golden-state con
 
 1. Android fixture data is still bootstrap-only; `playlists` and `starred_sheets` are empty.
 2. RN external MMKV file export is still blocked by device permissions in the current session; only the legacy `RKStorage` seed has been exported successfully.
-3. RN capture contract is still not fully verified on device. Source now includes `screen.home.root`, but the updated runtime still needs to be installed or reloaded before formal capture.
+3. RN home-top anchors now render with Metro running, but restore automation still cannot reproduce that state because the MMKV fixture payload is unavailable.
 4. The approved golden row inventory and cover provenance are still unset.
 
 ## Next Actions
 
 1. Seed Android fixtures with at least 2 local playlists and 2 starred sheets.
 2. Seed or regenerate RN MMKV fixtures so the same semantic rows exist on the RN home screen.
-3. Reinstall or reload the RN app, then verify `screen.home.root` plus the home anchors in `uiautomator dump`.
+3. Export a restorable RN MMKV fixture payload, then make `restore-rn-home-state.sh` reproducible.
 4. Replace the `TBD` rows above with final approved values and rerun both capture pipelines.
