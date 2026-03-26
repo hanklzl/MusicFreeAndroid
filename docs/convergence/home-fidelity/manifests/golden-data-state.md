@@ -1,6 +1,6 @@
 # Home Fidelity Golden Data State
 
-Status: bootstrap scaffold only. This file documents the target golden-state contract and the currently exported bootstrap fixtures. The checked-in fixtures do not yet satisfy the approved golden-state checklist.
+Status: verification run completed on `2026-03-26`, but the checked-in fixtures are still bootstrap-only and do not satisfy the approved golden-state checklist. The full regression bundle passed. Baseline artifact capture succeeded only for the two top fragments on both platforms.
 
 ## Device
 
@@ -15,8 +15,8 @@ Status: bootstrap scaffold only. This file documents the target golden-state con
 
 ## Commits
 
-- Android build commit: `a35ea2e` (`home-fidelity-implementation`)
-- RN reference commit: `1bb58fc` (`home-fidelity-reference-anchors`)
+- Android build commit: `4ca4381` (`home-fidelity-implementation`)
+- RN reference commit: `f700035` (`home-fidelity-reference-anchors`)
 
 ## Target Golden Baseline
 
@@ -37,11 +37,51 @@ Status: bootstrap scaffold only. This file documents the target golden-state con
 - [ ] RN and Android restore flows both reproduce the same semantic home state
 - [ ] RN and Android capture flows both reach the required canonical anchors
 
+## Verification Bundle
+
+All requested regression suites were run fresh on `Medium_Phone_API_36.0(AVD) - 16` and passed:
+
+- `:app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.RoutesTest"`
+- `:feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.HomeAnchorContractTest"`
+- `:feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModelTest"`
+- `:feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModelTest"`
+- `:data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDaoTest`
+- `:data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.StarredSheetRepositoryTest`
+- `:data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.db.AppDatabaseMigrationTest`
+- `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.MainActivityStartupTest`
+- `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeFidelityHomeStructureTest`
+- `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeEntryNavigationTest`
+
+## Restore Behavior
+
+### Android
+
+- `scripts/convergence/home-fidelity/restore-android-home-state.sh emulator-5554` initially failed with `run-as: unknown package: com.zili.android.musicfreeandroid`.
+- `./gradlew :app:installDebug` was required to reinstall the Android app on the emulator after the instrumentation bundle.
+- After reinstall, the Android restore command exited `0`.
+
+### RN
+
+- `scripts/convergence/home-fidelity/restore-rn-home-state.sh emulator-5554` exited `0`.
+- The current `fixtures/rn/mmkv/` directory contains only `README.md`; the restore script accepted that placeholder because it checks for any file, not a real MMKV payload.
+- Result: RN restore is mechanically reproducible, but it does not restore canonical MMKV-backed starred-sheet state.
+
+## Artifact Matrix
+
+| Fragment | RN capture | Android capture | Notes |
+| --- | --- | --- | --- |
+| `home-top/nav-bar` | pass | pass | paired screenshots and dumps exist on both platforms |
+| `home-top/operations` | pass | pass | paired screenshots and dumps exist on both platforms |
+| `home-sheets/sheets-header` | fail | fail | final failure on both: missing resource id pattern `^home\\.sheets\\.item\\.` |
+| `home-sheets/sheets-list` | fail | fail | final failure on both: missing resource id pattern `^home\\.sheets\\.item\\.` |
+| `home-scroll/home-scroll` | fail | fail | final failure on both: missing resource id pattern `^home\\.sheets\\.item\\.` |
+| `drawer-open/drawer` | fail | fail | final failure on both: missing resource ids `['home.drawer.root']` |
+
 ## Bootstrap Observation
 
 ### Android
 
-- Home root anchors visible in `uiautomator dump`:
+- Verified after restore:
   - `screen.home.root`
   - `home.navBar.root`
   - `home.operations.root`
@@ -50,28 +90,38 @@ Status: bootstrap scaffold only. This file documents the target golden-state con
 - Current `我的歌单` count: `0`
 - Current `收藏歌单` count: `0`
 - Visible empty-state text: `暂无歌单`
-- Exported fixture files:
+- Successful baseline artifacts:
+  - `android/raw/home-top-nav-bar.png`
+  - `android/cropped/home-top-nav-bar.png`
+  - `android/dumps/home-top-nav-bar.xml`
+  - `android/raw/home-top-operations.png`
+  - `android/cropped/home-top-operations.png`
+  - `android/dumps/home-top-operations.xml`
+- Exported restore inputs:
   - `fixtures/android/musicfree.db`
   - `fixtures/android/musicfree.db-wal`
   - `fixtures/android/musicfree.db-shm`
 
 ### RN
 
-- Exportable storage sources currently available:
-  - external MMKV directory path confirmed at `/storage/emulated/0/Android/data/fun.upup.musicfree/files/mmkv`
-  - legacy AsyncStorage seed under `fixtures/rn/seed/RKStorage`
-  - optional journal under `fixtures/rn/seed/RKStorage-journal`
-- Current export caveat:
-  - ADB can list the external MMKV directory but cannot read file contents in the current device session, so `fixtures/rn/mmkv/` is present as a placeholder directory and still needs a successful export path.
-- Current runtime caveat:
-  - the installed debug app requires Metro during this session
-  - restore automation is still blocked until a restorable MMKV fixture can be exported
-- Current live Metro-backed observation:
+- Restore inputs currently used:
+  - placeholder MMKV file: `fixtures/rn/mmkv/README.md`
+  - legacy AsyncStorage seed: `fixtures/rn/seed/RKStorage`
+  - optional journal: `fixtures/rn/seed/RKStorage-journal`
+- Verified after restore:
   - `screen.home.root`, `home.navBar.root`, `home.navBar.search`, `home.operations.root`, and `home.sheets.root` are visible in `uiautomator dump`
   - current `我的歌单` count: `1`
   - current `收藏歌单` count: `0`
   - current visible local row title: `我喜欢`
   - current visible local row subtitle: `0首`
+  - debug warning overlay visible near the bottom: `Open debugger to view warnings.`
+- Successful baseline artifacts:
+  - `rn/raw/home-top-nav-bar.png`
+  - `rn/cropped/home-top-nav-bar.png`
+  - `rn/dumps/home-top-nav-bar.xml`
+  - `rn/raw/home-top-operations.png`
+  - `rn/cropped/home-top-operations.png`
+  - `rn/dumps/home-top-operations.xml`
 
 ## Planned Row Inventory
 
@@ -93,22 +143,24 @@ Status: bootstrap scaffold only. This file documents the target golden-state con
 
 | Fragment | Allowed empty in final golden capture? | Current bootstrap state | Notes |
 | --- | --- | --- | --- |
-| `home-top/nav-bar` | no | not empty | anchor capture is possible on Android bootstrap |
-| `home-top/operations` | no | not empty | anchor capture is possible on Android bootstrap |
-| `home-sheets/sheets-header` | no | partially visible | header exists but list contract is not satisfied |
-| `home-sheets/sheets-list` | no | empty on Android bootstrap | final golden baseline must have at least 2 rows per tab |
-| `drawer-open/drawer` | no | unresolved on RN | depends on RN runtime reaching home with anchors |
+| `home-top/nav-bar` | no | not empty | capture completed on both platforms |
+| `home-top/operations` | no | not empty | capture completed on both platforms |
+| `home-sheets/sheets-header` | no | partially visible | both platforms fail because no `home.sheets.item.*` anchor is restorable |
+| `home-sheets/sheets-list` | no | empty on Android bootstrap | both platforms fail because no `home.sheets.item.*` anchor is restorable |
+| `drawer-open/drawer` | no | unresolved on both | both platforms fail because `home.drawer.root` never appears after the scripted menu tap |
 
 ## Known Blockers
 
-1. Android fixture data is still bootstrap-only; `playlists` and `starred_sheets` are empty.
-2. RN external MMKV file export is still blocked by device permissions in the current session; only the legacy `RKStorage` seed has been exported successfully.
-3. RN home-top anchors now render with Metro running, but restore automation still cannot reproduce that state because the MMKV fixture payload is unavailable.
-4. The approved golden row inventory and cover provenance are still unset.
+1. Android fixture data is still bootstrap-only; `我的歌单` and `收藏歌单` restore as `0 / 0`, and no `home.sheets.item.*` anchor is available for sheet-dependent captures.
+2. RN MMKV restore input is still a placeholder `README.md`, not an exported MMKV payload; the current guard in `restore-rn-home-state.sh` is too weak to distinguish placeholder content from a real fixture.
+3. RN restore reaches a non-golden semantic state (`我的歌单 = 1`, `收藏歌单 = 0`, visible row `我喜欢`, debug warning overlay present), so it cannot be used as the approved baseline.
+4. Both drawer captures timed out waiting for `home.drawer.root`, even though top-home anchors were available.
+5. The approved golden row inventory and cover provenance are still unset.
 
 ## Next Actions
 
 1. Seed Android fixtures with at least 2 local playlists and 2 starred sheets.
-2. Seed or regenerate RN MMKV fixtures so the same semantic rows exist on the RN home screen.
-3. Export a restorable RN MMKV fixture payload, then make `restore-rn-home-state.sh` reproducible.
-4. Replace the `TBD` rows above with final approved values and rerun both capture pipelines.
+2. Export a real RN MMKV payload and replace the placeholder `README.md` in `fixtures/rn/mmkv/`.
+3. Tighten `restore-rn-home-state.sh` so placeholder files do not count as a valid MMKV fixture.
+4. Recreate both apps' golden data so `home.sheets.item.*` anchors and drawer anchors are present for the remaining fragments.
+5. Replace the `TBD` rows above with final approved values and rerun both capture pipelines.
