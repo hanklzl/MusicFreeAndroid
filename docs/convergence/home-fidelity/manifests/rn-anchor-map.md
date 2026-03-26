@@ -4,6 +4,7 @@ This manifest maps canonical home-fidelity anchors to RN nodes in `/Users/zili/c
 
 | Canonical key | RN file path | Node type | Page state required for capture |
 | --- | --- | --- | --- |
+| `screen.home.root` | `src/pages/home/index.tsx` | `testID` | `home-top`: home screen visible and settled |
 | `home.navBar.root` | `src/pages/home/components/navBar.tsx` | `testID` | `home-top`: home screen visible, nav bar in viewport |
 | `home.navBar.menu` | `src/pages/home/components/navBar.tsx` | `testID` | `home-top`: home screen visible, nav bar in viewport |
 | `home.navBar.search` | `src/pages/home/components/navBar.tsx` | `testID` | `home-top`: home screen visible, nav bar in viewport |
