@@ -44,19 +44,20 @@ dump_xml() {
 }
 
 wait_for_state() {
+  local requested_state="${3:-$STATE}"
   local max_attempts="$1"
   local delay_seconds="$2"
   local attempt
 
   for ((attempt = 1; attempt <= max_attempts; attempt++)); do
     dump_xml
-    if python3 "$HELPER" --xml "$TMP_XML" --state "$STATE" --fragment "$FRAGMENT"; then
+    if python3 "$HELPER" --xml "$TMP_XML" --state "$requested_state" --fragment "$FRAGMENT"; then
       return 0
     fi
     sleep "$delay_seconds"
   done
 
-  echo "Timed out waiting for Android state '$STATE' for fragment '$FRAGMENT'." >&2
+  echo "Timed out waiting for Android state '$requested_state' for fragment '$FRAGMENT'." >&2
   return 1
 }
 
@@ -110,9 +111,8 @@ perform_state_transition() {
       python3 "$HELPER" --xml "$TMP_XML" --state "$STATE" --fragment "$FRAGMENT"
       ;;
     drawer-open)
-      wait_for_state 15 1
+      wait_for_state 15 1 home-top
       tap_anchor_center "home.navBar.menu"
-      STATE="drawer-open"
       wait_for_state 10 1
       ;;
     *)

@@ -30,10 +30,10 @@ if [[ ! -f "$DB_FILE" ]]; then
 fi
 
 adb -s "$DEVICE" push "$DB_FILE" "$TMP_DB" >/dev/null
-if [[ -f "$WAL_FILE" ]]; then
+if [[ -s "$WAL_FILE" ]]; then
   adb -s "$DEVICE" push "$WAL_FILE" "$TMP_WAL" >/dev/null
 fi
-if [[ -f "$SHM_FILE" ]]; then
+if [[ -s "$SHM_FILE" ]]; then
   adb -s "$DEVICE" push "$SHM_FILE" "$TMP_SHM" >/dev/null
 fi
 
@@ -44,10 +44,10 @@ adb -s "$DEVICE" shell run-as "$PACKAGE" rm -f \
   databases/musicfree.db-wal \
   databases/musicfree.db-shm >/dev/null 2>&1 || true
 adb -s "$DEVICE" shell run-as "$PACKAGE" cp "$TMP_DB" databases/musicfree.db
-if [[ -f "$WAL_FILE" ]]; then
+if [[ -s "$WAL_FILE" ]]; then
   adb -s "$DEVICE" shell run-as "$PACKAGE" cp "$TMP_WAL" databases/musicfree.db-wal
 fi
-if [[ -f "$SHM_FILE" ]]; then
+if [[ -s "$SHM_FILE" ]]; then
   adb -s "$DEVICE" shell run-as "$PACKAGE" cp "$TMP_SHM" databases/musicfree.db-shm
 fi
 

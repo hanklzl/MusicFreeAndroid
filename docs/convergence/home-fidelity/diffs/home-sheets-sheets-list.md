@@ -11,32 +11,32 @@
 
 ## RN Evidence
 
-- Capture command attempted: `scripts/convergence/home-fidelity/capture-rn-home.sh emulator-5554 home-sheets sheets-list`
-- Result: no paired artifact written for this fragment
-- Final failure: missing resource id pattern `^home\\.sheets\\.item\\.`
+- Source: `rn/raw/home-sheets-sheets-list.png`
+- Crop: `rn/cropped/home-sheets-sheets-list.png`
+- Dump: `rn/dumps/home-sheets-sheets-list.xml`
 
 ## Android Evidence
 
-- Capture command attempted: `scripts/convergence/home-fidelity/capture-android-home.sh emulator-5554 home-sheets sheets-list`
-- Result: no paired artifact written for this fragment
-- Final failure: missing resource id pattern `^home\\.sheets\\.item\\.`
+- Source: `android/raw/home-sheets-sheets-list.png`
+- Crop: `android/cropped/home-sheets-sheets-list.png`
+- Dump: `android/dumps/home-sheets-sheets-list.xml`
 
 ## Comparison
 
 | Field | RN | Android | Evidence source | Status |
 | --- | --- | --- | --- | --- |
-| Canonical anchor order | `home.sheets.root` is restorable, but no list item anchor appears | same | capture command output during this verification run | blocked |
-| Visible text | blocked: no canonical fragment dump was saved | blocked: no canonical fragment dump was saved | capture failed before artifact write | blocked |
-| Clickability | blocked: no canonical fragment dump was saved | blocked: no canonical fragment dump was saved | capture failed before artifact write | blocked |
-| Selected/open state | closed; canonical list fragment never materializes | closed; canonical list fragment never materializes | capture helper timed out waiting for list anchors | blocked |
-| Size | blocked | blocked | no paired fragment dump | blocked |
-| Spacing | blocked | blocked | no paired fragment dump | blocked |
-| Radius | blocked | blocked | no paired fragment crop | blocked |
-| Font | blocked | blocked | no paired fragment artifact | blocked |
-| Color | blocked | blocked | no paired fragment artifact | blocked |
-| Icon or static-asset provenance | blocked | blocked | no paired fragment artifact | blocked |
+| Canonical anchor order | `home.sheets.item.mine.favorite` then `home.sheets.item.mine.playlist-night` | `home.sheets.item.mine.favorite` then `home.sheets.item.mine.playlist-night` | both dumps | open |
+| Visible text | `我喜欢`, `0首`, `夜间驾驶`, `2首` | `我喜欢`, `0 首歌曲`, `夜间驾驶`, `2 首歌曲` | both dumps and crops | open |
+| Clickability | both mine rows are clickable | both mine rows are clickable | both dumps | open |
+| Selected/open state | list fragment materializes in `我的歌单` tab | list fragment materializes in `我的歌单` tab | both dumps | open |
+| Size | blocked | observed from Android dump bounds only | Android dump | open |
+| Spacing | blocked | observed from Android crop only | Android crop | open |
+| Radius | blocked | unresolved from current evidence | Android crop not sufficient for exact parity call | open |
+| Font | blocked | unresolved from current evidence | Android crop not sufficient for exact parity call | open |
+| Color | blocked | unresolved from current evidence | Android crop not sufficient for exact parity call | open |
+| Icon or static-asset provenance | blocked | Android uses placeholder/default cover for seeded rows | fixture DB plus Android crop | open |
 
 ## Notes
 
-- Android bootstrap data restores as `暂无歌单`.
-- RN restore lands on a non-golden single-row state, but the canonical list capture still cannot be written because the expected `home.sheets.item.*` contract is not satisfied.
+- Both platforms now restore a stable two-row mine list.
+- The remaining difference is subtitle formatting rather than structural observability.

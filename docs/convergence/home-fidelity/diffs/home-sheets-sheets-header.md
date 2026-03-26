@@ -15,31 +15,32 @@
 
 ## RN Evidence
 
-- Capture command attempted: `scripts/convergence/home-fidelity/capture-rn-home.sh emulator-5554 home-sheets sheets-header`
-- Result: no paired artifact written for this fragment
-- Final failure: missing resource id pattern `^home\\.sheets\\.item\\.`
+- Source: `rn/raw/home-sheets-sheets-header.png`
+- Crop: `rn/cropped/home-sheets-sheets-header.png`
+- Dump: `rn/dumps/home-sheets-sheets-header.xml`
 
 ## Android Evidence
 
-- Capture command attempted: `scripts/convergence/home-fidelity/capture-android-home.sh emulator-5554 home-sheets sheets-header`
-- Result: no paired artifact written for this fragment
-- Final failure: missing resource id pattern `^home\\.sheets\\.item\\.`
+- Source: `android/raw/home-sheets-sheets-header.png`
+- Crop: `android/cropped/home-sheets-sheets-header.png`
+- Dump: `android/dumps/home-sheets-sheets-header.xml`
 
 ## Comparison
 
 | Field | RN | Android | Evidence source | Status |
 | --- | --- | --- | --- | --- |
-| Canonical anchor order | header anchors partially reachable, but first `home.sheets.item.*` never appears | same | capture command output during this verification run | blocked |
-| Visible text | blocked: no canonical fragment dump was saved | blocked: no canonical fragment dump was saved | capture failed before artifact write | blocked |
-| Clickability | blocked: no canonical fragment dump was saved | blocked: no canonical fragment dump was saved | capture failed before artifact write | blocked |
-| Selected/open state | `我的歌单` restore state exists, but canonical header fragment is not capturable | same | restore observations plus capture failure | blocked |
-| Size | blocked | blocked | no paired fragment dump | blocked |
-| Spacing | blocked | blocked | no paired fragment dump | blocked |
-| Radius | blocked | blocked | no paired fragment crop | blocked |
-| Font | blocked | blocked | no paired fragment artifact | blocked |
-| Color | blocked | blocked | no paired fragment artifact | blocked |
-| Icon or static-asset provenance | blocked | blocked | no paired fragment artifact | blocked |
+| Canonical anchor order | `home.sheets.root`, tabs, actions, and first `home.sheets.item.mine.*` anchor are present | same | both dumps | open |
+| Visible text | `我的歌单`, `收藏歌单`, `我喜欢`, `夜间驾驶` | `我的歌单`, `收藏歌单`, `我喜欢`, `夜间驾驶` | both dumps and crops | open |
+| Clickability | tabs/actions are clickable; first mine row is clickable | same | both dumps | open |
+| Selected/open state | `我的歌单` selected with counts `(2)` / `(2)` | `我的歌单` selected with counts `(2)` / `(2)` | both dumps | open |
+| Size | blocked | observed from Android dump bounds only | `android` dump | open |
+| Spacing | blocked | observed from Android crop only | `android` crop | open |
+| Radius | blocked | unresolved from current evidence | Android crop not sufficient for exact parity call | open |
+| Font | blocked | unresolved from current evidence | Android crop not sufficient for exact parity call | open |
+| Color | blocked | unresolved from current evidence | Android crop not sufficient for exact parity call | open |
+| Icon or static-asset provenance | blocked | Android uses placeholder/default cover for seeded rows | fixture DB plus Android crop | open |
 
 ## Notes
 
-- This fragment is blocked by data state, not by a test regression. Both platforms fail only after restore, with the same missing-row anchor pattern.
+- The fragment is now capturable on both platforms.
+- Remaining gap is visual/text parity, especially subtitle formatting (`0首` vs `0 首歌曲`, `2首` vs `2 首歌曲`) and the RN debug warning overlay outside the fragment body.

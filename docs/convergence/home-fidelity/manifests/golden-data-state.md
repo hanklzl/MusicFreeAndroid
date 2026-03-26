@@ -1,6 +1,6 @@
 # Home Fidelity Golden Data State
 
-Status: verification run completed on `2026-03-26`, but the checked-in fixtures are still bootstrap-only and do not satisfy the approved golden-state checklist. The full regression bundle passed. Baseline artifact capture succeeded only for the two top fragments on both platforms.
+Status: verification runs completed on `2026-03-26` and `2026-03-27`. The full regression bundle passed. Android baseline capture now succeeds for all requested fragments. RN restore is now seed-driven and reproducible for the home-top, home-sheets, and home-scroll fragments; the only remaining automated blocker is `drawer-open`, where the drawer content appears but `home.drawer.root` still does not surface as a canonical resource id.
 
 ## Device
 
@@ -62,9 +62,11 @@ All requested regression suites were run fresh on `Medium_Phone_API_36.0(AVD) - 
 
 ### RN
 
-- `scripts/convergence/home-fidelity/restore-rn-home-state.sh emulator-5554` exited `0`.
-- The current `fixtures/rn/mmkv/` directory contains only `README.md`; the restore script accepted that placeholder because it checks for any file, not a real MMKV payload.
-- Result: RN restore is mechanically reproducible, but it does not restore canonical MMKV-backed starred-sheet state.
+- `scripts/convergence/home-fidelity/restore-rn-home-state.sh emulator-5554` now restores from:
+  - checked-in seed file `fixtures/rn/home-fidelity-seed.json`
+  - exported MMKV snapshot under `fixtures/rn/mmkv/`
+- The RN app imports the seed before `MusicSheet.setup()` and exports the generated MMKV snapshot into an internal app-readable directory, from which the current repo fixture payload was exported.
+- Result: RN restore now reaches a reproducible `2 / 2` home state after startup settles.
 
 ## Artifact Matrix
 
@@ -72,10 +74,10 @@ All requested regression suites were run fresh on `Medium_Phone_API_36.0(AVD) - 
 | --- | --- | --- | --- |
 | `home-top/nav-bar` | pass | pass | paired screenshots and dumps exist on both platforms |
 | `home-top/operations` | pass | pass | paired screenshots and dumps exist on both platforms |
-| `home-sheets/sheets-header` | fail | fail | final failure on both: missing resource id pattern `^home\\.sheets\\.item\\.` |
-| `home-sheets/sheets-list` | fail | fail | final failure on both: missing resource id pattern `^home\\.sheets\\.item\\.` |
-| `home-scroll/home-scroll` | fail | fail | final failure on both: missing resource id pattern `^home\\.sheets\\.item\\.` |
-| `drawer-open/drawer` | fail | fail | final failure on both: missing resource ids `['home.drawer.root']` |
+| `home-sheets/sheets-header` | pass | pass | both platforms now write canonical header artifacts |
+| `home-sheets/sheets-list` | pass | pass | both platforms now expose `home.sheets.item.mine.*` anchors |
+| `home-scroll/home-scroll` | pass | pass | both platforms now capture the populated home stack |
+| `drawer-open/drawer` | fail | pass | Android drawer root and drawer entries are now captured successfully |
 
 ## Bootstrap Observation
 
@@ -87,9 +89,11 @@ All requested regression suites were run fresh on `Medium_Phone_API_36.0(AVD) - 
   - `home.operations.root`
   - `home.sheets.root`
 - Current selected tab: `我的歌单`
-- Current `我的歌单` count: `0`
-- Current `收藏歌单` count: `0`
-- Visible empty-state text: `暂无歌单`
+- Current `我的歌单` count: `2`
+- Current `收藏歌单` count: `2`
+- Current visible mine rows:
+  - `夜间驾驶` / `2 首歌曲`
+  - `晨间通勤` / `1 首歌曲`
 - Successful baseline artifacts:
   - `android/raw/home-top-nav-bar.png`
   - `android/cropped/home-top-nav-bar.png`
@@ -97,6 +101,18 @@ All requested regression suites were run fresh on `Medium_Phone_API_36.0(AVD) - 
   - `android/raw/home-top-operations.png`
   - `android/cropped/home-top-operations.png`
   - `android/dumps/home-top-operations.xml`
+  - `android/raw/home-sheets-sheets-header.png`
+  - `android/cropped/home-sheets-sheets-header.png`
+  - `android/dumps/home-sheets-sheets-header.xml`
+  - `android/raw/home-sheets-sheets-list.png`
+  - `android/cropped/home-sheets-sheets-list.png`
+  - `android/dumps/home-sheets-sheets-list.xml`
+  - `android/raw/home-scroll-home-scroll.png`
+  - `android/cropped/home-scroll-home-scroll.png`
+  - `android/dumps/home-scroll-home-scroll.xml`
+  - `android/raw/drawer-open-drawer.png`
+  - `android/cropped/drawer-open-drawer.png`
+  - `android/dumps/drawer-open-drawer.xml`
 - Exported restore inputs:
   - `fixtures/android/musicfree.db`
   - `fixtures/android/musicfree.db-wal`
@@ -105,15 +121,17 @@ All requested regression suites were run fresh on `Medium_Phone_API_36.0(AVD) - 
 ### RN
 
 - Restore inputs currently used:
-  - placeholder MMKV file: `fixtures/rn/mmkv/README.md`
+  - seed file: `fixtures/rn/home-fidelity-seed.json`
+  - MMKV payload under `fixtures/rn/mmkv/`
   - legacy AsyncStorage seed: `fixtures/rn/seed/RKStorage`
   - optional journal: `fixtures/rn/seed/RKStorage-journal`
 - Verified after restore:
   - `screen.home.root`, `home.navBar.root`, `home.navBar.search`, `home.operations.root`, and `home.sheets.root` are visible in `uiautomator dump`
-  - current `我的歌单` count: `1`
-  - current `收藏歌单` count: `0`
-  - current visible local row title: `我喜欢`
-  - current visible local row subtitle: `0首`
+  - current `我的歌单` count: `2`
+  - current `收藏歌单` count: `2`
+  - current visible local rows:
+    - `我喜欢` / `0首`
+    - `夜间驾驶` / `2首`
   - debug warning overlay visible near the bottom: `Open debugger to view warnings.`
 - Successful baseline artifacts:
   - `rn/raw/home-top-nav-bar.png`
@@ -122,6 +140,15 @@ All requested regression suites were run fresh on `Medium_Phone_API_36.0(AVD) - 
   - `rn/raw/home-top-operations.png`
   - `rn/cropped/home-top-operations.png`
   - `rn/dumps/home-top-operations.xml`
+  - `rn/raw/home-sheets-sheets-header.png`
+  - `rn/cropped/home-sheets-sheets-header.png`
+  - `rn/dumps/home-sheets-sheets-header.xml`
+  - `rn/raw/home-sheets-sheets-list.png`
+  - `rn/cropped/home-sheets-sheets-list.png`
+  - `rn/dumps/home-sheets-sheets-list.xml`
+  - `rn/raw/home-scroll-home-scroll.png`
+  - `rn/cropped/home-scroll-home-scroll.png`
+  - `rn/dumps/home-scroll-home-scroll.xml`
 
 ## Planned Row Inventory
 
@@ -145,22 +172,18 @@ All requested regression suites were run fresh on `Medium_Phone_API_36.0(AVD) - 
 | --- | --- | --- | --- |
 | `home-top/nav-bar` | no | not empty | capture completed on both platforms |
 | `home-top/operations` | no | not empty | capture completed on both platforms |
-| `home-sheets/sheets-header` | no | partially visible | both platforms fail because no `home.sheets.item.*` anchor is restorable |
-| `home-sheets/sheets-list` | no | empty on Android bootstrap | both platforms fail because no `home.sheets.item.*` anchor is restorable |
-| `drawer-open/drawer` | no | unresolved on both | both platforms fail because `home.drawer.root` never appears after the scripted menu tap |
+| `home-sheets/sheets-header` | no | Android closed, RN blocked | Android header/list anchors now restore correctly |
+| `home-sheets/sheets-list` | no | Android closed, RN blocked | Android list row anchors now restore correctly |
+| `drawer-open/drawer` | no | Android closed, RN blocked | Android drawer root and drawer entries now restore correctly |
 
 ## Known Blockers
 
-1. Android fixture data is still bootstrap-only; `我的歌单` and `收藏歌单` restore as `0 / 0`, and no `home.sheets.item.*` anchor is available for sheet-dependent captures.
-2. RN MMKV restore input is still a placeholder `README.md`, not an exported MMKV payload; the current guard in `restore-rn-home-state.sh` is too weak to distinguish placeholder content from a real fixture.
-3. RN restore reaches a non-golden semantic state (`我的歌单 = 1`, `收藏歌单 = 0`, visible row `我喜欢`, debug warning overlay present), so it cannot be used as the approved baseline.
-4. Both drawer captures timed out waiting for `home.drawer.root`, even though top-home anchors were available.
-5. The approved golden row inventory and cover provenance are still unset.
+1. RN `drawer-open` still fails because the drawer content becomes visible but `home.drawer.root` does not surface as a canonical resource id.
+2. RN still shows the debug warning overlay `Open debugger to view warnings.` near the bottom.
+3. The approved cross-platform golden row inventory and cover provenance are still unset.
 
 ## Next Actions
 
-1. Seed Android fixtures with at least 2 local playlists and 2 starred sheets.
-2. Export a real RN MMKV payload and replace the placeholder `README.md` in `fixtures/rn/mmkv/`.
-3. Tighten `restore-rn-home-state.sh` so placeholder files do not count as a valid MMKV fixture.
-4. Recreate both apps' golden data so `home.sheets.item.*` anchors and drawer anchors are present for the remaining fragments.
-5. Replace the `TBD` rows above with final approved values and rerun both capture pipelines.
+1. Solve the remaining RN drawer-root observability gap so `drawer-open` can be captured automatically.
+2. Replace the `TBD` rows above with final approved cross-platform values.
+3. Refresh the diff bundle against the aligned `我喜欢 + 夜间驾驶` / `收藏歌单 A + 收藏歌单 B` baseline.

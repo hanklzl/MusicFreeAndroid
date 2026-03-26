@@ -12,31 +12,32 @@
 
 ## RN Evidence
 
-- Capture command attempted: `scripts/convergence/home-fidelity/capture-rn-home.sh emulator-5554 home-scroll home-scroll`
-- Result: no paired artifact written for this fragment
-- Final failure: missing resource id pattern `^home\\.sheets\\.item\\.` after restore, retries, and swipe attempts
+- Source: `rn/raw/home-scroll-home-scroll.png`
+- Crop: `rn/cropped/home-scroll-home-scroll.png`
+- Dump: `rn/dumps/home-scroll-home-scroll.xml`
 
 ## Android Evidence
 
-- Capture command attempted: `scripts/convergence/home-fidelity/capture-android-home.sh emulator-5554 home-scroll home-scroll`
-- Result: no paired artifact written for this fragment
-- Final failure: missing resource id pattern `^home\\.sheets\\.item\\.` after restore, retries, and swipe attempts
+- Source: `android/raw/home-scroll-home-scroll.png`
+- Crop: `android/cropped/home-scroll-home-scroll.png`
+- Dump: `android/dumps/home-scroll-home-scroll.xml`
 
 ## Comparison
 
 | Field | RN | Android | Evidence source | Status |
 | --- | --- | --- | --- | --- |
-| Canonical anchor order | `screen.home.root` can appear, but no scroll target item anchor is available | same | capture command output during this verification run | blocked |
-| Visible text | blocked: no canonical fragment dump was saved | blocked: no canonical fragment dump was saved | capture failed before artifact write | blocked |
-| Clickability | blocked: no canonical fragment dump was saved | blocked: no canonical fragment dump was saved | capture failed before artifact write | blocked |
-| Selected/open state | scroll target never becomes visible | scroll target never becomes visible | helper timed out waiting for scroll fragment | blocked |
-| Size | blocked | blocked | no paired fragment dump | blocked |
-| Spacing | blocked | blocked | no paired fragment dump | blocked |
-| Radius | blocked | blocked | no paired fragment crop | blocked |
-| Font | blocked | blocked | no paired fragment artifact | blocked |
-| Color | blocked | blocked | no paired fragment artifact | blocked |
-| Icon or static-asset provenance | blocked | blocked | no paired fragment artifact | blocked |
+| Canonical anchor order | `screen.home.root`, `home.sheets.root`, and populated mine-row anchors are visible | same | both dumps | open |
+| Visible text | populated mine-row text is visible | populated mine-row text is visible | both dumps and crops | open |
+| Clickability | visible mine rows are clickable | visible mine rows are clickable | both dumps | open |
+| Selected/open state | scroll target is visible after restore without extra retries | same | both dumps | open |
+| Size | blocked | observed from Android dump bounds only | Android dump | open |
+| Spacing | blocked | observed from Android crop only | Android crop | open |
+| Radius | blocked | unresolved from current evidence | Android crop not sufficient for exact parity call | open |
+| Font | blocked | unresolved from current evidence | Android crop not sufficient for exact parity call | open |
+| Color | blocked | unresolved from current evidence | Android crop not sufficient for exact parity call | open |
+| Icon or static-asset provenance | blocked | Android uses placeholder/default cover for seeded rows | fixture DB plus Android crop | open |
 
 ## Notes
 
-- This fragment is downstream of the same missing-row issue as the two `home-sheets` captures. Without populated sheet anchors, the scroll target is undefined on both platforms.
+- The fragment is now capturable on both platforms.
+- The remaining difference is content/text fidelity rather than structural observability.
