@@ -50,8 +50,9 @@
 | `docs/convergence/home-fidelity/fixtures/android/musicfree.db` | Golden Android Room fixture for restore script |
 | `docs/convergence/home-fidelity/fixtures/android/musicfree.db-wal` | Android WAL sidecar for deterministic restore |
 | `docs/convergence/home-fidelity/fixtures/android/musicfree.db-shm` | Android shared-memory sidecar for deterministic restore |
-| `docs/convergence/home-fidelity/fixtures/rn/RKStorage` | Golden RN storage fixture for restore script |
-| `docs/convergence/home-fidelity/fixtures/rn/RKStorage-journal` | Optional RN journal sidecar when present |
+| `docs/convergence/home-fidelity/fixtures/rn/mmkv/` | Golden RN external MMKV directory fixture for restore script |
+| `docs/convergence/home-fidelity/fixtures/rn/seed/RKStorage` | Optional legacy AsyncStorage seed used only to bootstrap MMKV via app migration |
+| `docs/convergence/home-fidelity/fixtures/rn/seed/RKStorage-journal` | Optional legacy AsyncStorage journal sidecar when present |
 | `docs/convergence/home-fidelity/manifests/golden-data-state.md` | Golden device + data-state manifest |
 | `docs/convergence/home-fidelity/manifests/rn-anchor-map.md` | Canonical anchor ↔ RN node mapping |
 | `docs/convergence/home-fidelity/diffs/README.md` | Diff artifact template and required fields |
@@ -850,8 +851,9 @@ git commit -m "docs(home): add RN anchor mapping for fidelity capture"
 - Create: `docs/convergence/home-fidelity/fixtures/android/musicfree.db`
 - Create: `docs/convergence/home-fidelity/fixtures/android/musicfree.db-wal`
 - Create: `docs/convergence/home-fidelity/fixtures/android/musicfree.db-shm`
-- Create: `docs/convergence/home-fidelity/fixtures/rn/RKStorage`
-- Create: `docs/convergence/home-fidelity/fixtures/rn/RKStorage-journal`
+- Create: `docs/convergence/home-fidelity/fixtures/rn/mmkv/`
+- Create: `docs/convergence/home-fidelity/fixtures/rn/seed/RKStorage`
+- Create: `docs/convergence/home-fidelity/fixtures/rn/seed/RKStorage-journal`
 - Create: `docs/convergence/home-fidelity/manifests/golden-data-state.md`
 - Create: `docs/convergence/home-fidelity/diffs/README.md`
 
@@ -878,39 +880,56 @@ For this plan, do not define the baseline as “mini-player visible”. If a fut
 
 - [ ] **Step 2: Export the RN golden-state fixture**
 
-After manually or scriptably preparing the RN app into the approved golden state once, export the storage files into versioned fixtures:
+RN fixture source is the app's external MMKV directory, not `databases/RKStorage`.
+
+After manually or scriptably preparing the RN app into the approved golden state once, export the external MMKV directory into versioned fixtures:
 
 ```bash
 adb -s emulator-5554 shell am force-stop fun.upup.musicfree
-adb -s emulator-5554 exec-out run-as fun.upup.musicfree cat databases/RKStorage > \
-  docs/convergence/home-fidelity/fixtures/rn/RKStorage
-adb -s emulator-5554 exec-out run-as fun.upup.musicfree cat databases/RKStorage-journal > \
-  docs/convergence/home-fidelity/fixtures/rn/RKStorage-journal || true
+mkdir -p docs/convergence/home-fidelity/fixtures/rn/mmkv
+adb -s emulator-5554 pull /storage/emulated/0/Android/data/fun.upup.musicfree/files/mmkv \
+  docs/convergence/home-fidelity/fixtures/rn/ >/dev/null
 ```
 
-Expected: the fixture directory now contains the canonical RN database image.
+Expected: `docs/convergence/home-fidelity/fixtures/rn/mmkv/` contains the canonical RN MMKV files.
+
+If the easiest way to generate that golden MMKV state is to seed legacy AsyncStorage first, you may also export:
+
+```bash
+adb -s emulator-5554 exec-out run-as fun.upup.musicfree cat databases/RKStorage > \
+  docs/convergence/home-fidelity/fixtures/rn/seed/RKStorage
+adb -s emulator-5554 exec-out run-as fun.upup.musicfree cat databases/RKStorage-journal > \
+  docs/convergence/home-fidelity/fixtures/rn/seed/RKStorage-journal || true
+```
+
+But these `seed/` files are bootstrap inputs only; the golden restore source remains `fixtures/rn/mmkv/`.
 
 - [ ] **Step 3: Implement `restore-rn-home-state.sh`**
 
 Base it on the discovered RN storage location:
 - app package: `fun.upup.musicfree`
-- DB file: `databases/RKStorage`
+- final fixture source: `/storage/emulated/0/Android/data/fun.upup.musicfree/files/mmkv`
 
 The script should:
 1. stop the RN app
-2. push the curated `RKStorage` fixture and `RKStorage-journal` when present to `/data/local/tmp/`
-3. copy them into the app sandbox with `run-as`
+2. clear the target external MMKV directory
+3. push the curated MMKV fixture directory contents into the external app data directory
 4. relaunch the app on home
 
 Expected command pattern:
 
 ```bash
-adb -s "$DEVICE" push "$FIXTURE_DIR/RKStorage" /data/local/tmp/home-fidelity-RKStorage
-adb -s "$DEVICE" push "$FIXTURE_DIR/RKStorage-journal" /data/local/tmp/home-fidelity-RKStorage-journal || true
-adb -s "$DEVICE" shell run-as fun.upup.musicfree cp /data/local/tmp/home-fidelity-RKStorage databases/RKStorage
-adb -s "$DEVICE" shell run-as fun.upup.musicfree cp /data/local/tmp/home-fidelity-RKStorage-journal databases/RKStorage-journal || true
+adb -s "$DEVICE" shell am force-stop fun.upup.musicfree
+adb -s "$DEVICE" shell rm -f /storage/emulated/0/Android/data/fun.upup.musicfree/files/mmkv/*
+adb -s "$DEVICE" push "$FIXTURE_DIR/mmkv" /storage/emulated/0/Android/data/fun.upup.musicfree/files/ >/dev/null
 adb -s "$DEVICE" shell am start -S -n fun.upup.musicfree/.MainActivity
 ```
+
+If MMKV must first be generated via migration, the script may:
+1. restore the `seed/RKStorage` database,
+2. delete the existing MMKV directory,
+3. relaunch once to let `musicSheet/migrate.ts` populate MMKV,
+4. optionally capture the resulting MMKV directory as the final fixture source.
 
 - [ ] **Step 4: Export the Android golden-state fixture**
 
@@ -1019,8 +1038,9 @@ git add scripts/convergence/home-fidelity \
   docs/convergence/home-fidelity/fixtures/android/musicfree.db \
   docs/convergence/home-fidelity/fixtures/android/musicfree.db-wal \
   docs/convergence/home-fidelity/fixtures/android/musicfree.db-shm \
-  docs/convergence/home-fidelity/fixtures/rn/RKStorage \
-  docs/convergence/home-fidelity/fixtures/rn/RKStorage-journal \
+  docs/convergence/home-fidelity/fixtures/rn/mmkv \
+  docs/convergence/home-fidelity/fixtures/rn/seed/RKStorage \
+  docs/convergence/home-fidelity/fixtures/rn/seed/RKStorage-journal \
   docs/convergence/home-fidelity/manifests/golden-data-state.md \
   docs/convergence/home-fidelity/diffs/README.md
 git commit -m "chore(home): add fidelity restore and capture tooling"
