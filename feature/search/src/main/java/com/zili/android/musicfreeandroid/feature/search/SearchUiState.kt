@@ -5,6 +5,8 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 sealed interface SearchUiState {
     data object Idle : SearchUiState
     data object Loading : SearchUiState
+    data object NoPlugins : SearchUiState
+    data object NoSearchablePlugins : SearchUiState
     data class Success(
         val items: List<MusicItem>,
         val isEnd: Boolean,

@@ -9,12 +9,14 @@ fun NavGraphBuilder.settingsScreen(
     onBack: () -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
+    onNavigateToLocalFileSelector: () -> Unit = onNavigateToFileSelector,
 ) {
     composable<SettingsRoute> {
         SettingsScreen(
             onBack = onBack,
             onNavigateToPermissions = onNavigateToPermissions,
             onNavigateToFileSelector = onNavigateToFileSelector,
+            onNavigateToLocalFileSelector = onNavigateToLocalFileSelector,
         )
     }
 }

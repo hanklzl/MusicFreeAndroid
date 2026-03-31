@@ -24,6 +24,20 @@ import com.whl.quickjs.wrapper.JSArray
 import com.whl.quickjs.wrapper.JSObject
 import kotlinx.coroutines.withTimeout
 
+enum class PluginInstallSourceType {
+    LOCAL_FILE,
+    PLUGIN_URL,
+    SUBSCRIPTION_URL,
+    UPDATE_SINGLE,
+    UPDATE_ALL,
+    UPDATE_SUBSCRIPTION,
+}
+
+data class PluginInstallSource(
+    val type: PluginInstallSourceType,
+    val value: String? = null,
+)
+
 /**
  * A loaded JS plugin backed by its own [JsEngine] instance.
  * Implements [PluginApi] by delegating calls to the JS plugin object (`__plugin`).
@@ -32,6 +46,7 @@ class LoadedPlugin(
     override val info: PluginInfo,
     private val engine: JsEngine,
     var filePath: String,
+    val installSource: PluginInstallSource = PluginInstallSource(PluginInstallSourceType.LOCAL_FILE),
 ) : PluginApi {
 
     companion object {

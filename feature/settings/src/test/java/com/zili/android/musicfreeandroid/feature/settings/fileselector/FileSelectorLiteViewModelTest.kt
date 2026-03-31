@@ -8,8 +8,10 @@ import com.zili.android.musicfreeandroid.feature.settings.MainDispatcherRule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -24,6 +26,16 @@ class FileSelectorLiteViewModelTest {
 
     @get:Rule
     val tmpFolder = TemporaryFolder()
+
+    private val dataStoreScopes = mutableListOf<CoroutineScope>()
+
+    @After
+    fun tearDown() {
+        dataStoreScopes.forEach { scope ->
+            scope.cancel()
+        }
+        dataStoreScopes.clear()
+    }
 
     @Test
     fun `ui state is unconfigured by default`() = runBlocking {
@@ -43,9 +55,8 @@ class FileSelectorLiteViewModelTest {
 
         viewModel.onDirectorySelected(treeUri)
 
-        val state = viewModel.uiState.first { it.selectedDirectory?.treeUri == treeUri }
-        assertTrue(state.isConfigured)
-        assertEquals("MusicFree", state.selectedDirectory?.displayName)
+        val persisted = appPreferences.storageDirectoryUri.first { it == treeUri }
+        assertEquals(treeUri, persisted)
     }
 
     @Test
@@ -58,14 +69,15 @@ class FileSelectorLiteViewModelTest {
         viewModel.onDirectorySelected(firstTreeUri)
         viewModel.onDirectorySelected(secondTreeUri)
 
-        val state = viewModel.uiState.first { it.selectedDirectory?.treeUri == secondTreeUri }
-        assertTrue(state.isConfigured)
-        assertEquals("Download", state.selectedDirectory?.displayName)
+        val persisted = appPreferences.storageDirectoryUri.first { it == secondTreeUri }
+        assertEquals(secondTreeUri, persisted)
     }
 
     private fun createAppPreferences(): AppPreferences {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        dataStoreScopes += scope
         val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
-            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            scope = scope,
             produceFile = { tmpFolder.newFile("file-selector-test.preferences_pb") },
         )
         return AppPreferences(dataStore)

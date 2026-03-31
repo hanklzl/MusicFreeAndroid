@@ -17,11 +17,14 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+import java.util.Properties
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,6 +41,7 @@ class PluginManager @Inject constructor(
     companion object {
         private const val TAG = "PluginManager"
         private const val PLUGINS_DIR_NAME = "plugins"
+        private const val PLUGIN_META_SUFFIX = ".meta.properties"
     }
 
     private val pluginsDir: File by lazy {
@@ -68,7 +72,7 @@ class PluginManager @Inject constructor(
             val files = pluginsDir.listFiles { _, name -> name.endsWith(".js") } ?: emptyArray()
             for (file in files) {
                 try {
-                    val plugin = loadPluginFromFile(file)
+                    val plugin = loadPluginFromFile(file, readInstallMetadata(file))
                     if (plugin != null) {
                         loaded.add(plugin)
                         Log.i(TAG, "Loaded plugin: ${plugin.info.platform} from ${file.name}")
@@ -109,6 +113,121 @@ class PluginManager @Inject constructor(
     }
 
     /**
+     * Update a single installed plugin using its source URL.
+     */
+    suspend fun updatePlugin(platform: String): PluginOperationResult = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            val startedAt = System.currentTimeMillis()
+            val plugin = _plugins.value.find { it.info.platform == platform }
+                ?: return@withContext PluginOperationResult(
+                    operationType = PluginOperationType.UPDATE_SINGLE,
+                    targetPlugins = listOf(platform),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            targetPlugin = platform,
+                            errorCode = PluginOperationErrorCode.INTERNAL_ERROR,
+                            message = "插件未找到",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = startedAt,
+                )
+
+            updateInstalledPluginLocked(
+                targetPlugin = plugin,
+                operationType = PluginOperationType.UPDATE_SINGLE,
+                startedAt = startedAt,
+            )
+        }
+    }
+
+    /**
+     * Update all installed plugins that expose an update source.
+     */
+    suspend fun updateAllPlugins(): PluginOperationResult = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            val startedAt = System.currentTimeMillis()
+            updateInstalledPluginsLocked(
+                targets = _plugins.value.toList(),
+                operationType = PluginOperationType.UPDATE_ALL,
+                startedAt = startedAt,
+            )
+        }
+    }
+
+    /**
+     * Update plugins listed in a subscription JSON URL.
+     */
+    suspend fun updateFromSubscriptionUrl(subscriptionUrl: String): PluginOperationResult = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            val startedAt = System.currentTimeMillis()
+            if (subscriptionUrl.isBlank()) {
+                return@withContext PluginOperationResult(
+                    operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
+                    targetPlugins = emptyList(),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            sourceRef = subscriptionUrl,
+                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                            message = "订阅地址不能为空",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = startedAt,
+                )
+            }
+
+            val rawJson = downloadUrlBytes(subscriptionUrl)
+                ?: return@withContext PluginOperationResult(
+                    operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
+                    targetPlugins = listOf(subscriptionUrl),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            sourceRef = subscriptionUrl,
+                            errorCode = PluginOperationErrorCode.SOURCE_UNREACHABLE,
+                            message = "订阅下载失败",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = System.currentTimeMillis(),
+                )
+
+            val parsed = SubscriptionParser.parse(rawJson.toString(StandardCharsets.UTF_8))
+            if (parsed.isMalformed) {
+                return@withContext PluginOperationResult(
+                    operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
+                    targetPlugins = listOf(subscriptionUrl),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            sourceRef = subscriptionUrl,
+                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                            message = "订阅格式无效",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = System.currentTimeMillis(),
+                )
+            }
+
+            val targets = parsed.installableEntries.map { it.url }
+            updateSubscriptionEntriesLocked(
+                subscriptionUrl = subscriptionUrl,
+                entries = parsed.installableEntries,
+                startedAt = startedAt,
+                targets = targets,
+            )
+        }
+    }
+
+    /**
      * Uninstall a plugin by platform name.
      */
     suspend fun uninstall(platform: String) = mutex.withLock {
@@ -118,6 +237,7 @@ class PluginManager @Inject constructor(
             if (plugin != null) {
                 plugin.destroy()
                 File(plugin.filePath).delete()
+                deleteInstallMetadata(File(plugin.filePath))
                 current.remove(plugin)
                 _plugins.value = current
                 Log.i(TAG, "Uninstalled plugin: $platform")
@@ -136,7 +256,13 @@ class PluginManager @Inject constructor(
 
     private suspend fun installFromFileLocked(sourceFile: File): LoadedPlugin? {
         return try {
-            installWithStagedFile(fileName = sourceFile.name) { stagedFile ->
+            installWithStagedFile(
+                fileName = sourceFile.name,
+                installSource = PluginInstallSource(
+                    type = PluginInstallSourceType.LOCAL_FILE,
+                    value = sourceFile.absolutePath,
+                ),
+            ) { stagedFile ->
                 sourceFile.copyTo(stagedFile, overwrite = true)
                 true
             }?.also { plugin ->
@@ -148,18 +274,33 @@ class PluginManager @Inject constructor(
         }
     }
 
-    private suspend fun installFromUrlLocked(url: String, fileName: String): LoadedPlugin? {
+    private suspend fun installFromUrlLocked(
+        url: String,
+        fileName: String,
+        installSource: PluginInstallSource = PluginInstallSource(
+            type = PluginInstallSourceType.PLUGIN_URL,
+            value = url,
+        ),
+    ): LoadedPlugin? {
         return try {
-            installWithStagedFile(fileName = fileName) { stagedFile ->
-                val bytes = downloadUrlBytes(url) ?: return@installWithStagedFile false
-                stagedFile.writeBytes(bytes)
-                true
-            }?.also { plugin ->
+            val bytes = downloadUrlBytes(url) ?: return null
+            installFromBytesLocked(bytes, fileName, installSource)?.also { plugin ->
                 Log.i(TAG, "Installed plugin: ${plugin.info.platform} from URL")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to install plugin from URL: $url", e)
             null
+        }
+    }
+
+    private suspend fun installFromBytesLocked(
+        bytes: ByteArray,
+        fileName: String,
+        installSource: PluginInstallSource,
+    ): LoadedPlugin? {
+        return installWithStagedFile(fileName = fileName, installSource = installSource) { stagedFile ->
+            stagedFile.writeBytes(bytes)
+            true
         }
     }
 
@@ -195,7 +336,16 @@ class PluginManager @Inject constructor(
         var successfulInstalls = 0
         for (entry in parsed.installableEntries) {
             val fileName = SubscriptionFileNames.pluginFileName(entry)
-            if (installFromUrlLocked(url = entry.url, fileName = fileName) != null) {
+            if (
+                installFromUrlLocked(
+                    url = entry.url,
+                    fileName = fileName,
+                    installSource = PluginInstallSource(
+                        type = PluginInstallSourceType.SUBSCRIPTION_URL,
+                        value = subscriptionUrl,
+                    ),
+                ) != null
+            ) {
                 successfulInstalls += 1
             }
         }
@@ -209,6 +359,7 @@ class PluginManager @Inject constructor(
 
     private suspend fun installWithStagedFile(
         fileName: String,
+        installSource: PluginInstallSource,
         populateStagedFile: (File) -> Boolean,
     ): LoadedPlugin? {
         val targetFile = File(pluginsDir, fileName)
@@ -220,7 +371,7 @@ class PluginManager @Inject constructor(
                 return null
             }
 
-            val plugin = loadPluginFromFile(stagedFile) ?: return null
+            val plugin = loadPluginFromFile(stagedFile, installSource) ?: return null
             val replaced = replaceFileAtomically(source = stagedFile, target = targetFile)
             if (!replaced) {
                 plugin.destroy()
@@ -229,6 +380,7 @@ class PluginManager @Inject constructor(
 
             plugin.filePath = targetFile.absolutePath
             addOrReplacePlugin(plugin)
+            writeInstallMetadata(targetFile, plugin.installSource)
             return plugin
         } finally {
             if (stagedFile.exists()) {
@@ -263,12 +415,244 @@ class PluginManager @Inject constructor(
             existing.destroy()
             current.remove(existing)
             if (existing.filePath != plugin.filePath) {
-                File(existing.filePath).delete()
+                val existingFile = File(existing.filePath)
+                existingFile.delete()
+                deleteInstallMetadata(existingFile)
             }
         }
 
         current += plugin
         _plugins.value = current
+    }
+
+    private suspend fun updateInstalledPluginLocked(
+        targetPlugin: LoadedPlugin,
+        operationType: PluginOperationType,
+        startedAt: Long,
+    ): PluginOperationResult {
+        val sourceUrl = targetPlugin.info.srcUrl?.trim().orEmpty()
+        if (sourceUrl.isBlank()) {
+            return PluginOperationResult(
+                operationType = operationType,
+                targetPlugins = listOf(targetPlugin.info.platform),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        targetPlugin = targetPlugin.info.platform,
+                        errorCode = PluginOperationErrorCode.MISSING_UPDATE_SOURCE,
+                        message = "没有更新源",
+                    ),
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            )
+        }
+
+        val bytes = downloadUrlBytes(sourceUrl)
+        if (bytes == null) {
+            return PluginOperationResult(
+                operationType = operationType,
+                targetPlugins = listOf(targetPlugin.info.platform),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        targetPlugin = targetPlugin.info.platform,
+                        sourceRef = sourceUrl,
+                        errorCode = PluginOperationErrorCode.SOURCE_UNREACHABLE,
+                        message = "插件更新失败",
+                    ),
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            )
+        }
+
+        val updated = installFromBytesLocked(
+            bytes = bytes,
+            fileName = File(targetPlugin.filePath).name,
+            installSource = PluginInstallSource(
+                type = operationType.toInstallSourceType(),
+                value = sourceUrl,
+            ),
+        )
+
+        return if (updated != null) {
+            PluginOperationResult(
+                operationType = operationType,
+                targetPlugins = listOf(targetPlugin.info.platform),
+                successCount = 1,
+                failureCount = 0,
+                failures = emptyList(),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            )
+        } else {
+            PluginOperationResult(
+                operationType = operationType,
+                targetPlugins = listOf(targetPlugin.info.platform),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        targetPlugin = targetPlugin.info.platform,
+                        sourceRef = sourceUrl,
+                        errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                        message = "插件更新失败",
+                    ),
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            )
+        }
+    }
+
+    private suspend fun updateInstalledPluginsLocked(
+        targets: List<LoadedPlugin>,
+        operationType: PluginOperationType,
+        startedAt: Long,
+    ): PluginOperationResult {
+        val failures = mutableListOf<PluginOperationFailure>()
+        var successCount = 0
+        val targetNames = targets.map { it.info.platform }
+
+        targets.forEach { plugin ->
+            val result = updateInstalledPluginLocked(plugin, operationType, startedAt)
+            successCount += result.successCount
+            failures += result.failures
+        }
+
+        return PluginOperationResult(
+            operationType = operationType,
+            targetPlugins = targetNames,
+            successCount = successCount,
+            failureCount = failures.size,
+            failures = failures,
+            startedAtEpochMs = startedAt,
+            finishedAtEpochMs = System.currentTimeMillis(),
+        )
+    }
+
+    private suspend fun updateSubscriptionEntriesLocked(
+        subscriptionUrl: String,
+        entries: List<SubscriptionPluginEntry>,
+        startedAt: Long,
+        targets: List<String>,
+    ): PluginOperationResult {
+        val failures = mutableListOf<PluginOperationFailure>()
+        var successCount = 0
+
+        entries.forEach { entry ->
+            val fileName = SubscriptionFileNames.pluginFileName(entry)
+            val bytes = downloadUrlBytes(entry.url)
+            val installed = if (bytes != null) {
+                installFromBytesLocked(
+                    bytes = bytes,
+                    fileName = fileName,
+                    installSource = PluginInstallSource(
+                        type = PluginInstallSourceType.UPDATE_SUBSCRIPTION,
+                        value = subscriptionUrl,
+                    ),
+                )
+            } else {
+                null
+            }
+
+            if (installed != null) {
+                successCount += 1
+            } else {
+                failures += PluginOperationFailure(
+                    targetPlugin = entry.name ?: entry.url,
+                    sourceRef = entry.url,
+                    errorCode = if (bytes == null) {
+                        PluginOperationErrorCode.SOURCE_UNREACHABLE
+                    } else {
+                        PluginOperationErrorCode.SOURCE_INVALID
+                    },
+                    message = "订阅插件更新失败",
+                )
+            }
+        }
+
+        return PluginOperationResult(
+            operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
+            targetPlugins = targets,
+            successCount = successCount,
+            failureCount = failures.size,
+            failures = failures,
+            startedAtEpochMs = startedAt,
+            finishedAtEpochMs = System.currentTimeMillis(),
+        )
+    }
+
+    private fun PluginOperationType.toInstallSourceType(): PluginInstallSourceType {
+        return when (this) {
+            PluginOperationType.UPDATE_SINGLE -> PluginInstallSourceType.UPDATE_SINGLE
+            PluginOperationType.UPDATE_ALL -> PluginInstallSourceType.UPDATE_ALL
+            PluginOperationType.UPDATE_SUBSCRIPTION -> PluginInstallSourceType.UPDATE_SUBSCRIPTION
+            PluginOperationType.ADD -> PluginInstallSourceType.PLUGIN_URL
+        }
+    }
+
+    private fun metadataFileFor(pluginFile: File): File {
+        return File(pluginFile.parentFile, "${pluginFile.nameWithoutExtension}$PLUGIN_META_SUFFIX")
+    }
+
+    private fun writeInstallMetadata(pluginFile: File, installSource: PluginInstallSource) {
+        runCatching {
+            val props = Properties().apply {
+                setProperty("sourceType", installSource.type.name)
+                setProperty("sourceValue", installSource.value.orEmpty())
+            }
+            FileOutputStream(metadataFileFor(pluginFile)).use { output ->
+                props.store(output, null)
+            }
+        }.onFailure {
+            Log.w(TAG, "Failed to persist install metadata for ${pluginFile.name}", it)
+        }
+    }
+
+    private fun readInstallMetadata(pluginFile: File): PluginInstallSource {
+        val metaFile = metadataFileFor(pluginFile)
+        if (!metaFile.exists()) {
+            return PluginInstallSource(
+                type = PluginInstallSourceType.LOCAL_FILE,
+                value = pluginFile.absolutePath,
+            )
+        }
+
+        return runCatching {
+            val props = Properties()
+            FileInputStream(metaFile).use { input ->
+                props.load(input)
+            }
+
+            val type = runCatching {
+                PluginInstallSourceType.valueOf(props.getProperty("sourceType"))
+            }.getOrElse {
+                PluginInstallSourceType.LOCAL_FILE
+            }
+
+            PluginInstallSource(
+                type = type,
+                value = props.getProperty("sourceValue").takeUnless { it.isNullOrBlank() },
+            )
+        }.getOrElse {
+            PluginInstallSource(
+                type = PluginInstallSourceType.LOCAL_FILE,
+                value = pluginFile.absolutePath,
+            )
+        }
+    }
+
+    private fun deleteInstallMetadata(pluginFile: File) {
+        runCatching {
+            val metaFile = metadataFileFor(pluginFile)
+            if (metaFile.exists()) {
+                metaFile.delete()
+            }
+        }
     }
 
     private fun createStagedPluginFile(fileName: String): File {
@@ -311,7 +695,10 @@ class PluginManager @Inject constructor(
      * All QuickJS operations run on the engine's dedicated JS thread to
      * satisfy QuickJSContext's thread affinity requirement.
      */
-    private suspend fun loadPluginFromFile(file: File): LoadedPlugin? {
+    private suspend fun loadPluginFromFile(
+        file: File,
+        installSource: PluginInstallSource,
+    ): LoadedPlugin? {
         val jsCode = file.readText()
         val engine = JsEngine()
 
@@ -354,7 +741,12 @@ class PluginManager @Inject constructor(
                 null
             }
         }?.let { info ->
-            return LoadedPlugin(info = info, engine = engine, filePath = file.absolutePath)
+            return LoadedPlugin(
+                info = info,
+                engine = engine,
+                filePath = file.absolutePath,
+                installSource = installSource,
+            )
         }
 
         return null

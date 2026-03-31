@@ -86,9 +86,22 @@ When implementing features, consult these paths in `/Users/zili/code/android/Mus
 - UI constants: `src/constants/uiConst.ts`
 - Responsive pixel: `src/utils/rpx.ts`
 
-## Key Documentation
+## 迭代步骤
+- 阅读原版FreeMusic代码，确定原版的实现方案，包括UI细节和业务逻辑，颗粒度尽可能地细，能拆分成多个可执行、可验证的任务
+- UI细节通过 adb shell uiautomator获取Layout信息， 叠加截图方式进行对比， 务求还原度做到100%， 如果涉及页面的开发， 页面的进退场动画也要考虑在内
+- 业务逻辑，要整理好流程图，按流程图实现，关键类实现要尽可能地一致， 一些由于不同语言特性导致无法对齐，要考虑如何等价实现。
+- 对于数据结构， 数据库， 请求参数等， 要做到类型，字段完全对齐
+- 对于过程中犯的错误， 要及时记录， 并每次任务开始时， 都进行读取， 防止再犯
+- 对于进度记录，要及时和详细
+- 每个功能都要做好单元测试和集成测试， 尤其是集成测试，通过添加Logcat日志 + 截图 + uiautomator Layout信息跟原版进行详细对比
+- 做好Review， review内容包括代码正确性、健壮性、功能是否真实完成
 
-- Design spec: `docs/superpowers/specs/2026-03-19-musicfree-android-native-rewrite-design.md`
-- Milestone 1 plan: `docs/superpowers/plans/2026-03-19-milestone1-project-scaffolding.md`
-- Milestone 2 plan: `docs/superpowers/plans/2026-03-19-milestone2-data-layer.md`
-- Milestone 3 plan: `docs/superpowers/plans/2026-03-20-milestone3-player-engine.md`
+## 定期更新项目进度
+- 针对文档记录，对项目代码进行Review，对于落后的技术文档&进度文档进行必要的更新、删除， 避免影响上下文
+
+## Active Technologies
+- Kotlin 2.2.10（Android 主实现） + Jetpack Compose + Material3, Hilt, Coroutines/Flow, QuickJS runtime, OkHttp, Room/DataStore (001-plugin-parity-search)
+- 应用私有文件目录（插件脚本文件）、DataStore（偏好与配置）、现有 Room 数据 (001-plugin-parity-search)
+
+## Recent Changes
+- 001-plugin-parity-search: Added Kotlin 2.2.10（Android 主实现） + Jetpack Compose + Material3, Hilt, Coroutines/Flow, QuickJS runtime, OkHttp, Room/DataStore

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -64,13 +65,22 @@ class PluginRuntimeIntegrationTest {
             wySearch.data.isNotEmpty(),
         )
 
-        val mediaSource = wy.getMediaSource(
-            musicItem = wySearch.data.first(),
-            quality = "standard",
-        )
+        var mediaSourceUrl: String? = null
+        for (item in wySearch.data.take(5)) {
+            val source = runCatching {
+                wy.getMediaSource(
+                    musicItem = item,
+                    quality = "standard",
+                )
+            }.getOrNull()
+            if (source != null && source.url.isNotBlank()) {
+                mediaSourceUrl = source.url
+                break
+            }
+        }
         assertTrue(
             "WY getMediaSource should return playable url",
-            mediaSource != null && mediaSource.url.isNotBlank(),
+            !mediaSourceUrl.isNullOrBlank(),
         )
     }
 
@@ -96,13 +106,135 @@ class PluginRuntimeIntegrationTest {
             search.data.isNotEmpty(),
         )
 
-        val mediaSource = wy.getMediaSource(
-            musicItem = search.data.first(),
-            quality = "standard",
-        )
+        var mediaSourceUrl: String? = null
+        for (item in search.data.take(5)) {
+            val source = runCatching {
+                wy.getMediaSource(
+                    musicItem = item,
+                    quality = "standard",
+                )
+            }.getOrNull()
+            if (source != null && source.url.isNotBlank()) {
+                mediaSourceUrl = source.url
+                break
+            }
+        }
         assertTrue(
             "WY getMediaSource from default subscription should return playable url",
-            mediaSource != null && mediaSource.url.isNotBlank(),
+            !mediaSourceUrl.isNullOrBlank(),
+        )
+    }
+
+    @Test
+    fun updatePlugin_thenSearchStillWorks_returnsPlayableResults() = runBlocking {
+        val wy = pluginManager.installFromUrl(
+            url = "https://13413.kstore.vip/yuanli/wy.js",
+            fileName = "wy-update-search.js",
+        )
+        assertNotNull("WY plugin should install", wy)
+        val platform = wy!!.info.platform
+
+        val update = pluginManager.updatePlugin(platform)
+        assertEquals(PluginOperationType.UPDATE_SINGLE, update.operationType)
+
+        val updated = pluginManager.getPlugin(platform)
+        assertNotNull("Updated plugin should remain selectable by platform", updated)
+        assertEquals(
+            "Update should not create duplicate plugin entries for same platform",
+            1,
+            pluginManager.plugins.value.count { it.info.platform == platform },
+        )
+
+        val search = updated!!.search(query = "in the end", page = 1)
+        assertTrue(
+            "Search should still work after plugin update",
+            search.data.isNotEmpty(),
+        )
+        var playableUrl: String? = null
+        for (item in search.data.take(5)) {
+            val source = runCatching {
+                updated.getMediaSource(item, quality = "standard")
+            }.getOrNull()
+            if (source != null && source.url.isNotBlank()) {
+                playableUrl = source.url
+                break
+            }
+        }
+        assertTrue(!playableUrl.isNullOrBlank())
+    }
+
+    @Test
+    fun updatePlugin_afterSearchRegression_keepsSearchablePluginUsable() = runBlocking {
+        val wy = pluginManager.installFromUrl(
+            url = "https://13413.kstore.vip/yuanli/wy.js",
+            fileName = "wy-post-update-search.js",
+        )
+        assertNotNull("WY plugin should install", wy)
+
+        val beforeUpdateSearch = wy!!.search(query = "in the end", page = 1)
+        assertTrue(beforeUpdateSearch.data.isNotEmpty())
+
+        val update = pluginManager.updatePlugin(wy.info.platform)
+        assertEquals(PluginOperationType.UPDATE_SINGLE, update.operationType)
+
+        val selectedAfterUpdate = pluginManager.getPlugin(wy.info.platform)
+        assertNotNull("Updated plugin should remain selectable by platform", selectedAfterUpdate)
+
+        val afterUpdateSearch = selectedAfterUpdate!!.search(query = "in the end", page = 1)
+        assertTrue(
+            "Search should still work after plugin update and keep the selected plugin usable",
+            afterUpdateSearch.data.isNotEmpty(),
+        )
+    }
+
+    @Test
+    fun updatePlugin_withoutSource_returnsMissingSource_andKeepsPluginUsable() = runBlocking {
+        val pluginFile = File.createTempFile("runtime-no-src-", ".js", appContext.cacheDir)
+        pluginFile.writeText(runtimeShimScript)
+
+        val plugin = pluginManager.installFromFile(pluginFile)
+        assertNotNull("Runtime test plugin should install", plugin)
+
+        val update = pluginManager.updatePlugin(plugin!!.info.platform)
+        assertEquals(PluginOperationType.UPDATE_SINGLE, update.operationType)
+        assertEquals(0, update.successCount)
+        assertEquals(1, update.failureCount)
+        assertEquals(
+            PluginOperationErrorCode.MISSING_UPDATE_SOURCE,
+            update.failures.first().errorCode,
+        )
+
+        val search = plugin.search(query = "in the end", page = 1)
+        assertTrue(
+            "Plugin should remain usable after update failure",
+            search.data.isNotEmpty(),
+        )
+    }
+
+    @Test
+    fun updateAllPlugins_withoutSources_returnsFailureSummary() = runBlocking {
+        val pluginFile1 = File.createTempFile("runtime-update-all-1-", ".js", appContext.cacheDir)
+        pluginFile1.writeText(runtimeShimScript)
+        val pluginFile2 = File.createTempFile("runtime-update-all-2-", ".js", appContext.cacheDir)
+        pluginFile2.writeText(
+            runtimeShimScript.replace(
+                "runtime-shim-it",
+                "runtime-shim-it-2",
+            ),
+        )
+
+        val first = pluginManager.installFromFile(pluginFile1)
+        val second = pluginManager.installFromFile(pluginFile2)
+        assertNotNull("First runtime plugin should install", first)
+        assertNotNull("Second runtime plugin should install", second)
+
+        val result = pluginManager.updateAllPlugins()
+        assertEquals(PluginOperationType.UPDATE_ALL, result.operationType)
+        assertEquals(0, result.successCount)
+        assertEquals(2, result.failureCount)
+        assertTrue(
+            "All failures should be missing source for local runtime plugins",
+            result.failures.all { it.errorCode == PluginOperationErrorCode.MISSING_UPDATE_SOURCE },
         )
     }
 

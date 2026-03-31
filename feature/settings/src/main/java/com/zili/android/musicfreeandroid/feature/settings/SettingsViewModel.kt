@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.settings
 
+import java.io.File
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.storage.DocumentTreeDirectory
@@ -61,46 +62,110 @@ class SettingsViewModel @Inject constructor(
         if (_installState.value is InstallState.Loading) {
             return
         }
-        if (url.isBlank()) {
+        val trimmedUrl = url.trim()
+        if (trimmedUrl.isBlank()) {
             _installState.value = InstallState.Error("URL 不能为空")
             return
         }
-        _installState.value = InstallState.Loading
-        viewModelScope.launch {
-            try {
-                val fileName = url.substringAfterLast("/").ifBlank { "plugin.js" }
-                val result = pluginManager.installFromUrl(url, fileName)
-                _installState.value = if (result != null) {
-                    InstallState.Success("插件安装成功")
+
+        performInstallOperation {
+            val fileName = trimmedUrl.substringAfterLast("/").ifBlank { "plugin.js" }
+            val result = pluginManager.installFromUrl(trimmedUrl, fileName)
+            if (result != null) {
+                InstallState.Success("插件安装成功")
+            } else {
+                InstallState.Error("插件安装失败")
+            }
+        }
+    }
+
+    fun installFromFile(filePath: String) {
+        if (_installState.value is InstallState.Loading) {
+            return
+        }
+        val trimmedPath = filePath.trim()
+        if (trimmedPath.isBlank()) {
+            _installState.value = InstallState.Error("本地插件文件路径不能为空")
+            return
+        }
+
+        performInstallOperation {
+            val file = File(trimmedPath)
+            if (!file.exists() || !file.isFile) {
+                InstallState.Error("本地插件文件不存在")
+            } else {
+                val result = pluginManager.installFromFile(file)
+                if (result != null) {
+                    InstallState.Success("本地插件安装成功")
                 } else {
-                    InstallState.Error("插件安装失败")
+                    InstallState.Error("本地插件安装失败")
                 }
-            } catch (e: Exception) {
-                _installState.value = InstallState.Error(e.message ?: "未知错误")
             }
         }
     }
 
     fun installDefaultSubscription() {
+        performInstallOperation {
+            val result = pluginManager.installFromSubscriptionUrl(DEFAULT_SUBSCRIPTION_URL)
+            val errorMessage = result.errorMessage
+            when {
+                errorMessage != null -> InstallState.Error(errorMessage)
+                result.successfulInstalls == 0 -> InstallState.Error(
+                    "订阅导入失败：共 ${result.totalEntries} 项，成功 0，失败 ${result.failedInstalls}",
+                )
+                else -> InstallState.Success(
+                    "订阅导入完成：共 ${result.totalEntries} 项，成功 ${result.successfulInstalls}，失败 ${result.failedInstalls}",
+                )
+            }
+        }
+    }
+
+    fun updatePlugin(platform: String) {
+        performInstallOperation {
+            val result = pluginManager.updatePlugin(platform)
+            if (result.successCount > 0) {
+                InstallState.Success("插件更新成功")
+            } else {
+                InstallState.Error(
+                    result.failures.firstOrNull()?.message ?: "插件更新失败",
+                )
+            }
+        }
+    }
+
+    fun updateAllPlugins() {
+        performInstallOperation {
+            val result = pluginManager.updateAllPlugins()
+            when {
+                result.successCount > 0 && result.failureCount == 0 -> {
+                    InstallState.Success(
+                        "全部插件更新完成：成功 ${result.successCount}，失败 ${result.failureCount}",
+                    )
+                }
+                result.successCount > 0 -> {
+                    InstallState.Success(
+                        "全部插件更新完成：成功 ${result.successCount}，失败 ${result.failureCount}",
+                    )
+                }
+                else -> {
+                    InstallState.Error(
+                        result.failures.firstOrNull()?.message ?: "全部插件更新失败",
+                    )
+                }
+            }
+        }
+    }
+
+    private fun performInstallOperation(operation: suspend () -> InstallState) {
         if (_installState.value is InstallState.Loading) {
             return
         }
         _installState.value = InstallState.Loading
         viewModelScope.launch {
             try {
-                val result = pluginManager.installFromSubscriptionUrl(DEFAULT_SUBSCRIPTION_URL)
-                val errorMessage = result.errorMessage
-                _installState.value = when {
-                    errorMessage != null -> InstallState.Error(errorMessage)
-                    result.successfulInstalls == 0 -> InstallState.Error(
-                        "订阅导入失败：共 ${result.totalEntries} 项，成功 0，失败 ${result.failedInstalls}",
-                    )
-                    else -> InstallState.Success(
-                        "订阅导入完成：共 ${result.totalEntries} 项，成功 ${result.successfulInstalls}，失败 ${result.failedInstalls}",
-                    )
-                }
+                _installState.value = operation()
             } catch (e: Exception) {
-                _installState.value = InstallState.Error(e.message ?: "订阅导入失败")
+                _installState.value = InstallState.Error(e.message ?: "未知错误")
             }
         }
     }

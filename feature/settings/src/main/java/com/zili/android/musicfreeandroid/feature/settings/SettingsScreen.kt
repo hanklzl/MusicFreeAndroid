@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -54,6 +53,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
+    onNavigateToLocalFileSelector: () -> Unit = onNavigateToFileSelector,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -61,6 +61,7 @@ fun SettingsScreen(
     val installState by viewModel.installState.collectAsStateWithLifecycle()
     val storageAccessState by viewModel.storageAccessState.collectAsStateWithLifecycle()
     var showInstallDialog by remember { mutableStateOf(false) }
+    var showLocalInstallDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier
@@ -137,9 +138,7 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(rpx(24)))
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(FidelityAnchors.Settings.PluginManagementEntry),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -148,14 +147,31 @@ fun SettingsScreen(
                         fontSize = FontSizes.title,
                         color = MusicFreeTheme.colors.text,
                     )
-                    IconButton(onClick = { showInstallDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = "添加插件",
-                            tint = MusicFreeTheme.colors.primary,
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(rpx(8))) {
+                        TextButton(
+                            onClick = { showInstallDialog = true },
+                            enabled = installState !is InstallState.Loading,
+                        ) {
+                            Text(text = "URL安装")
+                        }
+                        TextButton(
+                            onClick = { showLocalInstallDialog = true },
+                            enabled = installState !is InstallState.Loading,
+                        ) {
+                            Text(text = "本地安装")
+                        }
+                        TextButton(
+                            onClick = { viewModel.updateAllPlugins() },
+                            enabled = installState !is InstallState.Loading,
+                        ) {
+                            Text(text = "更新全部")
+                        }
                     }
                 }
+                InstallStateSummary(
+                    installState = installState,
+                    modifier = Modifier.padding(top = rpx(12)),
+                )
             }
 
             // Empty state
@@ -180,6 +196,7 @@ fun SettingsScreen(
             items(plugins, key = { it.platform }) { plugin ->
                 PluginCard(
                     plugin = plugin,
+                    onUpdate = { viewModel.updatePlugin(plugin.platform) },
                     onDelete = { viewModel.uninstallPlugin(plugin.platform) },
                 )
                 Spacer(modifier = Modifier.height(rpx(16)))
@@ -193,6 +210,18 @@ fun SettingsScreen(
             onInstall = { url -> viewModel.installFromUrl(url) },
             onDismiss = {
                 showInstallDialog = false
+                viewModel.resetInstallState()
+            },
+        )
+    }
+
+    if (showLocalInstallDialog) {
+        InstallLocalPluginDialog(
+            installState = installState,
+            onInstall = { path -> viewModel.installFromFile(path) },
+            onOpenFileSelector = onNavigateToLocalFileSelector,
+            onDismiss = {
+                showLocalInstallDialog = false
                 viewModel.resetInstallState()
             },
         )
@@ -285,6 +314,7 @@ private fun SettingsEntryCard(
 @Composable
 private fun PluginCard(
     plugin: PluginInfo,
+    onUpdate: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(
@@ -323,6 +353,12 @@ private fun PluginCard(
                     )
                 }
             }
+            TextButton(onClick = onUpdate) {
+                Text(
+                    text = "更新",
+                    color = MusicFreeTheme.colors.primary,
+                )
+            }
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
@@ -332,6 +368,71 @@ private fun PluginCard(
             }
         }
     }
+}
+
+@Composable
+private fun InstallLocalPluginDialog(
+    installState: InstallState,
+    onInstall: (String) -> Unit,
+    onOpenFileSelector: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var filePath by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "安装本地插件",
+                fontSize = FontSizes.title,
+                color = MusicFreeTheme.colors.text,
+            )
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = filePath,
+                    onValueChange = { filePath = it },
+                    label = { Text("本地插件文件路径") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = installState !is InstallState.Loading,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                InstallStateSummary(installState = installState)
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onInstall(filePath) },
+                enabled = installState !is InstallState.Loading,
+            ) {
+                Text(
+                    text = "安装",
+                    color = MusicFreeTheme.colors.primary,
+                )
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(
+                    onClick = onOpenFileSelector,
+                    enabled = installState !is InstallState.Loading,
+                ) {
+                    Text(
+                        text = "打开文件选择器",
+                        color = MusicFreeTheme.colors.textSecondary,
+                    )
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        text = "取消",
+                        color = MusicFreeTheme.colors.textSecondary,
+                    )
+                }
+            }
+        },
+    )
 }
 
 @Composable

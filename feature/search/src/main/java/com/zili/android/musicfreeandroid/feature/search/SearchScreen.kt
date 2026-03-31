@@ -5,12 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -41,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.ImeAction
@@ -143,20 +143,7 @@ fun SearchScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         )
 
-        if (plugins.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "请先在设置中安装插件",
-                    color = MusicFreeTheme.colors.textSecondary,
-                    fontSize = FontSizes.content,
-                )
-            }
-        } else {
+        if (plugins.isNotEmpty()) {
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -182,8 +169,15 @@ fun SearchScreen(
             }
         }
 
-        // Content area
         when (val state = uiState) {
+            is SearchUiState.NoPlugins -> {
+                EmptyState(text = "请先在设置中安装插件")
+            }
+
+            is SearchUiState.NoSearchablePlugins -> {
+                EmptyState(text = "当前已安装插件暂无可搜索项")
+            }
+
             is SearchUiState.Idle -> {
                 // Empty state, nothing to show
             }
@@ -266,6 +260,20 @@ fun SearchScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EmptyState(text: String) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            color = MusicFreeTheme.colors.textSecondary,
+            fontSize = FontSizes.content,
+        )
     }
 }
 
