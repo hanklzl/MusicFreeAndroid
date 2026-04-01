@@ -104,6 +104,12 @@ When implementing features, consult these paths in `/Users/zili/code/android/Mus
 
 ## Development Process
 
+- `specs/portfolio.md` is the active journey backlog entry point.
+- A journey may only enter coding after `journey-spec.md`, `rn-mapping.md`, `verification-matrix.md`, and `plan.md` exist.
+- `superpowers` remains the main workflow surface: brainstorming, spec, plan, execution, review, closeout.
+- Single-journey assets belong in `specs/<journey-id>/`, not in `docs/superpowers/`.
+- After scope and plan are confirmed, the agent should proceed through internal gates autonomously and only return for user confirmation on ambiguity, scope change, or high-risk operations.
+
 ### Iteration Workflow
 1. 阅读原版 MusicFree RN 代码，确定实现方案，拆分为可执行、可验证的任务
 2. UI 通过 `adb shell uiautomator` 获取 Layout 信息 + 截图对比，务求 100% 还原（含进退场动画）
