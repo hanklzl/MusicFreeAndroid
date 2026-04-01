@@ -24,7 +24,7 @@
 - player transport controls -> Android player controls
 
 ## Business Flow Mapping
-- install subscription: RN `pluginSubscribe.tsx` persists subscription URLs, while Android `SettingsViewModel.kt` exposes `installDefaultSubscription()` for the supported import path
+- install subscription: RN `/Users/zili/code/android/MusicFree/src/pages/setting/settingTypes/pluginSetting/views/pluginSubscribe.tsx` persists subscription URLs, while Android `SettingsViewModel.kt` exposes `installDefaultSubscription()` for the supported import path
 - load searchable plugins: RN `/Users/zili/code/android/MusicFree/src/pages/searchPage/hooks/useSearch.ts` reads plugin-backed search capability for the search flow, while Android `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt` derives searchable plugins from `PluginManager.plugins`
 - run search: RN `/Users/zili/code/android/MusicFree/src/pages/searchPage/index.tsx` and `/Users/zili/code/android/MusicFree/src/pages/searchPage/hooks/useSearch.ts` drive query state and execute search, while Android `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt` submits the controlled query into `SearchViewModel.search()`
 - resolve media source: RN `/Users/zili/code/android/MusicFree/src/core/trackPlayer/index.ts` resolves playback sources through plugin manager methods, while Android `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt` resolves `getMediaSource()` with `元力WY` fallback handling
