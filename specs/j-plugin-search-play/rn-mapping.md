@@ -37,5 +37,4 @@
 
 ## Open Gaps
 - controlled-live fixture not yet written
-- journey-level verification matrix not yet written
 - fidelity proof intentionally deferred

@@ -25,7 +25,7 @@
 
 ## Current Android Status
 - Search, settings, and player surfaces already exist
-- Follow-on pilot assets such as `verification-matrix.md`, `plan.md`, evidence files, and review files do not exist yet
+- `verification-matrix.md` exists; `plan.md`, evidence files, review files, fixtures, and tools are still pending
 - Controlled live baseline and journey-level proof are not yet written
 
 ## Functional Done

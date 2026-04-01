@@ -26,6 +26,6 @@
 | ID | Name | Supports | Current Gap | Next Action |
 |---|---|---|---|---|
 | E-SEMANTIC-ANCHORS | Stable semantic anchor coverage | Home, search, player, settings journeys | Coverage inconsistent outside current screens | Expand only when a journey is blocked |
-| E-REAL-DATA-BASELINE | Controlled live + frozen real definitions | Plugin/search/play journeys | No checked-in journey asset bundle yet | Seed pilot journey baseline docs |
+| E-REAL-DATA-BASELINE | Controlled live + frozen real definitions | Plugin/search/play journeys | Controlled-live baseline still needs a dedicated fixture asset set and evidence pack | Seed the next planning pass with controlled-live fixture scope |
 | E-PLAYER-STATE-OBSERVABILITY | Playback state logs and assertions | Any playback journey | Player proof not yet normalized per journey | Define pilot verification checks |
-| E-JOURNEY-INTEGRATION-HARNESS | Minimum journey-level integration test shape | All `Functional Done` journeys | First real pilot still missing | Bootstrap pilot journey docs first |
+| E-JOURNEY-INTEGRATION-HARNESS | Minimum journey-level integration test shape | All `Functional Done` journeys | Needs a dedicated journey-specific plan and first executable harness pass | Define the first pilot journey harness in `plan.md` |
