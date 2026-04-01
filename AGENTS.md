@@ -122,6 +122,11 @@ When implementing features, consult these paths in `/Users/zili/code/android/Mus
 - 运行时/模拟器验证优先于代码审查的乐观判断
 - 功能可以通过编译、单测、spec review、code review，仍可能在运行时验收失败（iteration-13 教训）
 
+### Autonomy Rule
+- 用户确认方向、范围或计划后，默认由 agent 自主推进，不要求用户对每个中间步骤反复确认
+- agent 必须通过内部 gate、自检、测试、日志、运行态证据完成自我确认
+- 只有在范围变化、需求歧义无法消解、技术路线差异显著、或涉及高风险/破坏性操作时，才回到用户确认
+
 ### Parallel Development Rules
 - 仅在任务真正独立时（写集合不重叠）才允许并行
 - 禁止并行修改共享热点文件：`Routes.kt`, `AppNavHost.kt`, `HomeScreen.kt`, 共享 repository/DAO/controller

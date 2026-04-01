@@ -4,7 +4,7 @@
 
 **Goal:** Bootstrap the corrected journey workflow in the current repo by creating the new `specs/` asset surface, wiring `AGENTS.md` to it, and preparing `J-PLUGIN-SEARCH-PLAY` to `Ready for Plan` without reviving the deleted `convergence` layer.
 
-**Architecture:** Keep `docs/superpowers/` as the methodology layer and introduce `specs/` as the execution-asset layer. First add root templates and a single portfolio entry point, then update `AGENTS.md` so the repo’s working rules point to the new surface, and finally seed one real pilot journey directory with `journey-spec.md`, `rn-mapping.md`, and `verification-matrix.md`. This rollout intentionally stops before creating the pilot journey’s `plan.md`; after this bootstrap, the next planning pass should target `specs/j-plugin-search-play/plan.md`.
+**Architecture:** Keep `docs/superpowers/` as the methodology layer and introduce `specs/` as the execution-asset layer. First add root templates and a single portfolio entry point, then update `AGENTS.md` so the repo’s working rules point to the new surface and explicitly state the autonomy/self-check rule, and finally seed one real pilot journey directory with `journey-spec.md`, `rn-mapping.md`, and `verification-matrix.md`. This rollout intentionally stops before creating the pilot journey’s `plan.md`; after this bootstrap, the next planning pass should target `specs/j-plugin-search-play/plan.md`.
 
 **Tech Stack:** Markdown docs, repo-local workflow conventions, `rg`, `git`, existing Android/RN source references
 
@@ -295,6 +295,7 @@ Add these rules into the development-process section:
 - A journey may only enter coding after `journey-spec.md`, `rn-mapping.md`, `verification-matrix.md`, and `plan.md` exist
 - `superpowers` remains the main workflow: brainstorming, spec, plan, execution, review, closeout
 - Single-journey assets belong in `specs/<journey-id>/`, not in `docs/superpowers/`
+- After scope and plan are confirmed, the agent should proceed through internal gates autonomously and only return for user confirmation on ambiguity, scope change, or high-risk operations
 
 Do not remove the existing RN-first, testing, or runtime-verification rules; integrate the new workflow on top of them.
 
@@ -303,7 +304,7 @@ Do not remove the existing RN-first, testing, or runtime-verification rules; int
 Run:
 
 ```bash
-rg -n "specs/portfolio.md|journey-spec.md|rn-mapping.md|verification-matrix.md|superpowers" AGENTS.md
+rg -n "specs/portfolio.md|journey-spec.md|rn-mapping.md|verification-matrix.md|superpowers|高风险|scope change|ambiguity" AGENTS.md
 ```
 
 Expected: prints the newly added workflow references.
@@ -508,6 +509,7 @@ Add a short note at the bottom stating:
 - `Functional Done` is the target of the first pilot
 - `Fidelity Done` is intentionally deferred to a later plan
 - coding must not start until a dedicated `specs/j-plugin-search-play/plan.md` exists
+- once that plan exists, execution should use internal self-check gates rather than repeated user confirmations
 
 - [ ] **Step 2: Update the portfolio row for the pilot**
 
