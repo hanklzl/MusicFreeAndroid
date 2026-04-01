@@ -10,7 +10,7 @@
 ## Now
 | Journey ID | Journey Name | User Value | Dependencies | Functional Status | Fidelity Status | Current Gap | Next Action | Asset Path |
 |---|---|---|---|---|---|---|---|---|
-| J-PLUGIN-SEARCH-PLAY | Plugin install to playback | Core plugin playback path | E-REAL-DATA-BASELINE, E-PLAYER-STATE-OBSERVABILITY | Ready for Plan | Not Started | Journey assets missing | Create pilot journey asset bundle | specs/j-plugin-search-play/ |
+| J-PLUGIN-SEARCH-PLAY | Plugin install to playback | Core plugin playback path | E-REAL-DATA-BASELINE, E-PLAYER-STATE-OBSERVABILITY | Ready for Plan | Not Started | Journey-specific `plan.md` missing | Create specs/j-plugin-search-play/plan.md | specs/j-plugin-search-play/ |
 
 ## Next
 | Journey ID | Journey Name | User Value | Dependencies | Functional Status | Fidelity Status | Current Gap | Next Action | Asset Path |
