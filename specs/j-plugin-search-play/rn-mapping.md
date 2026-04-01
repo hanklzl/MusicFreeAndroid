@@ -25,10 +25,10 @@
 
 ## Business Flow Mapping
 - install subscription: RN `pluginSubscribe.tsx` persists subscription URLs, while Android `SettingsViewModel.kt` exposes `installDefaultSubscription()` for the supported import path
-- load searchable plugins: RN search flow reads plugin availability through the plugin manager-backed search hooks, while Android `SearchViewModel.kt` derives searchable plugins from `PluginManager.plugins`
-- run search: RN `searchPage` drives query state into `useSearch.ts`, while Android `SearchScreen.kt` submits the controlled query into `SearchViewModel.search()`
-- resolve media source: RN `trackPlayer/index.ts` resolves playback sources through plugin manager methods, while Android `SearchViewModel.kt` resolves `getMediaSource()` with `元力WY` fallback handling
-- play and pause: RN `playControl.tsx` toggles `TrackPlayer.play()` / `TrackPlayer.pause()`, while Android `PlayerScreen.kt` and `PlayerViewModel.kt` toggle `PlayerController`
+- load searchable plugins: RN `/Users/zili/code/android/MusicFree/src/pages/searchPage/hooks/useSearch.ts` reads plugin-backed search capability for the search flow, while Android `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt` derives searchable plugins from `PluginManager.plugins`
+- run search: RN `/Users/zili/code/android/MusicFree/src/pages/searchPage/index.tsx` and `/Users/zili/code/android/MusicFree/src/pages/searchPage/hooks/useSearch.ts` drive query state and execute search, while Android `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt` submits the controlled query into `SearchViewModel.search()`
+- resolve media source: RN `/Users/zili/code/android/MusicFree/src/core/trackPlayer/index.ts` resolves playback sources through plugin manager methods, while Android `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt` resolves `getMediaSource()` with `元力WY` fallback handling
+- play and pause: RN `/Users/zili/code/android/MusicFree/src/pages/musicDetail/components/bottom/playControl.tsx` toggles `TrackPlayer.play()` / `TrackPlayer.pause()` against `/Users/zili/code/android/MusicFree/src/core/trackPlayer/index.ts`, while Android `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt` and `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt` toggle `PlayerController`
 
 ## Data / Parameter Alignment
 - subscription URL path: RN stores `plugin.subscribeUrl` in app config, Android currently hardcodes the supported default subscription URL in `SettingsViewModel.kt`
