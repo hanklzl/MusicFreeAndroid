@@ -25,8 +25,9 @@
 
 ## Current Android Status
 - Search, settings, and player surfaces already exist
-- `verification-matrix.md` exists; `plan.md`, evidence files, review files, fixtures, and tools are still pending
-- Controlled live baseline and journey-level proof are not yet written
+- `verification-matrix.md` exists; `plan.md`, evidence files, review files, and tools are still pending
+- Controlled live baseline is pinned at `specs/j-plugin-search-play/fixtures/controlled-live.md`
+- Journey-level proof is not yet written
 
 ## Functional Done
 - At least one plugin is installed through the supported path

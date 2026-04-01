@@ -25,8 +25,8 @@
 ## Data Strategy
 | Need | Source Type | Notes |
 |---|---|---|
-| Default subscription baseline | Controlled Live | Use the supported default subscription source |
-| Search queries | Controlled Live | Keep 2 to 3 stable queries in the journey asset set |
+| Default subscription baseline | Controlled Live | See `specs/j-plugin-search-play/fixtures/controlled-live.md` — subscription source and install path are pinned there |
+| Search queries | Controlled Live | See `specs/j-plugin-search-play/fixtures/controlled-live.md` — query set (`in the end`, `In The End Linkin Park`, `linkin park`) is pinned there |
 | Pause / resume verification | Offline Deterministic or observable runtime state | Prefer state assertions over ranking assumptions |
 
 ## Evidence Requirements
