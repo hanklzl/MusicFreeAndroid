@@ -15,7 +15,7 @@
 ## Next
 | Journey ID | Journey Name | User Value | Dependencies | Functional Status | Fidelity Status | Current Gap | Next Action | Asset Path |
 |---|---|---|---|---|---|---|---|---|
-| J-HOME-BROWSE-DETAIL-PLAY | Home browse to playback | Connect home fidelity with real playback | E-SEMANTIC-ANCHORS | In Discovery | In Analysis | Journey not decomposed yet | Complete journey spec after pilot | specs/j-home-browse-detail-play/ |
+| J-HOME-BROWSE-DETAIL-PLAY | Home browse to playback | Connect home fidelity with real playback | E-SEMANTIC-ANCHORS | In Brainstorming | In Brainstorming | Homepage root scope and acceptance baseline were not yet written down | Review `2026-04-10-home-root-alignment-design.md` and turn it into journey assets | specs/j-home-browse-detail-play/ |
 
 ## Later
 | Journey ID | Journey Name | User Value | Dependencies | Functional Status | Fidelity Status | Current Gap | Next Action | Asset Path |
