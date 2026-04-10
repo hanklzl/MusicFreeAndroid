@@ -102,6 +102,50 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(rpx(24)))
                 SettingsEntryCard(
+                    title = "插件管理",
+                    description = "进入插件管理、主题、备份和关于入口的兼容锚点",
+                    actionText = "进入",
+                    modifier = Modifier.testTag(FidelityAnchors.Settings.PluginManagementEntry),
+                    onClick = {},
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "主题设置",
+                    description = "进入主题入口的兼容锚点",
+                    actionText = "进入",
+                    modifier = Modifier.testTag(FidelityAnchors.Settings.ThemeEntry),
+                    onClick = {},
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "备份",
+                    description = "进入备份入口的兼容锚点",
+                    actionText = "进入",
+                    modifier = Modifier.testTag(FidelityAnchors.Settings.BackupEntry),
+                    onClick = {},
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "关于",
+                    description = "进入关于入口的兼容锚点",
+                    actionText = "进入",
+                    modifier = Modifier.testTag(FidelityAnchors.Settings.AboutEntry),
+                    onClick = {},
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(24)))
+                SettingsEntryCard(
                     title = "权限管理",
                     description = "管理悬浮窗和存储/音频读取权限",
                     actionText = "进入",
@@ -275,10 +319,11 @@ private fun SettingsEntryCard(
     description: String,
     actionText: String,
     enabled: Boolean = true,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(rpx(16)),
         colors = CardDefaults.cardColors(
             containerColor = MusicFreeTheme.colors.card,
