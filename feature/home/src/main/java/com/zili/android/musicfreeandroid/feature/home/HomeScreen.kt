@@ -30,7 +30,6 @@ fun HomeScreen(
         sheetsUiState = sheetsUiState,
         drawerUiModel = drawerUiModel,
         onDrawerEntryClick = { action ->
-            state.closeDrawer()
             when (action) {
                 HomeDrawerAction.OpenSettings -> onNavigateToSettings()
                 HomeDrawerAction.OpenPluginManagement -> onNavigateToSettings()

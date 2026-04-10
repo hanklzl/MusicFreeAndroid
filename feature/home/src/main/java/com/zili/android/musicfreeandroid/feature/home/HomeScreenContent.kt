@@ -23,6 +23,15 @@ import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsUiState
 import com.zili.android.musicfreeandroid.feature.home.sheets.homeSheetsSection
 
+internal fun handleDrawerEntryClick(
+    state: HomeScreenState,
+    action: HomeDrawerAction,
+    onDrawerEntryClick: (HomeDrawerAction) -> Unit,
+) {
+    state.closeDrawer()
+    onDrawerEntryClick(action)
+}
+
 @Composable
 fun HomeScreenContent(
     state: HomeScreenState,
@@ -72,7 +81,13 @@ fun HomeScreenContent(
         drawerContent = {
             HomeDrawerContent(
                 uiModel = drawerUiModel,
-                onEntryClick = onDrawerEntryClick,
+                onEntryClick = { action ->
+                    handleDrawerEntryClick(
+                        state = state,
+                        action = action,
+                        onDrawerEntryClick = onDrawerEntryClick,
+                    )
+                },
             )
         },
     ) {
