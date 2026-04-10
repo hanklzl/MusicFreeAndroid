@@ -3,7 +3,7 @@ package com.zili.android.musicfreeandroid.feature.home.component
 import androidx.annotation.DrawableRes
 import com.zili.android.musicfreeandroid.feature.home.R
 
-object HomeIcons {
+internal object HomeIcons {
     @DrawableRes val NavMenu = R.drawable.ic_home_bars_3
     @DrawableRes val NavSearch = R.drawable.ic_home_magnifying_glass
     @DrawableRes val OperationRecommend = R.drawable.ic_home_fire
