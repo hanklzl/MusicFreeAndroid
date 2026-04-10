@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.feature.home.component.HomeDrawerContent
+import com.zili.android.musicfreeandroid.feature.home.component.HomeDrawerDialogs
 import com.zili.android.musicfreeandroid.feature.home.component.HomeNavBar
 import com.zili.android.musicfreeandroid.feature.home.component.HomeOperations
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
@@ -29,7 +30,12 @@ internal fun handleDrawerEntryClick(
     onDrawerEntryClick: (HomeDrawerAction) -> Unit,
 ) {
     state.closeDrawer()
-    onDrawerEntryClick(action)
+    when (action) {
+        HomeDrawerAction.ShowScheduleClosePanel -> state.showTimingCloseDialog()
+        HomeDrawerAction.ShowLanguageDialog -> state.showLanguageDialog()
+        HomeDrawerAction.ShowUpdateCheckDialog -> state.showUpdateCheck()
+        else -> onDrawerEntryClick(action)
+    }
 }
 
 @Composable
@@ -37,6 +43,9 @@ fun HomeScreenContent(
     state: HomeScreenState,
     sheetsUiState: HomeSheetsUiState,
     drawerUiModel: HomeDrawerUiModel,
+    currentLanguage: String,
+    currentVersion: String,
+    scheduleCloseSummary: String,
     onDrawerEntryClick: (HomeDrawerAction) -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToRecommendSheets: () -> Unit,
@@ -122,4 +131,16 @@ fun HomeScreenContent(
             )
         }
     }
+
+    HomeDrawerDialogs(
+        isTimingCloseVisible = state.isTimingCloseVisible,
+        isLanguageDialogVisible = state.isLanguageDialogVisible,
+        isUpdateCheckVisible = state.isUpdateCheckVisible,
+        currentLanguage = currentLanguage,
+        currentVersion = currentVersion,
+        scheduleCloseSummary = scheduleCloseSummary,
+        onDismissTimingClose = state::dismissTimingCloseDialog,
+        onDismissLanguage = state::dismissLanguageDialog,
+        onDismissUpdateCheck = state::dismissUpdateCheck,
+    )
 }

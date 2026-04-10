@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.home
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeScreenContentTest {
@@ -15,12 +16,31 @@ class HomeScreenContentTest {
 
         handleDrawerEntryClick(
             state = state,
-            action = HomeDrawerAction.OpenSettings,
+            action = HomeDrawerAction.OpenSettingsRoot,
         ) {
             events += if (state.isDrawerOpen) "delegate-open" else "delegate-closed"
         }
 
         assertFalse(state.isDrawerOpen)
         assertEquals(listOf("delegate-closed"), events)
+    }
+
+    @Test
+    fun `drawer transient action closes drawer and opens local surface without delegating`() {
+        val state = HomeScreenState()
+        var delegateCalled = false
+
+        state.openDrawer()
+
+        handleDrawerEntryClick(
+            state = state,
+            action = HomeDrawerAction.ShowScheduleClosePanel,
+        ) {
+            delegateCalled = true
+        }
+
+        assertFalse(state.isDrawerOpen)
+        assertTrue(state.isTimingCloseVisible)
+        assertFalse(delegateCalled)
     }
 }
