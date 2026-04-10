@@ -30,10 +30,33 @@ object FidelityAnchors {
         const val DrawerSettings = "home.drawer.settings"
         const val DrawerPluginManagement = "home.drawer.pluginManagement"
         const val DrawerPermissions = "home.drawer.permissions"
+        const val DrawerSettingsBasic = "home.drawer.settings.basic"
+        const val DrawerSettingsPlugin = "home.drawer.settings.plugin"
+        const val DrawerSettingsTheme = "home.drawer.settings.theme"
+        const val DrawerOtherScheduleClose = "home.drawer.other.scheduleClose"
+        const val DrawerOtherBackup = "home.drawer.other.backup"
+        const val DrawerOtherPermissions = "home.drawer.other.permissions"
+        const val DrawerSoftwareLanguage = "home.drawer.software.language"
+        const val DrawerSoftwareCheckUpdate = "home.drawer.software.checkUpdate"
+        const val DrawerSoftwareAbout = "home.drawer.software.about"
+        const val DrawerActionBackToDesktop = "home.drawer.action.backToDesktop"
+        const val DrawerActionExitApp = "home.drawer.action.exitApp"
+    }
+
+    object Panel {
+        const val TimingCloseRoot = "panel.timingClose.root"
+    }
+
+    object Dialog {
+        const val LanguageRoot = "dialog.language.root"
+        const val UpdateCheckRoot = "dialog.updateCheck.root"
     }
 
     object Settings {
         const val PluginManagementEntry = "settings.pluginManagement.entry"
+        const val ThemeEntry = "settings.theme.entry"
+        const val BackupEntry = "settings.backup.entry"
+        const val AboutEntry = "settings.about.entry"
     }
 }
 

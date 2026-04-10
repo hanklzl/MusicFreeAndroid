@@ -33,4 +33,85 @@ class HomeAnchorContractTest {
         assertEquals(anchors.size, anchors.toSet().size)
         assertTrue(anchors.all { it.isNotBlank() })
     }
+
+    @Test
+    fun `expanded homepage fidelity anchors stay unique and non blank`() {
+        val anchors = listOf(
+            FidelityAnchors.Home.DrawerSettingsBasic,
+            FidelityAnchors.Home.DrawerSettingsPlugin,
+            FidelityAnchors.Home.DrawerSettingsTheme,
+            FidelityAnchors.Home.DrawerOtherScheduleClose,
+            FidelityAnchors.Home.DrawerOtherBackup,
+            FidelityAnchors.Home.DrawerOtherPermissions,
+            FidelityAnchors.Home.DrawerSoftwareLanguage,
+            FidelityAnchors.Home.DrawerSoftwareCheckUpdate,
+            FidelityAnchors.Home.DrawerSoftwareAbout,
+            FidelityAnchors.Home.DrawerActionBackToDesktop,
+            FidelityAnchors.Home.DrawerActionExitApp,
+            FidelityAnchors.Panel.TimingCloseRoot,
+            FidelityAnchors.Dialog.LanguageRoot,
+            FidelityAnchors.Dialog.UpdateCheckRoot,
+            FidelityAnchors.Settings.PluginManagementEntry,
+            FidelityAnchors.Settings.ThemeEntry,
+            FidelityAnchors.Settings.BackupEntry,
+            FidelityAnchors.Settings.AboutEntry,
+        )
+
+        assertEquals(anchors.size, anchors.toSet().size)
+        assertTrue(anchors.all { it.isNotBlank() })
+    }
+
+    @Test
+    fun `expanded homepage fidelity anchors stay unique and non blank`() {
+        val anchors = listOf(
+            FidelityAnchors.Home.DrawerSettingsBasic,
+            FidelityAnchors.Home.DrawerSettingsPlugin,
+            FidelityAnchors.Home.DrawerSettingsTheme,
+            FidelityAnchors.Home.DrawerOtherScheduleClose,
+            FidelityAnchors.Home.DrawerOtherBackup,
+            FidelityAnchors.Home.DrawerOtherPermissions,
+            FidelityAnchors.Home.DrawerSoftwareLanguage,
+            FidelityAnchors.Home.DrawerSoftwareCheckUpdate,
+            FidelityAnchors.Home.DrawerSoftwareAbout,
+            FidelityAnchors.Home.DrawerActionBackToDesktop,
+            FidelityAnchors.Home.DrawerActionExitApp,
+            FidelityAnchors.Panel.TimingCloseRoot,
+            FidelityAnchors.Dialog.LanguageRoot,
+            FidelityAnchors.Dialog.UpdateCheckRoot,
+            FidelityAnchors.Settings.PluginManagementEntry,
+            FidelityAnchors.Settings.ThemeEntry,
+            FidelityAnchors.Settings.BackupEntry,
+            FidelityAnchors.Settings.AboutEntry,
+        )
+
+        assertEquals(anchors.size, anchors.toSet().size)
+        assertTrue(anchors.all { it.isNotBlank() })
+    }
+
+    @Test
+    fun `expanded homepage fidelity anchors stay unique and non blank`() {
+        val anchors = listOf(
+            FidelityAnchors.Home.DrawerSettingsBasic,
+            FidelityAnchors.Home.DrawerSettingsPlugin,
+            FidelityAnchors.Home.DrawerSettingsTheme,
+            FidelityAnchors.Home.DrawerOtherScheduleClose,
+            FidelityAnchors.Home.DrawerOtherBackup,
+            FidelityAnchors.Home.DrawerOtherPermissions,
+            FidelityAnchors.Home.DrawerSoftwareLanguage,
+            FidelityAnchors.Home.DrawerSoftwareCheckUpdate,
+            FidelityAnchors.Home.DrawerSoftwareAbout,
+            FidelityAnchors.Home.DrawerActionBackToDesktop,
+            FidelityAnchors.Home.DrawerActionExitApp,
+            FidelityAnchors.Panel.TimingCloseRoot,
+            FidelityAnchors.Dialog.LanguageRoot,
+            FidelityAnchors.Dialog.UpdateCheckRoot,
+            FidelityAnchors.Settings.PluginManagementEntry,
+            FidelityAnchors.Settings.ThemeEntry,
+            FidelityAnchors.Settings.BackupEntry,
+            FidelityAnchors.Settings.AboutEntry,
+        )
+
+        assertEquals(anchors.size, anchors.toSet().size)
+        assertTrue(anchors.all { it.isNotBlank() })
+    }
 }
