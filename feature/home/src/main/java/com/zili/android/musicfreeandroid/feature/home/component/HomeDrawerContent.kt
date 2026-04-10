@@ -14,12 +14,13 @@ import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
-import com.zili.android.musicfreeandroid.feature.home.HomeDrawerDestination
+import com.zili.android.musicfreeandroid.feature.home.HomeDrawerAction
+import com.zili.android.musicfreeandroid.feature.home.HomeDrawerUiModel
 
 @Composable
 fun HomeDrawerContent(
-    destinations: List<HomeDrawerDestination>,
-    onDestinationClick: (HomeDrawerDestination) -> Unit,
+    uiModel: HomeDrawerUiModel,
+    onEntryClick: (HomeDrawerAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ModalDrawerSheet(
@@ -30,24 +31,24 @@ fun HomeDrawerContent(
         drawerContentColor = MusicFreeTheme.colors.text,
     ) {
         Text(
-            text = "更多功能",
+            text = uiModel.title,
             modifier = Modifier.padding(horizontal = rpx(24), vertical = rpx(32)),
             color = MusicFreeTheme.colors.text,
             fontSize = FontSizes.title,
         )
-        destinations.forEach { destination ->
+        uiModel.entries.forEach { entry ->
             NavigationDrawerItem(
                 label = {
                     Text(
-                        text = destination.title,
+                        text = entry.title,
                         fontSize = FontSizes.subTitle,
                     )
                 },
                 selected = false,
-                onClick = { onDestinationClick(destination) },
+                onClick = { onEntryClick(entry.action) },
                 icon = {
                     androidx.compose.material3.Icon(
-                        imageVector = destination.icon,
+                        imageVector = entry.icon,
                         contentDescription = null,
                     )
                 },
@@ -58,7 +59,7 @@ fun HomeDrawerContent(
                 ),
                 modifier = Modifier
                     .padding(horizontal = rpx(12))
-                    .testTag(destination.anchorTag),
+                    .testTag(entry.anchorTag),
             )
         }
     }
