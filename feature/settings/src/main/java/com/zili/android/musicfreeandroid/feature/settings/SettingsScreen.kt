@@ -101,88 +101,10 @@ fun SettingsScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(rpx(24)))
-                SettingsEntryCard(
-                    title = "插件管理",
-                    description = "进入插件管理、主题、备份和关于入口的兼容锚点",
-                    actionText = "进入",
-                    modifier = Modifier.testTag(FidelityAnchors.Settings.PluginManagementEntry),
-                    onClick = {},
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "主题设置",
-                    description = "进入主题入口的兼容锚点",
-                    actionText = "进入",
-                    modifier = Modifier.testTag(FidelityAnchors.Settings.ThemeEntry),
-                    onClick = {},
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "备份",
-                    description = "进入备份入口的兼容锚点",
-                    actionText = "进入",
-                    modifier = Modifier.testTag(FidelityAnchors.Settings.BackupEntry),
-                    onClick = {},
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "关于",
-                    description = "进入关于入口的兼容锚点",
-                    actionText = "进入",
-                    modifier = Modifier.testTag(FidelityAnchors.Settings.AboutEntry),
-                    onClick = {},
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(rpx(24)))
-                SettingsEntryCard(
-                    title = "权限管理",
-                    description = "管理悬浮窗和存储/音频读取权限",
-                    actionText = "进入",
-                    onClick = onNavigateToPermissions,
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "默认订阅导入",
-                    description = "导入真实订阅中的插件列表，用于验证搜索与播放链路",
-                    actionText = "导入",
-                    enabled = installState !is InstallState.Loading,
-                    onClick = viewModel::installDefaultSubscription,
-                )
-                InstallStateSummary(
-                    installState = installState,
-                    modifier = Modifier.padding(top = rpx(12)),
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "存储目录",
-                    description = storageDirectoryDescription(storageAccessState),
-                    actionText = if (storageAccessState.isConfigured) "更换" else "选择",
-                    onClick = onNavigateToFileSelector,
-                )
-            }
-
-            // Section header: 插件管理
-            item {
-                Spacer(modifier = Modifier.height(rpx(24)))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(FidelityAnchors.Settings.PluginManagementEntry),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -215,6 +137,68 @@ fun SettingsScreen(
                 InstallStateSummary(
                     installState = installState,
                     modifier = Modifier.padding(top = rpx(12)),
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "主题设置",
+                    description = "主题选项将显示在这里。",
+                    modifier = Modifier.testTag(FidelityAnchors.Settings.ThemeEntry),
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "备份",
+                    description = "备份与恢复入口将显示在这里。",
+                    modifier = Modifier.testTag(FidelityAnchors.Settings.BackupEntry),
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "关于",
+                    description = "应用信息与版本详情将显示在这里。",
+                    modifier = Modifier.testTag(FidelityAnchors.Settings.AboutEntry),
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "权限管理",
+                    description = "管理悬浮窗和存储/音频读取权限",
+                    actionText = "进入",
+                    onClick = onNavigateToPermissions,
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "默认订阅导入",
+                    description = "导入真实订阅中的插件列表，用于验证搜索与播放链路",
+                    actionText = "导入",
+                    enabled = installState !is InstallState.Loading,
+                    onClick = viewModel::installDefaultSubscription,
+                )
+                InstallStateSummary(
+                    installState = installState,
+                    modifier = Modifier.padding(top = rpx(12)),
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "存储目录",
+                    description = storageDirectoryDescription(storageAccessState),
+                    actionText = if (storageAccessState.isConfigured) "更换" else "选择",
+                    onClick = onNavigateToFileSelector,
                 )
             }
 
@@ -317,11 +301,14 @@ private fun InstallStateSummary(
 private fun SettingsEntryCard(
     title: String,
     description: String,
-    actionText: String,
+    actionText: String? = null,
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)? = null,
 ) {
+    val action = onClick
+    val label = actionText
+    val hasAction = label != null && action != null
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(rpx(16)),
@@ -333,7 +320,7 @@ private fun SettingsEntryCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = rpx(24), vertical = rpx(20)),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = if (hasAction) Arrangement.SpaceBetween else Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -349,8 +336,10 @@ private fun SettingsEntryCard(
                     color = MusicFreeTheme.colors.textSecondary,
                 )
             }
-            TextButton(onClick = onClick, enabled = enabled) {
-                Text(text = actionText)
+            if (hasAction) {
+                TextButton(onClick = action, enabled = enabled) {
+                    Text(text = label)
+                }
             }
         }
     }
