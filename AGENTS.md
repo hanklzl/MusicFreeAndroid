@@ -102,14 +102,6 @@ When implementing features, consult these paths in `/Users/zili/code/android/Mus
 - UI constants: `src/constants/uiConst.ts`
 - Responsive pixel: `src/utils/rpx.ts`
 
-## Development Process
-
-- `specs/portfolio.md` is the active journey backlog entry point.
-- A journey may only enter coding after `journey-spec.md`, `rn-mapping.md`, `verification-matrix.md`, and `plan.md` exist.
-- `superpowers` remains the main workflow surface: brainstorming, spec, plan, execution, review, closeout.
-- Single-journey assets belong in `specs/<journey-id>/`, not in `docs/superpowers/`.
-- After scope and plan are confirmed, the agent should proceed through internal gates autonomously and only return for user confirmation on ambiguity, scope change, or high-risk operations.
-
 ### Iteration Workflow
 1. 阅读原版 MusicFree RN 代码，确定实现方案，拆分为可执行、可验证的任务
 2. UI 通过 `adb shell uiautomator` 获取 Layout 信息 + 截图对比，务求 100% 还原（含进退场动画）
@@ -127,21 +119,6 @@ When implementing features, consult these paths in `/Users/zili/code/android/Mus
 - 编译、单元测试、集成测试、模拟器真实验证、最终 review 必须集中执行
 - 运行时/模拟器验证优先于代码审查的乐观判断
 - 功能可以通过编译、单测、spec review、code review，仍可能在运行时验收失败（iteration-13 教训）
-
-### Autonomy Rule
-- 用户确认方向、范围或计划后，默认由 agent 自主推进，不要求用户对每个中间步骤反复确认
-- agent 必须通过内部 gate、自检、测试、日志、运行态证据完成自我确认
-- 只有在范围变化、需求歧义无法消解、技术路线差异显著、或涉及高风险/破坏性操作时，才回到用户确认
-
-### Parallel Development Rules
-- 仅在任务真正独立时（写集合不重叠）才允许并行
-- 禁止并行修改共享热点文件：`Routes.kt`, `AppNavHost.kt`, `HomeScreen.kt`, 共享 repository/DAO/controller
-
-### Convergence Priority
-- 不按原始页面数量排优先级，按真实用户旅程、能力杠杆、可复用基础、已落地流程的置信度缺口排序
-- `fileSelector` 是当前最高优先级缺页和子系统解锁
-- `downloading` 依赖下载器核心，页面工作不应先行
-- `setCustomTheme` 依赖主题/运行时/存储基础设施
 
 ### Documentation Maintenance
 - 定期对项目代码进行 Review，更新或删除过时的技术文档和进度文档，避免影响上下文

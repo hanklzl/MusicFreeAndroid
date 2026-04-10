@@ -4,10 +4,14 @@
 
 本文档定义 MusicFreeAndroid 首页 UI 专项收敛方案，目标是在固定黄金样本 Android 设备上，将首页主体与 Drawer 的静态结构、关键资源和关键动画尽可能完整地对齐到原版 MusicFree React Native 实现。
 
+本文档是对 [2026-03-25-home-fidelity-design.md](/Users/zili/code/android/MusicFreeAndroid/docs/superpowers/specs/2026-03-25-home-fidelity-design.md) 的聚焦细化，继承其中已锁定的黄金样本环境、固定首页数据态和首页取证约束；本轮不重复定义这些基线，只补充当前首页 UI 收敛所需的专项决策。
+
 本轮设计是在已有首页 fidelity 设计基础上的聚焦细化，重点关闭当前最明显的两类差异：
 
 - Drawer 结构、分组和底部操作区与原版偏差较大
 - 顶部四宫格、导航栏与歌单区仍混用 Android 默认图标和当前 Compose 骨架，缺少原版资源和交互节奏
+
+本轮首页数据基线的具体 source of truth 位于 [2026-04-11-homepage-ui-fidelity-manifest.md](/Users/zili/code/android/MusicFreeAndroid/docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md)。后续 planning、截图、录屏和 dump 验收必须引用该 manifest，而不是只引用旧 spec 的抽象约束。
 
 ## 已确认边界
 
@@ -233,6 +237,22 @@ Drawer UI model 至少需要支持以下条目类型：
 - 未实现入口允许先落到现有设置页或专项占位落点
 - 即便行为未完成，也不能删入口、改文案、改分组或改图标
 
+### Drawer 入口最低目标矩阵
+
+| 入口 | 建议 anchor | 最低目标 | 允许回退到设置根页 |
+|------|-------------|----------|--------------------|
+| 基础设置 | `home.drawer.settings.basic` | 进入 `SettingsRoute`，且 `screen.settings.root` 可见；若支持子类型，则默认定位到基础设置 section | 否 |
+| 插件管理 | `home.drawer.settings.plugin` | 进入 `SettingsRoute`，且 `screen.settings.root` 与 `settings.pluginManagement.entry` 可见；若已支持深链，则直接定位到插件管理 section | 是 |
+| 主题设置 | `home.drawer.settings.theme` | 进入 `SettingsRoute`，且 `screen.settings.root` 与 `settings.theme.entry` 可见；若已支持深链，则直接定位到主题设置 section | 是 |
+| 定时关闭 | `home.drawer.other.scheduleClose` | 打开定时关闭面板，且 `panel.timingClose.root` 可见 | 否 |
+| 备份与恢复 | `home.drawer.other.backup` | 进入 `SettingsRoute`，且 `screen.settings.root` 与 `settings.backup.entry` 可见；若已支持深链，则直接定位到备份与恢复 section | 是 |
+| 权限管理 | `home.drawer.other.permissions` | 进入 `PermissionsRoute`，且 `screen.permissions.root` 可见 | 否 |
+| 语言设置 | `home.drawer.software.language` | 打开语言选择对话框，且 `dialog.language.root` 可见 | 否 |
+| 检查更新 | `home.drawer.software.checkUpdate` | 触发检查更新动作，并展示受控结果表面；默认以 `dialog.updateCheck.root` 为最小可验收目标 | 否 |
+| 关于 MusicFree | `home.drawer.software.about` | 进入 `SettingsRoute`，且 `screen.settings.root` 与 `settings.about.entry` 可见；若已支持深链，则直接定位到关于 section | 是 |
+| 返回桌面 | `home.drawer.action.backToDesktop` | 执行“回到系统桌面/将任务移到后台”动作，不主动停止播放、不清理播放状态 | 否 |
+| 退出应用 | `home.drawer.action.exitApp` | 先重置播放器，再执行应用退出动作；行为需与 RN `TrackPlayer.reset(); NativeUtils.exitApp();` 对齐 | 否 |
+
 ## 状态与动画设计
 
 首页 UI fidelity 不仅验收静态结构，也验收关键动画观感。
@@ -319,6 +339,11 @@ Drawer UI model 至少需要支持以下条目类型：
 - 测试环境可替换为 fake/spy
 - UI 测试能够断言动作被触发，而不是因系统行为无法验证
 
+生产语义约束：
+
+- `返回桌面`：模拟 RN `BackHandler.exitApp()` 的“离开应用回到系统桌面”效果，不重置播放器，不主动清理当前播放队列和播放状态
+- `退出应用`：先重置播放器，再执行真正的应用退出行为，对齐 RN `TrackPlayer.reset(); NativeUtils.exitApp();`
+
 ## 测试策略
 
 ### 1. 纯逻辑测试
@@ -338,7 +363,8 @@ Drawer UI model 至少需要支持以下条目类型：
 
 - 菜单按钮打开 Drawer
 - 点击遮罩关闭 Drawer
-- Drawer 中关键入口导航可达
+- Drawer 中所有可见入口都必须可达，或者明确落到受控占位目标
+- 至少验证 `基础设置`、`插件管理`、`主题设置`、`定时关闭`、`备份与恢复`、`权限管理`、`语言设置`、`检查更新`、`关于 MusicFree`
 - `返回桌面 / 退出应用` 通过可替换 handler 验证触发
 
 ### 4. 视觉与动态证据
@@ -375,6 +401,8 @@ Drawer UI model 至少需要支持以下条目类型：
 4. 采集 Android 静态截图、动态录屏和 `uiautomator dump`
 5. 与 RN 基线逐项比对并记录差异
 6. 所有差异闭合后，才可判定首页专项完成
+
+本轮执行该闭环时，默认继承旧 spec 中已经锁定的黄金设备和首页 manifest 规范。
 
 ## 风险与约束
 
