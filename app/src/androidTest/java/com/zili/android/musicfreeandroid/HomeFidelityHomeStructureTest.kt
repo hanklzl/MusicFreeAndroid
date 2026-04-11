@@ -4,7 +4,9 @@ import android.content.pm.PackageManager
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -57,6 +59,8 @@ class HomeFidelityHomeStructureTest {
         assertTagDisplayed(FidelityAnchors.Player.MiniRoot)
         assertTagDisplayed(FidelityAnchors.Player.MiniPlayPause)
         assertTagDisplayed(FidelityAnchors.Player.MiniQueue)
+        assertTextDisplayed("In the End")
+        assertTextDisplayed("Linkin Park")
     }
 
     private fun assertTagDisplayed(tag: String) {
@@ -66,6 +70,15 @@ class HomeFidelityHomeStructureTest {
             }.getOrElse { false }
         }
         composeRule.onNodeWithTag(tag).assertIsDisplayed()
+    }
+
+    private fun assertTextDisplayed(text: String) {
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            runCatching {
+                composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+            }.getOrElse { false }
+        }
+        composeRule.onNodeWithText(text).assertIsDisplayed()
     }
 
     private fun grantAudioPermissions() {
