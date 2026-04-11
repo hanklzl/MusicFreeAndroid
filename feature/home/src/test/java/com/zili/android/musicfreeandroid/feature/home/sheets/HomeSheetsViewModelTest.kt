@@ -57,6 +57,9 @@ class HomeSheetsViewModelTest {
         viewModel.selectTab(HomeSheetTab.Starred)
         advanceUntilIdle()
 
+        assertEquals(HomeSheetTab.Starred, viewModel.uiState.value.selectedTab)
+        assertEquals(1, viewModel.uiState.value.mineCount)
+        assertEquals(1, viewModel.uiState.value.starredCount)
         assertEquals(listOf("Starred A"), viewModel.uiState.value.items.map { it.title })
         assertEquals("sheet-1", viewModel.uiState.value.items.single().id)
         assertEquals("demo", viewModel.uiState.value.items.single().platform)
@@ -64,6 +67,9 @@ class HomeSheetsViewModelTest {
         viewModel.selectTab(HomeSheetTab.Mine)
         advanceUntilIdle()
 
+        assertEquals(HomeSheetTab.Mine, viewModel.uiState.value.selectedTab)
+        assertEquals(1, viewModel.uiState.value.mineCount)
+        assertEquals(1, viewModel.uiState.value.starredCount)
         assertEquals(mineTitles, viewModel.uiState.value.items.map { it.title })
         assertEquals("12 首歌曲", viewModel.uiState.value.items.single().subtitle)
     }

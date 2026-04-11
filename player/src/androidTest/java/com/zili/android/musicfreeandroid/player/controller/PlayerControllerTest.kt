@@ -217,6 +217,25 @@ class PlayerControllerTest {
         assertEquals(items.map { it.id }, controller.playQueue.items.map { it.id })
     }
 
+    @Test
+    fun resetClearsQueueAndCurrentItem() {
+        runOnAppThread {
+            controller.playQueue(listOf(testItem("1"), testItem("2")), startIndex = 0)
+        }
+        waitUntil("controller starts first item") {
+            controller.playerState.value.currentItem?.id == "1"
+        }
+
+        runOnAppThread {
+            controller.reset()
+        }
+
+        waitUntil("controller clears playback state") {
+            controller.playerState.value.currentItem == null && !controller.playerState.value.hasMedia
+        }
+        assertTrue(controller.playQueue.items.isEmpty())
+    }
+
     private fun waitUntil(
         description: String,
         timeoutMs: Long = 3_000L,

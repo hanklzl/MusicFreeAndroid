@@ -1114,3 +1114,15 @@ Plan complete and saved to `docs/superpowers/plans/2026-04-11-homepage-ui-fideli
 **2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
 
 Which approach?
+
+## Execution Status (2026-04-11)
+
+- [x] Task 1: Restore the Manifest Surface and Evidence Tooling
+- [x] Task 2: Expand Canonical Anchors and Settings Fallback Targets
+- [x] Task 3: Import RN Assets and Add a Single `HomeIcons` Mapping Surface
+- [x] Task 4: Split `HomeScreen` Into a Container and a Pure Tested Content Shell
+- [x] Task 5: Build the Drawer UI Model, Custom Drawer Layout, and Controlled Surfaces
+- [x] Task 6: Rebuild Nav Bar, Operations, and Sheets Chrome Around RN Assets
+- [x] Task 7: Wire App Navigation, System Actions, and Player Reset Semantics
+- [x] Task 8: Add Integration Tests and Run the Homepage Acceptance Loop
+- [~] Deferred by directive: `:player:connectedDebugAndroidTest` `PlayerControllerTest` instrumentation/device instability (known baseline issue, not blocking this closure)

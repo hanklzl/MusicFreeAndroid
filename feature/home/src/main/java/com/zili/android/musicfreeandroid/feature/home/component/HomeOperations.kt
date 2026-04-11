@@ -1,7 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.home.component
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,18 +10,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
@@ -49,28 +44,28 @@ fun HomeOperations(
         OperationCard(
             modifier = Modifier.weight(1f),
             title = "推荐歌单",
-            icon = Icons.Default.Whatshot,
+            iconRes = HomeIcons.OperationRecommend,
             anchorTag = FidelityAnchors.Home.OperationsRecommendSheets,
             onClick = onRecommendClick,
         )
         OperationCard(
             modifier = Modifier.weight(1f),
             title = "榜单",
-            icon = Icons.Default.EmojiEvents,
+            iconRes = HomeIcons.OperationTopList,
             anchorTag = FidelityAnchors.Home.OperationsTopList,
             onClick = onTopListClick,
         )
         OperationCard(
             modifier = Modifier.weight(1f),
             title = "播放历史",
-            icon = Icons.Default.History,
+            iconRes = HomeIcons.OperationHistory,
             anchorTag = FidelityAnchors.Home.OperationsHistory,
             onClick = onHistoryClick,
         )
         OperationCard(
             modifier = Modifier.weight(1f),
             title = "本地音乐",
-            icon = Icons.Default.LibraryMusic,
+            iconRes = HomeIcons.OperationLocal,
             anchorTag = FidelityAnchors.Home.OperationsLocalMusic,
             onClick = onLocalMusicClick,
         )
@@ -81,25 +76,29 @@ fun HomeOperations(
 private fun OperationCard(
     modifier: Modifier,
     title: String,
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     anchorTag: String,
     onClick: () -> Unit,
 ) {
     Column(
         modifier = modifier
             .height(rpx(160))
+            .homeInteractionStyle(
+                onClick = onClick,
+                minHeight = null,
+                shape = RoundedCornerShape(rpx(18)),
+            )
             .background(
                 color = MusicFreeTheme.colors.card,
                 shape = RoundedCornerShape(rpx(18)),
             )
-            .clickable(onClick = onClick)
             .testTag(anchorTag)
             .padding(vertical = rpx(18)),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(
-            imageVector = icon,
+            painter = painterResource(iconRes),
             contentDescription = null,
             tint = MusicFreeTheme.colors.text,
             modifier = Modifier.size(IconSizes.normal),
@@ -107,7 +106,7 @@ private fun OperationCard(
         Text(
             text = title,
             color = MusicFreeTheme.colors.text,
-            fontSize = FontSizes.description,
+            fontSize = FontSizes.subTitle,
             modifier = Modifier.padding(top = rpx(12)),
         )
     }
