@@ -35,8 +35,8 @@ class HomeSheetsSectionTest {
                     homeSheetsSection(
                         uiState = sampleHomeSheetsUiState(),
                         onSelectTab = { selectedTab = it },
-                        onCreateSheetClick = { createClicks++ },
-                        onImportSheetClick = { importClicks++ },
+                        onCreateClick = { createClicks++ },
+                        onImportClick = { importClicks++ },
                         onOpenMineSheet = {},
                         onOpenStarredSheet = {},
                     )

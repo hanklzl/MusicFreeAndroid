@@ -9,8 +9,8 @@ import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 fun LazyListScope.homeSheetsSection(
     uiState: HomeSheetsUiState,
     onSelectTab: (HomeSheetTab) -> Unit,
-    onCreateSheetClick: () -> Unit,
-    onImportSheetClick: () -> Unit,
+    onCreateClick: () -> Unit,
+    onImportClick: () -> Unit,
     onOpenMineSheet: (String) -> Unit,
     onOpenStarredSheet: (HomeSheetUiModel) -> Unit,
 ) {
@@ -18,8 +18,8 @@ fun LazyListScope.homeSheetsSection(
         HomeSheetsHeader(
             uiState = uiState,
             onSelectTab = onSelectTab,
-            onCreateSheetClick = onCreateSheetClick,
-            onImportSheetClick = onImportSheetClick,
+            onCreateSheetClick = onCreateClick,
+            onImportSheetClick = onImportClick,
         )
     }
 
