@@ -22,3 +22,11 @@
 3. Capture screenshot
 4. Capture `uiautomator dump`
 5. Capture recording if required
+
+## Validation Rules
+- Foreground package must be `com.zili.android.musicfreeandroid` before each capture.
+- Default anchor checks:
+- `home-top` must include `screen.home.root`.
+- `home-sheets` must include `home.sheets.root`.
+- `drawer-open` must include `home.drawer.root`.
+- If a capture script run fails any validation, discard and re-capture the same state.
