@@ -15,7 +15,8 @@ import com.zili.android.musicfreeandroid.feature.home.HomeScreenContent
 import com.zili.android.musicfreeandroid.feature.home.HomeScreenState
 import com.zili.android.musicfreeandroid.feature.home.HomeSystemActionHandler
 import com.zili.android.musicfreeandroid.feature.home.buildHomeDrawerUiModel
-import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsUiState
+import com.zili.android.musicfreeandroid.feature.home.buildHomeVisualUiModel
+import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -41,7 +42,7 @@ class HomeDrawerBehaviorTest {
             MusicFreeTheme {
                 HomeScreenContent(
                     state = state,
-                    sheetsUiState = HomeSheetsUiState(),
+                    visualUiModel = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine),
                     drawerUiModel = buildHomeDrawerUiModel(
                         currentLanguage = "中文",
                         currentVersion = "1.0.0-test",
@@ -63,8 +64,8 @@ class HomeDrawerBehaviorTest {
                     onNavigateToHistory = {},
                     onNavigateToLocal = {},
                     onSelectTab = {},
-                    onCreateSheet = {},
-                    onImportSheet = {},
+                    onCreateClick = {},
+                    onImportClick = {},
                     onOpenMineSheet = {},
                     onOpenStarredSheet = {},
                 )

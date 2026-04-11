@@ -41,6 +41,9 @@ class HomeFidelityHomeStructureTest {
         assertTagDisplayed(FidelityAnchors.Home.NavBarMenu)
         assertTagDisplayed(FidelityAnchors.Home.OperationsRoot)
         assertTagDisplayed(FidelityAnchors.Home.SheetsRoot)
+        assertTagDisplayed(FidelityAnchors.Player.MiniRoot)
+        assertTagDisplayed(FidelityAnchors.Player.MiniPlayPause)
+        assertTagDisplayed(FidelityAnchors.Player.MiniQueue)
 
         composeRule.onNodeWithTag(FidelityAnchors.Home.NavBarMenu).performClick()
 
@@ -51,6 +54,9 @@ class HomeFidelityHomeStructureTest {
     fun home_content_remains_visible_above_existingMiniPlayer() {
         assertTagDisplayed(FidelityAnchors.Screen.HomeRoot)
         assertTagDisplayed(FidelityAnchors.Home.SheetsRoot)
+        assertTagDisplayed(FidelityAnchors.Player.MiniRoot)
+        assertTagDisplayed(FidelityAnchors.Player.MiniPlayPause)
+        assertTagDisplayed(FidelityAnchors.Player.MiniQueue)
     }
 
     private fun assertTagDisplayed(tag: String) {

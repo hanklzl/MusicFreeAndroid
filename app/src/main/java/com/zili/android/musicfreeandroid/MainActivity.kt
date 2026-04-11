@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -21,6 +24,8 @@ import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayer
+import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayerContent
+import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayerUiModel
 import com.zili.android.musicfreeandroid.navigation.AndroidHomeSystemActionHandler
 import com.zili.android.musicfreeandroid.navigation.AppNavHost
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
@@ -48,10 +53,13 @@ class MainActivity : ComponentActivity() {
                 val currentRoute = currentBackStack?.destination?.route
                 val playerRouteName = PlayerRoute::class.simpleName.orEmpty()
                 val homeRouteName = HomeRoute::class.simpleName.orEmpty()
+                var isHomeMockPlaying by rememberSaveable { mutableStateOf(true) }
 
-                val showMiniPlayer = currentRoute != null &&
+                val isHomeRoute = currentRoute?.contains(homeRouteName) == true
+                val showRealMiniPlayer = currentRoute != null &&
+                    !isHomeRoute &&
                     !currentRoute.contains(playerRouteName)
-                val applyHomeTopSafeInset = currentRoute?.contains(homeRouteName) == true
+                val applyHomeTopSafeInset = isHomeRoute
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -59,12 +67,29 @@ class MainActivity : ComponentActivity() {
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
                     ),
                     bottomBar = {
-                        if (showMiniPlayer) {
-                            MiniPlayer(
-                                onNavigateToPlayer = {
-                                    navController.navigate(PlayerRoute)
+                        when {
+                            isHomeRoute -> MiniPlayerContent(
+                                uiModel = MiniPlayerUiModel(
+                                    coverUri = null,
+                                    title = "In the End",
+                                    subtitle = "Linkin Park",
+                                    isPlaying = isHomeMockPlaying,
+                                    showQueueButton = true,
+                                ),
+                                onOpenPlayer = {},
+                                onTogglePlayPause = {
+                                    isHomeMockPlaying = !isHomeMockPlaying
                                 },
+                                onOpenQueue = {},
                             )
+
+                            showRealMiniPlayer -> {
+                                MiniPlayer(
+                                    onNavigateToPlayer = {
+                                        navController.navigate(PlayerRoute)
+                                    },
+                                )
+                            }
                         }
                     },
                 ) { innerPadding ->
