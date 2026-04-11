@@ -109,6 +109,7 @@ When implementing features, consult these paths in `/Users/zili/code/android/Mus
 4. 数据结构、数据库、请求参数做到类型和字段完全对齐
 5. 每个功能做好单元测试和集成测试（Logcat 日志 + 截图 + uiautomator Layout 对比）
 6. Review：代码正确性、健壮性、功能是否真实完成
+7. 记录过程中犯的错误，项目最终结束完成后， 更新到项目记忆中
 
 ### Analysis Rules
 - 不仅依赖截图对比，必须同时分析原版 RN 代码和当前 Android 代码
