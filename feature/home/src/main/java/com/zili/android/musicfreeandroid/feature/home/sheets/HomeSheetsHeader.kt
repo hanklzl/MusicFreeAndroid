@@ -30,6 +30,7 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.feature.home.component.HomeIcons
+import com.zili.android.musicfreeandroid.feature.home.component.homeIconButtonInteractionStyle
 import com.zili.android.musicfreeandroid.feature.home.component.homeInteractionStyle
 
 @Composable
@@ -143,11 +144,9 @@ private fun HomeSheetActionButton(
 ) {
     Box(
         modifier = Modifier
-            .size(rpx(40))
-            .homeInteractionStyle(
+            .homeIconButtonInteractionStyle(
                 onClick = onClick,
                 shape = CircleShape,
-                minHeight = null,
             )
             .testTag(anchorTag),
         contentAlignment = Alignment.Center,

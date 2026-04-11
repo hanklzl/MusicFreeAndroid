@@ -42,11 +42,9 @@ fun HomeNavBar(
     ) {
         Box(
             modifier = Modifier
-                .size(rpx(48))
-                .homeInteractionStyle(
+                .homeIconButtonInteractionStyle(
                     onClick = onOpenMenu,
                     shape = CircleShape,
-                    minHeight = null,
                 )
                 .testTag(FidelityAnchors.Home.NavBarMenu),
             contentAlignment = Alignment.Center,

@@ -4,7 +4,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.requiredSizeIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -14,7 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.zili.android.musicfreeandroid.core.theme.AnimationDurations
 import com.zili.android.musicfreeandroid.core.theme.rpx
 
@@ -36,7 +41,9 @@ internal fun Modifier.homeInteractionStyle(
     style: HomeInteractionStyle = HomeInteractionStyle(),
     enabled: Boolean = true,
     shape: Shape = RoundedCornerShape(rpx(18)),
+    minWidth: Dp? = null,
     minHeight: Dp? = rpx(96),
+    role: Role? = null,
 ): Modifier {
     val isPressed by interactionSource.collectIsPressedAsState()
     val pressedScale by androidx.compose.animation.core.animateFloatAsState(
@@ -64,9 +71,30 @@ internal fun Modifier.homeInteractionStyle(
             onClick = onClick,
         )
 
-    if (minHeight != null) {
-        modifier = modifier.defaultMinSize(minHeight = minHeight)
+    if (role != null) {
+        modifier = modifier.semantics { this[SemanticsProperties.Role] = role }
     }
 
-    return modifier
+    return modifier.requiredSizeIn(
+        minWidth = minWidth ?: 0.dp,
+        minHeight = minHeight ?: 0.dp,
+    )
 }
+
+@Composable
+internal fun Modifier.homeIconButtonInteractionStyle(
+    onClick: () -> Unit,
+    interactionSource: MutableInteractionSource = rememberHomeInteractionSource(),
+    style: HomeInteractionStyle = HomeInteractionStyle(),
+    enabled: Boolean = true,
+    shape: Shape = CircleShape,
+): Modifier = homeInteractionStyle(
+    onClick = onClick,
+    interactionSource = interactionSource,
+    style = style,
+    enabled = enabled,
+    shape = shape,
+    minWidth = 48.dp,
+    minHeight = 48.dp,
+    role = Role.Button,
+)
