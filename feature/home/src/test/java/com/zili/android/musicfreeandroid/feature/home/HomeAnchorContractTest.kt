@@ -28,6 +28,9 @@ class HomeAnchorContractTest {
             FidelityAnchors.Home.DrawerSettings,
             FidelityAnchors.Home.DrawerPluginManagement,
             FidelityAnchors.Home.DrawerPermissions,
+            FidelityAnchors.Player.MiniRoot,
+            FidelityAnchors.Player.MiniPlayPause,
+            FidelityAnchors.Player.MiniQueue,
         )
 
         assertEquals(anchors.size, anchors.toSet().size)

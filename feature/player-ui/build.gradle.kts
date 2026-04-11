@@ -28,8 +28,11 @@ android {
     }
 
     testOptions {
-        unitTests.all {
-            it.jvmArgs("-Dnet.bytebuddy.experimental=true")
+        unitTests {
+            isIncludeAndroidResources = true
+            all {
+                it.jvmArgs("-Dnet.bytebuddy.experimental=true")
+            }
         }
     }
 }
@@ -52,4 +55,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

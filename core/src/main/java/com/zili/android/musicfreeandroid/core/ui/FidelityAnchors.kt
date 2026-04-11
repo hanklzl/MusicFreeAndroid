@@ -43,6 +43,12 @@ object FidelityAnchors {
         const val DrawerActionExitApp = "home.drawer.action.exitApp"
     }
 
+    object Player {
+        const val MiniRoot = "player.mini.root"
+        const val MiniPlayPause = "player.mini.playPause"
+        const val MiniQueue = "player.mini.queue"
+    }
+
     object Panel {
         const val TimingCloseRoot = "panel.timingClose.root"
     }
