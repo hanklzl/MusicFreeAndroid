@@ -32,6 +32,7 @@
 | [docs/DOCS_STATUS.md](./DOCS_STATUS.md) | 当前规范 | 是 | 文档状态与治理入口 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |
+| [docs/superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md](./superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md) | 当前参考（首页 mock 专项） | 否 | 首页主界面与底部 mini player 的第一阶段 mock 对齐设计 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-design.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-design.md) | 当前参考 | 否 | 首页 fidelity 设计决策背景 |
 | [docs/superpowers/specs/2026-03-25-home-fidelity-design.md](./superpowers/specs/2026-03-25-home-fidelity-design.md) | 当前参考 | 否 | 首页 fidelity 早期基线设计 |
 | [docs/superpowers/specs/2026-03-19-musicfree-android-native-rewrite-design.md](./superpowers/specs/2026-03-19-musicfree-android-native-rewrite-design.md) | 当前参考 | 否 | 项目早期总体设计，版本细节以 AGENTS 为准 |
