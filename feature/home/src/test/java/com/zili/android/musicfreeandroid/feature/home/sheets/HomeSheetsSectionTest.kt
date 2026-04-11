@@ -35,8 +35,8 @@ class HomeSheetsSectionTest {
                     homeSheetsSection(
                         uiState = sampleHomeSheetsUiState(),
                         onSelectTab = { selectedTab = it },
-                        onCreateClick = { createClicks++ },
-                        onImportClick = { importClicks++ },
+                        onCreateSheetClick = { createClicks++ },
+                        onImportSheetClick = { importClicks++ },
                         onOpenMineSheet = {},
                         onOpenStarredSheet = {},
                     )
@@ -57,6 +57,8 @@ class HomeSheetsSectionTest {
             assertEquals(1, importClicks)
             assertEquals(HomeSheetTab.Starred, selectedTab)
         }
+        // Create dialog currently has no dedicated testTag/anchor, so title text is the most stable
+        // observable sentinel to assert that no dialog was opened from header actions.
         composeRule.onAllNodesWithText("新建播放列表").assertCountEquals(0)
     }
 

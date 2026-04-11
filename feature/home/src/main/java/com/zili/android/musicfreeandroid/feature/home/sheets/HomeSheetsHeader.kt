@@ -37,8 +37,8 @@ import com.zili.android.musicfreeandroid.feature.home.component.homeInteractionS
 fun HomeSheetsHeader(
     uiState: HomeSheetsUiState,
     onSelectTab: (HomeSheetTab) -> Unit,
-    onRequestCreate: () -> Unit,
-    onImportSheet: () -> Unit,
+    onCreateSheetClick: () -> Unit,
+    onImportSheetClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -76,14 +76,14 @@ fun HomeSheetsHeader(
                 iconRes = HomeIcons.SheetsCreate,
                 anchorTag = FidelityAnchors.Home.SheetsCreate,
                 contentDescription = "新建歌单",
-                onClick = onRequestCreate,
+                onClick = onCreateSheetClick,
             )
             Spacer(modifier = Modifier.size(rpx(24)))
             HomeSheetActionButton(
                 iconRes = HomeIcons.SheetsImport,
                 anchorTag = FidelityAnchors.Home.SheetsImport,
                 contentDescription = "导入歌单",
-                onClick = onImportSheet,
+                onClick = onImportSheetClick,
             )
         }
     }

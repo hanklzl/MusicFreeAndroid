@@ -53,8 +53,8 @@ fun HomeScreenContent(
     onNavigateToHistory: () -> Unit,
     onNavigateToLocal: () -> Unit,
     onSelectTab: (HomeSheetTab) -> Unit,
-    onCreateClick: () -> Unit,
-    onImportClick: () -> Unit,
+    onCreateSheetClick: () -> Unit,
+    onImportSheetClick: () -> Unit,
     onOpenMineSheet: (String) -> Unit,
     onOpenStarredSheet: (HomeSheetUiModel) -> Unit,
 ) {
@@ -124,8 +124,8 @@ fun HomeScreenContent(
             homeSheetsSection(
                 uiState = sheetsUiState,
                 onSelectTab = onSelectTab,
-                onCreateClick = onCreateClick,
-                onImportClick = onImportClick,
+                onCreateSheetClick = onCreateSheetClick,
+                onImportSheetClick = onImportSheetClick,
                 onOpenMineSheet = onOpenMineSheet,
                 onOpenStarredSheet = onOpenStarredSheet,
             )

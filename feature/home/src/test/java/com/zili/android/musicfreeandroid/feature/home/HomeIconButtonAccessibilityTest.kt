@@ -38,8 +38,8 @@ class HomeIconButtonAccessibilityTest {
                     HomeSheetsHeader(
                         uiState = HomeSheetsUiState(),
                         onSelectTab = {},
-                        onRequestCreate = {},
-                        onImportSheet = {},
+                        onCreateSheetClick = {},
+                        onImportSheetClick = {},
                     )
                 }
             }
