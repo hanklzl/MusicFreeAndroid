@@ -5,12 +5,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -109,7 +111,9 @@ private fun HomeSheetTabButton(
             .padding(bottom = rpx(8)),
         verticalAlignment = Alignment.Bottom,
     ) {
-        Column {
+        Column(
+            modifier = Modifier.width(IntrinsicSize.Max),
+        ) {
             Text(
                 text = title,
                 color = if (selected) MusicFreeTheme.colors.text else MusicFreeTheme.colors.textSecondary,
@@ -118,8 +122,8 @@ private fun HomeSheetTabButton(
             )
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(top = rpx(2))
+                    .width(rpx(72))
                     .height(rpx(6))
                     .background(
                         color = if (selected) MusicFreeTheme.colors.primary else Color.Transparent,

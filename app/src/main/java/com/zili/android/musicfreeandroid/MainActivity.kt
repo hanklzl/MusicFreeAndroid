@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
@@ -50,15 +51,12 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 val currentBackStack by navController.currentBackStackEntryAsState()
-                val currentRoute = currentBackStack?.destination?.route
-                val playerRouteName = PlayerRoute::class.simpleName.orEmpty()
-                val homeRouteName = HomeRoute::class.simpleName.orEmpty()
+                val destination = currentBackStack?.destination
                 var isHomeMockPlaying by rememberSaveable { mutableStateOf(true) }
 
-                val isHomeRoute = currentRoute?.contains(homeRouteName) == true
-                val showRealMiniPlayer = currentRoute != null &&
-                    !isHomeRoute &&
-                    !currentRoute.contains(playerRouteName)
+                val isHomeRoute = destination?.hasRoute<HomeRoute>() == true
+                val isPlayerRoute = destination?.hasRoute<PlayerRoute>() == true
+                val showRealMiniPlayer = destination != null && !isHomeRoute && !isPlayerRoute
                 val applyHomeTopSafeInset = isHomeRoute
 
                 Scaffold(
