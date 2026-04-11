@@ -82,10 +82,16 @@ fun HomeScreen(
         onSelectTab = { selectedTab = it },
         onCreateClick = {},
         onImportClick = {},
-        onOpenMineSheet = onNavigateToPlaylistDetail,
+        onOpenMineSheet = { sheetId ->
+            if (!sheetId.isMockHomeSheetId()) {
+                onNavigateToPlaylistDetail(sheetId)
+            }
+        },
         onOpenStarredSheet = {},
     )
 }
+
+private fun String.isMockHomeSheetId(): Boolean = startsWith(prefix = "mock-")
 
 private fun PackageManager.versionNameForPackage(packageName: String): String? {
     val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

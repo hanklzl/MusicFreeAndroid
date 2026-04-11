@@ -24,6 +24,7 @@ import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.feature.home.HomeOperationAction
 import com.zili.android.musicfreeandroid.feature.home.HomeOperationUiModel
 
 @Composable
@@ -45,7 +46,7 @@ fun HomeOperations(
     ) {
         operations.forEach { operation ->
             val chrome = operationChrome(
-                operationId = operation.id,
+                action = operation.action,
                 onRecommendClick = onRecommendClick,
                 onTopListClick = onTopListClick,
                 onHistoryClick = onHistoryClick,
@@ -71,33 +72,32 @@ private data class OperationChrome(
 )
 
 private fun operationChrome(
-    operationId: String,
+    action: HomeOperationAction,
     onRecommendClick: () -> Unit,
     onTopListClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onLocalMusicClick: () -> Unit,
-): OperationChrome = when (operationId) {
-    "mock-operation-recommend" -> OperationChrome(
+): OperationChrome = when (action) {
+    HomeOperationAction.RecommendSheets -> OperationChrome(
         iconRes = HomeIcons.OperationRecommend,
         anchorTag = FidelityAnchors.Home.OperationsRecommendSheets,
         onClick = onRecommendClick,
     )
-    "mock-operation-top-list" -> OperationChrome(
+    HomeOperationAction.TopList -> OperationChrome(
         iconRes = HomeIcons.OperationTopList,
         anchorTag = FidelityAnchors.Home.OperationsTopList,
         onClick = onTopListClick,
     )
-    "mock-operation-history" -> OperationChrome(
+    HomeOperationAction.History -> OperationChrome(
         iconRes = HomeIcons.OperationHistory,
         anchorTag = FidelityAnchors.Home.OperationsHistory,
         onClick = onHistoryClick,
     )
-    "mock-operation-local" -> OperationChrome(
+    HomeOperationAction.LocalMusic -> OperationChrome(
         iconRes = HomeIcons.OperationLocal,
         anchorTag = FidelityAnchors.Home.OperationsLocalMusic,
         onClick = onLocalMusicClick,
     )
-    else -> error("Unsupported home operation id: $operationId")
 }
 
 @Composable

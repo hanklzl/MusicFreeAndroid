@@ -12,7 +12,15 @@ data class HomeVisualUiModel(
 data class HomeOperationUiModel(
     val id: String,
     val title: String,
+    val action: HomeOperationAction,
 )
+
+enum class HomeOperationAction {
+    RecommendSheets,
+    TopList,
+    History,
+    LocalMusic,
+}
 
 data class HomePlaylistSectionUiModel(
     val selectedTab: HomeSheetTab,

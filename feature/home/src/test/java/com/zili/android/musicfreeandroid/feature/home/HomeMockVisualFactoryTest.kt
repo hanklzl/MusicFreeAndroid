@@ -8,6 +8,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeMockVisualFactoryTest {
+    private data class OperationExpectation(
+        val id: String,
+        val title: String,
+        val action: HomeOperationAction,
+    )
+
     @Test
     fun `mine tab mock state exposes four stable playlist rows`() {
         val uiModel = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine)
@@ -15,12 +21,12 @@ class HomeMockVisualFactoryTest {
         assertEquals("点击这里开始搜索", uiModel.searchPlaceholder)
         assertEquals(
             listOf(
-                "mock-operation-recommend" to "推荐歌单",
-                "mock-operation-top-list" to "榜单",
-                "mock-operation-history" to "播放历史",
-                "mock-operation-local" to "本地音乐",
+                OperationExpectation("mock-operation-recommend", "推荐歌单", HomeOperationAction.RecommendSheets),
+                OperationExpectation("mock-operation-top-list", "榜单", HomeOperationAction.TopList),
+                OperationExpectation("mock-operation-history", "播放历史", HomeOperationAction.History),
+                OperationExpectation("mock-operation-local", "本地音乐", HomeOperationAction.LocalMusic),
             ),
-            uiModel.operations.map { it.id to it.title },
+            uiModel.operations.map { OperationExpectation(it.id, it.title, it.action) },
         )
         assertEquals(HomeSheetTab.Mine, uiModel.playlistSection.selectedTab)
         assertEquals(4, uiModel.playlistSection.rows.size)
