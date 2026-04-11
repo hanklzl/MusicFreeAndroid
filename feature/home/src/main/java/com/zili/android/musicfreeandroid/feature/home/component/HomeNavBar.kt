@@ -27,6 +27,7 @@ import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 
 @Composable
 fun HomeNavBar(
+    searchPlaceholder: String,
     onOpenMenu: () -> Unit,
     onOpenSearch: () -> Unit,
     modifier: Modifier = Modifier,
@@ -37,7 +38,7 @@ fun HomeNavBar(
             .height(rpx(88))
             .testTag(FidelityAnchors.Home.NavBarRoot)
             .semantics { testTagsAsResourceId = true }
-            .padding(horizontal = rpx(24)),
+            .padding(horizontal = rpx(18)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -59,7 +60,7 @@ fun HomeNavBar(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = rpx(24))
+                .padding(start = rpx(14))
                 .height(rpx(64))
                 .homeInteractionStyle(
                     onClick = onOpenSearch,
@@ -71,7 +72,7 @@ fun HomeNavBar(
                     shape = RoundedCornerShape(999.dp),
                 )
                 .testTag(FidelityAnchors.Home.NavBarSearch)
-                .padding(horizontal = rpx(20)),
+                .padding(horizontal = rpx(18)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -81,7 +82,7 @@ fun HomeNavBar(
                 modifier = Modifier.size(IconSizes.small),
             )
             Text(
-                text = "点击这里开始搜索",
+                text = searchPlaceholder,
                 modifier = Modifier.padding(start = rpx(12)),
                 color = MusicFreeTheme.colors.textSecondary,
                 fontSize = FontSizes.subTitle,

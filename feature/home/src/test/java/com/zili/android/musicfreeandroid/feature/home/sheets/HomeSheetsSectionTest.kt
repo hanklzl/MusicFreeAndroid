@@ -33,7 +33,7 @@ class HomeSheetsSectionTest {
             MusicFreeTheme {
                 LazyColumn {
                     homeSheetsSection(
-                        uiState = sampleHomeSheetsUiState(),
+                        uiModel = sampleHomePlaylistSectionUiModel(),
                         onSelectTab = { selectedTab = it },
                         onCreateClick = { createClicks++ },
                         onImportClick = { importClicks++ },
@@ -62,11 +62,11 @@ class HomeSheetsSectionTest {
         composeRule.onAllNodesWithText("新建播放列表").assertCountEquals(0)
     }
 
-    private fun sampleHomeSheetsUiState(): HomeSheetsUiState = HomeSheetsUiState(
+    private fun sampleHomePlaylistSectionUiModel() = com.zili.android.musicfreeandroid.feature.home.HomePlaylistSectionUiModel(
         selectedTab = HomeSheetTab.Mine,
         mineCount = 2,
         starredCount = 1,
-        items = listOf(
+        rows = listOf(
             HomeSheetUiModel(
                 id = "mine-1",
                 platform = null,

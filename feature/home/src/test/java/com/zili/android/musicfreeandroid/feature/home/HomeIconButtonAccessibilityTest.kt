@@ -12,7 +12,7 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.feature.home.component.HomeNavBar
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsHeader
-import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsUiState
+import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,11 +32,17 @@ class HomeIconButtonAccessibilityTest {
             MusicFreeTheme {
                 androidx.compose.foundation.layout.Column {
                     HomeNavBar(
+                        searchPlaceholder = "点击这里开始搜索",
                         onOpenMenu = {},
                         onOpenSearch = {},
                     )
                     HomeSheetsHeader(
-                        uiState = HomeSheetsUiState(),
+                        uiModel = HomePlaylistSectionUiModel(
+                            selectedTab = HomeSheetTab.Mine,
+                            mineCount = 4,
+                            starredCount = 4,
+                            rows = emptyList(),
+                        ),
                         onSelectTab = {},
                         onCreateSheetClick = {},
                         onImportSheetClick = {},

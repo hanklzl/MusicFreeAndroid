@@ -5,9 +5,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyListScope
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.feature.home.HomePlaylistSectionUiModel
 
 fun LazyListScope.homeSheetsSection(
-    uiState: HomeSheetsUiState,
+    uiModel: HomePlaylistSectionUiModel,
     onSelectTab: (HomeSheetTab) -> Unit,
     onCreateClick: () -> Unit,
     onImportClick: () -> Unit,
@@ -16,7 +17,7 @@ fun LazyListScope.homeSheetsSection(
 ) {
     item(key = FidelityAnchors.Home.SheetsRoot) {
         HomeSheetsHeader(
-            uiState = uiState,
+            uiModel = uiModel,
             onSelectTab = onSelectTab,
             onCreateSheetClick = onCreateClick,
             onImportSheetClick = onImportClick,
@@ -28,7 +29,7 @@ fun LazyListScope.homeSheetsSection(
     }
 
     homeSheetsList(
-        uiState = uiState,
+        uiModel = uiModel,
         onOpenMineSheet = onOpenMineSheet,
         onOpenStarredSheet = onOpenStarredSheet,
     )

@@ -24,9 +24,11 @@ import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.feature.home.HomeOperationUiModel
 
 @Composable
 fun HomeOperations(
+    operations: List<HomeOperationUiModel>,
     onRecommendClick: () -> Unit,
     onTopListClick: () -> Unit,
     onHistoryClick: () -> Unit,
@@ -38,38 +40,64 @@ fun HomeOperations(
             .fillMaxWidth()
             .testTag(FidelityAnchors.Home.OperationsRoot)
             .semantics { testTagsAsResourceId = true }
-            .padding(horizontal = rpx(24), vertical = rpx(32)),
-        horizontalArrangement = Arrangement.spacedBy(rpx(24)),
+            .padding(horizontal = rpx(24), vertical = rpx(24)),
+        horizontalArrangement = Arrangement.spacedBy(rpx(16)),
     ) {
-        OperationCard(
-            modifier = Modifier.weight(1f),
-            title = "推荐歌单",
-            iconRes = HomeIcons.OperationRecommend,
-            anchorTag = FidelityAnchors.Home.OperationsRecommendSheets,
-            onClick = onRecommendClick,
-        )
-        OperationCard(
-            modifier = Modifier.weight(1f),
-            title = "榜单",
-            iconRes = HomeIcons.OperationTopList,
-            anchorTag = FidelityAnchors.Home.OperationsTopList,
-            onClick = onTopListClick,
-        )
-        OperationCard(
-            modifier = Modifier.weight(1f),
-            title = "播放历史",
-            iconRes = HomeIcons.OperationHistory,
-            anchorTag = FidelityAnchors.Home.OperationsHistory,
-            onClick = onHistoryClick,
-        )
-        OperationCard(
-            modifier = Modifier.weight(1f),
-            title = "本地音乐",
-            iconRes = HomeIcons.OperationLocal,
-            anchorTag = FidelityAnchors.Home.OperationsLocalMusic,
-            onClick = onLocalMusicClick,
-        )
+        operations.forEach { operation ->
+            val chrome = operationChrome(
+                operationId = operation.id,
+                onRecommendClick = onRecommendClick,
+                onTopListClick = onTopListClick,
+                onHistoryClick = onHistoryClick,
+                onLocalMusicClick = onLocalMusicClick,
+            )
+            OperationCard(
+                modifier = Modifier.weight(1f),
+                title = operation.title,
+                iconRes = chrome.iconRes,
+                anchorTag = chrome.anchorTag,
+                onClick = chrome.onClick,
+            )
+        }
     }
+}
+
+private data class OperationChrome(
+    @param:DrawableRes
+    @field:DrawableRes
+    val iconRes: Int,
+    val anchorTag: String,
+    val onClick: () -> Unit,
+)
+
+private fun operationChrome(
+    operationId: String,
+    onRecommendClick: () -> Unit,
+    onTopListClick: () -> Unit,
+    onHistoryClick: () -> Unit,
+    onLocalMusicClick: () -> Unit,
+): OperationChrome = when (operationId) {
+    "mock-operation-recommend" -> OperationChrome(
+        iconRes = HomeIcons.OperationRecommend,
+        anchorTag = FidelityAnchors.Home.OperationsRecommendSheets,
+        onClick = onRecommendClick,
+    )
+    "mock-operation-top-list" -> OperationChrome(
+        iconRes = HomeIcons.OperationTopList,
+        anchorTag = FidelityAnchors.Home.OperationsTopList,
+        onClick = onTopListClick,
+    )
+    "mock-operation-history" -> OperationChrome(
+        iconRes = HomeIcons.OperationHistory,
+        anchorTag = FidelityAnchors.Home.OperationsHistory,
+        onClick = onHistoryClick,
+    )
+    "mock-operation-local" -> OperationChrome(
+        iconRes = HomeIcons.OperationLocal,
+        anchorTag = FidelityAnchors.Home.OperationsLocalMusic,
+        onClick = onLocalMusicClick,
+    )
+    else -> error("Unsupported home operation id: $operationId")
 }
 
 @Composable
@@ -82,7 +110,7 @@ private fun OperationCard(
 ) {
     Column(
         modifier = modifier
-            .height(rpx(160))
+            .height(rpx(148))
             .homeInteractionStyle(
                 onClick = onClick,
                 minHeight = null,
@@ -93,7 +121,7 @@ private fun OperationCard(
                 shape = RoundedCornerShape(rpx(18)),
             )
             .testTag(anchorTag)
-            .padding(vertical = rpx(18)),
+            .padding(vertical = rpx(16)),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -107,7 +135,7 @@ private fun OperationCard(
             text = title,
             color = MusicFreeTheme.colors.text,
             fontSize = FontSizes.subTitle,
-            modifier = Modifier.padding(top = rpx(12)),
+            modifier = Modifier.padding(top = rpx(10)),
         )
     }
 }

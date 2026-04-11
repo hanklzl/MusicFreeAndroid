@@ -21,7 +21,6 @@ import com.zili.android.musicfreeandroid.feature.home.component.HomeNavBar
 import com.zili.android.musicfreeandroid.feature.home.component.HomeOperations
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
-import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsUiState
 import com.zili.android.musicfreeandroid.feature.home.sheets.homeSheetsSection
 
 internal fun handleDrawerEntryClick(
@@ -41,7 +40,7 @@ internal fun handleDrawerEntryClick(
 @Composable
 fun HomeScreenContent(
     state: HomeScreenState,
-    sheetsUiState: HomeSheetsUiState,
+    visualUiModel: HomeVisualUiModel,
     drawerUiModel: HomeDrawerUiModel,
     currentLanguage: String,
     currentVersion: String,
@@ -109,12 +108,14 @@ fun HomeScreenContent(
         ) {
             item {
                 HomeNavBar(
+                    searchPlaceholder = visualUiModel.searchPlaceholder,
                     onOpenMenu = state::openDrawer,
                     onOpenSearch = onNavigateToSearch,
                 )
             }
             item {
                 HomeOperations(
+                    operations = visualUiModel.operations,
                     onRecommendClick = onNavigateToRecommendSheets,
                     onTopListClick = onNavigateToTopList,
                     onHistoryClick = onNavigateToHistory,
@@ -122,7 +123,7 @@ fun HomeScreenContent(
                 )
             }
             homeSheetsSection(
-                uiState = sheetsUiState,
+                uiModel = visualUiModel.playlistSection,
                 onSelectTab = onSelectTab,
                 onCreateClick = onCreateClick,
                 onImportClick = onImportClick,

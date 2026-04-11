@@ -23,30 +23,16 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchorPatterns
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.feature.home.component.homeInteractionStyle
+import com.zili.android.musicfreeandroid.feature.home.HomePlaylistSectionUiModel
 
 fun LazyListScope.homeSheetsList(
-    uiState: HomeSheetsUiState,
+    uiModel: HomePlaylistSectionUiModel,
     onOpenMineSheet: (String) -> Unit,
     onOpenStarredSheet: (HomeSheetUiModel) -> Unit,
 ) {
-    if (uiState.items.isEmpty()) {
-        item(key = "${FidelityAnchors.Home.SheetsRoot}.empty") {
-            Text(
-                text = "暂无歌单",
-                color = MusicFreeTheme.colors.textSecondary,
-                fontSize = FontSizes.subTitle,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = rpx(24), vertical = rpx(24)),
-            )
-        }
-        return
-    }
-
     items(
-        items = uiState.items,
+        items = uiModel.rows,
         key = { item -> "${item.tab}:${item.id}" },
     ) { item ->
         HomeSheetRow(

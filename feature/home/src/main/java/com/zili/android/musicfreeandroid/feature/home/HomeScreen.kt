@@ -4,12 +4,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModel
+import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -24,12 +25,12 @@ fun HomeScreen(
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
     homeSystemActionHandler: HomeSystemActionHandler,
-    homeSheetsViewModel: HomeSheetsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val sheetsUiState by homeSheetsViewModel.uiState.collectAsStateWithLifecycle()
     val state = remember { HomeScreenState() }
+    var selectedTab by rememberSaveable { mutableStateOf(HomeSheetTab.Mine) }
+    val visualUiModel = remember(selectedTab) { buildHomeVisualUiModel(selectedTab) }
     val currentLanguage = remember {
         Locale.getDefault().getDisplayLanguage(Locale.getDefault())
     }
@@ -47,7 +48,7 @@ fun HomeScreen(
 
     HomeScreenContent(
         state = state,
-        sheetsUiState = sheetsUiState,
+        visualUiModel = visualUiModel,
         drawerUiModel = drawerUiModel,
         currentLanguage = currentLanguage,
         currentVersion = currentVersion,
@@ -78,7 +79,7 @@ fun HomeScreen(
         onNavigateToTopList = onNavigateToTopList,
         onNavigateToHistory = onNavigateToHistory,
         onNavigateToLocal = onNavigateToLocal,
-        onSelectTab = homeSheetsViewModel::selectTab,
+        onSelectTab = { selectedTab = it },
         onCreateClick = {},
         onImportClick = {},
         onOpenMineSheet = onNavigateToPlaylistDetail,

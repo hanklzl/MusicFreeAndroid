@@ -32,10 +32,11 @@ import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.feature.home.component.HomeIcons
 import com.zili.android.musicfreeandroid.feature.home.component.homeIconButtonInteractionStyle
 import com.zili.android.musicfreeandroid.feature.home.component.homeInteractionStyle
+import com.zili.android.musicfreeandroid.feature.home.HomePlaylistSectionUiModel
 
 @Composable
 fun HomeSheetsHeader(
-    uiState: HomeSheetsUiState,
+    uiModel: HomePlaylistSectionUiModel,
     onSelectTab: (HomeSheetTab) -> Unit,
     onCreateSheetClick: () -> Unit,
     onImportSheetClick: () -> Unit,
@@ -53,16 +54,16 @@ fun HomeSheetsHeader(
         Row(verticalAlignment = Alignment.Bottom) {
             HomeSheetTabButton(
                 title = "我的歌单",
-                count = uiState.mineCount,
-                selected = uiState.selectedTab == HomeSheetTab.Mine,
+                count = uiModel.mineCount,
+                selected = uiModel.selectedTab == HomeSheetTab.Mine,
                 onClick = { onSelectTab(HomeSheetTab.Mine) },
                 anchorTag = FidelityAnchors.Home.SheetsMineTab,
             )
             Spacer(modifier = Modifier.size(rpx(32)))
             HomeSheetTabButton(
                 title = "收藏歌单",
-                count = uiState.starredCount,
-                selected = uiState.selectedTab == HomeSheetTab.Starred,
+                count = uiModel.starredCount,
+                selected = uiModel.selectedTab == HomeSheetTab.Starred,
                 onClick = { onSelectTab(HomeSheetTab.Starred) },
                 anchorTag = FidelityAnchors.Home.SheetsStarredTab,
             )
