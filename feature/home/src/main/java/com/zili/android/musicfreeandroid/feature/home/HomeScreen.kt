@@ -79,8 +79,8 @@ fun HomeScreen(
         onNavigateToHistory = onNavigateToHistory,
         onNavigateToLocal = onNavigateToLocal,
         onSelectTab = homeSheetsViewModel::selectTab,
-        onCreateSheet = {},
-        onImportSheet = {},
+        onCreateClick = {},
+        onImportClick = {},
         onOpenMineSheet = onNavigateToPlaylistDetail,
         onOpenStarredSheet = {},
     )

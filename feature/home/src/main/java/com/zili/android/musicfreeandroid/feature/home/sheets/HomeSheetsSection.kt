@@ -33,21 +33,3 @@ fun LazyListScope.homeSheetsSection(
         onOpenStarredSheet = onOpenStarredSheet,
     )
 }
-
-fun LazyListScope.homeSheetsSection(
-    uiState: HomeSheetsUiState,
-    onSelectTab: (HomeSheetTab) -> Unit,
-    onCreateSheet: (String) -> Unit,
-    onImportSheet: () -> Unit,
-    onOpenMineSheet: (String) -> Unit,
-    onOpenStarredSheet: (HomeSheetUiModel) -> Unit = {},
-) {
-    homeSheetsSection(
-        uiState = uiState,
-        onSelectTab = onSelectTab,
-        onCreateClick = {},
-        onImportClick = onImportSheet,
-        onOpenMineSheet = onOpenMineSheet,
-        onOpenStarredSheet = onOpenStarredSheet,
-    )
-}
