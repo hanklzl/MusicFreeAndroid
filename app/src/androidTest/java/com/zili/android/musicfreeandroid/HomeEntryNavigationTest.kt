@@ -1,9 +1,9 @@
 package com.zili.android.musicfreeandroid
 
 import android.content.pm.PackageManager
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -73,23 +73,57 @@ class HomeEntryNavigationTest {
     }
 
     @Test
-    fun settingsEntry_opensSettingsRoot() {
-        openDrawerDestination(FidelityAnchors.Home.DrawerSettings)
+    fun settingsBasicEntry_opensSettingsRoot() {
+        openDrawerDestination(FidelityAnchors.Home.DrawerSettingsBasic)
         assertTagExists(FidelityAnchors.Screen.SettingsRoot)
+    }
+
+    @Test
+    fun settingsPluginEntry_exposesSettingsPluginAnchor() {
+        openDrawerDestination(FidelityAnchors.Home.DrawerSettingsPlugin)
+        assertSettingsFallbackEntry(FidelityAnchors.Settings.PluginManagementEntry)
+    }
+
+    @Test
+    fun settingsThemeEntry_exposesSettingsThemeAnchor() {
+        openDrawerDestination(FidelityAnchors.Home.DrawerSettingsTheme)
+        assertSettingsFallbackEntry(FidelityAnchors.Settings.ThemeEntry)
+    }
+
+    @Test
+    fun scheduleCloseEntry_opensTimingClosePanel() {
+        openDrawerDestination(FidelityAnchors.Home.DrawerOtherScheduleClose)
+        assertTagExists(FidelityAnchors.Panel.TimingCloseRoot)
+    }
+
+    @Test
+    fun backupEntry_exposesSettingsBackupAnchor() {
+        openDrawerDestination(FidelityAnchors.Home.DrawerOtherBackup)
+        assertSettingsFallbackEntry(FidelityAnchors.Settings.BackupEntry)
     }
 
     @Test
     fun permissionsEntry_opensPermissionsRoot() {
-        openDrawerDestination(FidelityAnchors.Home.DrawerPermissions)
+        openDrawerDestination(FidelityAnchors.Home.DrawerOtherPermissions)
         assertTagExists(FidelityAnchors.Screen.PermissionsRoot)
     }
 
     @Test
-    fun pluginManagementEntry_exposesSettingsPluginAnchor() {
-        openDrawerDestination(FidelityAnchors.Home.DrawerPluginManagement)
-        assertTagExists(FidelityAnchors.Screen.SettingsRoot)
-        scrollToNode(FidelityAnchors.Settings.PluginManagementEntry)
-        assertTagExists(FidelityAnchors.Settings.PluginManagementEntry)
+    fun languageEntry_opensLanguageDialog() {
+        openDrawerDestination(FidelityAnchors.Home.DrawerSoftwareLanguage)
+        assertTagExists(FidelityAnchors.Dialog.LanguageRoot)
+    }
+
+    @Test
+    fun checkUpdateEntry_opensUpdateCheckDialog() {
+        openDrawerDestination(FidelityAnchors.Home.DrawerSoftwareCheckUpdate)
+        assertTagExists(FidelityAnchors.Dialog.UpdateCheckRoot)
+    }
+
+    @Test
+    fun aboutEntry_exposesSettingsAboutAnchor() {
+        openDrawerDestination(FidelityAnchors.Home.DrawerSoftwareAbout)
+        assertSettingsFallbackEntry(FidelityAnchors.Settings.AboutEntry)
     }
 
     private fun openDrawerDestination(destinationTag: String) {
@@ -102,6 +136,12 @@ class HomeEntryNavigationTest {
     private fun waitForHomeEntry(entryTag: String) {
         assertTagExists(FidelityAnchors.Screen.HomeRoot)
         assertTagExists(entryTag)
+    }
+
+    private fun assertSettingsFallbackEntry(tag: String) {
+        assertTagExists(FidelityAnchors.Screen.SettingsRoot)
+        scrollToNode(tag)
+        assertTagExists(tag)
     }
 
     private fun scrollToNode(tag: String) {
