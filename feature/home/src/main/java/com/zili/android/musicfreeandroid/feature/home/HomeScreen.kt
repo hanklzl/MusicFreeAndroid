@@ -9,7 +9,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.feature.home.playlist.PlaylistViewModel
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -26,7 +25,6 @@ fun HomeScreen(
     onNavigateToPlaylistDetail: (String) -> Unit,
     homeSystemActionHandler: HomeSystemActionHandler,
     homeSheetsViewModel: HomeSheetsViewModel = hiltViewModel(),
-    playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -81,7 +79,7 @@ fun HomeScreen(
         onNavigateToHistory = onNavigateToHistory,
         onNavigateToLocal = onNavigateToLocal,
         onSelectTab = homeSheetsViewModel::selectTab,
-        onCreateSheet = playlistViewModel::createPlaylist,
+        onCreateSheet = {},
         onImportSheet = {},
         onOpenMineSheet = onNavigateToPlaylistDetail,
         onOpenStarredSheet = {},
