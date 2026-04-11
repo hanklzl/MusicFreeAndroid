@@ -1,5 +1,13 @@
 # 里程碑 3：播放引擎（Media3 + 后台服务）实施计划
 
+> 文档状态：历史记录（执行快照）
+> 适用范围：当时阶段的实施计划与执行上下文。
+> 直接执行：否
+> 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
+> 备注：仅用于回溯，不代表当前仓库可直接执行。
+> 最后校验：2026-04-11
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **目标：** 基于 Media3（ExoPlayer）实现完整的播放引擎，支持后台播放、通知栏控制、音频焦点处理，并通过 `StateFlow<PlayerState>` 向 UI 层暴露响应式播放状态。

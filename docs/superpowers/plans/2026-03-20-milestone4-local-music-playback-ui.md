@@ -1,5 +1,13 @@
 # Milestone 4: 本地音乐扫描与播放 UI 实施计划
 
+> 文档状态：历史记录（执行快照）
+> 适用范围：当时阶段的实施计划与执行上下文。
+> 直接执行：否
+> 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
+> 备注：仅用于回溯，不代表当前仓库可直接执行。
+> 最后校验：2026-04-11
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 实现端到端的本地音乐播放体验：MediaStore 扫描 → 首页列表展示 → 全屏播放器 → 迷你播放栏。

@@ -1,17 +1,25 @@
 # 首页 UI Fidelity 设计文档
 
+> 文档状态：当前参考
+> 适用范围：首页 fidelity 设计决策与验收思路。
+> 直接执行：否
+> 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
+> 备注：用于理解设计背景，不替代当前执行规则。
+> 最后校验：2026-04-11
+
+
 ## 概述
 
 本文档定义 MusicFreeAndroid 首页 UI 专项收敛方案，目标是在固定黄金样本 Android 设备上，将首页主体与 Drawer 的静态结构、关键资源和关键动画尽可能完整地对齐到原版 MusicFree React Native 实现。
 
-本文档是对 [2026-03-25-home-fidelity-design.md](/Users/zili/code/android/MusicFreeAndroid/docs/superpowers/specs/2026-03-25-home-fidelity-design.md) 的聚焦细化，继承其中已锁定的黄金样本环境、固定首页数据态和首页取证约束；本轮不重复定义这些基线，只补充当前首页 UI 收敛所需的专项决策。
+本文档是对 [2026-03-25-home-fidelity-design.md](./2026-03-25-home-fidelity-design.md) 的聚焦细化，继承其中已锁定的黄金样本环境、固定首页数据态和首页取证约束；本轮不重复定义这些基线，只补充当前首页 UI 收敛所需的专项决策。
 
 本轮设计是在已有首页 fidelity 设计基础上的聚焦细化，重点关闭当前最明显的两类差异：
 
 - Drawer 结构、分组和底部操作区与原版偏差较大
 - 顶部四宫格、导航栏与歌单区仍混用 Android 默认图标和当前 Compose 骨架，缺少原版资源和交互节奏
 
-本轮首页数据基线的具体 source of truth 位于 [2026-04-11-homepage-ui-fidelity-manifest.md](/Users/zili/code/android/MusicFreeAndroid/docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md)。后续 planning、截图、录屏和 dump 验收必须引用该 manifest，而不是只引用旧 spec 的抽象约束。
+本轮首页数据基线的具体 source of truth 位于 [2026-04-11-homepage-ui-fidelity-manifest.md](./2026-04-11-homepage-ui-fidelity-manifest.md)。后续 planning、截图、录屏和 dump 验收必须引用该 manifest，而不是只引用旧 spec 的抽象约束。
 
 ## 已确认边界
 
@@ -39,7 +47,7 @@
 
 ## 原版参考
 
-原版 MusicFree 代码位于 `/Users/zili/code/android/MusicFree`。本轮首页 UI fidelity 直接参考以下文件：
+原版 MusicFree 代码位于 `../MusicFree`。本轮首页 UI fidelity 直接参考以下文件：
 
 - `src/pages/home/index.tsx`
 - `src/pages/home/components/navBar.tsx`

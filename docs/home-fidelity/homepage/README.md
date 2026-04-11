@@ -1,4 +1,12 @@
 # Homepage Fidelity Evidence
+
+> 文档状态：当前规范（首页专项）
+> 适用范围：首页取证资产的目录、命名与采集约束。
+> 直接执行：是（仅首页专项）
+> 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
+> 备注：该文档描述当前可用的首页证据采集约定。
+> 最后校验：2026-04-11
+
 ## Directory Layout
 - `android/`
 - `rn/`

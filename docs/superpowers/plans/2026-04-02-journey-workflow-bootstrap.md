@@ -1,5 +1,13 @@
 # Journey Workflow Bootstrap Implementation Plan
 
+> 文档状态：历史记录（执行快照）
+> 适用范围：当时阶段的实施计划与执行上下文。
+> 直接执行：否
+> 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
+> 备注：仅用于回溯，不代表当前仓库可直接执行。
+> 最后校验：2026-04-11
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Bootstrap the corrected journey workflow in the current repo by creating the new `specs/` asset surface, wiring `AGENTS.md` to it, and preparing `J-PLUGIN-SEARCH-PLAY` to `Ready for Plan` without reviving the deleted `convergence` layer.

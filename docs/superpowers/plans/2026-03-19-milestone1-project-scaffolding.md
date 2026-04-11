@@ -1,5 +1,13 @@
 # Milestone 1: Project Scaffolding & Multi-Module Setup
 
+> 文档状态：历史记录（执行快照）
+> 适用范围：当时阶段的实施计划与执行上下文。
+> 直接执行：否
+> 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
+> 备注：仅用于回溯，不代表当前仓库可直接执行。
+> 最后校验：2026-04-11
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Set up a multi-module Gradle project with Hilt DI, Compose Navigation, Material3 theme (matching original MusicFree), and placeholder screens for all feature modules.
@@ -307,9 +315,9 @@ git commit -m "build: create :core library module"
 - Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/Dimensions.kt`
 - Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/Rpx.kt`
 
-Color values extracted from original: `/Users/zili/code/android/MusicFree/src/core/theme.ts`
-Dimension values from: `/Users/zili/code/android/MusicFree/src/constants/uiConst.ts`
-RPX formula from: `/Users/zili/code/android/MusicFree/src/utils/rpx.ts`
+Color values extracted from original: `../MusicFree/src/core/theme.ts`
+Dimension values from: `../MusicFree/src/constants/uiConst.ts`
+RPX formula from: `../MusicFree/src/utils/rpx.ts`
 
 - [ ] **Step 1: Create MusicFreeColors.kt**
 
@@ -1295,7 +1303,7 @@ git commit -m "feat(app): integrate Hilt, NavHost, Scaffold with MusicFree theme
 - [ ] **Step 1: Run Gradle sync and build**
 
 ```bash
-cd /Users/zili/code/android/MusicFreeAndroid
+cd .
 ./gradlew assembleDebug
 ```
 

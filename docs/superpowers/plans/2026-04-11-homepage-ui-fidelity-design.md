@@ -1,5 +1,13 @@
 # Homepage UI Fidelity Implementation Plan
 
+> 文档状态：历史记录（执行快照）
+> 适用范围：当时阶段的实施计划与执行上下文。
+> 直接执行：否
+> 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
+> 备注：仅用于回溯，不代表当前仓库可直接执行。
+> 最后校验：2026-04-11
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rebuild the Android home chrome and drawer so the golden-device homepage matches the RN structure, iconography, drawer information architecture, and critical interactions defined by the April 11 homepage fidelity spec.
@@ -117,7 +125,7 @@ Create these files under `feature/home/src/main/res/drawable/`:
 - `ic_home_t_shirt_outline.xml`
 - `ic_home_trophy.xml`
 
-Each drawable must be converted from the matching RN SVG under `/Users/zili/code/android/MusicFree/src/assets/icons/` with no stylistic redesign.
+Each drawable must be converted from the matching RN SVG under `../MusicFree/src/assets/icons/` with no stylistic redesign.
 
 ---
 
@@ -441,7 +449,7 @@ Expected: FAIL because `HomeIcons` and the drawable IDs do not exist yet.
 
 - [ ] **Step 3: Convert the RN SVGs and add `HomeIcons.kt`**
 
-Convert the SVGs from `/Users/zili/code/android/MusicFree/src/assets/icons/` into the 19 vector drawables listed above, then create `HomeIcons.kt`:
+Convert the SVGs from `../MusicFree/src/assets/icons/` into the 19 vector drawables listed above, then create `HomeIcons.kt`:
 
 ```kotlin
 object HomeIcons {

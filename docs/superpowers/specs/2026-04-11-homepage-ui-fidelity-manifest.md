@@ -1,13 +1,21 @@
 # 首页 UI Fidelity 黄金数据态 Manifest
 
+> 文档状态：当前规范（首页专项）
+> 适用范围：首页 UI fidelity 黄金数据态基线。
+> 直接执行：是（仅首页专项）
+> 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
+> 备注：首页截图、录屏、dump 验收前应先恢复到本 manifest。
+> 最后校验：2026-04-11
+
+
 ## 版本
 
 - Manifest ID: `home-ui-fidelity-2026-04-11-v1`
 - RN 参考提交：`a94d782552466b08f5e5dc78fa76eef5638782c4`
 - Android 规划参考提交：`cb8eaa8d9833765566cb80af51e7c3f2a7a52d1c`
 - 关联 spec：
-  - [2026-03-25-home-fidelity-design.md](/Users/zili/code/android/MusicFreeAndroid/docs/superpowers/specs/2026-03-25-home-fidelity-design.md)
-  - [2026-04-11-homepage-ui-fidelity-design.md](/Users/zili/code/android/MusicFreeAndroid/docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-design.md)
+  - [2026-03-25-home-fidelity-design.md](./2026-03-25-home-fidelity-design.md)
+  - [2026-04-11-homepage-ui-fidelity-design.md](./2026-04-11-homepage-ui-fidelity-design.md)
 
 ## 用途
 

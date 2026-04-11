@@ -1,12 +1,20 @@
 # MusicFree Android 原生重写设计文档
 
+> 文档状态：当前参考
+> 适用范围：项目早期总体设计与分层思路。
+> 直接执行：否
+> 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
+> 备注：架构思路可参考，版本与进度类信息以 AGENTS 与代码事实为准。
+> 最后校验：2026-04-11
+
+
 ## 概述
 
 将 MusicFree 从 React Native 重写为 Android 原生技术栈（Jetpack Compose），以优化性能（启动速度、内存占用、流畅度）。采用多模块 MVVM 架构，分阶段实施，第一阶段聚焦核心播放功能。
 
 ## 原版参考
 
-原版 MusicFree 是一个基于 React Native 的插件化音乐播放器，代码位于 `/Users/zili/code/android/MusicFree`。所有数据模型、数据结构和业务逻辑的实现，都应先阅读原版代码作为参考蓝本。
+原版 MusicFree 是一个基于 React Native 的插件化音乐播放器，代码位于 `../MusicFree`。所有数据模型、数据结构和业务逻辑的实现，都应先阅读原版代码作为参考蓝本。
 
 关键参考路径：
 - 类型定义：`src/types/`（music.d.ts、plugin.d.ts、artist.d.ts 等）
@@ -354,7 +362,7 @@ val LocalMusicFreeColors = staticCompositionLocalOf { lightColors }
 ### 6. 截图驱动验证
 
 每个里程碑的 UI 验收流程：
-1. 编译运行原版 MusicFree（`cd /Users/zili/code/android/MusicFree && npx react-native run-android`）
+1. 编译运行原版 MusicFree（`cd ../MusicFree && npx react-native run-android`）
 2. 对相关页面截图作为基准参考
 3. 实现 Compose 页面后，截图对比，调整至视觉一致
 4. 重点关注：间距、字号、颜色、圆角、阴影、动画时序

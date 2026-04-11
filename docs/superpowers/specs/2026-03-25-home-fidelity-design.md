@@ -1,5 +1,13 @@
 # 首页 100% 还原设计文档
 
+> 文档状态：当前参考
+> 适用范围：首页 fidelity 早期基线设计。
+> 直接执行：否
+> 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
+> 备注：作为背景参考，需结合新版首页文档与仓库现状使用。
+> 最后校验：2026-04-11
+
+
 ## 概述
 
 本文档定义 MusicFreeAndroid 首页专项收敛方案，目标是在单一黄金样本 Android 设备上，将首页竖屏完整滚动内容、Drawer 以及首页可达入口，尽可能完整地还原到原版 MusicFree React Native 实现。
@@ -99,7 +107,7 @@ manifest 至少包含：
 
 ## 原版参考
 
-原版 MusicFree 代码位于 `/Users/zili/code/android/MusicFree`。本次首页设计的直接参考如下：
+原版 MusicFree 代码位于 `../MusicFree`。本次首页设计的直接参考如下：
 
 - `src/pages/home/index.tsx`
 - `src/pages/home/components/navBar.tsx`
