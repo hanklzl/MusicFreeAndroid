@@ -93,8 +93,8 @@ fun buildHomeVisualUiModel(selectedTab: HomeSheetTab): HomeVisualUiModel {
         operations = HOME_OPERATIONS,
         playlistSection = HomePlaylistSectionUiModel(
             selectedTab = selectedTab,
-            mineCount = 4,
-            starredCount = 4,
+            mineCount = MINE_ROWS.size,
+            starredCount = STARRED_ROWS.size,
             rows = rows,
         ),
     )
