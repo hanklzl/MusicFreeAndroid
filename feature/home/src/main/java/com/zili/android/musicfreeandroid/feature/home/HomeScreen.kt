@@ -29,6 +29,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val state = remember { HomeScreenState() }
+    val allowHomeMockSheetNavigation = false
     var selectedTab by rememberSaveable { mutableStateOf(HomeSheetTab.Mine) }
     val visualUiModel = remember(selectedTab) { buildHomeVisualUiModel(selectedTab) }
     val currentLanguage = remember {
@@ -83,15 +84,17 @@ fun HomeScreen(
         onCreateClick = {},
         onImportClick = {},
         onOpenMineSheet = { sheetId ->
-            if (!sheetId.isMockHomeSheetId()) {
+            if (allowHomeMockSheetNavigation) {
                 onNavigateToPlaylistDetail(sheetId)
             }
         },
-        onOpenStarredSheet = {},
+        onOpenStarredSheet = {
+            if (allowHomeMockSheetNavigation) {
+                Unit
+            }
+        },
     )
 }
-
-private fun String.isMockHomeSheetId(): Boolean = startsWith(prefix = "mock-")
 
 private fun PackageManager.versionNameForPackage(packageName: String): String? {
     val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

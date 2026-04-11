@@ -6,8 +6,11 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchorPatterns
+import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -88,6 +91,42 @@ class HomeScreenMockContentTest {
         }
 
         composeRule.onNodeWithTag(FidelityAnchorPatterns.mineSheetItem("mock-mine-liked")).performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(0, playlistDetailNavigations)
+        }
+    }
+
+    @Test
+    fun `home screen ignores mock starred row navigation at container level`() {
+        var playlistDetailNavigations = 0
+
+        composeRule.setContent {
+            MusicFreeTheme {
+                HomeScreen(
+                    onNavigateToSearch = {},
+                    onNavigateToRecommendSheets = {},
+                    onNavigateToHistory = {},
+                    onNavigateToLocal = {},
+                    onNavigateToSettings = {},
+                    onNavigateToPermissions = {},
+                    onNavigateToTopList = {},
+                    onNavigateToPlaylistDetail = { playlistDetailNavigations++ },
+                    homeSystemActionHandler = object : HomeSystemActionHandler {
+                        override fun backToDesktop() = Unit
+                        override suspend fun exitApp() = Unit
+                    },
+                )
+            }
+        }
+
+        composeRule.onAllNodesWithTag(FidelityAnchorPatterns.starredSheetItem("mock-starred-neo")).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(FidelityAnchorPatterns.mineSheetItem("mock-mine-liked")).assertCountEquals(1)
+        composeRule.onNodeWithTag(FidelityAnchors.Home.SheetsStarredTab, useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag(FidelityAnchorPatterns.starredSheetItem("mock-starred-neo")).assertCountEquals(1)
+        composeRule.onNodeWithTag(FidelityAnchorPatterns.starredSheetItem("mock-starred-neo")).performClick()
 
         composeRule.runOnIdle {
             assertEquals(0, playlistDetailNavigations)
