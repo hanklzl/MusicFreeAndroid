@@ -5,11 +5,13 @@ import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.feature.home.playlist.PlaylistViewModel
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModel
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 @Composable
@@ -22,10 +24,12 @@ fun HomeScreen(
     onNavigateToPermissions: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
+    homeSystemActionHandler: HomeSystemActionHandler,
     homeSheetsViewModel: HomeSheetsViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val sheetsUiState by homeSheetsViewModel.uiState.collectAsStateWithLifecycle()
     val state = remember { HomeScreenState() }
     val currentLanguage = remember {
@@ -59,8 +63,12 @@ fun HomeScreen(
                 HomeDrawerAction.OpenAbout -> onNavigateToSettings()
 
                 HomeDrawerAction.OpenPermissions -> onNavigateToPermissions()
-                HomeDrawerAction.BackToDesktop,
-                HomeDrawerAction.ExitApp -> Unit
+                HomeDrawerAction.BackToDesktop -> homeSystemActionHandler.backToDesktop()
+                HomeDrawerAction.ExitApp -> {
+                    coroutineScope.launch {
+                        homeSystemActionHandler.exitApp()
+                    }
+                }
 
                 HomeDrawerAction.ShowScheduleClosePanel,
                 HomeDrawerAction.ShowLanguageDialog,

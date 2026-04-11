@@ -190,6 +190,19 @@ class PlayerController @Inject constructor(
         _playHistory.value = emptyList()
     }
 
+    fun reset() {
+        runOnControllerThread {
+            positionUpdateJob?.cancel()
+            positionUpdateJob = null
+            mediaController?.stop()
+            mediaController?.clearMediaItems()
+            playQueue.clear()
+            repeatMode = RepeatMode.OFF
+            shuffleEnabled = false
+            _playerState.value = PlayerState.EMPTY
+        }
+    }
+
     fun removeFromQueue(index: Int): MusicItem? {
         val wasCurrentItem = playQueue.currentItem
         val newCurrent = playQueue.remove(index)

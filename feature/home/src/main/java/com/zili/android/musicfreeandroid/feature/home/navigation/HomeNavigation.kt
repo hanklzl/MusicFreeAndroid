@@ -4,6 +4,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.feature.home.HomeScreen
+import com.zili.android.musicfreeandroid.feature.home.HomeSystemActionHandler
 
 fun NavGraphBuilder.homeScreen(
     onNavigateToSearch: () -> Unit,
@@ -14,6 +15,7 @@ fun NavGraphBuilder.homeScreen(
     onNavigateToPermissions: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
+    homeSystemActionHandler: HomeSystemActionHandler,
 ) {
     composable<HomeRoute> {
         HomeScreen(
@@ -25,6 +27,7 @@ fun NavGraphBuilder.homeScreen(
             onNavigateToPermissions = onNavigateToPermissions,
             onNavigateToTopList = onNavigateToTopList,
             onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,
+            homeSystemActionHandler = homeSystemActionHandler,
         )
     }
 }

@@ -23,6 +23,7 @@ import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
+import com.zili.android.musicfreeandroid.feature.home.HomeSystemActionHandler
 import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.albumDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.artistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.musicDetailScreen
@@ -45,6 +46,7 @@ import com.zili.android.musicfreeandroid.feature.settings.navigation.settingsScr
 @Composable
 fun AppNavHost(
     navController: NavHostController,
+    homeSystemActionHandler: HomeSystemActionHandler,
     modifier: Modifier = Modifier,
 ) {
     NavHost(
@@ -63,6 +65,7 @@ fun AppNavHost(
             onNavigateToPlaylistDetail = { playlistId ->
                 navController.navigate(PlaylistDetailRoute(playlistId))
             },
+            homeSystemActionHandler = homeSystemActionHandler,
         )
         localScreen(
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
