@@ -121,7 +121,8 @@ private fun OperationCard(
                 shape = RoundedCornerShape(rpx(18)),
             )
             .testTag(anchorTag)
-            .padding(vertical = rpx(16)),
+            .padding(vertical = rpx(16))
+            .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
