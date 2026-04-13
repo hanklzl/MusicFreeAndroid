@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.plugin.meta
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -47,7 +48,9 @@ class PluginMetaStore @Inject constructor(
 
     val pluginOrder: Flow<List<String>> = dataStore.data.map { prefs ->
         prefs[KEY_PLUGIN_ORDER]?.let { jsonStr ->
-            runCatching { json.decodeFromString<List<String>>(jsonStr) }.getOrDefault(emptyList())
+            runCatching { json.decodeFromString<List<String>>(jsonStr) }
+                .onFailure { Log.w(TAG, "Failed to decode plugin_order, resetting", it) }
+                .getOrDefault(emptyList())
         } ?: emptyList()
     }
 
@@ -60,16 +63,16 @@ class PluginMetaStore @Inject constructor(
     // ── 用户变量 ──
 
     fun getUserVariables(platform: String): Flow<Map<String, String>> = dataStore.data.map { prefs ->
-        val key = stringPreferencesKey("user_variables_$platform")
-        prefs[key]?.let { jsonStr ->
-            runCatching { json.decodeFromString<Map<String, String>>(jsonStr) }.getOrDefault(emptyMap())
+        prefs[userVariablesKey(platform)]?.let { jsonStr ->
+            runCatching { json.decodeFromString<Map<String, String>>(jsonStr) }
+                .onFailure { Log.w(TAG, "Failed to decode user_variables for $platform, resetting", it) }
+                .getOrDefault(emptyMap())
         } ?: emptyMap()
     }
 
     suspend fun setUserVariables(platform: String, variables: Map<String, String>) {
         dataStore.edit { prefs ->
-            val key = stringPreferencesKey("user_variables_$platform")
-            prefs[key] = json.encodeToString(variables)
+            prefs[userVariablesKey(platform)] = json.encodeToString(variables)
         }
     }
 
@@ -77,24 +80,22 @@ class PluginMetaStore @Inject constructor(
 
     val subscriptions: Flow<List<SubscriptionItem>> = dataStore.data.map { prefs ->
         prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
-            runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }.getOrDefault(emptyList())
+            runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }
+                .onFailure { Log.w(TAG, "Failed to decode subscriptions, resetting", it) }
+                .getOrDefault(emptyList())
         } ?: emptyList()
     }
 
     suspend fun addSubscription(name: String, url: String) {
         dataStore.edit { prefs ->
-            val current = prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
-                runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }.getOrDefault(emptyList())
-            } ?: emptyList()
+            val current = currentSubscriptions(prefs)
             prefs[KEY_SUBSCRIPTIONS] = json.encodeToString(current + SubscriptionItem(name, url))
         }
     }
 
     suspend fun updateSubscription(index: Int, name: String, url: String) {
         dataStore.edit { prefs ->
-            val current = prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
-                runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }.getOrDefault(emptyList())
-            } ?: emptyList()
+            val current = currentSubscriptions(prefs)
             if (index in current.indices) {
                 val updated = current.toMutableList()
                 updated[index] = SubscriptionItem(name, url)
@@ -105,9 +106,7 @@ class PluginMetaStore @Inject constructor(
 
     suspend fun removeSubscription(index: Int) {
         dataStore.edit { prefs ->
-            val current = prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
-                runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }.getOrDefault(emptyList())
-            } ?: emptyList()
+            val current = currentSubscriptions(prefs)
             if (index in current.indices) {
                 val updated = current.toMutableList()
                 updated.removeAt(index)
@@ -116,7 +115,18 @@ class PluginMetaStore @Inject constructor(
         }
     }
 
+    private fun currentSubscriptions(prefs: Preferences): List<SubscriptionItem> =
+        prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
+            runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }
+                .onFailure { Log.w(TAG, "Failed to decode subscriptions, resetting", it) }
+                .getOrDefault(emptyList())
+        } ?: emptyList()
+
+    private fun userVariablesKey(platform: String) =
+        stringPreferencesKey("user_variables_$platform")
+
     private companion object {
+        const val TAG = "PluginMetaStore"
         val KEY_DISABLED_PLUGINS = stringSetPreferencesKey("disabled_plugins")
         val KEY_PLUGIN_ORDER = stringPreferencesKey("plugin_order")
         val KEY_SUBSCRIPTIONS = stringPreferencesKey("subscriptions")
