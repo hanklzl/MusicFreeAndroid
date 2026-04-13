@@ -1,0 +1,124 @@
+package com.zili.android.musicfreeandroid.plugin.meta
+
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.zili.android.musicfreeandroid.plugin.di.PluginMetaDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@kotlinx.serialization.Serializable
+data class SubscriptionItem(val name: String, val url: String)
+
+@Singleton
+class PluginMetaStore @Inject constructor(
+    @PluginMetaDataStore private val dataStore: DataStore<Preferences>,
+) {
+    private val json = Json { ignoreUnknownKeys = true }
+
+    // ── 启用/禁用 ──
+
+    val disabledPlugins: Flow<Set<String>> = dataStore.data.map { prefs ->
+        prefs[KEY_DISABLED_PLUGINS] ?: emptySet()
+    }
+
+    suspend fun setPluginEnabled(platform: String, enabled: Boolean) {
+        dataStore.edit { prefs ->
+            val current = prefs[KEY_DISABLED_PLUGINS] ?: emptySet()
+            prefs[KEY_DISABLED_PLUGINS] = if (enabled) {
+                current - platform
+            } else {
+                current + platform
+            }
+        }
+    }
+
+    fun isPluginEnabled(platform: String): Flow<Boolean> = dataStore.data.map { prefs ->
+        platform !in (prefs[KEY_DISABLED_PLUGINS] ?: emptySet())
+    }
+
+    // ── 排序 ──
+
+    val pluginOrder: Flow<List<String>> = dataStore.data.map { prefs ->
+        prefs[KEY_PLUGIN_ORDER]?.let { jsonStr ->
+            runCatching { json.decodeFromString<List<String>>(jsonStr) }.getOrDefault(emptyList())
+        } ?: emptyList()
+    }
+
+    suspend fun setPluginOrder(order: List<String>) {
+        dataStore.edit { prefs ->
+            prefs[KEY_PLUGIN_ORDER] = json.encodeToString(order)
+        }
+    }
+
+    // ── 用户变量 ──
+
+    fun getUserVariables(platform: String): Flow<Map<String, String>> = dataStore.data.map { prefs ->
+        val key = stringPreferencesKey("user_variables_$platform")
+        prefs[key]?.let { jsonStr ->
+            runCatching { json.decodeFromString<Map<String, String>>(jsonStr) }.getOrDefault(emptyMap())
+        } ?: emptyMap()
+    }
+
+    suspend fun setUserVariables(platform: String, variables: Map<String, String>) {
+        dataStore.edit { prefs ->
+            val key = stringPreferencesKey("user_variables_$platform")
+            prefs[key] = json.encodeToString(variables)
+        }
+    }
+
+    // ── 订阅源 ──
+
+    val subscriptions: Flow<List<SubscriptionItem>> = dataStore.data.map { prefs ->
+        prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
+            runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }.getOrDefault(emptyList())
+        } ?: emptyList()
+    }
+
+    suspend fun addSubscription(name: String, url: String) {
+        dataStore.edit { prefs ->
+            val current = prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
+                runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }.getOrDefault(emptyList())
+            } ?: emptyList()
+            prefs[KEY_SUBSCRIPTIONS] = json.encodeToString(current + SubscriptionItem(name, url))
+        }
+    }
+
+    suspend fun updateSubscription(index: Int, name: String, url: String) {
+        dataStore.edit { prefs ->
+            val current = prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
+                runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }.getOrDefault(emptyList())
+            } ?: emptyList()
+            if (index in current.indices) {
+                val updated = current.toMutableList()
+                updated[index] = SubscriptionItem(name, url)
+                prefs[KEY_SUBSCRIPTIONS] = json.encodeToString(updated)
+            }
+        }
+    }
+
+    suspend fun removeSubscription(index: Int) {
+        dataStore.edit { prefs ->
+            val current = prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
+                runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }.getOrDefault(emptyList())
+            } ?: emptyList()
+            if (index in current.indices) {
+                val updated = current.toMutableList()
+                updated.removeAt(index)
+                prefs[KEY_SUBSCRIPTIONS] = json.encodeToString(updated)
+            }
+        }
+    }
+
+    private companion object {
+        val KEY_DISABLED_PLUGINS = stringSetPreferencesKey("disabled_plugins")
+        val KEY_PLUGIN_ORDER = stringPreferencesKey("plugin_order")
+        val KEY_SUBSCRIPTIONS = stringPreferencesKey("subscriptions")
+    }
+}
