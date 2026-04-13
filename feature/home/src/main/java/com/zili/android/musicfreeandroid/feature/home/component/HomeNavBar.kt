@@ -59,7 +59,7 @@ fun HomeNavBar(
         }
         Row(
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 .padding(start = rpx(14))
                 .height(rpx(64))
                 .homeInteractionStyle(

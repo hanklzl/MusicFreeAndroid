@@ -41,8 +41,8 @@ fun HomeOperations(
             .fillMaxWidth()
             .testTag(FidelityAnchors.Home.OperationsRoot)
             .semantics { testTagsAsResourceId = true }
-            .padding(horizontal = rpx(24), vertical = rpx(24)),
-        horizontalArrangement = Arrangement.spacedBy(rpx(16)),
+            .padding(horizontal = rpx(24), vertical = rpx(32)),
+        horizontalArrangement = Arrangement.spacedBy(rpx(24)),
     ) {
         operations.forEach { operation ->
             val chrome = operationChrome(
