@@ -109,8 +109,8 @@ fun MiniPlayerContent(
             contentDescription = "播放队列",
             tint = MusicFreeTheme.colors.musicBarText,
             modifier = Modifier
-                .size(rpx(56))
                 .clickable(onClick = onOpenQueue)
+                .size(rpx(56))
                 .testTag(FidelityAnchors.Player.MiniQueue),
         )
         Spacer(Modifier.width(rpx(24)))
