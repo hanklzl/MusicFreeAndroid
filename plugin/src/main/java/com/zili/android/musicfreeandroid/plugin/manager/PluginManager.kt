@@ -785,6 +785,14 @@ class PluginManager @Inject constructor(
             listOf("music")
         }
 
+        // Parse hints: { [methodName]: string[] }
+        val hintsJson = try {
+            val raw = engine.evaluate("JSON.stringify(__plugin.hints)")?.toString()
+            if (raw != null && raw != "undefined" && raw != "null" && raw.startsWith("{")) {
+                kotlinx.serialization.json.Json.decodeFromString<Map<String, List<String>>>(raw)
+            } else null
+        } catch (e: Exception) { null }
+
         return PluginInfo(
             platform = platform,
             version = prop("version"),
@@ -792,6 +800,11 @@ class PluginManager @Inject constructor(
             description = prop("description"),
             srcUrl = prop("srcUrl"),
             supportedSearchType = supportedSearchType,
+            appVersion = prop("appVersion"),
+            primaryKey = prop("primaryKey"),
+            defaultSearchType = prop("defaultSearchType"),
+            cacheControl = prop("cacheControl"),
+            hints = hintsJson,
         )
     }
 }
