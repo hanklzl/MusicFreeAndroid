@@ -62,7 +62,7 @@ fun PluginListScreen(
     modifier: Modifier = Modifier,
     viewModel: PluginListViewModel = hiltViewModel(),
 ) {
-    val pluginItems by viewModel.pluginItems.collectAsStateWithLifecycle(initialValue = emptyList())
+    val pluginItems by viewModel.pluginItems.collectAsStateWithLifecycle()
     val installState by viewModel.installState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 

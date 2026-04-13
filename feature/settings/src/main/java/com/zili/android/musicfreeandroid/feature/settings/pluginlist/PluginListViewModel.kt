@@ -6,13 +6,14 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,7 +36,7 @@ class PluginListViewModel @Inject constructor(
 
     private val metaStore: PluginMetaStore = pluginManager.pluginMetaStore
 
-    val pluginItems: Flow<List<PluginUiItem>> = combine(
+    val pluginItems: StateFlow<List<PluginUiItem>> = combine(
         pluginManager.plugins.map { list -> list.map { it.info } },
         metaStore.disabledPlugins,
         metaStore.pluginOrder,
@@ -46,7 +47,11 @@ class PluginListViewModel @Inject constructor(
         if (order.isEmpty()) return@combine items
         val orderMap = order.withIndex().associate { (i, p) -> p to i }
         items.sortedBy { orderMap[it.info.platform] ?: Int.MAX_VALUE }
-    }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList(),
+    )
 
     private val _installState = MutableStateFlow<InstallState>(InstallState.Idle)
     val installState: StateFlow<InstallState> = _installState.asStateFlow()
