@@ -146,3 +146,12 @@ data class ArtistDetailRoute(
     val name: String,
     val avatar: String? = null,
 )
+
+@Serializable
+data object PluginListRoute
+
+@Serializable
+data object PluginSortRoute
+
+@Serializable
+data object PluginSubscriptionRoute
