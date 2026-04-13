@@ -37,12 +37,12 @@ fun HomeNavBar(
             .fillMaxWidth()
             .height(rpx(88))
             .testTag(FidelityAnchors.Home.NavBarRoot)
-            .semantics { testTagsAsResourceId = true }
-            .padding(horizontal = rpx(18)),
+            .semantics { testTagsAsResourceId = true },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
+                .padding(start = rpx(24))
                 .homeIconButtonInteractionStyle(
                     onClick = onOpenMenu,
                     shape = CircleShape,
@@ -60,7 +60,7 @@ fun HomeNavBar(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = rpx(14))
+                .padding(horizontal = rpx(24))
                 .height(rpx(64))
                 .homeInteractionStyle(
                     onClick = onOpenSearch,

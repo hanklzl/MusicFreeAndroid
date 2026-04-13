@@ -106,9 +106,8 @@ private fun HomeSheetTabButton(
                 shape = RoundedCornerShape(rpx(12)),
                 minHeight = null,
             )
-            .testTag(anchorTag)
-            .padding(bottom = rpx(8)),
-        verticalAlignment = Alignment.Bottom,
+            .testTag(anchorTag),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(
             modifier = Modifier.width(IntrinsicSize.Max),

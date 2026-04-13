@@ -75,10 +75,14 @@ internal fun Modifier.homeInteractionStyle(
         modifier = modifier.semantics { this[SemanticsProperties.Role] = role }
     }
 
-    return modifier.requiredSizeIn(
-        minWidth = minWidth ?: 0.dp,
-        minHeight = minHeight ?: 0.dp,
-    )
+    return if (minWidth != null || minHeight != null) {
+        modifier.requiredSizeIn(
+            minWidth = minWidth ?: 0.dp,
+            minHeight = minHeight ?: 0.dp,
+        )
+    } else {
+        modifier
+    }
 }
 
 @Composable
