@@ -8,12 +8,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModel
 import com.zili.android.musicfreeandroid.player.model.PlayerState
 
-internal fun PlayerState.toMiniPlayerUiModel(onNavigateToQueue: (() -> Unit)?): MiniPlayerUiModel = MiniPlayerUiModel(
+internal fun PlayerState.toMiniPlayerUiModel(): MiniPlayerUiModel = MiniPlayerUiModel(
     coverUri = currentItem?.artwork,
-    title = currentItem?.title.orEmpty(),
-    subtitle = currentItem?.artist.orEmpty(),
+    title = currentItem?.title ?: "",
+    artist = currentItem?.artist ?: "",
     isPlaying = isPlaying,
-    showQueueButton = onNavigateToQueue != null,
+    progress = if (duration > 0L) position.toFloat() / duration else 0f,
+    hasPrev = true,
+    hasNext = true,
+    prevTitle = null,
+    nextTitle = null,
 )
 
 @Composable
@@ -28,10 +32,12 @@ fun MiniPlayer(
     if (!state.hasMedia) return
 
     MiniPlayerContent(
-        uiModel = state.toMiniPlayerUiModel(onNavigateToQueue),
+        uiModel = state.toMiniPlayerUiModel(),
         onOpenPlayer = onNavigateToPlayer,
         onTogglePlayPause = viewModel::togglePlayPause,
         onOpenQueue = onNavigateToQueue ?: {},
+        onSkipNext = {},
+        onSkipPrev = {},
         modifier = modifier,
     )
 }

@@ -26,7 +26,7 @@ import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayer
 import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayerContent
-import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayerUiModel
+import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayerMockFactory
 import com.zili.android.musicfreeandroid.navigation.AndroidHomeSystemActionHandler
 import com.zili.android.musicfreeandroid.navigation.AppNavHost
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
@@ -67,18 +67,16 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         when {
                             isHomeRoute -> MiniPlayerContent(
-                                uiModel = MiniPlayerUiModel(
-                                    coverUri = null,
-                                    title = "In the End",
-                                    subtitle = "Linkin Park",
+                                uiModel = MiniPlayerMockFactory.buildMockUiModel(
                                     isPlaying = isHomeMockPlaying,
-                                    showQueueButton = true,
                                 ),
                                 onOpenPlayer = {},
                                 onTogglePlayPause = {
                                     isHomeMockPlaying = !isHomeMockPlaying
                                 },
                                 onOpenQueue = {},
+                                onSkipNext = {},
+                                onSkipPrev = {},
                             )
 
                             showRealMiniPlayer -> {

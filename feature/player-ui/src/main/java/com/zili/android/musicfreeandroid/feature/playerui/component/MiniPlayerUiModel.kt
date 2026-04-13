@@ -3,7 +3,11 @@ package com.zili.android.musicfreeandroid.feature.playerui.component
 data class MiniPlayerUiModel(
     val coverUri: String?,
     val title: String,
-    val subtitle: String,
+    val artist: String,
     val isPlaying: Boolean,
-    val showQueueButton: Boolean,
+    val progress: Float,
+    val hasPrev: Boolean,
+    val hasNext: Boolean,
+    val prevTitle: String?,
+    val nextTitle: String?,
 )

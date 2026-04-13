@@ -3,7 +3,6 @@ package com.zili.android.musicfreeandroid.feature.playerui.component
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -12,8 +11,6 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.player.model.PlayerState
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,13 +36,19 @@ class MiniPlayerContentTest {
                     uiModel = MiniPlayerUiModel(
                         coverUri = null,
                         title = "夜空中最亮的星",
-                        subtitle = "逃跑计划",
+                        artist = "逃跑计划",
                         isPlaying = true,
-                        showQueueButton = true,
+                        progress = 0.5f,
+                        hasPrev = true,
+                        hasNext = true,
+                        prevTitle = null,
+                        nextTitle = null,
                     ),
                     onOpenPlayer = { openPlayerClicks++ },
                     onTogglePlayPause = { playPauseClicks++ },
                     onOpenQueue = { queueClicks++ },
+                    onSkipNext = {},
+                    onSkipPrev = {},
                 )
             }
         }
@@ -62,12 +65,10 @@ class MiniPlayerContentTest {
             assertEquals(1, playPauseClicks)
             assertEquals(1, queueClicks)
         }
-
-        composeRule.onAllNodesWithContentDescription("下一曲").assertCountEquals(0)
     }
 
     @Test
-    fun `wrapper model hides queue button when queue callback is absent`() {
+    fun `wrapper model maps player state to ui model`() {
         val state = PlayerState.EMPTY.copy(
             currentItem = MusicItem(
                 id = "1",
@@ -81,36 +82,41 @@ class MiniPlayerContentTest {
                 qualities = null,
             ),
             isPlaying = true,
+            position = 36_000L,
         )
 
-        val withoutQueue = state.toMiniPlayerUiModel(onNavigateToQueue = null)
-        val withQueue = state.toMiniPlayerUiModel(onNavigateToQueue = {})
+        val uiModel = state.toMiniPlayerUiModel()
 
-        assertFalse(withoutQueue.showQueueButton)
-        assertTrue(withQueue.showQueueButton)
-        assertEquals("夜空中最亮的星", withoutQueue.title)
-        assertEquals("逃跑计划", withoutQueue.subtitle)
+        assertEquals("夜空中最亮的星", uiModel.title)
+        assertEquals("逃跑计划", uiModel.artist)
+        assertEquals(36_000f / 180_000f, uiModel.progress, 0.001f)
     }
 
     @Test
-    fun `mini player content hides queue node when queue button is disabled`() {
+    fun `mini player content queue button is always visible`() {
         composeRule.setContent {
             MusicFreeTheme {
                 MiniPlayerContent(
                     uiModel = MiniPlayerUiModel(
                         coverUri = null,
                         title = "夜空中最亮的星",
-                        subtitle = "逃跑计划",
+                        artist = "逃跑计划",
                         isPlaying = false,
-                        showQueueButton = false,
+                        progress = 0f,
+                        hasPrev = false,
+                        hasNext = false,
+                        prevTitle = null,
+                        nextTitle = null,
                     ),
                     onOpenPlayer = {},
                     onTogglePlayPause = {},
                     onOpenQueue = {},
+                    onSkipNext = {},
+                    onSkipPrev = {},
                 )
             }
         }
 
-        composeRule.onAllNodesWithTag(FidelityAnchors.Player.MiniQueue).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(FidelityAnchors.Player.MiniQueue).assertCountEquals(1)
     }
 }

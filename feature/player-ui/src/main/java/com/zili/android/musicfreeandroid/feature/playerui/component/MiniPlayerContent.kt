@@ -2,29 +2,29 @@ package com.zili.android.musicfreeandroid.feature.playerui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 
 @Composable
@@ -33,62 +33,86 @@ fun MiniPlayerContent(
     onOpenPlayer: () -> Unit,
     onTogglePlayPause: () -> Unit,
     onOpenQueue: () -> Unit,
+    onSkipNext: () -> Unit,
+    onSkipPrev: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .height(rpx(132))
             .background(MusicFreeTheme.colors.musicBar)
-            .clickable(onClick = onOpenPlayer)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
             .testTag(FidelityAnchors.Player.MiniRoot),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CoverImage(
-            uri = uiModel.coverUri,
-            size = 48.dp,
-            cornerRadius = 24.dp,
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = uiModel.title,
-                color = MusicFreeTheme.colors.musicBarText,
-                fontSize = FontSizes.content,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = uiModel.subtitle,
-                color = MusicFreeTheme.colors.musicBarText.copy(alpha = 0.6f),
-                fontSize = FontSizes.description,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        IconButton(
-            onClick = onTogglePlayPause,
-            modifier = Modifier.testTag(FidelityAnchors.Player.MiniPlayPause),
+        // MusicInfo area - flex:1, clickable to open player
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clickable(onClick = onOpenPlayer),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = if (uiModel.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (uiModel.isPlaying) "暂停" else "播放",
-                tint = MusicFreeTheme.colors.musicBarText,
-                modifier = Modifier.size(32.dp),
-            )
-        }
-        if (uiModel.showQueueButton) {
-            IconButton(
-                onClick = onOpenQueue,
-                modifier = Modifier.testTag(FidelityAnchors.Player.MiniQueue),
+            Spacer(Modifier.width(rpx(24)))
+            // Cover placeholder - circle
+            Box(
+                modifier = Modifier
+                    .size(rpx(96))
+                    .clip(CircleShape)
+                    .background(MusicFreeTheme.colors.placeholder),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.QueueMusic,
-                    contentDescription = "播放队列",
-                    tint = MusicFreeTheme.colors.musicBarText,
-                    modifier = Modifier.size(28.dp),
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = MusicFreeTheme.colors.textSecondary,
+                    modifier = Modifier.size(rpx(48)),
+                )
+            }
+            Spacer(Modifier.width(rpx(24)))
+            // Single-line title - artist
+            Row(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = uiModel.title,
+                    fontSize = FontSizes.content,
+                    color = MusicFreeTheme.colors.musicBarText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Text(
+                    text = " - ",
+                    color = MusicFreeTheme.colors.musicBarText.copy(alpha = 0.6f),
+                    fontSize = FontSizes.content,
+                )
+                Text(
+                    text = uiModel.artist,
+                    fontSize = FontSizes.description,
+                    color = MusicFreeTheme.colors.musicBarText.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
         }
+        // Circular play button
+        CircularPlayButton(
+            isPlaying = uiModel.isPlaying,
+            progress = uiModel.progress,
+            onTogglePlayPause = onTogglePlayPause,
+            modifier = Modifier.testTag(FidelityAnchors.Player.MiniPlayPause),
+        )
+        // Queue icon
+        Spacer(Modifier.width(rpx(36)))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+            contentDescription = "播放队列",
+            tint = MusicFreeTheme.colors.musicBarText,
+            modifier = Modifier
+                .size(rpx(56))
+                .clickable(onClick = onOpenQueue)
+                .testTag(FidelityAnchors.Player.MiniQueue),
+        )
+        Spacer(Modifier.width(rpx(24)))
     }
 }
