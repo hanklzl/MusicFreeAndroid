@@ -651,6 +651,12 @@ class PluginManager @Inject constructor(
         }
     }
 
+    private fun String.escapeForJsString(): String =
+        replace("\\", "\\\\")
+            .replace("'", "\\'")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+
     private fun deleteInstallMetadata(pluginFile: File) {
         runCatching {
             val metaFile = metadataFileFor(pluginFile)
@@ -729,8 +735,8 @@ class PluginManager @Inject constructor(
             engine.evaluate("""
                 globalThis.__env = {
                     os: 'android',
-                    appVersion: '${appVersion.replace("'", "\\'")}',
-                    lang: '${lang.replace("'", "\\'")}',
+                    appVersion: '${appVersion.escapeForJsString()}',
+                    lang: '${lang.escapeForJsString()}',
                     getUserVariables: function() { return globalThis.__userVariables || {}; }
                 };
             """.trimIndent())
@@ -768,8 +774,7 @@ class PluginManager @Inject constructor(
         if (userVars.isNotEmpty()) {
             engine.runOnJsThread {
                 val jsonStr = Json.encodeToString(userVars)
-                val escaped = jsonStr.replace("\\", "\\\\").replace("'", "\\'")
-                engine.evaluate("globalThis.__userVariables = JSON.parse('$escaped')")
+                engine.evaluate("globalThis.__userVariables = JSON.parse('${jsonStr.escapeForJsString()}')")
             }
         }
 
