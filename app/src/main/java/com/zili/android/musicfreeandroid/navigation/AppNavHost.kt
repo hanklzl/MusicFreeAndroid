@@ -17,7 +17,10 @@ import com.zili.android.musicfreeandroid.core.navigation.MusicListEditorLiteRout
 import com.zili.android.musicfreeandroid.core.navigation.PermissionsRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlaylistDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
+import com.zili.android.musicfreeandroid.core.navigation.PluginListRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.PluginSortRoute
+import com.zili.android.musicfreeandroid.core.navigation.PluginSubscriptionRoute
 import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
@@ -44,6 +47,9 @@ import com.zili.android.musicfreeandroid.feature.search.navigation.searchScreen
 import com.zili.android.musicfreeandroid.feature.settings.fileselector.navigation.fileSelectorLiteScreen
 import com.zili.android.musicfreeandroid.feature.settings.navigation.permissionsScreen
 import com.zili.android.musicfreeandroid.feature.settings.navigation.settingsScreen
+import com.zili.android.musicfreeandroid.feature.settings.pluginlist.navigation.pluginListScreen
+import com.zili.android.musicfreeandroid.feature.settings.pluginsort.navigation.pluginSortScreen
+import com.zili.android.musicfreeandroid.feature.settings.pluginsub.navigation.pluginSubscriptionScreen
 
 @Composable
 fun AppNavHost(
@@ -131,11 +137,24 @@ fun AppNavHost(
             onBack = { navController.popBackStack() },
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
             onNavigateToFileSelector = { navController.navigate(FileSelectorRoute) },
+            onNavigateToPluginList = { navController.navigate(PluginListRoute) },
         )
         fileSelectorLiteScreen(
             onBack = { navController.popBackStack() },
         )
         permissionsScreen(
+            onBack = { navController.popBackStack() },
+        )
+        pluginListScreen(
+            onBack = { navController.popBackStack() },
+            onNavigateToPluginSort = { navController.navigate(PluginSortRoute) },
+            onNavigateToPluginSubscription = { navController.navigate(PluginSubscriptionRoute) },
+            onNavigateToFileSelector = { navController.navigate(FileSelectorRoute) },
+        )
+        pluginSortScreen(
+            onBack = { navController.popBackStack() },
+        )
+        pluginSubscriptionScreen(
             onBack = { navController.popBackStack() },
         )
         topListScreen(
