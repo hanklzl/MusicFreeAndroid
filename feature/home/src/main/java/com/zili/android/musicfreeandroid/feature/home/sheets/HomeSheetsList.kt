@@ -2,18 +2,22 @@ package com.zili.android.musicfreeandroid.feature.home.sheets
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,6 +29,7 @@ import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchorPatterns
 import com.zili.android.musicfreeandroid.feature.home.component.homeInteractionStyle
 import com.zili.android.musicfreeandroid.feature.home.HomePlaylistSectionUiModel
+import com.zili.android.musicfreeandroid.feature.home.R
 
 fun LazyListScope.homeSheetsList(
     uiModel: HomePlaylistSectionUiModel,
@@ -74,11 +79,23 @@ private fun HomeSheetRow(
             .padding(vertical = rpx(10)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CoverImage(
-            uri = item.coverUri,
-            size = rpx(96),
-            cornerRadius = rpx(10),
-        )
+        Box(contentAlignment = Alignment.Center) {
+            CoverImage(
+                uri = item.coverUri,
+                size = rpx(96),
+                cornerRadius = rpx(10),
+            )
+            if (item.isDefault) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_home_heart),
+                    contentDescription = null,
+                    tint = MusicFreeTheme.colors.primary,
+                    modifier = Modifier
+                        .size(rpx(36))
+                        .align(Alignment.Center),
+                )
+            }
+        }
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -111,6 +128,14 @@ private fun HomeSheetRow(
                         shape = RoundedCornerShape(rpx(8)),
                     )
                     .padding(horizontal = rpx(10), vertical = rpx(4)),
+            )
+        }
+        if (!item.isDefault) {
+            Icon(
+                painter = painterResource(R.drawable.ic_home_trash_outline),
+                contentDescription = null,
+                tint = MusicFreeTheme.colors.textSecondary,
+                modifier = Modifier.size(rpx(42)),
             )
         }
     }
