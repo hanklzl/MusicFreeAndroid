@@ -9,10 +9,13 @@ import com.zili.android.musicfreeandroid.plugin.engine.RequireShim
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -257,6 +260,47 @@ class PluginManager @Inject constructor(
      */
     fun getPlugin(platform: String): LoadedPlugin? {
         return _plugins.value.find { it.info.platform == platform }
+    }
+
+    /**
+     * Sorted list of enabled plugins. Combines loaded plugins with
+     * disabled set and order from [PluginMetaStore].
+     * Plugins not in the order list are appended at the end.
+     */
+    fun getSortedEnabledPlugins(): Flow<List<LoadedPlugin>> =
+        combine(
+            plugins,
+            pluginMetaStore.disabledPlugins,
+            pluginMetaStore.pluginOrder,
+        ) { allPlugins, disabled, order ->
+            val enabled = allPlugins.filter { it.info.platform !in disabled }
+            if (order.isEmpty()) return@combine enabled
+            val orderMap = order.withIndex().associate { (i, p) -> p to i }
+            enabled.sortedBy { orderMap[it.info.platform] ?: Int.MAX_VALUE }
+        }
+
+    /**
+     * Enabled plugins that support the `search` method, sorted by user-defined order.
+     */
+    fun getSearchablePlugins(): Flow<List<LoadedPlugin>> =
+        getSortedEnabledPlugins().map { plugins ->
+            plugins.filter { "music" in it.info.supportedSearchType || it.info.supportedSearchType.isEmpty() }
+        }
+
+    // Convenience delegates to PluginMetaStore
+    suspend fun setPluginEnabled(platform: String, enabled: Boolean) {
+        pluginMetaStore.setPluginEnabled(platform, enabled)
+    }
+
+    suspend fun setPluginOrder(order: List<String>) {
+        pluginMetaStore.setPluginOrder(order)
+    }
+
+    suspend fun uninstallAllPlugins() {
+        val platforms = _plugins.value.map { it.info.platform }
+        for (platform in platforms) {
+            uninstall(platform)
+        }
     }
 
     private suspend fun installFromFileLocked(sourceFile: File): LoadedPlugin? {
