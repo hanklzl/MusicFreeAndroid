@@ -37,11 +37,11 @@
 
 ### #1 搜索栏宽度
 
-`HomeNavBar` 中搜索栏 Composable 添加 `Modifier.weight(1f)`，使其填满 menu 按钮右侧的剩余空间。
+`HomeNavBar` 中搜索栏 Row 当前使用 `.fillMaxWidth()`（语义为占满整行），需**替换**为 `.weight(1f)`（语义为占剩余空间），以正确填满 menu 按钮右侧的剩余空间。
 
 ### #2 NavBar 与操作卡片间距
 
-检查 `HomeNavBar` 底部 padding 和 `HomeOperations` 顶部 margin，对齐 RN 的 `rpx(32)` 上下间距。
+当前 `HomeOperations` 的 vertical padding 过大，导致 NavBar 和操作卡片之间的间距偏大。对齐 RN 的 `operations.tsx` 中 `marginVertical: rpx(32)` 和 `marginHorizontal: rpx(24)`。实施时对比当前值与 RN 目标值，调整到视觉匹配。
 
 ### #3 歌单 Tab header 垂直对齐
 
@@ -49,11 +49,13 @@
 
 ### #4 歌单右侧删除图标
 
-在 `HomeSheetRow` 末尾追加 trash-outline 图标（不响应点击）。第一项"我喜欢"不显示删除图标（与 RN 一致）。
+在 `HomeSheetRow` 末尾追加 trash-outline 图标（不响应点击）。适用于"我的歌单"和"收藏歌单"两个 Tab 下的所有条目，但默认歌单（"我喜欢"）不显示删除图标（与 RN 一致）。
+
+判定方式：在 `HomeSheetUiModel` 中新增 `isDefault: Boolean` 字段，mock 数据中第一条设为 `true`。
 
 ### #5 "我喜欢" 心形遮罩
 
-在默认歌单的封面占位图上叠加一个心形图标 overlay。优先从 RN 资源目录查找是否有现成的 heart icon 可复用。
+在默认歌单（`isDefault = true`）的封面占位图上叠加一个心形图标 overlay。优先从 RN 资源目录查找是否有现成的 heart icon 可复用。
 
 ### #6 歌单副标题格式
 
@@ -96,24 +98,33 @@ MiniPlayerContent (Row, height = rpx(132), bg = musicBar)
 ```kotlin
 data class MiniPlayerUiModel(
     val coverUri: String?,
-    val title: String,        // "歌名 - 艺术家" 单行格式
+    val title: String,        // 歌名
+    val artist: String,       // 艺术家
     val isPlaying: Boolean,
     val progress: Float,      // 0f..1f 播放进度
     val hasPrev: Boolean,     // 是否有上一首
     val hasNext: Boolean,     // 是否有下一首
-    val prevTitle: String?,   // 上一首标题
-    val nextTitle: String?,   // 下一首标题
+    val prevTitle: String?,   // 上一首 "歌名 - 艺术家"
+    val nextTitle: String?,   // 下一首 "歌名 - 艺术家"
 )
 ```
+
+歌曲信息渲染：同一行内用两个 `Text` 拼接，歌名用 content 字号 + `musicBarText` 色，艺术家用 description 字号 + 60% alpha（对齐 RN 的双色双字号效果）。
 
 Mock 场景：固定 3 首歌循环，progress 固定 0.35f。
 
 ### 圆形进度环
 
-用 Compose `Canvas` + `drawArc` 实现：
-- 底圈：`musicBarText` 色，20% opacity，stroke rpx(2)
+用 Compose `Canvas` + `drawArc` 实现，从 -90 度（12 点方向）开始顺时针绘制：
+- 底圈：`textSecondary` 色，20% opacity，stroke rpx(2)
 - 进度弧：`musicBarText` 色，100% opacity，stroke rpx(4)
 - 圆心：play/pause 图标
+
+### 滑动手势实现
+
+MusicInfo 区域需同时支持点击和水平滑动。使用 `pointerInput` + `detectHorizontalDragGestures` 处理滑动，配合 `detectTapGestures` 处理点击，通过手势竞争避免冲突（对齐 RN 的 `Gesture.Race(panGesture, tapGesture)` 模式）。
+
+新增回调：`onSkipNext: () -> Unit`、`onSkipPrev: () -> Unit`。
 
 ## 涉及文件
 
@@ -126,8 +137,10 @@ Mock 场景：固定 3 首歌循环，progress 固定 0.35f。
 
 ### MiniPlayer
 - `feature/player-ui/.../component/MiniPlayerContent.kt` — 布局重构
-- `feature/player-ui/.../component/MiniPlayerUiModel.kt` — 模型扩展
-- `app/.../MainActivity.kt` — mock 数据更新
+- `feature/player-ui/.../component/MiniPlayerUiModel.kt` — 模型扩展（破坏性变更）
+- `feature/player-ui/.../component/MiniPlayer.kt` — `toMiniPlayerUiModel()` 映射同步更新
+- `feature/player-ui/.../component/MiniPlayerContentTest.kt` — 测试同步更新
+- `app/.../MainActivity.kt` — mock 数据更新（建议提取为 factory 方法）
 
 ## RN 参考文件
 
