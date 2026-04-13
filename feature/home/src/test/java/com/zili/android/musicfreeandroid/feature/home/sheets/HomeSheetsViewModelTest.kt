@@ -51,7 +51,7 @@ class HomeSheetsViewModelTest {
         assertEquals(HomeSheetTab.Mine, viewModel.uiState.value.selectedTab)
         assertEquals(1, viewModel.uiState.value.mineCount)
         assertEquals(1, viewModel.uiState.value.starredCount)
-        assertEquals("12 首歌曲", viewModel.uiState.value.items.single().subtitle)
+        assertEquals("12首", viewModel.uiState.value.items.single().subtitle)
         val mineTitles = viewModel.uiState.value.items.map { it.title }
 
         viewModel.selectTab(HomeSheetTab.Starred)
@@ -71,6 +71,6 @@ class HomeSheetsViewModelTest {
         assertEquals(1, viewModel.uiState.value.mineCount)
         assertEquals(1, viewModel.uiState.value.starredCount)
         assertEquals(mineTitles, viewModel.uiState.value.items.map { it.title })
-        assertEquals("12 首歌曲", viewModel.uiState.value.items.single().subtitle)
+        assertEquals("12首", viewModel.uiState.value.items.single().subtitle)
     }
 }

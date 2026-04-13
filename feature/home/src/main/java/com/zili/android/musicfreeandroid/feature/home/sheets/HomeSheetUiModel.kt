@@ -10,15 +10,17 @@ data class HomeSheetUiModel(
     val title: String,
     val subtitle: String,
     val coverUri: String?,
+    val isDefault: Boolean = false,
 ) {
     companion object {
-        fun fromPlaylist(playlist: Playlist, musicCount: Int): HomeSheetUiModel = HomeSheetUiModel(
+        fun fromPlaylist(playlist: Playlist, musicCount: Int, isDefault: Boolean = false): HomeSheetUiModel = HomeSheetUiModel(
             id = playlist.id,
             platform = null,
             tab = HomeSheetTab.Mine,
             title = playlist.name,
-            subtitle = "${musicCount} 首歌曲",
+            subtitle = "${musicCount}首",
             coverUri = playlist.coverUri,
+            isDefault = isDefault,
         )
 
         fun fromStarredSheet(sheet: StarredSheet): HomeSheetUiModel = HomeSheetUiModel(

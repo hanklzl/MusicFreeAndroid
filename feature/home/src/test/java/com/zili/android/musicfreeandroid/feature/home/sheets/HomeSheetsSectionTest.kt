@@ -72,7 +72,7 @@ class HomeSheetsSectionTest {
                 platform = null,
                 tab = HomeSheetTab.Mine,
                 title = "我喜欢的音乐",
-                subtitle = "12 首歌曲",
+                subtitle = "12首",
                 coverUri = null,
             ),
         ),

@@ -33,16 +33,17 @@ private val MINE_ROWS = listOf(
         id = "mock-mine-liked",
         platform = null,
         tab = HomeSheetTab.Mine,
-        title = "日常收藏",
-        subtitle = "18 首歌曲",
+        title = "我喜欢",
+        subtitle = "18首",
         coverUri = null,
+        isDefault = true,
     ),
     HomeSheetUiModel(
         id = "mock-mine-cloud",
         platform = null,
         tab = HomeSheetTab.Mine,
         title = "云端备份",
-        subtitle = "32 首歌曲",
+        subtitle = "32首",
         coverUri = null,
     ),
     HomeSheetUiModel(
@@ -50,7 +51,7 @@ private val MINE_ROWS = listOf(
         platform = null,
         tab = HomeSheetTab.Mine,
         title = "专注循环",
-        subtitle = "24 首歌曲",
+        subtitle = "24首",
         coverUri = null,
     ),
     HomeSheetUiModel(
@@ -58,7 +59,7 @@ private val MINE_ROWS = listOf(
         platform = null,
         tab = HomeSheetTab.Mine,
         title = "通勤节奏",
-        subtitle = "16 首歌曲",
+        subtitle = "16首",
         coverUri = null,
     ),
 )

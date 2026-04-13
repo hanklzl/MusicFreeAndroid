@@ -15,7 +15,7 @@ class HomeSheetUiModelTest {
 
         assertEquals(HomeSheetTab.Mine, row.tab)
         assertEquals("Night Drive", row.title)
-        assertEquals("12 首歌曲", row.subtitle)
+        assertEquals("12首", row.subtitle)
     }
 
     @Test
