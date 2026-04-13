@@ -51,7 +51,7 @@ fun HomeSheetsHeader(
             .semantics { testTagsAsResourceId = true }
             .padding(horizontal = rpx(24)),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(verticalAlignment = Alignment.Bottom) {
             HomeSheetTabButton(
@@ -72,7 +72,6 @@ fun HomeSheetsHeader(
         }
 
         Row(
-            modifier = Modifier.padding(top = rpx(3)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             HomeSheetActionButton(
