@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,6 +54,7 @@ class MainActivity : ComponentActivity() {
                 val currentBackStack by navController.currentBackStackEntryAsState()
                 val destination = currentBackStack?.destination
                 var isHomeMockPlaying by rememberSaveable { mutableStateOf(true) }
+                var mockSongIndex by remember { mutableIntStateOf(0) }
 
                 val isHomeRoute = destination?.hasRoute<HomeRoute>() == true
                 val isPlayerRoute = destination?.hasRoute<PlayerRoute>() == true
@@ -65,18 +67,18 @@ class MainActivity : ComponentActivity() {
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
                     ),
                     bottomBar = {
+                        val mockMiniPlayer = MiniPlayerMockFactory.buildMockUiModel(
+                            currentIndex = mockSongIndex,
+                            isPlaying = isHomeMockPlaying,
+                        )
                         when {
                             isHomeRoute -> MiniPlayerContent(
-                                uiModel = MiniPlayerMockFactory.buildMockUiModel(
-                                    isPlaying = isHomeMockPlaying,
-                                ),
+                                uiModel = mockMiniPlayer,
                                 onOpenPlayer = {},
-                                onTogglePlayPause = {
-                                    isHomeMockPlaying = !isHomeMockPlaying
-                                },
+                                onTogglePlayPause = { isHomeMockPlaying = !isHomeMockPlaying },
                                 onOpenQueue = {},
-                                onSkipNext = {},
-                                onSkipPrev = {},
+                                onSkipNext = { mockSongIndex++ },
+                                onSkipPrev = { mockSongIndex-- },
                             )
 
                             showRealMiniPlayer -> {
