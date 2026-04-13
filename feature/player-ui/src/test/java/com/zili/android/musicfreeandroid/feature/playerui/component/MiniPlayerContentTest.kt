@@ -24,6 +24,21 @@ class MiniPlayerContentTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private fun buildTestUiModel(
+        isPlaying: Boolean = false,
+        progress: Float = 0f,
+    ) = MiniPlayerUiModel(
+        coverUri = null,
+        title = "Test Song",
+        artist = "Test Artist",
+        isPlaying = isPlaying,
+        progress = progress,
+        hasPrev = true,
+        hasNext = true,
+        prevTitle = null,
+        nextTitle = null,
+    )
+
     @Test
     fun `mini player content routes taps to the intended callbacks`() {
         var openPlayerClicks = 0
@@ -33,17 +48,7 @@ class MiniPlayerContentTest {
         composeRule.setContent {
             MusicFreeTheme {
                 MiniPlayerContent(
-                    uiModel = MiniPlayerUiModel(
-                        coverUri = null,
-                        title = "夜空中最亮的星",
-                        artist = "逃跑计划",
-                        isPlaying = true,
-                        progress = 0.5f,
-                        hasPrev = true,
-                        hasNext = true,
-                        prevTitle = null,
-                        nextTitle = null,
-                    ),
+                    uiModel = buildTestUiModel(isPlaying = true, progress = 0.5f),
                     onOpenPlayer = { openPlayerClicks++ },
                     onTogglePlayPause = { playPauseClicks++ },
                     onOpenQueue = { queueClicks++ },
@@ -82,6 +87,7 @@ class MiniPlayerContentTest {
                 qualities = null,
             ),
             isPlaying = true,
+            duration = 180_000L,
             position = 36_000L,
         )
 
@@ -97,17 +103,7 @@ class MiniPlayerContentTest {
         composeRule.setContent {
             MusicFreeTheme {
                 MiniPlayerContent(
-                    uiModel = MiniPlayerUiModel(
-                        coverUri = null,
-                        title = "夜空中最亮的星",
-                        artist = "逃跑计划",
-                        isPlaying = false,
-                        progress = 0f,
-                        hasPrev = false,
-                        hasNext = false,
-                        prevTitle = null,
-                        nextTitle = null,
-                    ),
+                    uiModel = buildTestUiModel(),
                     onOpenPlayer = {},
                     onTogglePlayPause = {},
                     onOpenQueue = {},
