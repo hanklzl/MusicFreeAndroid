@@ -6,14 +6,18 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.engine.AxiosShim
 import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
 import com.zili.android.musicfreeandroid.plugin.engine.RequireShim
+import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -36,6 +40,7 @@ import javax.inject.Singleton
 @Singleton
 class PluginManager @Inject constructor(
     @ApplicationContext private val context: Context,
+    val pluginMetaStore: PluginMetaStore,
 ) {
 
     companion object {
@@ -702,7 +707,13 @@ class PluginManager @Inject constructor(
         val jsCode = file.readText()
         val engine = JsEngine()
 
-        engine.runOnJsThread {
+        // Gather env values before entering JS thread
+        val appVersion = try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "unknown"
+        } catch (e: Exception) { "unknown" }
+        val lang = java.util.Locale.getDefault().toLanguageTag()
+
+        val info = engine.runOnJsThread {
             engine.create()
 
             val ctx = engine.context
@@ -714,13 +725,23 @@ class PluginManager @Inject constructor(
             // Register CommonJS require shim with built-in modules from assets.
             RequireShim.register(appContext = context, context = ctx)
 
+            // Inject env object
+            engine.evaluate("""
+                globalThis.__env = {
+                    os: 'android',
+                    appVersion: '${appVersion.replace("'", "\\'")}',
+                    lang: '${lang.replace("'", "\\'")}',
+                    getUserVariables: function() { return globalThis.__userVariables || {}; }
+                };
+            """.trimIndent())
+
             // Wrap plugin code in CommonJS-style module pattern and assign to __plugin
             val wrappedCode = """
                 var module = {exports: {}};
                 var exports = module.exports;
                 (function(require, module, exports, console, env) {
                     $jsCode
-                })(globalThis.__require, module, exports, console, {os: 'android'});
+                })(globalThis.__require, module, exports, console, globalThis.__env);
                 globalThis.__plugin = module.exports;
             """.trimIndent()
 
@@ -740,16 +761,24 @@ class PluginManager @Inject constructor(
                 engine.destroy()
                 null
             }
-        }?.let { info ->
-            return LoadedPlugin(
-                info = info,
-                engine = engine,
-                filePath = file.absolutePath,
-                installSource = installSource,
-            )
+        } ?: return null
+
+        // Inject userVariables snapshot for this plugin (outside JS thread to allow suspend)
+        val userVars = pluginMetaStore.getUserVariables(info.platform).first()
+        if (userVars.isNotEmpty()) {
+            engine.runOnJsThread {
+                val jsonStr = Json.encodeToString(userVars)
+                val escaped = jsonStr.replace("\\", "\\\\").replace("'", "\\'")
+                engine.evaluate("globalThis.__userVariables = JSON.parse('$escaped')")
+            }
         }
 
-        return null
+        return LoadedPlugin(
+            info = info,
+            engine = engine,
+            filePath = file.absolutePath,
+            installSource = installSource,
+        )
     }
 
     /**

@@ -1,12 +1,15 @@
 package com.zili.android.musicfreeandroid.plugin.manager
 
 import android.content.Context
+import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
@@ -18,7 +21,9 @@ class PluginManagerUpdateFlowTest {
     private fun createManager(): PluginManager {
         val context = mock<Context>()
         whenever(context.filesDir).thenReturn(tempFolder.root)
-        return PluginManager(context)
+        val pluginMetaStore = mock<PluginMetaStore>()
+        whenever(pluginMetaStore.getUserVariables(any())).thenReturn(flowOf(emptyMap()))
+        return PluginManager(context, pluginMetaStore)
     }
 
     @Test
