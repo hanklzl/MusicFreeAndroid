@@ -2,6 +2,8 @@ package com.zili.android.musicfreeandroid.feature.playerui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,8 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import kotlin.math.abs
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
@@ -50,7 +54,26 @@ fun MiniPlayerContent(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .clickable(onClick = onOpenPlayer),
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { onOpenPlayer() })
+                }
+                .pointerInput(Unit) {
+                    val width = size.width.toFloat()
+                    var totalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { totalDrag = 0f },
+                        onDragEnd = {
+                            if (abs(totalDrag) > width * 0.3f) {
+                                if (totalDrag < 0) onSkipNext() else onSkipPrev()
+                            }
+                            totalDrag = 0f
+                        },
+                        onDragCancel = { totalDrag = 0f },
+                        onHorizontalDrag = { _, dragAmount ->
+                            totalDrag += dragAmount
+                        },
+                    )
+                },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(Modifier.width(rpx(24)))
