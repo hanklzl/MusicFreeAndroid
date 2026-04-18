@@ -1,25 +1,30 @@
 package com.zili.android.musicfreeandroid.plugin.engine
 
 import android.util.Log
-import com.whl.quickjs.wrapper.JSArray
-import com.whl.quickjs.wrapper.JSCallFunction
-import com.whl.quickjs.wrapper.JSObject
-import com.whl.quickjs.wrapper.QuickJSContext
+import com.dokar.quickjs.binding.asyncFunction
+import com.dokar.quickjs.binding.function
+import kotlinx.coroutines.suspendCancellableCoroutine
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.ByteArrayInputStream
+import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPInputStream
 import java.util.zip.InflaterInputStream
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
- * Registers an `axios`-like global object in the QuickJS context,
- * providing `axios.get(url, config)` and `axios.post(url, data, config)` to JS plugins.
- *
- * HTTP requests are executed synchronously via OkHttp (QuickJS is single-threaded).
+ * Registers an `axios`-like global object in the QuickJs context.
+ * HTTP requests are truly async — JS thread is released during network I/O.
  */
 object AxiosShim {
 
@@ -35,120 +40,107 @@ object AxiosShim {
     }
 
     /**
-     * Register the `axios` global with `get` and `post` methods.
+     * Register the `axios` global with `get`, `post`, `request`, `default`, and `create` methods.
      */
-    fun register(context: QuickJSContext, engine: JsEngine) {
-        val axios = context.createNewJSObject()
-        val requestFunction = JSCallFunction { args ->
-            handleRequest(context, engine, args)
+    suspend fun register(engine: JsEngine) {
+        engine.define("axios") {
+            asyncFunction<Any?>("get") { args ->
+                handleGet(args)
+            }
+            asyncFunction<Any?>("post") { args ->
+                handlePost(args)
+            }
+            asyncFunction<Any?>("request") { args ->
+                handleRequest(args)
+            }
+            function<Any?>("create") { _ ->
+                null
+            }
         }
 
-        axios.setProperty("get", JSCallFunction { args ->
-            handleGet(context, engine, args)
-        })
-
-        axios.setProperty("post", JSCallFunction { args ->
-            handlePost(context, engine, args)
-        })
-
-        // CommonJS interop for transpiled plugins:
-        // require("axios").default(config) and require("axios").request(config)
-        axios.setProperty("default", requestFunction)
-        axios.setProperty("request", requestFunction)
-        axios.setProperty("create", JSCallFunction { _ -> axios })
-
-        context.globalObject.setProperty("axios", axios)
-
-        // Mirror methods onto axios.default for transpiled calls like axios.default.get(...)
-        context.evaluate(
+        // Set up CommonJS interop aliases
+        engine.evaluate<Any?>(
             """
             (function() {
-              if (globalThis.axios && typeof globalThis.axios.default === "function") {
-                globalThis.axios.default.get = globalThis.axios.get;
-                globalThis.axios.default.post = globalThis.axios.post;
-                globalThis.axios.default.request = globalThis.axios.default;
-                globalThis.axios.default.create = function() { return globalThis.axios.default; };
-              }
+              var ax = globalThis.axios;
+              ax.default = ax;
+              ax.create = function() { return ax; };
             })();
             """.trimIndent()
         )
     }
 
-    private fun handleRequest(context: QuickJSContext, engine: JsEngine, args: Array<out Any?>): Any? {
-        val config = args.getOrNull(0) as? JSObject
-            ?: return buildErrorResponse(context, "Config object is required")
-
-        val method = config.getProperty("method")?.toString()?.lowercase().orEmpty().ifBlank { "get" }
-        val url = config.getProperty("url")?.toString()
-            ?: return buildErrorResponse(context, "Config.url is required")
-
-        return when (method) {
-            "post" -> performPost(
-                context = context,
-                bodyArg = config.getProperty("data"),
-                config = config,
-                url = url,
-            )
-            "get" -> performGet(context = context, config = config, url = url)
-            else -> buildErrorResponse(context, "Unsupported method: $method")
-        }
-    }
-
-    private fun handleGet(context: QuickJSContext, engine: JsEngine, args: Array<out Any?>): Any? {
-        try {
-            val url = args.getOrNull(0)?.toString() ?: return buildErrorResponse(context, "URL is required")
-            val config = args.getOrNull(1) as? JSObject
-
-            return performGet(context = context, config = config, url = url)
+    private suspend fun handleGet(args: Array<Any?>): Any? {
+        return try {
+            val url = args.getOrNull(0)?.toString()
+                ?: return buildErrorResponse("URL is required")
+            val config = args.getOrNull(1) as? Map<*, *>
+            performGet(url = url, config = config)
         } catch (e: Exception) {
             Log.e(TAG, "axios.get failed", e)
-            return buildErrorResponse(context, e.message ?: "Unknown error")
+            buildErrorResponse(e.message ?: "Unknown error")
         }
     }
 
-    private fun handlePost(context: QuickJSContext, engine: JsEngine, args: Array<out Any?>): Any? {
-        try {
-            val url = args.getOrNull(0)?.toString() ?: return buildErrorResponse(context, "URL is required")
+    private suspend fun handlePost(args: Array<Any?>): Any? {
+        return try {
+            val url = args.getOrNull(0)?.toString()
+                ?: return buildErrorResponse("URL is required")
             val bodyArg = args.getOrNull(1)
-            val config = args.getOrNull(2) as? JSObject
-
-            return performPost(context = context, bodyArg = bodyArg, config = config, url = url)
+            val config = args.getOrNull(2) as? Map<*, *>
+            performPost(url = url, bodyArg = bodyArg, config = config)
         } catch (e: Exception) {
             Log.e(TAG, "axios.post failed", e)
-            return buildErrorResponse(context, e.message ?: "Unknown error")
+            buildErrorResponse(e.message ?: "Unknown error")
         }
     }
 
-    private fun performGet(context: QuickJSContext, url: String, config: JSObject?): Any? {
-        // Build URL with query params
-        val fullUrl = buildUrlWithParams(url, config)
+    private suspend fun handleRequest(args: Array<Any?>): Any? {
+        val config = args.getOrNull(0) as? Map<*, *>
+            ?: return buildErrorResponse("Config object is required")
 
-        // Build request
+        val method = config["method"]?.toString()?.lowercase().orEmpty().ifBlank { "get" }
+        val url = config["url"]?.toString()
+            ?: return buildErrorResponse("Config.url is required")
+
+        return try {
+            when (method) {
+                "post" -> performPost(url = url, bodyArg = config["data"], config = config)
+                "get" -> performGet(url = url, config = config)
+                else -> buildErrorResponse("Unsupported method: $method")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "axios.request failed", e)
+            buildErrorResponse(e.message ?: "Unknown error")
+        }
+    }
+
+    private suspend fun performGet(url: String, config: Map<*, *>?): Map<String, Any?> {
+        val fullUrl = buildUrlWithParams(url, config)
         val requestBuilder = Request.Builder().url(fullUrl).get()
         applyHeaders(requestBuilder, config)
 
-        val response = client.newCall(requestBuilder.build()).execute()
+        val response = client.newCall(requestBuilder.build()).await()
         return response.use {
             val body = readResponseBody(it)
             logResponsePreview(method = "GET", url = fullUrl, status = it.code, body = body)
-            buildResponse(context, it.code, body)
+            buildResponse(it.code, body)
         }
     }
 
-    private fun performPost(
-        context: QuickJSContext,
+    private suspend fun performPost(
         url: String,
         bodyArg: Any?,
-        config: JSObject?,
-    ): Any? {
+        config: Map<*, *>?,
+    ): Map<String, Any?> {
         val fullUrl = buildUrlWithParams(url, config)
         val contentType = resolveContentType(config, bodyArg)
         val bodyString = when (bodyArg) {
-            is JSObject -> {
+            is Map<*, *> -> {
                 if (contentType.contains("application/x-www-form-urlencoded", ignoreCase = true)) {
                     toFormUrlEncoded(bodyArg)
                 } else {
-                    context.stringify(bodyArg) ?: "{}"
+                    jsonStringify(bodyArg)
                 }
             }
             is String -> bodyArg
@@ -160,50 +152,54 @@ object AxiosShim {
         val requestBuilder = Request.Builder().url(fullUrl).post(requestBody)
         applyHeaders(requestBuilder, config)
 
-        val response = client.newCall(requestBuilder.build()).execute()
+        val response = client.newCall(requestBuilder.build()).await()
         return response.use {
             val body = readResponseBody(it)
             logResponsePreview(method = "POST", url = fullUrl, status = it.code, body = body)
-            buildResponse(context, it.code, body)
+            buildResponse(it.code, body)
         }
     }
 
-    private fun resolveContentType(config: JSObject?, bodyArg: Any?): String {
-        val explicitContentType = getHeaderIgnoreCase(config = config, key = "content-type")
+    private suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
+        enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                cont.resume(response)
+            }
+            override fun onFailure(call: Call, e: IOException) {
+                cont.resumeWithException(e)
+            }
+        })
+        cont.invokeOnCancellation { cancel() }
+    }
+
+    private fun resolveContentType(config: Map<*, *>?, bodyArg: Any?): String {
+        val explicitContentType = getHeaderIgnoreCase(config, "content-type")
         if (!explicitContentType.isNullOrBlank()) {
             return explicitContentType
         }
         return when (bodyArg) {
             is String -> "application/x-www-form-urlencoded; charset=utf-8"
-            is JSObject -> "application/json; charset=utf-8"
+            is Map<*, *> -> "application/json; charset=utf-8"
             else -> "text/plain; charset=utf-8"
         }
     }
 
-    private fun getHeaderIgnoreCase(config: JSObject?, key: String): String? {
-        val headers = config?.getProperty("headers") as? JSObject ?: return null
-        val names = headers.getNames() ?: return null
-        for (i in 0 until names.length()) {
-            val headerName = names.get(i)?.toString() ?: continue
-            if (headerName.equals(key, ignoreCase = true)) {
-                return headers.getProperty(headerName)?.toString()
-            }
-        }
-        return null
+    private fun getHeaderIgnoreCase(config: Map<*, *>?, key: String): String? {
+        val headers = config?.get("headers") as? Map<*, *> ?: return null
+        return headers.entries.firstOrNull { (k, _) ->
+            k.toString().equals(key, ignoreCase = true)
+        }?.value?.toString()
     }
 
-    private fun toFormUrlEncoded(data: JSObject): String {
-        val names = data.getNames() ?: return ""
-        val pairs = mutableListOf<String>()
-        for (i in 0 until names.length()) {
-            val key = names.get(i)?.toString() ?: continue
-            val value = data.getProperty(key)?.toString() ?: ""
-            pairs += "${URLEncoder.encode(key, "UTF-8")}=${URLEncoder.encode(value, "UTF-8")}"
-        }
-        return pairs.joinToString("&")
+    private fun toFormUrlEncoded(data: Map<*, *>): String {
+        return data.entries.mapNotNull { (k, v) ->
+            val key = k?.toString() ?: return@mapNotNull null
+            val value = v?.toString() ?: ""
+            "${URLEncoder.encode(key, "UTF-8")}=${URLEncoder.encode(value, "UTF-8")}"
+        }.joinToString("&")
     }
 
-    private fun readResponseBody(response: okhttp3.Response): String? {
+    private fun readResponseBody(response: Response): String? {
         val body = response.body ?: return null
         val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
         val bytes = body.bytes()
@@ -212,105 +208,99 @@ object AxiosShim {
         val encoding = response.header("Content-Encoding")?.lowercase().orEmpty()
         val decodedBytes = try {
             when {
-                encoding.contains("gzip") -> {
+                encoding.contains("gzip") ->
                     GZIPInputStream(ByteArrayInputStream(bytes)).use { it.readBytes() }
-                }
-                encoding.contains("deflate") -> {
+                encoding.contains("deflate") ->
                     InflaterInputStream(ByteArrayInputStream(bytes)).use { it.readBytes() }
-                }
                 else -> bytes
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to decode response body with Content-Encoding='$encoding'", e)
             bytes
         }
-
         return decodedBytes.toString(charset)
     }
 
     private fun logResponsePreview(method: String, url: String, status: Int, body: String?) {
         if (!Log.isLoggable(TAG, Log.DEBUG)) return
-        val preview = body
-            ?.replace("\n", " ")
-            ?.replace("\r", " ")
-            ?.take(240)
-            ?: ""
+        val preview = body?.replace("\n", " ")?.replace("\r", " ")?.take(240) ?: ""
         Log.d(TAG, "$method $url -> $status body=$preview")
     }
 
-    /**
-     * Build URL with query params from config.params (JSObject).
-     */
-    private fun buildUrlWithParams(baseUrl: String, config: JSObject?): String {
+    private fun buildUrlWithParams(baseUrl: String, config: Map<*, *>?): String {
         if (config == null) return baseUrl
-        val params = config.getProperty("params") as? JSObject ?: return baseUrl
+        val params = config["params"] as? Map<*, *> ?: return baseUrl
 
-        val names = params.getNames() ?: return baseUrl
-        val queryParts = mutableListOf<String>()
-        for (i in 0 until names.length()) {
-            val key = names.get(i)?.toString() ?: continue
-            val value = params.getProperty(key)?.toString() ?: continue
-            queryParts.add(
-                "${URLEncoder.encode(key, "UTF-8")}=${URLEncoder.encode(value, "UTF-8")}"
-            )
+        val queryParts = params.entries.mapNotNull { (k, v) ->
+            val key = k?.toString() ?: return@mapNotNull null
+            val value = v?.toString() ?: return@mapNotNull null
+            "${URLEncoder.encode(key, "UTF-8")}=${URLEncoder.encode(value, "UTF-8")}"
         }
-
         if (queryParts.isEmpty()) return baseUrl
-
         val separator = if (baseUrl.contains("?")) "&" else "?"
         return "$baseUrl$separator${queryParts.joinToString("&")}"
     }
 
-    /**
-     * Apply headers from config.headers (JSObject) to the request builder.
-     */
-    private fun applyHeaders(builder: Request.Builder, config: JSObject?) {
+    private fun applyHeaders(builder: Request.Builder, config: Map<*, *>?) {
         if (config == null) return
-        val headers = config.getProperty("headers") as? JSObject ?: return
-
-        val names = headers.getNames() ?: return
-        for (i in 0 until names.length()) {
-            val key = names.get(i)?.toString() ?: continue
-            val value = headers.getProperty(key)?.toString() ?: continue
-            builder.addHeader(key, value)
+        val headers = config["headers"] as? Map<*, *> ?: return
+        for ((key, value) in headers) {
+            val k = key?.toString() ?: continue
+            val v = value?.toString() ?: continue
+            builder.addHeader(k, v)
         }
     }
 
-    /**
-     * Build a JS response object: `{ status: number, data: object|string }`.
-     * Attempts to parse the response body as JSON; falls back to raw string.
-     */
-    private fun buildResponse(context: QuickJSContext, status: Int, body: String?): JSObject {
-        val result = context.createNewJSObject()
-        result.setProperty("status", status)
-
-        if (body != null) {
+    private fun buildResponse(status: Int, body: String?): Map<String, Any?> {
+        val data: Any? = if (body != null) {
             try {
-                // Try parsing as JSON via the JS engine
-                val parsed = context.parse(body)
-                if (parsed is JSObject) {
-                    result.setProperty("data", parsed)
-                } else {
-                    result.setProperty("data", body)
-                }
+                parseJsonValue(body)
             } catch (_: Exception) {
-                // Not valid JSON, return as string
-                result.setProperty("data", body)
+                body
             }
         } else {
-            result.setProperty("data", "")
+            ""
         }
-
-        return result
+        return mapOf("status" to status, "data" to data)
     }
 
-    /**
-     * Build an error response object: `{ status: -1, data: errorMessage }`.
-     */
-    private fun buildErrorResponse(context: QuickJSContext, message: String): JSObject {
-        val result = context.createNewJSObject()
-        result.setProperty("status", -1)
-        result.setProperty("data", message)
-        return result
+    private fun buildErrorResponse(message: String): Map<String, Any?> {
+        return mapOf("status" to -1, "data" to message)
+    }
+
+    private fun parseJsonValue(json: String): Any? {
+        val trimmed = json.trim()
+        return when {
+            trimmed.startsWith("{") -> jsonObjectToMap(JSONObject(trimmed))
+            trimmed.startsWith("[") -> jsonArrayToList(JSONArray(trimmed))
+            else -> trimmed
+        }
+    }
+
+    private fun jsonObjectToMap(obj: JSONObject): Map<String, Any?> {
+        val map = mutableMapOf<String, Any?>()
+        for (key in obj.keys()) {
+            map[key] = jsonElementToKotlin(obj.opt(key))
+        }
+        return map
+    }
+
+    private fun jsonArrayToList(arr: JSONArray): List<Any?> {
+        return (0 until arr.length()).map { jsonElementToKotlin(arr.opt(it)) }
+    }
+
+    private fun jsonElementToKotlin(value: Any?): Any? = when (value) {
+        null, JSONObject.NULL -> null
+        is JSONObject -> jsonObjectToMap(value)
+        is JSONArray -> jsonArrayToList(value)
+        else -> value
+    }
+
+    private fun jsonStringify(map: Map<*, *>): String {
+        val obj = JSONObject()
+        for ((k, v) in map) {
+            obj.put(k?.toString() ?: continue, v)
+        }
+        return obj.toString()
     }
 }
