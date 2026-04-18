@@ -27,6 +27,24 @@ class JsEngine private constructor(
          */
         fun create(): JsEngine {
             val qjs = QuickJs.create(Dispatchers.IO.limitedParallelism(1))
+            // Register console object (quickjs-kt does not provide one by default)
+            qjs.define("console") {
+                function<Any?>("log") { args ->
+                    Log.i("JSConsole", args.joinToString(" "))
+                }
+                function<Any?>("warn") { args ->
+                    Log.w("JSConsole", args.joinToString(" "))
+                }
+                function<Any?>("error") { args ->
+                    Log.e("JSConsole", args.joinToString(" "))
+                }
+                function<Any?>("info") { args ->
+                    Log.i("JSConsole", args.joinToString(" "))
+                }
+                function<Any?>("debug") { args ->
+                    Log.d("JSConsole", args.joinToString(" "))
+                }
+            }
             return JsEngine(qjs)
         }
     }
