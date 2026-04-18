@@ -408,7 +408,7 @@ class LoadedPlugin(
         }
     }
 
-    fun destroy() {
+    suspend fun destroy() {
         engine.destroy()
     }
 

@@ -45,7 +45,7 @@ class SearchViewModelTest {
 
     @Test
     fun `filters searchable plugins and auto-selects first`() = runTest {
-        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
 
         val searchable = plugin(platform = "searchable", supportedSearchType = listOf("music"))
         val nonSearchable = plugin(platform = "comment", supportedSearchType = listOf("comment"))
@@ -61,7 +61,7 @@ class SearchViewModelTest {
 
     @Test
     fun `no plugins transitions to NO_PLUGIN status`() = runTest {
-        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -73,7 +73,7 @@ class SearchViewModelTest {
 
     @Test
     fun `searchAll triggers per-plugin search and transitions to RESULT`() = runTest {
-        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
         whenever(appPreferences.addSearchQuery(any())).thenReturn(Unit)
 
         val plugin = plugin(
@@ -103,7 +103,7 @@ class SearchViewModelTest {
 
     @Test
     fun `load more failure keeps existing search results`() = runTest {
-        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
         whenever(appPreferences.addSearchQuery(any())).thenReturn(Unit)
 
         val plugin = plugin(
@@ -140,7 +140,7 @@ class SearchViewModelTest {
 
     @Test
     fun `selectPlatform switches current platform`() = runTest {
-        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
 
         val p1 = plugin(platform = "plugin1", supportedSearchType = listOf("music"))
         val p2 = plugin(platform = "plugin2", supportedSearchType = listOf("music"))
@@ -157,7 +157,7 @@ class SearchViewModelTest {
 
     @Test
     fun `backToEditing resets pageStatus to EDITING`() = runTest {
-        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
         whenever(appPreferences.addSearchQuery(any())).thenReturn(Unit)
 
         val plugin = plugin(

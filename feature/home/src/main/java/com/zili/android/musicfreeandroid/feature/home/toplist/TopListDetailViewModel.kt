@@ -32,7 +32,7 @@ class TopListDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            pluginManager.loadAllPlugins()
+            pluginManager.ensurePluginsLoaded()
             loadInitial()
         }
     }

@@ -49,7 +49,25 @@ class JsEngine {
     }
 
     /** Destroy the QuickJS context and release all resources. */
-    fun destroy() {
+    suspend fun destroy() {
+        try {
+            withContext(jsDispatcher) {
+                context?.destroy()
+                context = null
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error destroying QuickJS context", e)
+            context = null
+        } finally {
+            jsDispatcher.close()
+        }
+    }
+
+    /**
+     * Destroy when already running on the JS thread (e.g. inside [runOnJsThread]).
+     * External callers should use the suspend [destroy] instead.
+     */
+    internal fun destroyOnJsThread() {
         try {
             context?.destroy()
         } catch (e: Exception) {

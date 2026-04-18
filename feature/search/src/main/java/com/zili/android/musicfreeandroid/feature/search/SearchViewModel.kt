@@ -81,7 +81,7 @@ class SearchViewModel @Inject constructor(
                 }
             }
         }
-        viewModelScope.launch { pluginManager.loadAllPlugins() }
+        viewModelScope.launch { pluginManager.ensurePluginsLoaded() }
     }
 
     // ── 搜索 ──

@@ -31,7 +31,7 @@ class TopListViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            pluginManager.loadAllPlugins()
+            pluginManager.ensurePluginsLoaded()
         }
         viewModelScope.launch {
             availablePlugins.collect { plugins ->

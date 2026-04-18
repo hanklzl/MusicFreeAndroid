@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets
 import java.util.UUID
 import java.util.Properties
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -60,12 +61,22 @@ class PluginManager @Inject constructor(
     val plugins: StateFlow<List<LoadedPlugin>> = _plugins.asStateFlow()
 
     private val mutex = Mutex()
+    private val _loaded = AtomicBoolean(false)
 
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .build()
+    }
+
+    /**
+     * Idempotent plugin loading: only loads from disk on the first call.
+     * Subsequent calls return immediately. Use [loadAllPlugins] to force a reload.
+     */
+    suspend fun ensurePluginsLoaded() {
+        if (_loaded.get()) return
+        loadAllPlugins()
     }
 
     /**
@@ -90,6 +101,7 @@ class PluginManager @Inject constructor(
                 }
             }
             _plugins.value = loaded
+            _loaded.set(true)
         }
     }
 
@@ -454,7 +466,7 @@ class PluginManager @Inject constructor(
         }
     }
 
-    private fun addOrReplacePlugin(plugin: LoadedPlugin) {
+    private suspend fun addOrReplacePlugin(plugin: LoadedPlugin) {
         val current = _plugins.value.toMutableList()
         val replaced = current.filter {
             it.info.platform == plugin.info.platform || it.filePath == plugin.filePath
@@ -799,7 +811,7 @@ class PluginManager @Inject constructor(
                 engine.evaluate(wrappedCode)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to evaluate plugin code from ${file.name}", e)
-                engine.destroy()
+                engine.destroyOnJsThread()
                 return@runOnJsThread null
             }
 
@@ -808,7 +820,7 @@ class PluginManager @Inject constructor(
                 extractPluginInfo(engine)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to extract plugin info from ${file.name}", e)
-                engine.destroy()
+                engine.destroyOnJsThread()
                 null
             }
         } ?: return null
