@@ -10,3 +10,4 @@
 .kotlin
 local.properties
 .worktrees/
+.remember

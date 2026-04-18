@@ -20,8 +20,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -51,6 +54,8 @@ class PlayerController @Inject constructor(
     val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
     private val _playHistory = MutableStateFlow<List<MusicItem>>(emptyList())
     val playHistory: StateFlow<List<MusicItem>> = _playHistory.asStateFlow()
+    private val _errorEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val errorEvents: SharedFlow<String> = _errorEvents.asSharedFlow()
 
     private var repeatMode: RepeatMode = RepeatMode.OFF
     private var shuffleEnabled: Boolean = false
@@ -239,11 +244,15 @@ class PlayerController @Inject constructor(
 
     private fun setMediaItemAndPlay(item: MusicItem) {
         withConnectedController { controller ->
-            recordHistory(item)
-            val mediaItem = item.toMediaItem()
-            controller.setMediaItem(mediaItem)
-            controller.prepare()
-            controller.play()
+            try {
+                recordHistory(item)
+                val mediaItem = item.toMediaItem()
+                controller.setMediaItem(mediaItem)
+                controller.prepare()
+                controller.play()
+            } catch (e: RuntimeException) {
+                _errorEvents.tryEmit("播放失败: ${e.message}")
+            }
         }
     }
 
@@ -273,7 +282,8 @@ class PlayerController @Inject constructor(
         connectJob = scope.launch {
             runCatching {
                 connect()
-            }.onFailure {
+            }.onFailure { e ->
+                _errorEvents.emit("播放服务连接失败: ${e.message}")
                 return@launch
             }
 

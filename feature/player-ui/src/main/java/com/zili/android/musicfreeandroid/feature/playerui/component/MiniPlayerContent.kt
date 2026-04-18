@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -23,8 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import coil3.compose.SubcomposeAsyncImage
 import kotlin.math.abs
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
@@ -77,21 +80,35 @@ fun MiniPlayerContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(Modifier.width(rpx(24)))
-            // Cover placeholder - circle
-            Box(
+            // Cover image - circle
+            SubcomposeAsyncImage(
+                model = uiModel.coverUri,
+                contentDescription = null,
                 modifier = Modifier
                     .size(rpx(96))
-                    .clip(CircleShape)
-                    .background(MusicFreeTheme.colors.placeholder),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    tint = MusicFreeTheme.colors.textSecondary,
-                    modifier = Modifier.size(rpx(48)),
-                )
-            }
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+                loading = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MusicFreeTheme.colors.placeholder),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Default.MusicNote, null, tint = MusicFreeTheme.colors.textSecondary, modifier = Modifier.size(rpx(48)))
+                    }
+                },
+                error = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MusicFreeTheme.colors.placeholder),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Default.MusicNote, null, tint = MusicFreeTheme.colors.textSecondary, modifier = Modifier.size(rpx(48)))
+                    }
+                },
+            )
             Spacer(Modifier.width(rpx(24)))
             // Single-line title - artist
             Row(modifier = Modifier.weight(1f)) {

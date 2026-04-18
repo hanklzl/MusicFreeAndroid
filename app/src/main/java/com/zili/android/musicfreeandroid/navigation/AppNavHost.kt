@@ -64,25 +64,25 @@ fun AppNavHost(
         enterTransition = {
             slideIntoContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = tween(100),
+                animationSpec = tween(250),
             )
         },
         exitTransition = {
             slideOutOfContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = tween(100),
+                animationSpec = tween(250),
             )
         },
         popEnterTransition = {
             slideIntoContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = tween(100),
+                animationSpec = tween(250),
             )
         },
         popExitTransition = {
             slideOutOfContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = tween(100),
+                animationSpec = tween(250),
             )
         },
     ) {

@@ -6,10 +6,14 @@ import androidx.media3.common.MediaMetadata
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 
 fun MusicItem.toMediaItem(): MediaItem {
+    val mediaUri = url
+    require(!mediaUri.isNullOrBlank()) {
+        "Cannot create MediaItem without URL for: $title ($platform:$id)"
+    }
+
     val builder = MediaItem.Builder()
         .setMediaId("$platform:$id")
-
-    url?.let { builder.setUri(it) }
+        .setUri(mediaUri)
 
     builder.setMediaMetadata(
         MediaMetadata.Builder()

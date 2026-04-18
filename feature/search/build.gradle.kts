@@ -36,6 +36,7 @@ android {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":data"))
     implementation(project(":plugin"))
     implementation(project(":player"))
     implementation(platform(libs.androidx.compose.bom))

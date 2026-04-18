@@ -1,37 +1,26 @@
 package com.zili.android.musicfreeandroid.feature.playerui
 
+import android.os.Build
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.RepeatOne
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -39,20 +28,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import com.zili.android.musicfreeandroid.core.R
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import coil3.compose.AsyncImage
+import com.zili.android.musicfreeandroid.core.theme.IconSizes
+import com.zili.android.musicfreeandroid.core.theme.rpx
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
     onBack: () -> Unit,
@@ -60,100 +54,77 @@ fun PlayerScreen(
 ) {
     val state by viewModel.playerState.collectAsStateWithLifecycle()
     val currentItem = state.currentItem
+    val context = LocalContext.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MusicFreeTheme.colors.pageBackground),
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = currentItem?.title ?: "",
-                            color = MusicFreeTheme.colors.text,
-                            fontSize = FontSizes.title,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                        )
-                        if (currentItem?.artist?.isNotBlank() == true) {
-                            Text(
-                                text = currentItem.artist,
-                                color = MusicFreeTheme.colors.textSecondary,
-                                fontSize = FontSizes.description,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
-                            tint = MusicFreeTheme.colors.text,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+    LaunchedEffect(Unit) {
+        viewModel.errorEvents.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Layer 1: 纯黑背景
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+        )
+
+        // Layer 2: 封面模糊背景
+        val artworkUrl = currentItem?.artwork
+        if (!artworkUrl.isNullOrBlank()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                AsyncImage(
+                    model = artworkUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(50.dp, edgeTreatment = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded)
+                        .alpha(0.5f),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                // API 29-30: 简单半透明遮罩
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.7f)),
+                )
+            }
+        }
+
+        // Layer 3: 内容
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            PlayerNavBar(
+                title = currentItem?.title ?: "",
+                artist = currentItem?.artist ?: "",
+                platform = currentItem?.platform,
+                onBack = onBack,
+                onShare = {},
             )
 
             Spacer(Modifier.weight(1f))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 48.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                val coverShape = RoundedCornerShape(12.dp)
-                if (currentItem?.artwork.isNullOrBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clip(coverShape)
-                            .background(MusicFreeTheme.colors.placeholder),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = MusicFreeTheme.colors.textSecondary,
-                            modifier = Modifier.size(96.dp),
-                        )
-                    }
-                } else {
-                    AsyncImage(
-                        model = currentItem?.artwork,
-                        contentDescription = "专辑封面",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clip(coverShape),
-                        contentScale = ContentScale.Crop,
-                    )
-                }
-            }
+            PlayerCoverArt(
+                artworkUrl = artworkUrl,
+                modifier = Modifier.size(rpx(500)),
+            )
+
+            PlayerOperationsBar()
 
             Spacer(Modifier.weight(1f))
 
-            SeekBar(
+            PlayerSeekBar(
                 position = state.position,
                 duration = state.duration,
                 onSeek = { viewModel.seekTo(it) },
-                modifier = Modifier.padding(horizontal = 24.dp),
+                modifier = Modifier.padding(horizontal = rpx(48)),
             )
 
-            Spacer(Modifier.height(8.dp))
-
-            PlayControls(
+            PlayerControls(
                 isPlaying = state.isPlaying,
                 repeatMode = state.repeatMode,
                 shuffleEnabled = state.shuffleEnabled,
@@ -162,16 +133,183 @@ fun PlayerScreen(
                 onSkipNext = { viewModel.skipToNext() },
                 onCycleRepeatMode = { viewModel.cycleRepeatMode() },
                 onToggleShuffle = { viewModel.toggleShuffle() },
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(rpx(48)))
         }
     }
 }
 
 @Composable
-private fun SeekBar(
+private fun PlayerNavBar(
+    title: String,
+    artist: String,
+    platform: String?,
+    onBack: () -> Unit,
+    onShare: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(rpx(150)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.padding(start = rpx(24)),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_arrow_left),
+                contentDescription = "返回",
+                tint = Color.White,
+                modifier = Modifier.size(IconSizes.normal),
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = FontSizes.title,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (artist.isNotBlank()) {
+                Row(
+                    modifier = Modifier.padding(top = rpx(12)),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = artist,
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = FontSizes.subTitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (!platform.isNullOrBlank()) {
+                        Spacer(Modifier.size(rpx(8)))
+                        Text(
+                            text = platform,
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = FontSizes.tag,
+                            modifier = Modifier
+                                .background(
+                                    color = Color.White.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(rpx(4)),
+                                )
+                                .padding(horizontal = rpx(8), vertical = rpx(2)),
+                        )
+                    }
+                }
+            }
+        }
+
+        IconButton(
+            onClick = onShare,
+            modifier = Modifier.padding(end = rpx(24)),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_share),
+                contentDescription = "分享",
+                tint = Color.White,
+                modifier = Modifier.size(IconSizes.normal),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayerCoverArt(
+    artworkUrl: String?,
+    modifier: Modifier = Modifier,
+) {
+    val coverShape = RoundedCornerShape(12.dp)
+    if (artworkUrl.isNullOrBlank()) {
+        Box(
+            modifier = modifier
+                .clip(coverShape)
+                .background(Color.White.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_play),
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.3f),
+                modifier = Modifier.size(rpx(120)),
+            )
+        }
+    } else {
+        AsyncImage(
+            model = artworkUrl,
+            contentDescription = "专辑封面",
+            modifier = modifier.clip(coverShape),
+            contentScale = ContentScale.Crop,
+        )
+    }
+}
+
+@Composable
+private fun PlayerOperationsBar() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(rpx(80))
+            .padding(horizontal = rpx(48)),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = {}) {
+            Icon(
+                painter = painterResource(R.drawable.ic_heart_outline),
+                contentDescription = "收藏",
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(IconSizes.normal),
+            )
+        }
+        Text(
+            text = "标准",
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = FontSizes.description,
+        )
+        IconButton(onClick = {}) {
+            Icon(
+                painter = painterResource(R.drawable.ic_arrow_down_tray),
+                contentDescription = "下载",
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(IconSizes.normal),
+            )
+        }
+        Text(
+            text = "1.0x",
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = FontSizes.description,
+        )
+        IconButton(onClick = {}) {
+            Icon(
+                painter = painterResource(R.drawable.ic_chat_bubble),
+                contentDescription = "歌词",
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(IconSizes.normal),
+            )
+        }
+        IconButton(onClick = {}) {
+            Icon(
+                painter = painterResource(R.drawable.ic_ellipsis_vertical),
+                contentDescription = "更多",
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(IconSizes.normal),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayerSeekBar(
     position: Long,
     duration: Long,
     onSeek: (Long) -> Unit,
@@ -179,16 +317,27 @@ private fun SeekBar(
 ) {
     var isDragging by remember { mutableStateOf(false) }
     var dragPosition by remember { mutableFloatStateOf(0f) }
+    // seekTarget：seek 发出后到播放器回传新 position 之前，用此值防止进度条回弹
+    var seekTarget by remember { mutableFloatStateOf(-1f) }
 
-    val sliderValue = if (isDragging) {
-        dragPosition
-    } else if (duration > 0) {
-        (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
+    val sliderValue = when {
+        isDragging -> dragPosition
+        seekTarget >= 0f && duration > 0 && (position.toFloat() / duration.toFloat()) < seekTarget - 0.01f -> seekTarget
+        else -> {
+            if (seekTarget >= 0f) seekTarget = -1f  // 播放器已追上，清除 seekTarget
+            if (duration > 0) (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f) else 0f
+        }
     }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = formatDuration(if (isDragging) (dragPosition * duration).toLong() else position),
+            color = Color(0xFFCCCCCC),
+            fontSize = FontSizes.description,
+        )
         Slider(
             value = sliderValue,
             onValueChange = {
@@ -197,34 +346,26 @@ private fun SeekBar(
             },
             onValueChangeFinished = {
                 isDragging = false
+                seekTarget = dragPosition
                 onSeek((dragPosition * duration).toLong())
             },
             colors = SliderDefaults.colors(
-                thumbColor = MusicFreeTheme.colors.primary,
-                activeTrackColor = MusicFreeTheme.colors.primary,
-                inactiveTrackColor = MusicFreeTheme.colors.divider,
+                thumbColor = Color(0xFFDDDDDD),
+                activeTrackColor = Color(0xFFCCCCCC),
+                inactiveTrackColor = Color(0xFF999999),
             ),
+            modifier = Modifier.weight(1f),
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = formatDuration(if (isDragging) (dragPosition * duration).toLong() else position),
-                color = MusicFreeTheme.colors.textSecondary,
-                fontSize = FontSizes.description,
-            )
-            Text(
-                text = formatDuration(duration),
-                color = MusicFreeTheme.colors.textSecondary,
-                fontSize = FontSizes.description,
-            )
-        }
+        Text(
+            text = formatDuration(duration),
+            color = Color(0xFFCCCCCC),
+            fontSize = FontSizes.description,
+        )
     }
 }
 
 @Composable
-private fun PlayControls(
+private fun PlayerControls(
     isPlaying: Boolean,
     repeatMode: RepeatMode,
     shuffleEnabled: Boolean,
@@ -233,54 +374,68 @@ private fun PlayControls(
     onSkipNext: () -> Unit,
     onCycleRepeatMode: () -> Unit,
     onToggleShuffle: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(rpx(100))
+            .padding(top = rpx(36), start = rpx(24), end = rpx(24)),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onToggleShuffle) {
+        // 随机/循环模式图标
+        val modeIcon = when {
+            shuffleEnabled -> R.drawable.ic_shuffle
+            repeatMode == RepeatMode.ONE -> R.drawable.ic_repeat_song_1
+            else -> R.drawable.ic_repeat_song
+        }
+        IconButton(
+            onClick = if (shuffleEnabled) onToggleShuffle else onCycleRepeatMode,
+        ) {
             Icon(
-                imageVector = Icons.Default.Shuffle,
-                contentDescription = "随机播放",
-                tint = if (shuffleEnabled) MusicFreeTheme.colors.primary else MusicFreeTheme.colors.textSecondary,
-                modifier = Modifier.size(28.dp),
+                painter = painterResource(modeIcon),
+                contentDescription = "播放模式",
+                tint = Color.White,
+                modifier = Modifier.size(rpx(56)),
             )
         }
+
         IconButton(onClick = onSkipPrevious) {
             Icon(
-                imageVector = Icons.Default.SkipPrevious,
+                painter = painterResource(R.drawable.ic_skip_left),
                 contentDescription = "上一曲",
-                tint = MusicFreeTheme.colors.text,
-                modifier = Modifier.size(36.dp),
+                tint = Color.White,
+                modifier = Modifier.size(rpx(56)),
             )
         }
-        IconButton(onClick = onTogglePlayPause, modifier = Modifier.size(64.dp)) {
+
+        IconButton(
+            onClick = onTogglePlayPause,
+            modifier = Modifier.size(rpx(96)),
+        ) {
             Icon(
-                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                painter = painterResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
                 contentDescription = if (isPlaying) "暂停" else "播放",
-                tint = MusicFreeTheme.colors.text,
-                modifier = Modifier.size(48.dp),
+                tint = Color.White,
+                modifier = Modifier.size(rpx(72)),
             )
         }
+
         IconButton(onClick = onSkipNext) {
             Icon(
-                imageVector = Icons.Default.SkipNext,
+                painter = painterResource(R.drawable.ic_skip_right),
                 contentDescription = "下一曲",
-                tint = MusicFreeTheme.colors.text,
-                modifier = Modifier.size(36.dp),
+                tint = Color.White,
+                modifier = Modifier.size(rpx(56)),
             )
         }
-        IconButton(onClick = onCycleRepeatMode) {
+
+        IconButton(onClick = { /* TODO: 弹出队列 */ }) {
             Icon(
-                imageVector = when (repeatMode) {
-                    RepeatMode.ONE -> Icons.Default.RepeatOne
-                    else -> Icons.Default.Repeat
-                },
-                contentDescription = "重复模式",
-                tint = if (repeatMode != RepeatMode.OFF) MusicFreeTheme.colors.primary else MusicFreeTheme.colors.textSecondary,
-                modifier = Modifier.size(28.dp),
+                painter = painterResource(R.drawable.ic_playlist),
+                contentDescription = "播放列表",
+                tint = Color.White,
+                modifier = Modifier.size(rpx(56)),
             )
         }
     }

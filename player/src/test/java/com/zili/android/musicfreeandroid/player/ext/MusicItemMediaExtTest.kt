@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.player.ext
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.function.ThrowingRunnable
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -29,16 +30,29 @@ class MusicItemMediaExtTest {
     }
 
     @Test
-    fun `toMediaItem handles null url gracefully`() {
+    fun `toMediaItem throws IllegalArgumentException when url is null`() {
         val item = MusicItem(
             id = "1", platform = "local", title = "Song",
             artist = "Artist", album = null, duration = 0L,
             url = null, artwork = null, qualities = null,
         )
-        val mediaItem = item.toMediaItem()
-        assertEquals("local:1", mediaItem.mediaId)
-        assertNull(mediaItem.localConfiguration)
-        assertNull(mediaItem.mediaMetadata.albumTitle)
-        assertNull(mediaItem.mediaMetadata.artworkUri)
+        assertThrows(
+            "Cannot create MediaItem without URL for: Song (local:1)",
+            IllegalArgumentException::class.java,
+            ThrowingRunnable { item.toMediaItem() },
+        )
+    }
+
+    @Test
+    fun `toMediaItem throws IllegalArgumentException when url is blank`() {
+        val item = MusicItem(
+            id = "2", platform = "local", title = "Song2",
+            artist = "Artist", album = null, duration = 0L,
+            url = "", artwork = null, qualities = null,
+        )
+        assertThrows(
+            IllegalArgumentException::class.java,
+            ThrowingRunnable { item.toMediaItem() },
+        )
     }
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.player.model.PlayerState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
@@ -13,6 +14,7 @@ class PlayerViewModel @Inject constructor(
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = playerController.playerState
+    val errorEvents: SharedFlow<String> = playerController.errorEvents
 
     fun togglePlayPause() {
         if (playerState.value.isPlaying) {

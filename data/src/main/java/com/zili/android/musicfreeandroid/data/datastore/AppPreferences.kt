@@ -74,6 +74,36 @@ class AppPreferences @Inject constructor(
         }
     }
 
+    // ── Search History ──
+
+    val searchHistory: Flow<List<String>> = dataStore.data.map { prefs ->
+        prefs[KEY_SEARCH_HISTORY]
+            ?.split("\u001F")  // Unit Separator 作为分隔符，避免逗号在搜索词中出现
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
+    }
+
+    suspend fun addSearchQuery(query: String) {
+        if (query.isBlank()) return
+        dataStore.edit { prefs ->
+            val current = prefs[KEY_SEARCH_HISTORY]
+                ?.split("\u001F")
+                ?.filter { it.isNotBlank() }
+                ?.toMutableList()
+                ?: mutableListOf()
+            current.remove(query)  // 去重
+            current.add(0, query)  // 最新置顶
+            if (current.size > MAX_SEARCH_HISTORY) {
+                current.subList(MAX_SEARCH_HISTORY, current.size).clear()
+            }
+            prefs[KEY_SEARCH_HISTORY] = current.joinToString("\u001F")
+        }
+    }
+
+    suspend fun clearSearchHistory() {
+        dataStore.edit { it.remove(KEY_SEARCH_HISTORY) }
+    }
+
     private companion object {
         val KEY_REPEAT_MODE = stringPreferencesKey("repeat_mode")
         val KEY_PLAY_QUALITY = stringPreferencesKey("play_quality")
@@ -81,5 +111,7 @@ class AppPreferences @Inject constructor(
         val KEY_DARK_MODE = booleanPreferencesKey("dark_mode")
         val KEY_CURRENT_MUSIC_INDEX = intPreferencesKey("current_music_index")
         val KEY_STORAGE_DIRECTORY_URI = stringPreferencesKey("storage_directory_uri")
+        val KEY_SEARCH_HISTORY = stringPreferencesKey("search_history")
+        const val MAX_SEARCH_HISTORY = 20
     }
 }

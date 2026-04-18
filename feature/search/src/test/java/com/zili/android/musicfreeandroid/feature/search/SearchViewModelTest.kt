@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.search
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
@@ -8,6 +9,7 @@ import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -27,6 +29,7 @@ class SearchViewModelTest {
 
     private val pluginManager: PluginManager = mock()
     private val playerController: PlayerController = mock()
+    private val appPreferences: AppPreferences = mock()
     private val pluginFlow = MutableStateFlow<List<LoadedPlugin>>(emptyList())
 
     init {
@@ -35,114 +38,145 @@ class SearchViewModelTest {
             val platform = invocation.getArgument<String>(0)
             pluginFlow.value.find { it.info.platform == platform }
         }
+        whenever(appPreferences.searchHistory).thenReturn(flowOf(emptyList()))
     }
 
+    private fun createViewModel() = SearchViewModel(pluginManager, playerController, appPreferences)
+
     @Test
-    fun `filters searchable plugins and preserves selected plugin while still available`() = runTest {
+    fun `filters searchable plugins and auto-selects first`() = runTest {
         whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
 
         val searchable = plugin(platform = "searchable", supportedSearchType = listOf("music"))
         val nonSearchable = plugin(platform = "comment", supportedSearchType = listOf("comment"))
         pluginFlow.value = listOf(searchable, nonSearchable)
 
-        val viewModel = SearchViewModel(pluginManager, playerController)
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
-        assertEquals(listOf(searchable.info), viewModel.availablePlugins.value)
-        assertEquals(listOf(searchable.info, nonSearchable.info), viewModel.installedPlugins.value)
-        assertEquals(searchable.info.platform, viewModel.selectedPlugin.value)
-        assertTrue(viewModel.uiState.value is SearchUiState.Idle)
-
-        pluginFlow.value = listOf(searchable, plugin("extra", supportedSearchType = listOf("music")))
-        advanceUntilIdle()
-
-        assertEquals(searchable.info.platform, viewModel.selectedPlugin.value)
-        assertEquals(2, viewModel.availablePlugins.value.size)
+        assertEquals(listOf(searchable.info), viewModel.searchablePlugins.value)
+        assertEquals(searchable.info.platform, viewModel.selectedPlatform.value)
+        assertEquals(SearchPageStatus.EDITING, viewModel.pageStatus.value)
     }
 
     @Test
-    fun `plugin update keeps selected searchable plugin stable`() = runTest {
+    fun `no plugins transitions to NO_PLUGIN status`() = runTest {
         whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
 
-        val searchable = plugin(platform = "searchable", supportedSearchType = listOf("music"))
-        val upgraded = plugin(platform = "searchable", supportedSearchType = listOf("music"))
-        pluginFlow.value = listOf(searchable)
-
-        val viewModel = SearchViewModel(pluginManager, playerController)
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
-        assertEquals(searchable.info.platform, viewModel.selectedPlugin.value)
-
-        pluginFlow.value = listOf(upgraded)
-        advanceUntilIdle()
-
-        assertEquals(searchable.info.platform, viewModel.selectedPlugin.value)
-        assertEquals(listOf(upgraded.info), viewModel.availablePlugins.value)
-        assertTrue(viewModel.uiState.value is SearchUiState.Idle)
+        assertEquals(SearchPageStatus.NO_PLUGIN, viewModel.pageStatus.value)
+        assertTrue(viewModel.searchablePlugins.value.isEmpty())
+        assertNull(viewModel.selectedPlatform.value)
     }
 
     @Test
-    fun `no installed plugins enters no plugins state`() = runTest {
+    fun `searchAll triggers per-plugin search and transitions to RESULT`() = runTest {
         whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
-
-        val viewModel = SearchViewModel(pluginManager, playerController)
-        advanceUntilIdle()
-
-        assertTrue(viewModel.uiState.value is SearchUiState.NoPlugins)
-        assertTrue(viewModel.availablePlugins.value.isEmpty())
-        assertTrue(viewModel.installedPlugins.value.isEmpty())
-        assertNull(viewModel.selectedPlugin.value)
-    }
-
-    @Test
-    fun `installed but non searchable plugins enters no searchable plugins state`() = runTest {
-        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
-        pluginFlow.value = listOf(plugin(platform = "comment", supportedSearchType = listOf("comment")))
-
-        val viewModel = SearchViewModel(pluginManager, playerController)
-        advanceUntilIdle()
-
-        assertTrue(viewModel.uiState.value is SearchUiState.NoSearchablePlugins)
-        assertTrue(viewModel.availablePlugins.value.isEmpty())
-        assertEquals(listOf("comment"), viewModel.installedPlugins.value.map { it.platform })
-        assertNull(viewModel.selectedPlugin.value)
-    }
-
-    @Test
-    fun `load more failure keeps existing search results`() = runTest {
-        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
+        whenever(appPreferences.addSearchQuery(any())).thenReturn(Unit)
 
         val plugin = plugin(
             platform = "searchable",
             supportedSearchType = listOf("music"),
             firstPage = searchResult(
-                data = listOf(
-                    musicItem("1", "Song 1"),
-                ),
+                data = listOf(musicItem("1", "Song 1")),
+                isEnd = true,
+            ),
+        )
+        pluginFlow.value = listOf(plugin)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.searchAll("hello")
+        advanceUntilIdle()
+
+        assertEquals(SearchPageStatus.RESULT, viewModel.pageStatus.value)
+
+        // Check via searchResults directly (currentPluginState needs a subscriber to activate stateIn)
+        val platform = viewModel.selectedPlatform.value
+        val state = viewModel.searchResults.value[SearchMediaType.MUSIC]?.get(platform)
+        assertTrue("Expected Success but was $state", state is PluginSearchState.Success)
+        assertEquals(1, (state as PluginSearchState.Success).items.size)
+    }
+
+    @Test
+    fun `load more failure keeps existing search results`() = runTest {
+        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
+        whenever(appPreferences.addSearchQuery(any())).thenReturn(Unit)
+
+        val plugin = plugin(
+            platform = "searchable",
+            supportedSearchType = listOf("music"),
+            firstPage = searchResult(
+                data = listOf(musicItem("1", "Song 1")),
                 isEnd = false,
             ),
             secondPageThrows = true,
         )
         pluginFlow.value = listOf(plugin)
 
-        val viewModel = SearchViewModel(pluginManager, playerController)
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.search("hello")
+        viewModel.searchAll("hello")
         advanceUntilIdle()
 
-        val initialState = viewModel.uiState.value
-        assertTrue(initialState is SearchUiState.Success)
-        assertEquals(1, (initialState as SearchUiState.Success).items.size)
+        val platform = viewModel.selectedPlatform.value
+        val initialState = viewModel.searchResults.value[SearchMediaType.MUSIC]?.get(platform)
+        assertTrue("Expected Success but was $initialState", initialState is PluginSearchState.Success)
+        assertEquals(1, (initialState as PluginSearchState.Success).items.size)
 
         viewModel.loadMore()
         advanceUntilIdle()
 
-        val afterLoadMore = viewModel.uiState.value
-        assertTrue(afterLoadMore is SearchUiState.Success)
-        afterLoadMore as SearchUiState.Success
+        val afterLoadMore = viewModel.searchResults.value[SearchMediaType.MUSIC]?.get(platform)
+        assertTrue("Expected Success but was $afterLoadMore", afterLoadMore is PluginSearchState.Success)
+        afterLoadMore as PluginSearchState.Success
         assertEquals(1, afterLoadMore.items.size)
         assertEquals(1, afterLoadMore.page)
+    }
+
+    @Test
+    fun `selectPlatform switches current platform`() = runTest {
+        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
+
+        val p1 = plugin(platform = "plugin1", supportedSearchType = listOf("music"))
+        val p2 = plugin(platform = "plugin2", supportedSearchType = listOf("music"))
+        pluginFlow.value = listOf(p1, p2)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals("plugin1", viewModel.selectedPlatform.value)
+
+        viewModel.selectPlatform("plugin2")
+        assertEquals("plugin2", viewModel.selectedPlatform.value)
+    }
+
+    @Test
+    fun `backToEditing resets pageStatus to EDITING`() = runTest {
+        whenever(pluginManager.loadAllPlugins()).thenReturn(Unit)
+        whenever(appPreferences.addSearchQuery(any())).thenReturn(Unit)
+
+        val plugin = plugin(
+            platform = "searchable",
+            supportedSearchType = listOf("music"),
+            firstPage = searchResult(data = listOf(musicItem("1", "Song 1")), isEnd = true),
+        )
+        pluginFlow.value = listOf(plugin)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.searchAll("hello")
+        advanceUntilIdle()
+
+        assertEquals(SearchPageStatus.RESULT, viewModel.pageStatus.value)
+
+        viewModel.backToEditing()
+        assertEquals(SearchPageStatus.EDITING, viewModel.pageStatus.value)
     }
 
     private suspend fun plugin(
@@ -174,10 +208,7 @@ class SearchViewModelTest {
     }
 
     private fun searchResult(data: List<MusicItem>, isEnd: Boolean): SearchResult {
-        return SearchResult(
-            isEnd = isEnd,
-            data = data,
-        )
+        return SearchResult(isEnd = isEnd, data = data)
     }
 
     private fun musicItem(id: String, title: String): MusicItem {

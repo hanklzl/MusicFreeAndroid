@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- arc path from top-left to bottom-left, partial circle -->
+    <path
+        android:pathData="M8.55658 3.68789C9.659 3.23137 10.8068 3.00311 12 3.00311C13.1932 3.00311 14.341 3.23137 15.4434 3.68789C16.5458 4.14442 17.519 4.79446 18.3629 5.63805C19.2067 6.48162 19.8571 7.45454 20.314 8.5568C20.7709 9.65906 20.9996 10.8068 21 12C21.0004 13.1937 20.7723 14.3421 20.3158 15.4451C19.8593 16.5481 19.209 17.5217 18.3651 18.366C17.5211 19.2102 16.5477 19.8608 15.4449 20.3177C14.342 20.7746 13.1938 21.0031 12 21.0031C10.8062 21.0031 9.65796 20.7746 8.55515 20.3177C7.4523 19.8608 6.47891 19.2102 5.63495 18.366C4.79099 17.5217 4.14075 16.5481 3.6842 15.4451C3.22766 14.3421 2.9996 13.1937 3 12C3.00043 10.8068 3.22906 9.65906 3.68597 8.5568"
+        android:strokeColor="@color/white"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- play triangle -->
+    <path
+        android:pathData="M16.1032 12C16.1032 12.1473 16.0388 12.2566 15.91 12.328L10.307 15.441C10.182 15.5104 10.0579 15.5088 9.93472 15.4363C9.81152 15.3637 9.74994 15.256 9.75 15.113L9.75 8.887C9.75 8.60101 10.057 8.42101 10.307 8.56001L15.91 11.672C16.0388 11.7434 16.1032 11.8527 16.1032 12Z"
+        android:strokeColor="@color/white"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeLineJoin="round" />
+    <!-- circle at top-left: cx=5.549988 cy=5.550003 r=0.75, converted to arc path -->
+    <path
+        android:pathData="M5.549988 4.800003A0.75 0.75 0 1 1 5.549988 6.300003A0.75 0.75 0 0 1 5.549988 4.800003Z"
+        android:fillColor="@color/white" />
+</vector>
