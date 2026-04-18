@@ -35,7 +35,7 @@ dependencies {
     implementation(project(":data"))
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.quickjs.wrapper.android)
+    implementation(libs.quickjs.kt.android)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
