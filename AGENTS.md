@@ -71,7 +71,7 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - 架构：MVVM + 多模块 + 单向数据流
 - DI：Hilt
 - 播放：Media3（ExoPlayer）+ `MediaSessionService`
-- 插件引擎：QuickJS（`quickjs-android`）
+- 插件引擎：QuickJS（`quickjs-kt`）
 - 数据库：Room
 - 偏好存储：DataStore
 - 异步：Kotlin Coroutines + Flow
