@@ -2,11 +2,9 @@ package com.zili.android.musicfreeandroid.plugin.engine
 
 import android.content.Context
 import android.util.Log
-import com.whl.quickjs.wrapper.JSCallFunction
-import com.whl.quickjs.wrapper.QuickJSContext
 
 /**
- * Registers CommonJS-like `require()` support in QuickJS for built-in plugin dependencies.
+ * Registers CommonJS-like `require()` support in QuickJs for built-in plugin dependencies.
  *
  * Module sources are loaded from assets once and cached in memory for reuse.
  */
@@ -28,11 +26,18 @@ object RequireShim {
     @Volatile
     private var cachedModuleSources: Map<String, String>? = null
 
-    fun register(appContext: Context, context: QuickJSContext) {
+    /**
+     * Register the `__require` global function and pre-load all built-in modules.
+     * Must be called after [AxiosShim.register] so that axios is available in the require cache.
+     */
+    suspend fun register(appContext: Context, engine: JsEngine) {
         val moduleSources = loadModuleSources(appContext)
 
-        context.evaluate("globalThis.__requireCache = globalThis.__requireCache || Object.create(null);")
-        context.evaluate(
+        // Initialize require cache and add axios if available
+        engine.evaluate<Any?>(
+            "globalThis.__requireCache = globalThis.__requireCache || Object.create(null);"
+        )
+        engine.evaluate<Any?>(
             """
             (function() {
               if (typeof globalThis.axios !== "undefined") {
@@ -45,25 +50,30 @@ object RequireShim {
             """.trimIndent()
         )
 
+        // Register each module by evaluating its source in a CommonJS wrapper
         for ((moduleName, source) in moduleSources) {
             try {
-                registerCommonJsModule(context, moduleName, source)
+                registerCommonJsModule(engine, moduleName, source)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to register module '$moduleName'", e)
             }
         }
 
-        context.globalObject.setProperty("__require", JSCallFunction { args ->
-            val moduleName = args.getOrNull(0)?.toString()?.trim().orEmpty()
-            val moduleExpr = "globalThis.__requireCache[${toJsString(moduleName)}]"
-            val module = context.evaluate(moduleExpr)
-            if (module != null && module.toString() != "undefined") {
-                module
-            } else {
-                Log.w(TAG, "require('$moduleName') not supported, returning empty object")
-                context.createNewJSObject()
-            }
-        })
+        // Define __require as a pure JS function that reads from cache
+        // (We can't use engine.function{} for this because we need to return
+        // the actual JS object from __requireCache, not a Kotlin copy)
+        engine.evaluate<Any?>(
+            """
+            (function() {
+              var cache = globalThis.__requireCache;
+              globalThis.__require = function(name) {
+                if (cache[name] !== undefined) return cache[name];
+                console.warn("require('" + name + "') not supported, returning empty object");
+                return {};
+              };
+            })();
+            """.trimIndent()
+        )
     }
 
     private fun loadModuleSources(appContext: Context): Map<String, String> {
@@ -87,8 +97,8 @@ object RequireShim {
         }
     }
 
-    private fun registerCommonJsModule(
-        context: QuickJSContext,
+    private suspend fun registerCommonJsModule(
+        engine: JsEngine,
         moduleName: String,
         source: String,
     ) {
@@ -119,7 +129,7 @@ object RequireShim {
             append("})();")
         }
 
-        context.evaluate(script)
+        engine.evaluate<Any?>(script)
     }
 
     private fun toJsString(value: String): String {
