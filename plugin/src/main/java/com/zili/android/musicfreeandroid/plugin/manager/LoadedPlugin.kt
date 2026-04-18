@@ -94,7 +94,14 @@ class LoadedPlugin(
                         PlayQuality.valueOf(quality.uppercase())
                     }.getOrNull()
                     val fallbackUrl = qualityEnum?.let { musicItem.qualities?.get(it)?.url }
-                    fallbackUrl?.let { MediaSourceResult(url = it) }
+                    fallbackUrl?.let {
+                        MediaSourceResult(
+                            url = it,
+                            headers = null,
+                            userAgent = null,
+                            quality = qualityEnum,
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "getMediaSource failed for ${musicItem.id} on ${info.platform}", e)
