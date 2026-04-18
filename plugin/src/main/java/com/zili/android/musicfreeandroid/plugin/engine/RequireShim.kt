@@ -15,6 +15,7 @@ object RequireShim {
     private const val TAG = "RequireShim"
 
     private val moduleAssetPaths = linkedMapOf(
+        "cheerio" to "jslibs/cheerio.min.js",
         "crypto-js" to "jslibs/crypto-js.js",
         "qs" to "jslibs/qs.js",
         "he" to "jslibs/he.js",
