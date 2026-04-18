@@ -41,36 +41,41 @@ object AxiosShim {
 
     /**
      * Register the `axios` global with `get`, `post`, `request`, `default`, and `create` methods.
+     *
+     * axios must be callable as a function: `axios(config)` and `axios.default(config)`.
+     * We register individual async functions at global scope, then assemble the axios
+     * object structure in JS so that `axios` itself is a callable function.
      */
     suspend fun register(engine: JsEngine) {
-        engine.define("axios") {
-            asyncFunction<Any?>("get") { args ->
-                handleGet(args)
-            }
-            asyncFunction<Any?>("post") { args ->
-                handlePost(args)
-            }
-            asyncFunction<Any?>("request") { args ->
-                handleRequest(args)
-            }
-            function<Any?>("create") { _ ->
-                null
-            }
-        }
+        // Register the core async handlers as global functions.
+        // They return JSON strings — the JS wrapper parses them into objects.
+        // This avoids quickjs-kt nested Map conversion issues.
+        engine.asyncFunction<String>("__axios_get") { args -> handleGet(args) }
+        engine.asyncFunction<String>("__axios_post") { args -> handlePost(args) }
+        engine.asyncFunction<String>("__axios_request") { args -> handleRequest(args) }
 
-        // Set up CommonJS interop aliases
+        // Build the axios object in JS: axios is a callable function with .get/.post/.request.
+        // Each wrapper awaits the JSON string and parses it.
         engine.evaluate<Any?>(
             """
             (function() {
-              var ax = globalThis.axios;
-              ax.default = ax;
-              ax.create = function() { return ax; };
+              async function parseResponse(promise) {
+                var json = await promise;
+                try { return JSON.parse(json); } catch(e) { return { status: -1, data: json }; }
+              }
+              var axios = function(config) { return parseResponse(__axios_request(config)); };
+              axios.get = function() { return parseResponse(__axios_get.apply(null, arguments)); };
+              axios.post = function() { return parseResponse(__axios_post.apply(null, arguments)); };
+              axios.request = function(config) { return parseResponse(__axios_request(config)); };
+              axios.create = function() { return axios; };
+              axios.default = axios;
+              globalThis.axios = axios;
             })();
             """.trimIndent()
         )
     }
 
-    private suspend fun handleGet(args: Array<Any?>): Any? {
+    private suspend fun handleGet(args: Array<Any?>): String {
         return try {
             val url = args.getOrNull(0)?.toString()
                 ?: return buildErrorResponse("URL is required")
@@ -82,7 +87,7 @@ object AxiosShim {
         }
     }
 
-    private suspend fun handlePost(args: Array<Any?>): Any? {
+    private suspend fun handlePost(args: Array<Any?>): String {
         return try {
             val url = args.getOrNull(0)?.toString()
                 ?: return buildErrorResponse("URL is required")
@@ -95,7 +100,7 @@ object AxiosShim {
         }
     }
 
-    private suspend fun handleRequest(args: Array<Any?>): Any? {
+    private suspend fun handleRequest(args: Array<Any?>): String {
         val config = args.getOrNull(0) as? Map<*, *>
             ?: return buildErrorResponse("Config object is required")
 
@@ -115,7 +120,7 @@ object AxiosShim {
         }
     }
 
-    private suspend fun performGet(url: String, config: Map<*, *>?): Map<String, Any?> {
+    private suspend fun performGet(url: String, config: Map<*, *>?): String {
         val fullUrl = buildUrlWithParams(url, config)
         val requestBuilder = Request.Builder().url(fullUrl).get()
         applyHeaders(requestBuilder, config)
@@ -132,7 +137,7 @@ object AxiosShim {
         url: String,
         bodyArg: Any?,
         config: Map<*, *>?,
-    ): Map<String, Any?> {
+    ): String {
         val fullUrl = buildUrlWithParams(url, config)
         val contentType = resolveContentType(config, bodyArg)
         val bodyString = when (bodyArg) {
@@ -159,6 +164,8 @@ object AxiosShim {
             buildResponse(it.code, body)
         }
     }
+
+    // -- OkHttp suspend extension --
 
     private suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
         enqueue(object : Callback {
@@ -251,49 +258,32 @@ object AxiosShim {
         }
     }
 
-    private fun buildResponse(status: Int, body: String?): Map<String, Any?> {
-        val data: Any? = if (body != null) {
+    private fun buildResponse(status: Int, body: String?): String {
+        val obj = JSONObject()
+        obj.put("status", status)
+        if (body != null) {
             try {
-                parseJsonValue(body)
+                // Try to embed as parsed JSON (object or array)
+                val trimmed = body.trim()
+                when {
+                    trimmed.startsWith("{") -> obj.put("data", JSONObject(trimmed))
+                    trimmed.startsWith("[") -> obj.put("data", JSONArray(trimmed))
+                    else -> obj.put("data", body)
+                }
             } catch (_: Exception) {
-                body
+                obj.put("data", body)
             }
         } else {
-            ""
+            obj.put("data", "")
         }
-        return mapOf("status" to status, "data" to data)
+        return obj.toString()
     }
 
-    private fun buildErrorResponse(message: String): Map<String, Any?> {
-        return mapOf("status" to -1, "data" to message)
-    }
-
-    private fun parseJsonValue(json: String): Any? {
-        val trimmed = json.trim()
-        return when {
-            trimmed.startsWith("{") -> jsonObjectToMap(JSONObject(trimmed))
-            trimmed.startsWith("[") -> jsonArrayToList(JSONArray(trimmed))
-            else -> trimmed
-        }
-    }
-
-    private fun jsonObjectToMap(obj: JSONObject): Map<String, Any?> {
-        val map = mutableMapOf<String, Any?>()
-        for (key in obj.keys()) {
-            map[key] = jsonElementToKotlin(obj.opt(key))
-        }
-        return map
-    }
-
-    private fun jsonArrayToList(arr: JSONArray): List<Any?> {
-        return (0 until arr.length()).map { jsonElementToKotlin(arr.opt(it)) }
-    }
-
-    private fun jsonElementToKotlin(value: Any?): Any? = when (value) {
-        null, JSONObject.NULL -> null
-        is JSONObject -> jsonObjectToMap(value)
-        is JSONArray -> jsonArrayToList(value)
-        else -> value
+    private fun buildErrorResponse(message: String): String {
+        val obj = JSONObject()
+        obj.put("status", -1)
+        obj.put("data", message)
+        return obj.toString()
     }
 
     private fun jsonStringify(map: Map<*, *>): String {
