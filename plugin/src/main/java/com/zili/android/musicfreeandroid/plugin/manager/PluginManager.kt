@@ -758,37 +758,27 @@ class PluginManager @Inject constructor(
      * 3. Wrap the plugin code in a CommonJS-style module wrapper
      * 4. Extract plugin metadata from `__plugin`
      * 5. Return a [LoadedPlugin]
-     *
-     * All QuickJS operations run on the engine's dedicated JS thread to
-     * satisfy QuickJSContext's thread affinity requirement.
      */
     private suspend fun loadPluginFromFile(
         file: File,
         installSource: PluginInstallSource,
     ): LoadedPlugin? {
         val jsCode = file.readText()
-        val engine = JsEngine()
+        val engine = JsEngine.create()
 
-        // Gather env values before entering JS thread
+        // Gather env values
         val appVersion = try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "unknown"
         } catch (e: Exception) { "unknown" }
         val lang = java.util.Locale.getDefault().toLanguageTag()
 
-        val info = engine.runOnJsThread {
-            engine.create()
-
-            val ctx = engine.context
-                ?: throw IllegalStateException("Failed to create QuickJS context")
-
-            // Register axios shim
-            AxiosShim.register(ctx, engine)
-
-            // Register CommonJS require shim with built-in modules from assets.
-            RequireShim.register(appContext = context, context = ctx)
+        val info = try {
+            // Register shims
+            AxiosShim.register(engine)
+            RequireShim.register(appContext = context, engine = engine)
 
             // Inject env object
-            engine.evaluate("""
+            engine.evaluate<Any?>("""
                 globalThis.__env = {
                     os: 'android',
                     appVersion: '${appVersion.escapeForJsString()}',
@@ -808,11 +798,11 @@ class PluginManager @Inject constructor(
             """.trimIndent()
 
             try {
-                engine.evaluate(wrappedCode)
+                engine.evaluate<Any?>(wrappedCode)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to evaluate plugin code from ${file.name}", e)
-                engine.destroyOnJsThread()
-                return@runOnJsThread null
+                engine.close()
+                return null
             }
 
             // Extract metadata from __plugin
@@ -820,18 +810,20 @@ class PluginManager @Inject constructor(
                 extractPluginInfo(engine)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to extract plugin info from ${file.name}", e)
-                engine.destroyOnJsThread()
-                null
+                engine.close()
+                return null
             }
-        } ?: return null
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load plugin from ${file.name}", e)
+            engine.close()
+            return null
+        }
 
-        // Inject userVariables snapshot for this plugin (outside JS thread to allow suspend)
+        // Inject userVariables snapshot for this plugin
         val userVars = pluginMetaStore.getUserVariables(info.platform).first()
         if (userVars.isNotEmpty()) {
-            engine.runOnJsThread {
-                val jsonStr = Json.encodeToString(userVars)
-                engine.evaluate("globalThis.__userVariables = JSON.parse('${jsonStr.escapeForJsString()}')")
-            }
+            val jsonStr = Json.encodeToString(userVars)
+            engine.evaluate<Any?>("globalThis.__userVariables = JSON.parse('${jsonStr.escapeForJsString()}')")
         }
 
         return LoadedPlugin(
@@ -845,9 +837,9 @@ class PluginManager @Inject constructor(
     /**
      * Extract [PluginInfo] from the loaded `__plugin` global object.
      */
-    private fun extractPluginInfo(engine: JsEngine): PluginInfo {
-        fun prop(name: String): String? {
-            val result = engine.evaluate("__plugin.$name")
+    private suspend fun extractPluginInfo(engine: JsEngine): PluginInfo {
+        suspend fun prop(name: String): String? {
+            val result = engine.evaluate<Any?>("__plugin.$name")
             val str = result?.toString()
             return if (str == "undefined" || str == "null" || str.isNullOrBlank()) null else str
         }
@@ -858,8 +850,7 @@ class PluginManager @Inject constructor(
         val supportedSearchTypeStr = prop("supportedSearchType")
         val supportedSearchType = if (!supportedSearchTypeStr.isNullOrBlank()) {
             try {
-                // Evaluate as JSON array
-                val json = engine.evaluate("JSON.stringify(__plugin.supportedSearchType)")?.toString()
+                val json = engine.evaluate<Any?>("JSON.stringify(__plugin.supportedSearchType)")?.toString()
                 if (json != null && json.startsWith("[")) {
                     json.removeSurrounding("[", "]")
                         .split(",")
@@ -875,9 +866,8 @@ class PluginManager @Inject constructor(
             listOf("music")
         }
 
-        // Parse hints: { [methodName]: string[] }
         val hintsJson = try {
-            val raw = engine.evaluate("JSON.stringify(__plugin.hints)")?.toString()
+            val raw = engine.evaluate<Any?>("JSON.stringify(__plugin.hints)")?.toString()
             if (raw != null && raw != "undefined" && raw != "null" && raw.startsWith("{")) {
                 kotlinx.serialization.json.Json.decodeFromString<Map<String, List<String>>>(raw)
             } else null
