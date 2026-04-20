@@ -62,7 +62,10 @@ object AxiosShim {
             (function() {
               async function parseResponse(promise) {
                 var json = await promise;
-                try { return JSON.parse(json); } catch(e) { return { status: -1, data: json }; }
+                var res;
+                try { res = JSON.parse(json); } catch(e) { res = { status: -1, data: json }; }
+                globalThis.__lastAxiosResponse = res;
+                return res;
               }
               var axios = function(config) { return parseResponse(__axios_request(config)); };
               axios.get = function() { return parseResponse(__axios_get.apply(null, arguments)); };
@@ -126,6 +129,7 @@ object AxiosShim {
         val requestBuilder = Request.Builder().url(fullUrl).get()
         applyHeaders(requestBuilder, config)
 
+        Log.i(TAG, "REQ GET  $fullUrl headers=${headersPreview(config)}")
         val response = client.newCall(requestBuilder.build()).await()
         return response.use {
             val body = readResponseBody(it)
@@ -158,6 +162,7 @@ object AxiosShim {
         val requestBuilder = Request.Builder().url(fullUrl).post(requestBody)
         applyHeaders(requestBuilder, config)
 
+        Log.i(TAG, "REQ POST $fullUrl headers=${headersPreview(config)} body=${bodyString.take(400)}")
         val response = client.newCall(requestBuilder.build()).await()
         return response.use {
             val body = readResponseBody(it)
@@ -230,9 +235,15 @@ object AxiosShim {
     }
 
     private fun logResponsePreview(method: String, url: String, status: Int, body: String?) {
-        if (!Log.isLoggable(TAG, Log.DEBUG)) return
-        val preview = body?.replace("\n", " ")?.replace("\r", " ")?.take(240) ?: ""
-        Log.d(TAG, "$method $url -> $status body=$preview")
+        val preview = body?.replace("\n", " ")?.replace("\r", " ")?.take(800) ?: ""
+        Log.i(TAG, "RES $method $url -> $status body=$preview")
+    }
+
+    private fun headersPreview(config: Map<*, *>?): String {
+        val headers = config?.get("headers") as? Map<*, *> ?: return "{}"
+        return headers.entries.joinToString(",", "{", "}") { (k, v) ->
+            "${k}=${v.toString().take(80)}"
+        }
     }
 
     private fun buildUrlWithParams(baseUrl: String, config: Map<*, *>?): String {
@@ -303,10 +314,39 @@ object AxiosShim {
     }
 
     private fun jsonStringify(map: Map<*, *>): String {
-        val obj = JSONObject()
-        for ((k, v) in map) {
-            obj.put(k?.toString() ?: continue, v)
+        return (toJsonValue(map) as JSONObject).toString()
+    }
+
+    /**
+     * Recursively convert Kotlin/quickjs-kt values (Map / JsObject / List / JsArray /
+     * primitives) into org.json types so that nested structures serialize correctly.
+     * Plain `JSONObject.put(k, v)` does not auto-wrap, so nested `JsObject` values
+     * would otherwise be serialized as `Object.toString()` (e.g.
+     * `"com.dokar.quickjs.binding.JsObject@..."`).
+     */
+    private fun toJsonValue(value: Any?): Any {
+        return when (value) {
+            null -> JSONObject.NULL
+            is Map<*, *> -> {
+                val obj = JSONObject()
+                for ((k, v) in value) {
+                    val key = k?.toString() ?: continue
+                    obj.put(key, toJsonValue(v))
+                }
+                obj
+            }
+            is Iterable<*> -> {
+                val arr = JSONArray()
+                for (item in value) arr.put(toJsonValue(item))
+                arr
+            }
+            is Array<*> -> {
+                val arr = JSONArray()
+                for (item in value) arr.put(toJsonValue(item))
+                arr
+            }
+            is Number, is Boolean, is String -> value
+            else -> value.toString()
         }
-        return obj.toString()
     }
 }

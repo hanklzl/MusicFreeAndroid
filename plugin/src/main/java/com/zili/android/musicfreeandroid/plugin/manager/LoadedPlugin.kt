@@ -70,6 +70,14 @@ class LoadedPlugin(
                 JsBridge.parseSearchResult(map)
             } catch (e: Exception) {
                 Log.e(TAG, "search failed for query='$query' on ${info.platform}", e)
+                try {
+                    val lastResp = engine.evaluate<Any?>(
+                        "JSON.stringify(globalThis.__lastAxiosResponse || null).slice(0, 2000)"
+                    )
+                    Log.e(TAG, "  last axios response on ${info.platform}: $lastResp")
+                } catch (dumpEx: Exception) {
+                    Log.w(TAG, "  failed to dump __lastAxiosResponse", dumpEx)
+                }
                 SearchResult(isEnd = true, data = emptyList())
             }
         }
