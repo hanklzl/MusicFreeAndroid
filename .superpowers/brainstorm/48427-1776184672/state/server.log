@@ -1,0 +1,6 @@
+{"type":"server-started","port":52642,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:52642","screen_dir":"/Users/zili/code/android/MusicFreeAndroid/.superpowers/brainstorm/48427-1776184672/content","state_dir":"/Users/zili/code/android/MusicFreeAndroid/.superpowers/brainstorm/48427-1776184672/state"}
+{"type":"screen-added","file":"/Users/zili/code/android/MusicFreeAndroid/.superpowers/brainstorm/48427-1776184672/content/flow-analysis.html"}
+{"type":"screen-added","file":"/Users/zili/code/android/MusicFreeAndroid/.superpowers/brainstorm/48427-1776184672/content/full-issue-map.html"}
+{"type":"screen-added","file":"/Users/zili/code/android/MusicFreeAndroid/.superpowers/brainstorm/48427-1776184672/content/design-proposal.html"}
+{"type":"screen-added","file":"/Users/zili/code/android/MusicFreeAndroid/.superpowers/brainstorm/48427-1776184672/content/waiting.html"}
+{"type":"server-stopped","reason":"owner process exited"}

@@ -1,0 +1,152 @@
+<h2>完整问题清单：搜索 → 播放 → 歌单链路</h2>
+<p class="subtitle">代码验证 + 用户反馈 + RN 对比</p>
+
+<!-- ====== 搜索页 ====== -->
+<div class="section">
+  <h3>搜索页问题（4项）</h3>
+</div>
+
+<div class="options">
+  <div class="option" style="cursor:default; border-left:4px solid #c0392b">
+    <div class="letter" style="background:#c0392b">S1</div>
+    <div class="content">
+      <h3>搜索仅触发当前 Tab 的单一插件源</h3>
+      <p><strong>当前:</strong> <code>SearchViewModel.search()</code> 只调用 <code>_selectedPlugin</code> 的 <code>plugin.search()</code></p>
+      <p><strong>RN 原版:</strong> 搜索同时触发<strong>所有可搜索插件</strong>，结果按二级 Tab（插件名）分组展示</p>
+      <p><strong>结构差异:</strong> RN 用两层 Tab — 第一层媒体类型（单曲/专辑/歌手/歌单），第二层插件源。Android 只有一层插件 Tab + SegmentedButton</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor:default; border-left:4px solid #c0392b">
+    <div class="letter" style="background:#c0392b">S2</div>
+    <div class="content">
+      <h3>搜索页顶部 Bar 高度异常</h3>
+      <p><strong>当前:</strong> 使用 Material3 <code>TopAppBar</code>（标题 "搜索" + 返回箭头）+ 独立的 <code>OutlinedTextField</code></p>
+      <p><strong>RN 原版:</strong> 自定义 NavBar <code>rpx(88)</code> 高，内嵌药丸形搜索输入框 <code>rpx(64)</code> 高 + 右侧"搜索"按钮。<strong>没有单独标题栏</strong></p>
+      <p><strong>修复:</strong> 去掉 TopAppBar，改用自定义 Row 内嵌搜索框，对齐 RN 布局</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor:default; border-left:4px solid #c0392b">
+    <div class="letter" style="background:#c0392b">S3</div>
+    <div class="content">
+      <h3>页面过渡动画未对齐原版</h3>
+      <p><strong>当前:</strong> 全局统一 <code>slideIntoContainer</code> 100ms 水平滑动</p>
+      <p><strong>RN 原版:</strong> 使用 React Navigation 默认过渡（iOS 风格右滑入/出）</p>
+      <p><strong>需确认:</strong> 是动画方向还是时长不对？还是需要特定页面使用不同动画？</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor:default; border-left:4px solid #c0392b">
+    <div class="letter" style="background:#c0392b">S4</div>
+    <div class="content">
+      <h3>搜索结果无「添加到歌单」入口</h3>
+      <p><strong>当前:</strong> SearchResultItem 只有 <code>clickable</code>（点击播放），无长按/三点菜单</p>
+      <p><strong>RN 原版:</strong> 每条结果右侧有三点菜单 <code>ellipsis-vertical</code>，点击弹出选项面板含"添加到歌单"</p>
+      <p><strong>复用:</strong> LocalScreen 已有 <code>AddToPlaylistDialog</code> 可复用</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 播放器 ====== -->
+<div class="section">
+  <h3>播放器问题（3项）</h3>
+</div>
+
+<div class="options">
+  <div class="option" style="cursor:default; border-left:4px solid #c0392b">
+    <div class="letter" style="background:#c0392b">P1</div>
+    <div class="content">
+      <h3>无封面高斯模糊背景</h3>
+      <p><strong>当前:</strong> 纯色背景</p>
+      <p><strong>RN 原版:</strong></p>
+      <ul style="margin:4px 0; padding-left:20px; line-height:1.6">
+        <li>底层: 纯黑 <code>#000</code> 背景</li>
+        <li>上层: 封面图 <code>blurRadius=50</code>, <code>opacity=0.5</code></li>
+        <li>两层叠加 = 暗色模糊效果</li>
+      </ul>
+      <p><strong>Android 实现:</strong> Coil + <code>Modifier.blur(50.dp)</code> 或 RenderScript/RenderEffect</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor:default; border-left:4px solid #c0392b">
+    <div class="letter" style="background:#c0392b">P2</div>
+    <div class="content">
+      <h3>顶部 Bar 歌曲/歌手信息未居中</h3>
+      <p><strong>当前:</strong> 使用 Material3 TopAppBar，title 默认左对齐</p>
+      <p><strong>RN 原版:</strong> NavBar 高 <code>rpx(150)</code>，中间区域 <code>flex:1</code> + <code>alignItems:"center"</code> + <code>justifyContent:"center"</code>，标题和歌手严格居中</p>
+      <p><strong>结构:</strong> 左返回箭头 | 居中(标题+歌手+平台tag) | 右分享按钮</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor:default; border-left:4px solid #c0392b">
+    <div class="letter" style="background:#c0392b">P3</div>
+    <div class="content">
+      <h3>封面图可能不显示（数据链路待验证）</h3>
+      <p><strong>代码分析:</strong> artwork 字段从 JS 插件 → JsBridge → MusicItem → PlayerState → PlayerScreen <strong>链路完整</strong></p>
+      <p><strong>JsBridge 支持字段:</strong> artwork, coverimg, cover, pic, img, image, avatar 等 20+ 别名</p>
+      <p><strong>可能原因:</strong></p>
+      <ul style="margin:4px 0; padding-left:20px; line-height:1.6">
+        <li>订阅源插件 JS 代码返回的字段不在已知别名列表中</li>
+        <li>插件返回的 URL 格式有问题（需运行时日志确认）</li>
+        <li>Coil 网络请求被 Referer/UA 拦截</li>
+      </ul>
+      <p style="color:#c9a227"><strong>建议:</strong> 安装订阅源后实际运行，抓日志确认 artwork 值</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MiniPlayer ====== -->
+<div class="section">
+  <h3>MiniPlayer 问题（2项）</h3>
+</div>
+
+<div class="options">
+  <div class="option" style="cursor:default; border-left:4px solid #c0392b">
+    <div class="letter" style="background:#c0392b">M1</div>
+    <div class="content">
+      <h3>MiniPlayer 封面图未加载</h3>
+      <p><strong>当前:</strong> MiniPlayerContent.kt 只显示 <code>Icons.Default.MusicNote</code> 占位符</p>
+      <p><strong>RN 原版:</strong> 圆形封面 <code>rpx(96)×rpx(96)</code>，<code>borderRadius: rpx(48)</code></p>
+      <p><strong>代码:</strong> <code>uiModel.coverUri</code> 已正确映射但未被 UI 使用</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor:default; border-left:4px solid #c0392b">
+    <div class="letter" style="background:#c0392b">M2</div>
+    <div class="content">
+      <h3>首页用 mock MiniPlayer</h3>
+      <p><strong>当前:</strong> MainActivity.kt:74-82 在 HomeRoute 显示硬编码测试数据的 MiniPlayer</p>
+      <p><strong>应改为:</strong> 所有页面（除 PlayerRoute）统一显示真实 MiniPlayer</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 风险点 ====== -->
+<div class="section">
+  <h3>潜在风险（2项）</h3>
+</div>
+
+<div class="options">
+  <div class="option" style="cursor:default; border-left:4px solid #e67e22">
+    <div class="letter" style="background:#e67e22">R1</div>
+    <div class="content">
+      <h3>URL 为空时 ExoPlayer 静默失败</h3>
+      <p><code>toMediaItem()</code> 中 <code>url?.let { setUri(it) }</code> — URL 为 null 时不设 URI，播放无声无提示</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor:default; border-left:4px solid #e67e22">
+    <div class="letter" style="background:#e67e22">R2</div>
+    <div class="content">
+      <h3>MediaController 连接失败静默丢弃操作</h3>
+      <p><code>withConnectedController</code> 在连接失败时不执行 action 也无用户反馈</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 总计 ====== -->
+<div class="section" style="margin-top: 24px; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+  <h3>总计: 11 项待修复</h3>
+  <p>搜索页 4 项 (S1-S4) + 播放器 3 项 (P1-P3) + MiniPlayer 2 项 (M1-M2) + 风险 2 项 (R1-R2)</p>
+</div>

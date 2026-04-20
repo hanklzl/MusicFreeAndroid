@@ -1,0 +1,106 @@
+<h2>搜索 → 播放 → 添加到歌单：链路断裂分析</h2>
+<p class="subtitle">基于代码验证的功能完整性报告</p>
+
+<div class="section">
+  <h3>链路总览</h3>
+  <div class="mockup">
+    <div class="mockup-header">Search → Play → Add to Playlist Flow</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.8; padding: 16px;">
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <span style="background: #2d7d46; color: white; padding: 4px 10px; border-radius: 4px;">搜索页</span>
+        <span>→</span>
+        <span style="background: #2d7d46; color: white; padding: 4px 10px; border-radius: 4px;">插件解析URL</span>
+        <span>→</span>
+        <span style="background: #c9a227; color: black; padding: 4px 10px; border-radius: 4px;">⚠ 播放(URL可能为空)</span>
+        <span>→</span>
+        <span style="background: #2d7d46; color: white; padding: 4px 10px; border-radius: 4px;">导航到播放器</span>
+      </div>
+      <br/>
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <span style="background: #c0392b; color: white; padding: 4px 10px; border-radius: 4px;">✗ MiniPlayer封面未加载</span>
+        <span style="background: #c0392b; color: white; padding: 4px 10px; border-radius: 4px;">✗ 播放器无高斯模糊</span>
+        <span style="background: #c0392b; color: white; padding: 4px 10px; border-radius: 4px;">✗ 搜索结果无「加入歌单」</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>功能断裂点</h3>
+</div>
+
+<div class="options">
+  <div class="option" style="cursor: default; border-left: 4px solid #c0392b;">
+    <div class="letter" style="background: #c0392b;">1</div>
+    <div class="content">
+      <h3>MiniPlayer 封面图未加载</h3>
+      <p><strong>文件:</strong> MiniPlayerContent.kt</p>
+      <p><code>coverUri</code> 字段已从 PlayerState 正确映射，但 UI 只显示 <code>Icons.Default.MusicNote</code> 占位符，从未使用 AsyncImage 加载实际封面。PlayerScreen 中有正确实现可参考。</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor: default; border-left: 4px solid #c0392b;">
+    <div class="letter" style="background: #c0392b;">2</div>
+    <div class="content">
+      <h3>搜索结果无「添加到歌单」入口</h3>
+      <p><strong>文件:</strong> SearchScreen.kt → SearchResultItem</p>
+      <p>搜索结果只有 <code>clickable</code>（点击播放），没有长按、三点菜单或任何添加到歌单的入口。<br/><strong>对比:</strong> LocalScreen 已有长按 → AddToPlaylistDialog 的完整实现可复用。RN 原版使用三点菜单 + 底部面板。</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor: default; border-left: 4px solid #c0392b;">
+    <div class="letter" style="background: #c0392b;">3</div>
+    <div class="content">
+      <h3>播放器无封面高斯模糊背景</h3>
+      <p><strong>文件:</strong> PlayerScreen.kt</p>
+      <p>当前使用纯色背景。RN 原版在 <code>musicDetail/components/background.tsx</code> 中使用 <code>Image blurRadius={50}</code> + opacity 0.5 作为全屏背景。Android 需要用 Compose 的 <code>Modifier.blur()</code> 或 RenderEffect 实现。</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor: default; border-left: 4px solid #c0392b;">
+    <div class="letter" style="background: #c0392b;">4</div>
+    <div class="content">
+      <h3>首页 HomeRoute 不显示 MiniPlayer</h3>
+      <p><strong>文件:</strong> MainActivity.kt:61</p>
+      <p><code>showRealMiniPlayer = !isHomeRoute && !isPlayerRoute</code><br/>首页使用 mock MiniPlayer（测试数据），真实 MiniPlayer 不在首页展示。需要统一为真实 MiniPlayer。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>潜在风险点</h3>
+</div>
+
+<div class="options">
+  <div class="option" style="cursor: default; border-left: 4px solid #c9a227;">
+    <div class="letter" style="background: #c9a227; color: black;">A</div>
+    <div class="content">
+      <h3>URL 为空时静默失败</h3>
+      <p><strong>文件:</strong> SearchViewModel.kt:245, MusicItemMediaExt.kt:12</p>
+      <p>如果插件 <code>getMediaSource()</code> 返回空 URL，fallback 回退逻辑可能仍传递 blank URL 给 ExoPlayer。<code>toMediaItem()</code> 中 <code>url?.let { setUri(it) }</code> 在 url 为 null 时静默跳过，ExoPlayer 无法播放。</p>
+    </div>
+  </div>
+
+  <div class="option" style="cursor: default; border-left: 4px solid #c9a227;">
+    <div class="letter" style="background: #c9a227; color: black;">B</div>
+    <div class="content">
+      <h3>MediaController 连接静默失败</h3>
+      <p><strong>文件:</strong> PlayerController.kt:250-287</p>
+      <p><code>withConnectedController</code> 在 controller 为 null 且连接失败时静默丢弃操作，用户无反馈。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3 style="color: #2d7d46;">已正常工作的部分</h3>
+  <ul style="line-height: 2;">
+    <li>✅ 搜索：插件选择、分页、WY 回退机制</li>
+    <li>✅ 播放控制：play/pause/seek/skip/shuffle/repeat</li>
+    <li>✅ PlayQueue：队列管理、去重、shuffle</li>
+    <li>✅ MiniPlayer → PlayerScreen 导航</li>
+    <li>✅ PlayerScreen 封面图加载（AsyncImage）</li>
+    <li>✅ 状态同步：PlayerController → ViewModel → UI</li>
+    <li>✅ 歌单 CRUD：数据库层完整</li>
+    <li>✅ 本地音乐长按添加到歌单</li>
+  </ul>
+</div>

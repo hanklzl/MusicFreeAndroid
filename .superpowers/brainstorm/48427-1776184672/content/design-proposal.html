@@ -1,0 +1,236 @@
+<h2>设计方案：搜索 → 播放 → 歌单 完整链路</h2>
+<p class="subtitle">全量对齐 RN 原版 UI + 功能修复</p>
+
+<!-- ====== 目标总览 ====== -->
+<div class="section">
+  <h3>核心目标</h3>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+    <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:14px;">
+      <div style="font-weight:bold; margin-bottom:6px;">🔍 搜索页 UI 对齐 RN</div>
+      <ul style="margin:0; padding-left:18px; line-height:1.7; font-size:14px;">
+        <li>自定义搜索栏（药丸形输入框 + 搜索按钮）</li>
+        <li>两层 Tab：媒体类型 → 插件源</li>
+        <li>全源并行搜索</li>
+        <li>搜索历史面板</li>
+        <li>结果项三点菜单（含添加到歌单）</li>
+        <li>结果项尺寸对齐 RN <code>rpx</code></li>
+      </ul>
+    </div>
+    <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:14px;">
+      <div style="font-weight:bold; margin-bottom:6px;">🎵 播放器 UI 对齐 RN</div>
+      <ul style="margin:0; padding-left:18px; line-height:1.7; font-size:14px;">
+        <li>封面高斯模糊背景（blur=50dp, opacity=0.5）</li>
+        <li>顶部栏标题/歌手严格居中</li>
+        <li>封面尺寸对齐 <code>rpx(500)</code></li>
+        <li>操作栏（收藏/下载/评论等图标行）</li>
+        <li>控制按钮尺寸与间距对齐</li>
+        <li>SeekBar 样式对齐（白/灰配色）</li>
+      </ul>
+    </div>
+    <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:14px;">
+      <div style="font-weight:bold; margin-bottom:6px;">📻 MiniPlayer 修复</div>
+      <ul style="margin:0; padding-left:18px; line-height:1.7; font-size:14px;">
+        <li>封面图实际加载（AsyncImage 替换占位符）</li>
+        <li>首页统一使用真实 MiniPlayer</li>
+        <li>尺寸对齐 RN <code>rpx(132)</code> 高</li>
+      </ul>
+    </div>
+    <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:14px;">
+      <div style="font-weight:bold; margin-bottom:6px;">🛡️ 健壮性修复</div>
+      <ul style="margin:0; padding-left:18px; line-height:1.7; font-size:14px;">
+        <li>URL 为空时的错误提示</li>
+        <li>MediaController 连接失败反馈</li>
+        <li>封面图加载问题运行时诊断</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 搜索页设计 ====== -->
+<div class="section">
+  <h3>一、搜索页重构设计</h3>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">搜索页布局（对齐 RN）</div>
+  <div class="mockup-body" style="background:#1a1a2e; color:#eee; padding:0;">
+
+    <!-- Search Bar -->
+    <div style="display:flex; align-items:center; padding:8px 12px; gap:8px; background:rgba(255,255,255,0.08);">
+      <div style="font-size:18px; padding:0 4px; cursor:pointer;">←</div>
+      <div style="flex:1; background:rgba(255,255,255,0.1); border-radius:999px; padding:8px 16px; display:flex; align-items:center; gap:8px;">
+        <span style="opacity:0.5; font-size:13px;">🔍</span>
+        <span style="opacity:0.4; font-size:13px;">搜索音乐</span>
+        <span style="margin-left:auto; opacity:0.4; font-size:12px;">✕</span>
+      </div>
+      <div style="color:#7c7ce0; font-size:14px; padding:0 4px;">搜索</div>
+    </div>
+
+    <!-- History Panel (initial state) -->
+    <div style="padding:12px 16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-weight:bold; font-size:14px;">搜索历史</span>
+        <span style="font-size:12px; opacity:0.5;">清空</span>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        <span style="background:rgba(255,255,255,0.1); padding:4px 12px; border-radius:16px; font-size:12px;">周杰伦</span>
+        <span style="background:rgba(255,255,255,0.1); padding:4px 12px; border-radius:16px; font-size:12px;">晴天</span>
+        <span style="background:rgba(255,255,255,0.1); padding:4px 12px; border-radius:16px; font-size:12px;">陈奕迅</span>
+      </div>
+    </div>
+
+    <hr style="border:none; border-top:1px solid rgba(255,255,255,0.1); margin:0;">
+
+    <!-- Result State - Two Level Tabs -->
+    <div style="padding:0;">
+      <!-- Level 1: Media Type Tabs -->
+      <div style="display:flex; border-bottom:1px solid rgba(255,255,255,0.1); padding:0 8px;">
+        <div style="padding:10px 16px; font-size:13px; font-weight:bold; color:#7c7ce0; border-bottom:2px solid #7c7ce0;">单曲</div>
+        <div style="padding:10px 16px; font-size:13px; opacity:0.6;">专辑</div>
+        <div style="padding:10px 16px; font-size:13px; opacity:0.6;">歌手</div>
+        <div style="padding:10px 16px; font-size:13px; opacity:0.6;">歌单</div>
+      </div>
+      <!-- Level 2: Plugin Source Tabs -->
+      <div style="display:flex; padding:4px 8px; gap:4px; overflow-x:auto;">
+        <div style="padding:6px 14px; font-size:12px; font-weight:bold; color:#7c7ce0;">元力WY</div>
+        <div style="padding:6px 14px; font-size:12px; opacity:0.6;">酷狗</div>
+        <div style="padding:6px 14px; font-size:12px; opacity:0.6;">QQ</div>
+        <div style="padding:6px 14px; font-size:12px; opacity:0.6;">咪咕</div>
+      </div>
+    </div>
+
+    <!-- Result Items -->
+    <div style="padding:0 4px;">
+      <div style="display:flex; align-items:center; padding:10px 12px; gap:12px;">
+        <div style="width:40px; height:40px; background:rgba(255,255,255,0.1); border-radius:8px; flex-shrink:0;"></div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">晴天</div>
+          <div style="font-size:11px; opacity:0.5; margin-top:2px;">周杰伦 · 叶惠美</div>
+        </div>
+        <div style="font-size:16px; opacity:0.4; padding:4px;">⋮</div>
+      </div>
+      <div style="display:flex; align-items:center; padding:10px 12px; gap:12px;">
+        <div style="width:40px; height:40px; background:rgba(255,255,255,0.1); border-radius:8px; flex-shrink:0;"></div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">七里香</div>
+          <div style="font-size:11px; opacity:0.5; margin-top:2px;">周杰伦 · 七里香</div>
+        </div>
+        <div style="font-size:16px; opacity:0.4; padding:4px;">⋮</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:12px; padding:12px 16px; background:rgba(255,255,255,0.04); border-radius:8px; font-size:13px; line-height:1.8;">
+  <strong>技术要点：</strong>
+  <ul style="margin:4px 0; padding-left:18px;">
+    <li><strong>SearchViewModel 重构</strong>: 提交搜索时并行调用所有可搜索插件，结果按 <code>Map&lt;String/*platform*/, SearchUiState&gt;</code> 存储</li>
+    <li><strong>第一层 Tab</strong>: ScrollableTabRow — 单曲/专辑/歌手/歌单（对应 RN <code>supportedSearchType</code>）</li>
+    <li><strong>第二层 Tab</strong>: ScrollableTabRow（无指示器）— 各插件源名称，按 PluginManager 排序</li>
+    <li><strong>搜索历史</strong>: DataStore 存储，最多保留 20 条，去重 + 最新置顶</li>
+    <li><strong>三点菜单</strong>: 复用 LocalScreen 的 <code>AddToPlaylistDialog</code>，后续扩展为完整选项面板</li>
+    <li><strong>搜索栏</strong>: 去掉 TopAppBar，自定义 Row（返回键 + 药丸输入框 + 搜索按钮），高度 <code>rpx(88)</code></li>
+  </ul>
+</div>
+
+<!-- ====== 播放器设计 ====== -->
+<div class="section">
+  <h3>二、播放器 UI 对齐设计</h3>
+</div>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">当前 Android</div>
+    <div class="mockup-body" style="background:#1a1a2e; color:#eee; text-align:center; padding:16px;">
+      <div style="text-align:left; font-size:12px; opacity:0.7;">← 歌曲名 (左对齐)</div>
+      <div style="width:80%; margin:20px auto; aspect-ratio:1; background:rgba(255,255,255,0.1); border-radius:12px; display:flex; align-items:center; justify-content:center;">
+        <span style="font-size:40px; opacity:0.3;">♪</span>
+      </div>
+      <div style="font-size:11px; opacity:0.5; margin:12px 0;">纯色背景，无模糊</div>
+      <div style="display:flex; justify-content:center; gap:24px; margin:12px 0;">
+        <span style="opacity:0.5;">🔀</span>
+        <span style="opacity:0.5;">⏮</span>
+        <span style="font-size:20px;">▶</span>
+        <span style="opacity:0.5;">⏭</span>
+        <span style="opacity:0.5;">🔁</span>
+      </div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">目标（对齐 RN）</div>
+    <div class="mockup-body" style="background:linear-gradient(135deg, #2a1a3e 0%, #1a2a3e 50%, #1a1a2e 100%); color:#eee; text-align:center; padding:16px; position:relative;">
+      <div style="position:absolute; inset:0; background:rgba(0,0,0,0.5); filter:blur(0px);"></div>
+      <div style="position:relative; z-index:1;">
+        <div style="font-size:13px; font-weight:bold;">歌曲名 (居中)</div>
+        <div style="font-size:11px; opacity:0.6;">歌手名 <span style="background:rgba(255,255,255,0.15); padding:1px 6px; border-radius:4px; font-size:9px;">源</span></div>
+        <div style="width:70%; margin:16px auto; aspect-ratio:1; background:rgba(255,255,255,0.15); border-radius:12px; display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:32px; opacity:0.4;">🎵</span>
+        </div>
+        <div style="display:flex; justify-content:space-around; margin:8px 24px; font-size:11px; opacity:0.6;">
+          <span>♡</span><span>HQ</span><span>⬇</span><span>1x</span><span>💬</span><span>⋯</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin:10px 16px; font-size:10px; opacity:0.5;">
+          <span>1:23</span>
+          <div style="flex:1; height:2px; background:rgba(255,255,255,0.3); border-radius:1px; position:relative;">
+            <div style="width:35%; height:100%; background:#ccc; border-radius:1px;"></div>
+          </div>
+          <span>4:05</span>
+        </div>
+        <div style="display:flex; justify-content:space-around; align-items:center; margin:8px 24px;">
+          <span style="font-size:14px; opacity:0.7;">🔀</span>
+          <span style="font-size:16px; opacity:0.8;">⏮</span>
+          <span style="font-size:28px;">▶</span>
+          <span style="font-size:16px; opacity:0.8;">⏭</span>
+          <span style="font-size:14px; opacity:0.7;">📋</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:12px; padding:12px 16px; background:rgba(255,255,255,0.04); border-radius:8px; font-size:13px; line-height:1.8;">
+  <strong>技术要点：</strong>
+  <ul style="margin:4px 0; padding-left:18px;">
+    <li><strong>高斯模糊</strong>: <code>Modifier.blur(50.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)</code> + <code>alpha(0.5f)</code>，底层纯黑 Box</li>
+    <li><strong>顶部栏居中</strong>: 去掉 Material3 TopAppBar，自定义 Row + 中间 Column(<code>Arrangement.Center</code>, <code>Alignment.CenterHorizontally</code>)，高 <code>rpx(150)</code></li>
+    <li><strong>封面尺寸</strong>: 竖屏 <code>rpx(500)×rpx(500)</code></li>
+    <li><strong>操作栏</strong>: 6 个图标按钮行，高 <code>rpx(80)</code>（收藏/品质/下载/倍速/评论/更多）— 本次先做 UI 占位，功能后续接入</li>
+    <li><strong>控制按钮</strong>: 中心播放键 <code>rpx(96)</code>，两侧 <code>rpx(56)</code></li>
+    <li><strong>SeekBar</strong>: 白灰配色（<code>#cccccc</code> / <code>#999999</code> / thumb <code>#dddddd</code>）</li>
+  </ul>
+</div>
+
+<!-- ====== MiniPlayer ====== -->
+<div class="section">
+  <h3>三、MiniPlayer 修复</h3>
+</div>
+
+<div style="padding:12px 16px; background:rgba(255,255,255,0.04); border-radius:8px; font-size:13px; line-height:1.8;">
+  <ul style="margin:0; padding-left:18px;">
+    <li><strong>封面图加载</strong>: MiniPlayerContent 中用 <code>AsyncImage(model = uiModel.coverUri)</code> 替换 MusicNote 占位符，圆形裁剪 <code>clip(CircleShape)</code></li>
+    <li><strong>首页统一</strong>: MainActivity 中去掉 mock MiniPlayer 分支，所有页面（除 PlayerRoute）统一使用真实 MiniPlayer</li>
+    <li><strong>尺寸</strong>: 高 <code>rpx(132)</code>，封面 <code>rpx(96)×rpx(96)</code> 圆形</li>
+  </ul>
+</div>
+
+<!-- ====== 健壮性 ====== -->
+<div class="section">
+  <h3>四、健壮性修复</h3>
+</div>
+
+<div style="padding:12px 16px; background:rgba(255,255,255,0.04); border-radius:8px; font-size:13px; line-height:1.8;">
+  <ul style="margin:0; padding-left:18px;">
+    <li><strong>URL 空值防护</strong>: <code>toMediaItem()</code> 中 URL 为空时抛出明确异常或返回 error state，不静默跳过</li>
+    <li><strong>连接失败反馈</strong>: <code>withConnectedController</code> 失败时通过 SharedFlow 发送 Toast 事件</li>
+    <li><strong>封面图诊断</strong>: 运行时日志记录 artwork URL，Coil 添加自定义 Headers（Referer）以防资源服务器拦截</li>
+  </ul>
+</div>
+
+<!-- ====== 不在范围内 ====== -->
+<div class="section">
+  <h3>明确不在本次范围内</h3>
+  <div style="padding:12px 16px; background:rgba(255,255,255,0.04); border-radius:8px; font-size:13px; line-height:1.7; opacity:0.7;">
+    歌词显示 · 播放品质选择 · 下载功能 · 评论功能 · 倍速播放 · 横屏适配 · 歌单封面定制 · 可视化动画
+    <br/>（操作栏图标先做 UI 占位，功能后续迭代接入）
+  </div>
+</div>
