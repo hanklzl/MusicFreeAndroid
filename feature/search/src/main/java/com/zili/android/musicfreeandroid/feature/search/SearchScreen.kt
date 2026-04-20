@@ -39,7 +39,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,7 +64,6 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +80,6 @@ fun SearchScreen(
     val pageStatus by viewModel.pageStatus.collectAsStateWithLifecycle()
     val currentPluginState by viewModel.currentPluginState.collectAsStateWithLifecycle()
     val history by viewModel.searchHistory.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
 
     val context = LocalContext.current
     var query by remember { mutableStateOf(viewModel.currentQuery.value) }
@@ -90,6 +89,17 @@ fun SearchScreen(
         if (initialQuery.isNotBlank() && query.isBlank()) {
             query = initialQuery
         }
+    }
+
+    // Observe play events from ViewModel (runs in ViewModel scope, survives navigation)
+    LaunchedEffect(Unit) {
+        viewModel.playEvent.onEach { event ->
+            when (event) {
+                is SearchViewModel.PlayEvent.NavigateToPlayer -> onNavigateToPlayer()
+                is SearchViewModel.PlayEvent.Failed ->
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+            }
+        }.launchIn(this)
     }
 
     Column(
@@ -222,14 +232,7 @@ fun SearchScreen(
                     onSelectPlatform = { viewModel.selectPlatform(it) },
                     onLoadMore = { viewModel.loadMore() },
                     onMusicClick = { music, items ->
-                        scope.launch {
-                            val success = viewModel.resolveAndPlay(music, items)
-                            if (success) {
-                                onNavigateToPlayer()
-                            } else {
-                                Toast.makeText(context, "播放失败，请重试", Toast.LENGTH_SHORT).show()
-                            }
-                        }
+                        viewModel.resolveAndPlay(music, items)
                     },
                     onPlayNext = { music -> viewModel.playNext(music) },
                 )

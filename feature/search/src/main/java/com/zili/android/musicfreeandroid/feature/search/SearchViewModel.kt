@@ -9,9 +9,12 @@ import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -196,42 +199,52 @@ class SearchViewModel @Inject constructor(
 
     // ── 播放 ──
 
+    sealed interface PlayEvent {
+        data object NavigateToPlayer : PlayEvent
+        data class Failed(val message: String) : PlayEvent
+    }
+
+    private val _playEvent = MutableSharedFlow<PlayEvent>(extraBufferCapacity = 1)
+    val playEvent: SharedFlow<PlayEvent> = _playEvent.asSharedFlow()
+
     fun playNext(item: MusicItem) {
         playerController.addNextInQueue(item)
         Log.d(TAG, "playNext: ${item.title} 已加入下一首")
     }
 
-    suspend fun resolveAndPlay(item: MusicItem, queue: List<MusicItem>): Boolean {
-        val platform = _selectedPlatform.value ?: return false
-        val plugin = pluginManager.getPlugin(platform) ?: return false
+    fun resolveAndPlay(item: MusicItem, queue: List<MusicItem>) {
+        val platform = _selectedPlatform.value ?: return
+        val plugin = pluginManager.getPlugin(platform) ?: return
 
-        return try {
-            val resolvedItem = resolveMediaSourceWithFallback(
-                primaryPlugin = plugin,
-                selectedPlatform = platform,
-                targetItem = item,
-            )
-            if (resolvedItem != null) {
-                val index = queue.indexOfFirst {
-                    it.id == item.id && it.platform == item.platform
-                }
-                val resolvedQueue = if (index >= 0) {
-                    queue.mapIndexed { i, queueItem ->
-                        if (i == index) resolvedItem else queueItem
+        viewModelScope.launch {
+            try {
+                val resolvedItem = resolveMediaSourceWithFallback(
+                    primaryPlugin = plugin,
+                    selectedPlatform = platform,
+                    targetItem = item,
+                )
+                if (resolvedItem != null) {
+                    val index = queue.indexOfFirst {
+                        it.id == item.id && it.platform == item.platform
                     }
+                    val resolvedQueue = if (index >= 0) {
+                        queue.mapIndexed { i, queueItem ->
+                            if (i == index) resolvedItem else queueItem
+                        }
+                    } else {
+                        listOf(resolvedItem) + queue
+                    }
+                    val startIndex = if (index >= 0) index else 0
+                    playerController.playQueue(resolvedQueue, startIndex)
+                    _playEvent.emit(PlayEvent.NavigateToPlayer)
                 } else {
-                    listOf(resolvedItem) + queue
+                    Log.w(TAG, "Failed to resolve media source for ${item.title}")
+                    _playEvent.emit(PlayEvent.Failed("播放失败，请重试"))
                 }
-                val startIndex = if (index >= 0) index else 0
-                playerController.playQueue(resolvedQueue, startIndex)
-                true
-            } else {
-                Log.w(TAG, "Failed to resolve media source for ${item.title}")
-                false
+            } catch (e: Exception) {
+                Log.e(TAG, "resolveAndPlay failed for ${item.title}", e)
+                _playEvent.emit(PlayEvent.Failed("播放失败，请重试"))
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "resolveAndPlay failed for ${item.title}", e)
-            false
         }
     }
 

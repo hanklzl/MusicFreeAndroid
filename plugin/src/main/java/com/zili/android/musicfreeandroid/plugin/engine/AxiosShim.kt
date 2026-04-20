@@ -10,6 +10,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Headers
 import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
@@ -129,7 +130,7 @@ object AxiosShim {
         return response.use {
             val body = readResponseBody(it)
             logResponsePreview(method = "GET", url = fullUrl, status = it.code, body = body)
-            buildResponse(it.code, body)
+            buildResponse(it.code, body, it.headers)
         }
     }
 
@@ -161,7 +162,7 @@ object AxiosShim {
         return response.use {
             val body = readResponseBody(it)
             logResponsePreview(method = "POST", url = fullUrl, status = it.code, body = body)
-            buildResponse(it.code, body)
+            buildResponse(it.code, body, it.headers)
         }
     }
 
@@ -258,12 +259,12 @@ object AxiosShim {
         }
     }
 
-    private fun buildResponse(status: Int, body: String?): String {
+    private fun buildResponse(status: Int, body: String?, headers: Headers? = null): String {
         val obj = JSONObject()
         obj.put("status", status)
+        obj.put("statusCode", status)
         if (body != null) {
             try {
-                // Try to embed as parsed JSON (object or array)
                 val trimmed = body.trim()
                 when {
                     trimmed.startsWith("{") -> obj.put("data", JSONObject(trimmed))
@@ -276,13 +277,28 @@ object AxiosShim {
         } else {
             obj.put("data", "")
         }
+        // Include headers to match real axios response structure
+        val headersObj = JSONObject()
+        if (headers != null) {
+            for (name in headers.names()) {
+                val values = headers.values(name)
+                if (values.size == 1) {
+                    headersObj.put(name.lowercase(), values[0])
+                } else {
+                    headersObj.put(name.lowercase(), JSONArray(values))
+                }
+            }
+        }
+        obj.put("headers", headersObj)
         return obj.toString()
     }
 
     private fun buildErrorResponse(message: String): String {
         val obj = JSONObject()
         obj.put("status", -1)
+        obj.put("statusCode", -1)
         obj.put("data", message)
+        obj.put("headers", JSONObject())
         return obj.toString()
     }
 
