@@ -42,6 +42,15 @@ class SearchViewModel @Inject constructor(
     private val _pageStatus = MutableStateFlow(SearchPageStatus.EDITING)
     val pageStatus: StateFlow<SearchPageStatus> = _pageStatus.asStateFlow()
 
+    private var pluginsReady = false
+
+    private data class PendingSearch(
+        val query: String,
+        val mediaType: SearchMediaType,
+    )
+
+    private var pendingSearch: PendingSearch? = null
+
     // ── 搜索历史 ──
     val searchHistory: StateFlow<List<String>> = appPreferences.searchHistory
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -71,20 +80,59 @@ class SearchViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            pluginManager.plugins.collect { plugins ->
-                val searchable = plugins
-                    .filter { it.info.supportedSearchType.contains("music") || it.info.supportedSearchType.isEmpty() }
-                    .map { it.info }
-                _searchablePlugins.value = searchable
-                if (_selectedPlatform.value == null && searchable.isNotEmpty()) {
-                    _selectedPlatform.value = searchable.first().platform
-                }
-                if (searchable.isEmpty()) {
-                    _pageStatus.value = SearchPageStatus.NO_PLUGIN
-                }
+            pluginManager.getSearchablePlugins().collect { plugins ->
+                handleSearchablePluginsChanged(plugins.map { it.info })
             }
         }
-        viewModelScope.launch { pluginManager.ensurePluginsLoaded() }
+        viewModelScope.launch {
+            runCatching {
+                pluginManager.ensurePluginsLoaded()
+            }.onFailure { e ->
+                runCatching { Log.e(TAG, "Failed to load plugins", e) }
+            }
+            pluginsReady = true
+            updatePageStatusForPluginAvailability()
+            runPendingSearchIfPossible()
+        }
+    }
+
+    private fun handleSearchablePluginsChanged(searchable: List<PluginInfo>) {
+        _searchablePlugins.value = searchable
+
+        val selected = _selectedPlatform.value
+        if (selected == null && searchable.isNotEmpty()) {
+            _selectedPlatform.value = searchable.first().platform
+        } else if (selected != null && searchable.none { it.platform == selected }) {
+            _selectedPlatform.value = searchable.firstOrNull()?.platform
+        }
+
+        updatePageStatusForPluginAvailability()
+        runPendingSearchIfPossible()
+    }
+
+    private fun updatePageStatusForPluginAvailability() {
+        val searchable = _searchablePlugins.value
+        if (searchable.isNotEmpty()) {
+            if (_pageStatus.value == SearchPageStatus.NO_PLUGIN) {
+                _pageStatus.value = SearchPageStatus.EDITING
+            }
+            return
+        }
+
+        if (!pluginsReady) return
+
+        if (_pageStatus.value != SearchPageStatus.RESULT) {
+            _pageStatus.value = SearchPageStatus.NO_PLUGIN
+        }
+    }
+
+    private fun runPendingSearchIfPossible() {
+        val pending = pendingSearch ?: return
+        if (_searchablePlugins.value.isEmpty()) return
+
+        pendingSearch = null
+        _pageStatus.value = SearchPageStatus.SEARCHING
+        searchForMediaType(pending.query, pending.mediaType)
     }
 
     // ── 搜索 ──
@@ -102,7 +150,13 @@ class SearchViewModel @Inject constructor(
 
     private fun searchForMediaType(query: String, mediaType: SearchMediaType) {
         val plugins = _searchablePlugins.value
-        if (plugins.isEmpty()) return
+        if (plugins.isEmpty()) {
+            pendingSearch = PendingSearch(query, mediaType)
+            updatePageStatusForPluginAvailability()
+            return
+        }
+
+        pendingSearch = null
 
         // 初始化该 mediaType 下所有插件为 Loading
         val typeResults = plugins.associate { it.platform to (PluginSearchState.Loading as PluginSearchState) }
