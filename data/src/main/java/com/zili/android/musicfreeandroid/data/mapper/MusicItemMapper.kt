@@ -18,9 +18,6 @@ fun MusicItem.toEntity(converters: Converters): MusicItemEntity = MusicItemEntit
     qualitiesJson = converters.qualitiesToJson(qualities),
 )
 
-/** No-arg overload for call sites that don't have an injected [Converters] — allocates a fresh instance. */
-fun MusicItem.toEntity(): MusicItemEntity = toEntity(Converters())
-
 fun MusicItemEntity.toModel(converters: Converters, addedAt: Long = 0L): MusicItem = MusicItem(
     id = id,
     platform = platform,
