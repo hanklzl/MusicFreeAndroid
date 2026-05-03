@@ -49,7 +49,7 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - Target SDK：36
 - compileSdk：36.1
 - Java compatibility：`VERSION_17`
-- JVM toolchain：JDK 25
+- JVM toolchain：JDK 21
 - Gradle Wrapper：`9.4.1`
 - AGP：`9.2.0`
 - Kotlin：`2.3.21`
