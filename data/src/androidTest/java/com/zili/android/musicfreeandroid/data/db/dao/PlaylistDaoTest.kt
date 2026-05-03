@@ -38,7 +38,7 @@ class PlaylistDaoTest {
     }
 
     private fun playlist(id: String = "pl1", name: String = "Test") =
-        PlaylistEntity(id, name, null, 1000L, 2000L)
+        PlaylistEntity(id = id, name = name, coverUri = null, createdAt = 1000L, updatedAt = 2000L)
 
     private fun music(id: String, platform: String = "local") =
         MusicItemEntity(id, platform, "Song $id", "Artist", null, 180_000, null, null, null)
