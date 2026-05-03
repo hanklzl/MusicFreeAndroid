@@ -58,7 +58,7 @@ fun FileSelectorLiteScreen(
     }
 
     MusicFreeScreenScaffold(
-        title = "选择目录",
+        title = "选择存储目录",
         onBack = onBack,
         modifier = modifier.fillMaxSize(),
     ) { innerPadding ->
