@@ -94,7 +94,11 @@ worktree: .worktrees/chore/deps-bump-2026-05
 ### 2.5 配置文件改动
 
 - `gradle/wrapper/gradle-wrapper.properties`：
-  `distributionUrl=https\://services.gradle.org/distributions/gradle-9.4.1-bin.zip`
+  目标稳定版 `gradle-9.4.1-bin.zip`，移除 `distributionSha256Sum`。
+  > **临时镜像偏差**：因开发机到 `services.gradle.org` 长期不稳定，本次实施时
+  > `distributionUrl` 改为 `https\://mirrors.aliyun.com/macports/distfiles/gradle/gradle-9.4.1-bin.zip`，
+  > 同时设 `validateDistributionUrl=false`。`gradle-wrapper.properties` 内含
+  > `# TODO` 注释；待网络回稳后改回官方 URL + `validateDistributionUrl=true`。
 - 各模块 `build.gradle.kts`：`compileSdk` 当前已是 36.1（DSL `release(36) { minorApiLevel = 1 }`），保持不变
 - 各模块 `build.gradle.kts`：Java compatibility `VERSION_11` → `VERSION_17`，并新增 `kotlin { jvmToolchain(21); compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }` 块（外层、`dependencies` 之前）
 - 根 `build.gradle.kts`：保持现状（仅声明 `apply false` 插件，无 `subprojects {}` 块；toolchain 由各模块自行声明，避免在 AGP 9 built-in Kotlin 模式下插件 ID 检测时机不确定）
