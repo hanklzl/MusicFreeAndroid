@@ -7,12 +7,12 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
+import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
 import com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDao
-import com.zili.android.musicfreeandroid.data.db.migration.Migrations
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,7 +30,8 @@ object DataModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "musicfree.db")
-            .addMigrations(Migrations.MIGRATION_1_2)
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addCallback(SeedFavoriteCallback)
             .build()
 
     @Provides
