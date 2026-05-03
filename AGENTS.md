@@ -47,11 +47,13 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 
 - Min SDK：29（Android 10）
 - Target SDK：36
-- Java compatibility：`VERSION_11`
-- Gradle Wrapper：`9.5.0-milestone-5`
-- AGP：`9.1.0`
-- Kotlin：`2.2.10`
-- Compose BOM：`2026.02.01`
+- compileSdk：36.1
+- Java compatibility：`VERSION_17`
+- JVM toolchain：JDK 25
+- Gradle Wrapper：`9.4.1`
+- AGP：`9.2.0`
+- Kotlin：`2.3.21`
+- Compose BOM：`2026.04.01`
 
 ## 模块架构
 
