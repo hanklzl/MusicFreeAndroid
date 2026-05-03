@@ -65,6 +65,23 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `uses plugin manager searchable plugin flow for available plugins`() = runTest {
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
+
+        val rawFirst = plugin(platform = "raw-first", supportedSearchType = listOf("music"))
+        val searchableSecond = plugin(platform = "searchable-second", supportedSearchType = listOf("music"))
+        pluginFlow.value = listOf(rawFirst, searchableSecond)
+        searchablePluginFlow.value = listOf(searchableSecond)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf(searchableSecond.info), viewModel.searchablePlugins.value)
+        assertEquals("searchable-second", viewModel.selectedPlatform.value)
+        assertEquals(SearchPageStatus.EDITING, viewModel.pageStatus.value)
+    }
+
+    @Test
     fun `initial empty searchable plugin flow stays editing while plugins are loading`() = runTest {
         val loadGate = CompletableDeferred<Unit>()
         whenever(pluginManager.ensurePluginsLoaded()).doSuspendableAnswer {
@@ -95,6 +112,24 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `searchable plugin arrival restores editing and selects first plugin`() = runTest {
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(SearchPageStatus.NO_PLUGIN, viewModel.pageStatus.value)
+
+        val plugin = plugin(platform = "searchable", supportedSearchType = listOf("music"))
+        setLoadedPlugins(plugin)
+        advanceUntilIdle()
+
+        assertEquals(SearchPageStatus.EDITING, viewModel.pageStatus.value)
+        assertEquals(listOf(plugin.info), viewModel.searchablePlugins.value)
+        assertEquals("searchable", viewModel.selectedPlatform.value)
+    }
+
+    @Test
     fun `searchAll triggers per-plugin search and transitions to RESULT`() = runTest {
         whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
         whenever(appPreferences.addSearchQuery(any())).thenReturn(Unit)
@@ -122,6 +157,42 @@ class SearchViewModelTest {
         val state = viewModel.searchResults.value[SearchMediaType.MUSIC]?.get(platform)
         assertTrue("Expected Success but was $state", state is PluginSearchState.Success)
         assertEquals(1, (state as PluginSearchState.Success).items.size)
+    }
+
+    @Test
+    fun `pending search runs when searchable plugins arrive after submit`() = runTest {
+        val loadGate = CompletableDeferred<Unit>()
+        whenever(pluginManager.ensurePluginsLoaded()).doSuspendableAnswer {
+            loadGate.await()
+        }
+        whenever(appPreferences.addSearchQuery(any())).thenReturn(Unit)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.searchAll("hello")
+        advanceUntilIdle()
+
+        assertEquals(SearchPageStatus.SEARCHING, viewModel.pageStatus.value)
+
+        val plugin = plugin(
+            platform = "searchable",
+            supportedSearchType = listOf("music"),
+            firstPage = searchResult(
+                data = listOf(musicItem("1", "Song 1")),
+                isEnd = true,
+            ),
+        )
+        setLoadedPlugins(plugin)
+        advanceUntilIdle()
+
+        assertEquals(SearchPageStatus.RESULT, viewModel.pageStatus.value)
+        val state = viewModel.searchResults.value[SearchMediaType.MUSIC]?.get("searchable")
+        assertTrue("Expected Success but was $state", state is PluginSearchState.Success)
+        assertEquals(1, (state as PluginSearchState.Success).items.size)
+
+        loadGate.complete(Unit)
+        advanceUntilIdle()
     }
 
     @Test
