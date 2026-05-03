@@ -121,67 +121,67 @@ fun SearchScreen(
                     .padding(horizontal = rpx(24)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-            IconButton(
-                onClick = {
-                    if (pageStatus == SearchPageStatus.EDITING) onBack()
-                    else viewModel.backToEditing()
-                },
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_arrow_left),
-                    contentDescription = "返回",
-                    tint = colors.appBarText,
-                    modifier = Modifier.size(IconSizes.normal),
-                )
-            }
-
-            BasicTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(rpx(64))
-                    .background(colors.pageBackground, RoundedCornerShape(rpx(64))),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(
-                    onSearch = {
-                        if (query.isNotBlank()) viewModel.searchAll(query.trim())
+                IconButton(
+                    onClick = {
+                        if (pageStatus == SearchPageStatus.EDITING) onBack()
+                        else viewModel.backToEditing()
                     },
-                ),
-                decorationBox = { innerTextField ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = rpx(24)),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(Modifier.weight(1f)) { innerTextField() }
-                        if (query.isNotBlank()) {
-                            IconButton(onClick = { query = "" }) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_x_mark),
-                                    contentDescription = "清空",
-                                    tint = colors.textSecondary,
-                                    modifier = Modifier.size(rpx(36)),
-                                )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_arrow_left),
+                        contentDescription = "返回",
+                        tint = colors.appBarText,
+                        modifier = Modifier.size(IconSizes.normal),
+                    )
+                }
+
+                BasicTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(rpx(64))
+                        .background(colors.pageBackground, RoundedCornerShape(rpx(64))),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(
+                        onSearch = {
+                            if (query.isNotBlank()) viewModel.searchAll(query.trim())
+                        },
+                    ),
+                    decorationBox = { innerTextField ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = rpx(24)),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(Modifier.weight(1f)) { innerTextField() }
+                            if (query.isNotBlank()) {
+                                IconButton(onClick = { query = "" }) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_x_mark),
+                                        contentDescription = "清空",
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier.size(rpx(36)),
+                                    )
+                                }
                             }
                         }
-                    }
-                },
-            )
-
-            TextButton(
-                onClick = {
-                    if (query.isNotBlank()) viewModel.searchAll(query.trim())
-                },
-            ) {
-                Text(
-                    text = "搜索",
-                    color = colors.appBarText,
-                    fontSize = FontSizes.content,
+                    },
                 )
-            }
+
+                TextButton(
+                    onClick = {
+                        if (query.isNotBlank()) viewModel.searchAll(query.trim())
+                    },
+                ) {
+                    Text(
+                        text = "搜索",
+                        color = colors.appBarText,
+                        fontSize = FontSizes.content,
+                    )
+                }
             } // Row
         } // Column (沉浸式 NavBar)
 

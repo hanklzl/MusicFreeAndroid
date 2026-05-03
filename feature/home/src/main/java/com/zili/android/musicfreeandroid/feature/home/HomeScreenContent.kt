@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.home
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,10 +11,10 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
@@ -101,40 +102,42 @@ fun HomeScreenContent(
             )
         },
     ) {
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .testTag(FidelityAnchors.Screen.HomeRoot)
                 .semantics { testTagsAsResourceId = true },
-            contentPadding = PaddingValues(bottom = rpx(160)),
         ) {
-            item {
-                MusicFreeStatusBarChrome(color = Color.Transparent)
-            }
-            item {
-                HomeNavBar(
-                    searchPlaceholder = visualUiModel.searchPlaceholder,
-                    onOpenMenu = state::openDrawer,
-                    onOpenSearch = onNavigateToSearch,
+            MusicFreeStatusBarChrome(color = MusicFreeTheme.colors.pageBackground)
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = rpx(160)),
+            ) {
+                item {
+                    HomeNavBar(
+                        searchPlaceholder = visualUiModel.searchPlaceholder,
+                        onOpenMenu = state::openDrawer,
+                        onOpenSearch = onNavigateToSearch,
+                    )
+                }
+                item {
+                    HomeOperations(
+                        operations = visualUiModel.operations,
+                        onRecommendClick = onNavigateToRecommendSheets,
+                        onTopListClick = onNavigateToTopList,
+                        onHistoryClick = onNavigateToHistory,
+                        onLocalMusicClick = onNavigateToLocal,
+                    )
+                }
+                homeSheetsSection(
+                    uiModel = visualUiModel.playlistSection,
+                    onSelectTab = onSelectTab,
+                    onCreateClick = onCreateClick,
+                    onImportClick = onImportClick,
+                    onOpenMineSheet = onOpenMineSheet,
+                    onOpenStarredSheet = onOpenStarredSheet,
                 )
             }
-            item {
-                HomeOperations(
-                    operations = visualUiModel.operations,
-                    onRecommendClick = onNavigateToRecommendSheets,
-                    onTopListClick = onNavigateToTopList,
-                    onHistoryClick = onNavigateToHistory,
-                    onLocalMusicClick = onNavigateToLocal,
-                )
-            }
-            homeSheetsSection(
-                uiModel = visualUiModel.playlistSection,
-                onSelectTab = onSelectTab,
-                onCreateClick = onCreateClick,
-                onImportClick = onImportClick,
-                onOpenMineSheet = onOpenMineSheet,
-                onOpenStarredSheet = onOpenStarredSheet,
-            )
         }
     }
 
