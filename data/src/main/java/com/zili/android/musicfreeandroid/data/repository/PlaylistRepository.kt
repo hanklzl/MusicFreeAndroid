@@ -1,66 +1,143 @@
 package com.zili.android.musicfreeandroid.data.repository
 
+import android.net.Uri
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.core.model.SortMode
+import com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStore
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
 import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
 import com.zili.android.musicfreeandroid.data.mapper.toEntity
 import com.zili.android.musicfreeandroid.data.mapper.toModel
+import com.zili.android.musicfreeandroid.data.sort.applySort
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class PlaylistRepository @Inject constructor(
     private val playlistDao: PlaylistDao,
+    private val musicDao: MusicDao,
+    private val coverStore: PlaylistCoverStore,
     private val converters: Converters,
 ) {
 
     fun observeAllPlaylists(): Flow<List<Playlist>> =
         playlistDao.observeAllPlaylists().map { entities -> entities.map { it.toModel() } }
 
+    fun observePlaylist(id: String): Flow<Playlist?> =
+        playlistDao.observePlaylist(id).map { it?.toModel() }
+
     suspend fun getPlaylistById(id: String): Playlist? =
         playlistDao.getPlaylistById(id)?.toModel()
+
+    fun observeFavorite(): Flow<Playlist?> = observePlaylist(Playlist.DEFAULT_FAVORITE_ID)
+
+    fun isFavorite(item: MusicItem): Flow<Boolean> =
+        playlistDao.observeIsInPlaylist(Playlist.DEFAULT_FAVORITE_ID, item.id, item.platform)
+
+    suspend fun toggleFavorite(item: MusicItem) {
+        val present = playlistDao.isInPlaylist(Playlist.DEFAULT_FAVORITE_ID, item.id, item.platform)
+        if (present) removeMusicFromPlaylist(Playlist.DEFAULT_FAVORITE_ID, item)
+        else addMusicToPlaylist(Playlist.DEFAULT_FAVORITE_ID, item)
+    }
 
     suspend fun createPlaylist(playlist: Playlist) {
         val now = System.currentTimeMillis()
         playlistDao.insertPlaylist(playlist.toEntity(createdAt = now, updatedAt = now))
     }
 
-    suspend fun updatePlaylist(playlist: Playlist) {
-        val existing = playlistDao.getPlaylistById(playlist.id) ?: return
-        playlistDao.updatePlaylist(
-            playlist.toEntity(createdAt = existing.createdAt, updatedAt = System.currentTimeMillis())
+    suspend fun updatePlaylistInfo(id: String, name: String? = null, description: String? = null) {
+        if (id == Playlist.DEFAULT_FAVORITE_ID && name != null) {
+            throw IllegalArgumentException("Cannot rename the default favorite playlist")
+        }
+        val entity = playlistDao.getPlaylistById(id) ?: return
+        playlistDao.updateNameDescription(
+            id = id,
+            name = name ?: entity.name,
+            description = description ?: entity.description,
+            updatedAt = System.currentTimeMillis(),
         )
+    }
+
+    suspend fun setSortMode(id: String, mode: SortMode) {
+        playlistDao.setSortMode(id, mode.name, System.currentTimeMillis())
+    }
+
+    suspend fun applyManualSortOrder(id: String, orderedItems: List<MusicItem>) {
+        orderedItems.forEachIndexed { index, item ->
+            playlistDao.setCrossRefSortOrder(id, item.id, item.platform, index)
+        }
+    }
+
+    suspend fun setCover(id: String, sourceUri: Uri?) {
+        val rel = if (sourceUri == null) {
+            coverStore.delete(id); null
+        } else {
+            coverStore.saveFromUri(id, sourceUri)
+        }
+        playlistDao.setCoverUri(id, rel, System.currentTimeMillis())
     }
 
     suspend fun deletePlaylist(playlist: Playlist) {
-        val entity = playlistDao.getPlaylistById(playlist.id) ?: return
-        playlistDao.deletePlaylist(entity)
+        if (playlist.id == Playlist.DEFAULT_FAVORITE_ID) {
+            throw IllegalStateException("Cannot delete the default favorite playlist")
+        }
+        coverStore.delete(playlist.id)
+        playlistDao.deletePlaylistById(playlist.id)
+    }
+
+    suspend fun addMusicToPlaylist(playlistId: String, item: MusicItem): Boolean {
+        musicDao.upsert(item.toEntity(converters))
+        val nextOrder = playlistDao.maxSortOrderInPlaylist(playlistId) + 1
+        val now = System.currentTimeMillis()
+        val rowId = playlistDao.insertCrossRefIgnore(
+            PlaylistMusicCrossRef(
+                playlistId = playlistId,
+                musicId = item.id,
+                musicPlatform = item.platform,
+                sortOrder = nextOrder,
+                addedAt = now,
+            )
+        )
+        val added = rowId != -1L
+        if (added) {
+            val playlist = playlistDao.getPlaylistById(playlistId)
+            if (playlist != null && playlist.coverUri == null && !item.artwork.isNullOrBlank()) {
+                val rel = coverStore.copyFromArtwork(playlistId, item.artwork)
+                if (rel != null) playlistDao.setCoverUri(playlistId, rel, System.currentTimeMillis())
+            }
+        }
+        return added
+    }
+
+    suspend fun addMusicsToPlaylist(playlistId: String, items: List<MusicItem>): Int {
+        var addedCount = 0
+        for (item in items) {
+            if (addMusicToPlaylist(playlistId, item)) addedCount++
+        }
+        return addedCount
+    }
+
+    suspend fun removeMusicFromPlaylist(playlistId: String, item: MusicItem) {
+        playlistDao.removeMusicFromPlaylist(playlistId, item.id, item.platform)
     }
 
     fun observeMusicInPlaylist(playlistId: String): Flow<List<MusicItem>> =
-        playlistDao.observeMusicInPlaylist(playlistId).map { entities ->
-            entities.map { it.toModel(converters) }
+        playlistDao.observePlaylist(playlistId).flatMapLatest { entity ->
+            val mode = entity?.let {
+                runCatching { SortMode.valueOf(it.sortMode) }.getOrDefault(SortMode.Manual)
+            } ?: SortMode.Manual
+            playlistDao.observeMusicWithAddedAt(playlistId).map { rows ->
+                rows.map { it.toModel(converters) }.applySort(mode)
+            }
         }
-
-    suspend fun addMusicToPlaylist(playlistId: String, musicItem: MusicItem) {
-        val nextOrder = playlistDao.maxSortOrderInPlaylist(playlistId) + 1
-        playlistDao.insertCrossRef(
-            PlaylistMusicCrossRef(
-                playlistId = playlistId,
-                musicId = musicItem.id,
-                musicPlatform = musicItem.platform,
-                sortOrder = nextOrder,
-            )
-        )
-    }
-
-    suspend fun removeMusicFromPlaylist(playlistId: String, musicItem: MusicItem) {
-        playlistDao.removeMusicFromPlaylist(playlistId, musicItem.id, musicItem.platform)
-    }
 
     suspend fun countMusicInPlaylist(playlistId: String): Int =
         playlistDao.countMusicInPlaylist(playlistId)

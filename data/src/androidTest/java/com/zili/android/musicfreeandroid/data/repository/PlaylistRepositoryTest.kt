@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStore
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import kotlinx.coroutines.test.runTest
@@ -24,12 +25,13 @@ class PlaylistRepositoryTest {
 
     @Before
     fun setup() {
-        db = Room.inMemoryDatabaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            AppDatabase::class.java,
-        ).allowMainThreadQueries().build()
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
         val converters = Converters()
-        playlistRepo = PlaylistRepository(db.playlistDao(), converters)
+        val coverStore = PlaylistCoverStore(context)
+        playlistRepo = PlaylistRepository(db.playlistDao(), db.musicDao(), coverStore, converters)
         musicRepo = MusicRepository(db.musicDao(), converters)
     }
 
@@ -106,11 +108,19 @@ class PlaylistRepositoryTest {
     }
 
     @Test
-    fun updatePlaylist() = runTest {
+    fun updatePlaylistInfo_renamesPlaylist() = runTest {
         playlistRepo.createPlaylist(playlist("pl1", "Original"))
-        playlistRepo.updatePlaylist(Playlist("pl1", "Renamed", "cover.jpg"))
+        playlistRepo.updatePlaylistInfo(id = "pl1", name = "Renamed")
         val updated = playlistRepo.getPlaylistById("pl1")
         assertEquals("Renamed", updated!!.name)
-        assertEquals("cover.jpg", updated.coverUri)
+    }
+
+    @Test
+    fun updatePlaylistInfo_updatesDescription() = runTest {
+        playlistRepo.createPlaylist(playlist("pl1", "Test"))
+        playlistRepo.updatePlaylistInfo(id = "pl1", description = "My description")
+        val updated = playlistRepo.getPlaylistById("pl1")
+        assertEquals("My description", updated!!.description)
+        assertEquals("Test", updated.name)
     }
 }

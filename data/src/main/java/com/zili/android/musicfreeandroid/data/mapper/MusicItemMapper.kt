@@ -5,6 +5,7 @@ import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.dao.MusicItemWithAddedAt
 import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
 
+/** Overload that accepts an explicit [Converters] instance. Prefer this when one is already injected. */
 fun MusicItem.toEntity(converters: Converters): MusicItemEntity = MusicItemEntity(
     id = id,
     platform = platform,
@@ -16,6 +17,9 @@ fun MusicItem.toEntity(converters: Converters): MusicItemEntity = MusicItemEntit
     artwork = artwork,
     qualitiesJson = converters.qualitiesToJson(qualities),
 )
+
+/** No-arg overload for call sites that don't have an injected [Converters] — allocates a fresh instance. */
+fun MusicItem.toEntity(): MusicItemEntity = toEntity(Converters())
 
 fun MusicItemEntity.toModel(converters: Converters, addedAt: Long = 0L): MusicItem = MusicItem(
     id = id,
