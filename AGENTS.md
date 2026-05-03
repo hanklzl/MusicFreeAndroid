@@ -6,7 +6,7 @@
 
 MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 Android 原生重写版本（原版为 React Native 音乐播放器）。项目核心目标是在 Kotlin + Jetpack Compose + QuickJS 下复刻原版插件化能力与主要交互体验。
 
-原版 RN 代码仓位于当前仓库同级目录：`../MusicFree`。
+原版 RN 侧源码固定参考当前仓库同级目录：`../MusicFree`。
 
 ## 文档入口（先读）
 
@@ -21,6 +21,14 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - `docs/superpowers/plans/*.md` 默认视为历史执行快照，不可直接当作当前执行指令。
 - 文档之间的引用必须使用相对路径，禁止使用 `/Users/...` 绝对路径。
 - 跨仓库引用也必须使用相对路径（例如 `../MusicFree/...`）。
+
+## Git Worktree 开发约束
+
+- 默认使用 `git worktree` 进行功能开发，避免在主工作区直接切换或堆叠功能分支。
+- worktree 默认创建在仓库根目录的 `.worktrees/` 下，路径格式为 `.worktrees/<branch-name>`。
+- 创建本地 worktree 前必须确认 `.worktrees/` 已被忽略，避免 worktree 内容进入版本控制。
+- 若用户未指定分支名，使用与任务语义一致的简短分支名。
+- 文档、脚本和说明中引用 worktree 路径时使用相对路径，避免写入 `/Users/...` 绝对路径。
 
 ## 构建命令
 
@@ -124,7 +132,7 @@ Room Entity 不直接暴露给上层；通过 mapper 转换为 domain model。Re
 
 ## 原版 RN 参考路径
 
-实现功能时优先对照 `../MusicFree`：
+实现功能时优先对照本地 RN 侧源码目录 `../MusicFree`：
 
 - 类型定义：`../MusicFree/src/types/`（`music.d.ts`、`plugin.d.ts`、`artist.d.ts`）
 - 插件系统：`../MusicFree/src/core/pluginManager/`
