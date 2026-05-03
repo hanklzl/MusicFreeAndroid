@@ -42,7 +42,7 @@ class HomeDrawerBehaviorTest {
             MusicFreeTheme {
                 HomeScreenContent(
                     state = state,
-                    visualUiModel = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine),
+                    visualUiModel = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine, mineRows = emptyList()),
                     drawerUiModel = buildHomeDrawerUiModel(
                         currentLanguage = "中文",
                         currentVersion = "1.0.0-test",

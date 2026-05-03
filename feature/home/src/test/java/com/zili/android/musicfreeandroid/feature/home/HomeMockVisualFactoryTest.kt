@@ -1,8 +1,8 @@
 package com.zili.android.musicfreeandroid.feature.home
 
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
+import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -14,9 +14,45 @@ class HomeMockVisualFactoryTest {
         val action: HomeOperationAction,
     )
 
+    private val fakeMineRows = listOf(
+        HomeSheetUiModel(
+            id = "test-mine-liked",
+            platform = null,
+            tab = HomeSheetTab.Mine,
+            title = "我喜欢",
+            subtitle = "18首",
+            coverUri = null,
+            isDefault = true,
+        ),
+        HomeSheetUiModel(
+            id = "test-mine-cloud",
+            platform = null,
+            tab = HomeSheetTab.Mine,
+            title = "云端备份",
+            subtitle = "32首",
+            coverUri = null,
+        ),
+        HomeSheetUiModel(
+            id = "test-mine-focus",
+            platform = null,
+            tab = HomeSheetTab.Mine,
+            title = "专注循环",
+            subtitle = "24首",
+            coverUri = null,
+        ),
+        HomeSheetUiModel(
+            id = "test-mine-drive",
+            platform = null,
+            tab = HomeSheetTab.Mine,
+            title = "通勤节奏",
+            subtitle = "16首",
+            coverUri = null,
+        ),
+    )
+
     @Test
-    fun `mine tab mock state exposes four stable playlist rows`() {
-        val uiModel = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine)
+    fun `mine tab exposes passed-in playlist rows`() {
+        val uiModel = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine, mineRows = fakeMineRows)
 
         assertEquals("点击这里开始搜索", uiModel.searchPlaceholder)
         assertEquals(
@@ -30,14 +66,14 @@ class HomeMockVisualFactoryTest {
         )
         assertEquals(HomeSheetTab.Mine, uiModel.playlistSection.selectedTab)
         assertEquals(4, uiModel.playlistSection.rows.size)
-        assertTrue(uiModel.playlistSection.rows.none { it.title.contains("mock", ignoreCase = true) })
+        assertEquals(fakeMineRows.map { it.id }, uiModel.playlistSection.rows.map { it.id })
         assertTrue(uiModel.playlistSection.rows.all { it.subtitle.isNotBlank() })
     }
 
     @Test
     fun `starred tab mock state swaps row set without changing header counts`() {
-        val mine = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine)
-        val starred = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Starred)
+        val mine = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine, mineRows = fakeMineRows)
+        val starred = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Starred, mineRows = fakeMineRows)
 
         assertEquals(mine.playlistSection.mineCount, starred.playlistSection.mineCount)
         assertEquals(mine.playlistSection.starredCount, starred.playlistSection.starredCount)
