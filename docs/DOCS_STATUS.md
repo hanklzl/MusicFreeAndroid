@@ -30,6 +30,7 @@
 |---|---|---|---|
 | [AGENTS.md](../AGENTS.md) | 当前规范 | 是 | 仓库工作总规则 |
 | [docs/DOCS_STATUS.md](./DOCS_STATUS.md) | 当前规范 | 是 | 文档状态与治理入口 |
+| [docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md](./superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md) | 当前规范（UI Harness 设计） | 是（作为实现计划输入） | Screen 切换动画、普通 AppBar、沉浸式状态栏和 AI Coding 规则入口设计 |
 | [docs/superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md](./superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md) | 当前规范（启动视觉专项） | 是（仅 SplashScreen 与 launcher icon 专项） | AndroidX SplashScreen 接入与 RN 启动图标资源对齐设计 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |
