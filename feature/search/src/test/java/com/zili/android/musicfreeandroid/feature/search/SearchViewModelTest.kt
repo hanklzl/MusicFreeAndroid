@@ -7,6 +7,7 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -18,6 +19,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
@@ -31,9 +33,11 @@ class SearchViewModelTest {
     private val playerController: PlayerController = mock()
     private val appPreferences: AppPreferences = mock()
     private val pluginFlow = MutableStateFlow<List<LoadedPlugin>>(emptyList())
+    private val searchablePluginFlow = MutableStateFlow<List<LoadedPlugin>>(emptyList())
 
     init {
         whenever(pluginManager.plugins).thenReturn(pluginFlow)
+        whenever(pluginManager.getSearchablePlugins()).thenReturn(searchablePluginFlow)
         whenever(pluginManager.getPlugin(any())).thenAnswer { invocation ->
             val platform = invocation.getArgument<String>(0)
             pluginFlow.value.find { it.info.platform == platform }
@@ -50,6 +54,7 @@ class SearchViewModelTest {
         val searchable = plugin(platform = "searchable", supportedSearchType = listOf("music"))
         val nonSearchable = plugin(platform = "comment", supportedSearchType = listOf("comment"))
         pluginFlow.value = listOf(searchable, nonSearchable)
+        searchablePluginFlow.value = listOf(searchable)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -60,7 +65,25 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun `no plugins transitions to NO_PLUGIN status`() = runTest {
+    fun `initial empty searchable plugin flow stays editing while plugins are loading`() = runTest {
+        val loadGate = CompletableDeferred<Unit>()
+        whenever(pluginManager.ensurePluginsLoaded()).doSuspendableAnswer {
+            loadGate.await()
+        }
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(SearchPageStatus.EDITING, viewModel.pageStatus.value)
+        assertTrue(viewModel.searchablePlugins.value.isEmpty())
+        assertNull(viewModel.selectedPlatform.value)
+
+        loadGate.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `empty searchable plugin flow transitions to NO_PLUGIN after plugin load completes`() = runTest {
         whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
 
         val viewModel = createViewModel()
@@ -84,7 +107,7 @@ class SearchViewModelTest {
                 isEnd = true,
             ),
         )
-        pluginFlow.value = listOf(plugin)
+        setLoadedPlugins(plugin)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -115,7 +138,7 @@ class SearchViewModelTest {
             ),
             secondPageThrows = true,
         )
-        pluginFlow.value = listOf(plugin)
+        setLoadedPlugins(plugin)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -144,7 +167,7 @@ class SearchViewModelTest {
 
         val p1 = plugin(platform = "plugin1", supportedSearchType = listOf("music"))
         val p2 = plugin(platform = "plugin2", supportedSearchType = listOf("music"))
-        pluginFlow.value = listOf(p1, p2)
+        setLoadedPlugins(p1, p2)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -165,7 +188,7 @@ class SearchViewModelTest {
             supportedSearchType = listOf("music"),
             firstPage = searchResult(data = listOf(musicItem("1", "Song 1")), isEnd = true),
         )
-        pluginFlow.value = listOf(plugin)
+        setLoadedPlugins(plugin)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -177,6 +200,12 @@ class SearchViewModelTest {
 
         viewModel.backToEditing()
         assertEquals(SearchPageStatus.EDITING, viewModel.pageStatus.value)
+    }
+
+    private fun setLoadedPlugins(vararg plugins: LoadedPlugin) {
+        val list = plugins.toList()
+        pluginFlow.value = list
+        searchablePluginFlow.value = list
     }
 
     private suspend fun plugin(
