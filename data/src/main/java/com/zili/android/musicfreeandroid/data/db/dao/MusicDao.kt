@@ -6,11 +6,15 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MusicDao {
+
+    @Upsert
+    suspend fun upsert(item: MusicItemEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: MusicItemEntity)
