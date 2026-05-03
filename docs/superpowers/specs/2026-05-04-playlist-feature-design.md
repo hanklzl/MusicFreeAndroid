@@ -211,7 +211,26 @@ class PlaylistCoverStore(private val context: Context) {
 
 ## UI 改动
 
-> 设计原则（项目级）：组件用 Material3，layout 与信息架构对齐 RN。详见项目记忆 `ui-md3-components-rn-layout`。具体决策点引用 RN 文件路径作为锚点。
+> 设计原则（项目级）：组件用 Material3，layout 与信息架构对齐 RN，**图标 / 图片资源直接从 `../MusicFree/` 取**。详见项目记忆 `ui-md3-components-rn-layout`。具体决策点引用 RN 文件路径作为锚点。
+
+### 图标资源
+
+本 spec 涉及的所有图标都从原版 RN 取用，不使用 Material Icons 替代（除非 RN 本身使用的就是同一 Material glyph）。资源转成 vector drawable 后放 `app/src/main/res/drawable/`，文件名以 `ic_` 前缀命名。
+
+需要导入 / 新增的图标（实施阶段在计划里精确登记，命名暂定如下）：
+
+| 图标用途 | 暂定资源名 | RN 来源（参考） |
+|---|---|---|
+| ⭐ 心形 实心 / 空心（播放器、菜单文案） | `ic_heart_filled.xml` / `ic_heart_outline.xml` | RN `react-native-vector-icons` 中 Feather `heart` |
+| "我喜欢" 默认歌单封面（红心方块） | `ic_playlist_favorite_cover.xml` | RN 同名占位，参考 `../MusicFree/src/components/musicSheet/...` |
+| "新建歌单" 入口 | `ic_folder_plus.xml` | Feather `folder-plus` |
+| "下一首播放" | `ic_queue_music.xml` | RN 详情页菜单同名项 |
+| "从歌单移除" | `ic_minus_circle.xml` | Feather `minus-circle` |
+| "排序" 菜单触发 | `ic_sort.xml` | RN sheet detail nav menu |
+| "播放全部" 大按钮 | `ic_play_circle.xml` | Feather `play-circle` |
+| "搜索" 详情页内搜索 | `ic_search.xml`（沿用现有） | RN sheet detail header |
+
+实施时按 `grep -r '<icon-name>' ../MusicFree/src` 反查实际使用名与 SVG 来源；若复用了项目已存在的 `ic_*` 资源（如 `ic_folder_plus` 已在搜索结果菜单使用），不要重复创建。
 
 ### 首页 — `HomeScreen` / `HomeViewModel` / `HomeSheetsSection`
 
