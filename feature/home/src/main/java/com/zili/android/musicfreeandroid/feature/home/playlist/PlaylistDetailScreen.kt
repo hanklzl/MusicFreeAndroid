@@ -44,8 +44,9 @@ fun PlaylistDetailScreen(
     onNavigateToMusicListEditorLite: (String) -> Unit,
     viewModel: PlaylistDetailViewModel = hiltViewModel(),
 ) {
-    val playlist by viewModel.playlist.collectAsStateWithLifecycle()
-    val items by viewModel.musicItems.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val playlist = state.playlist
+    val items = state.musics
 
     MusicFreeScreenScaffold(
         title = playlist?.name ?: "",
@@ -105,7 +106,7 @@ fun PlaylistDetailScreen(
                                 viewModel.playAll(index)
                                 onNavigateToPlayer()
                             },
-                            onRemove = { viewModel.removeSong(item) },
+                            onRemove = { viewModel.removeFromPlaylist(item) },
                         )
                         if (index < items.lastIndex) {
                             HorizontalDivider(
