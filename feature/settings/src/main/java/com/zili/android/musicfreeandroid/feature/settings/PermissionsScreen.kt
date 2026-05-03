@@ -11,18 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -42,8 +34,8 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PermissionsScreen(
     onBack: () -> Unit,
@@ -74,43 +66,22 @@ fun PermissionsScreen(
         }
     }
 
-    Scaffold(
+    MusicFreeScreenScaffold(
+        title = "权限管理",
+        onBack = onBack,
         modifier = modifier
             .fillMaxSize()
             .testTag(FidelityAnchors.Screen.PermissionsRoot)
             .semantics { testTagsAsResourceId = true },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "权限管理",
-                        fontSize = FontSizes.appBar,
-                        color = MusicFreeTheme.colors.appBarText,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
-                            tint = MusicFreeTheme.colors.appBarText,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MusicFreeTheme.colors.appBar,
-                ),
-            )
-        },
-        containerColor = MusicFreeTheme.colors.pageBackground,
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = rpx(24)),
+                .padding(horizontal = rpx(24))
+                .padding(top = rpx(24)),
+            verticalArrangement = Arrangement.spacedBy(rpx(16)),
         ) {
-            Spacer(modifier = Modifier.height(rpx(24)))
             PermissionRowCard(
                 title = "悬浮窗权限",
                 statusText = permissionStatusText(uiState.overlayGranted),
@@ -120,7 +91,6 @@ fun PermissionsScreen(
                     openOverlaySettings(context)
                 },
             )
-            Spacer(modifier = Modifier.height(rpx(16)))
             PermissionRowCard(
                 title = "存储/音频读取权限",
                 statusText = permissionStatusText(uiState.storageAudioGranted),

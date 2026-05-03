@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
@@ -21,6 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.plugin.meta.SubscriptionItem
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,23 +52,15 @@ fun PluginSubscriptionScreen(
         showDialog = true
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("订阅设置") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-            )
-        },
+    MusicFreeScreenScaffold(
+        title = "订阅设置",
+        onBack = onBack,
+        modifier = modifier,
         floatingActionButton = {
             FloatingActionButton(onClick = { openAddDialog() }) {
                 Icon(Icons.Default.Add, contentDescription = "添加订阅")
             }
         },
-        modifier = modifier,
     ) { padding ->
         if (subscriptions.isEmpty()) {
             Box(

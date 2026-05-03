@@ -10,18 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -35,8 +27,8 @@ import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
@@ -49,35 +41,13 @@ fun SettingsScreen(
 ) {
     val storageAccessState by viewModel.storageAccessState.collectAsStateWithLifecycle()
 
-    Scaffold(
+    MusicFreeScreenScaffold(
+        title = "设置",
+        onBack = onBack,
         modifier = modifier
             .fillMaxSize()
             .testTag(FidelityAnchors.Screen.SettingsRoot)
             .semantics { testTagsAsResourceId = true },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "设置",
-                        fontSize = FontSizes.appBar,
-                        color = MusicFreeTheme.colors.appBarText,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
-                            tint = MusicFreeTheme.colors.appBarText,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MusicFreeTheme.colors.appBar,
-                ),
-            )
-        },
-        containerColor = MusicFreeTheme.colors.pageBackground,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier

@@ -11,18 +11,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -30,11 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PluginSortScreen(
     onBack: () -> Unit,
@@ -47,26 +43,18 @@ fun PluginSortScreen(
         viewModel.onReorder(from.index, to.index)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("插件排序") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    TextButton(onClick = {
-                        viewModel.saveOrder()
-                        onBack()
-                    }) {
-                        Text("完成")
-                    }
-                },
-            )
-        },
+    MusicFreeScreenScaffold(
+        title = "插件排序",
+        onBack = onBack,
         modifier = modifier,
+        actions = {
+            TextButton(onClick = {
+                viewModel.saveOrder()
+                onBack()
+            }) {
+                Text("完成", color = MusicFreeTheme.colors.appBarText)
+            }
+        },
     ) { padding ->
         LazyColumn(
             state = lazyListState,

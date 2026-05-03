@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -33,11 +32,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +47,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,37 +71,34 @@ fun PluginListScreen(
     var showFabMenu by remember { mutableStateOf(false) }
     var showUninstallAllConfirm by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("插件管理") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "更多")
-                        }
-                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("订阅设置") },
-                                onClick = { showMenu = false; onNavigateToPluginSubscription() },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("排序") },
-                                onClick = { showMenu = false; onNavigateToPluginSort() },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("卸载全部") },
-                                onClick = { showMenu = false; showUninstallAllConfirm = true },
-                            )
-                        }
-                    }
-                },
-            )
+    MusicFreeScreenScaffold(
+        title = "插件管理",
+        onBack = onBack,
+        modifier = modifier,
+        actions = {
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "更多",
+                        tint = MusicFreeTheme.colors.appBarText,
+                    )
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text("订阅设置") },
+                        onClick = { showMenu = false; onNavigateToPluginSubscription() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("排序") },
+                        onClick = { showMenu = false; onNavigateToPluginSort() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("卸载全部") },
+                        onClick = { showMenu = false; showUninstallAllConfirm = true },
+                    )
+                }
+            }
         },
         floatingActionButton = {
             Box {
@@ -129,7 +125,6 @@ fun PluginListScreen(
                 }
             }
         },
-        modifier = modifier,
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
             when (val state = installState) {
