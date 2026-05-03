@@ -1,7 +1,5 @@
 package com.zili.android.musicfreeandroid.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -61,30 +59,10 @@ fun AppNavHost(
         navController = navController,
         startDestination = HomeRoute,
         modifier = modifier,
-        enterTransition = {
-            slideIntoContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = tween(250),
-            )
-        },
-        exitTransition = {
-            slideOutOfContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = tween(250),
-            )
-        },
-        popEnterTransition = {
-            slideIntoContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = tween(250),
-            )
-        },
-        popExitTransition = {
-            slideOutOfContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = tween(250),
-            )
-        },
+        enterTransition = { musicFreeEnterTransition() },
+        exitTransition = { musicFreeExitTransition() },
+        popEnterTransition = { musicFreePopEnterTransition() },
+        popExitTransition = { musicFreePopExitTransition() },
     ) {
         homeScreen(
             onNavigateToSearch = { navController.navigate(SearchRoute) },
