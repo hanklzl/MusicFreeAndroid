@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.MusicFreeAndroid" parent="android:Theme.Material.Light.NoActionBar" />
-
     <style name="Theme.MusicFreeAndroid.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splashscreen_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/splashscreen_image</item>
+        <item name="android:windowSplashScreenBrandingImage">@drawable/spashscreen_branding_image</item>
         <item name="postSplashScreenTheme">@style/Theme.MusicFreeAndroid</item>
     </style>
 </resources>
