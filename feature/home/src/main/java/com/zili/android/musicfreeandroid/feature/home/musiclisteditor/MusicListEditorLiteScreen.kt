@@ -14,17 +14,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,9 +33,9 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.feature.home.playlist.AddToPlaylistDialog
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicListEditorLiteScreen(
     onBack: () -> Unit,
@@ -59,34 +52,22 @@ fun MusicListEditorLiteScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = uiState.playlistName.ifBlank { "歌单编辑" },
-                    color = MusicFreeTheme.colors.appBarText,
-                    fontSize = FontSizes.appBar,
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "返回",
-                        tint = MusicFreeTheme.colors.appBarText,
-                    )
+    MusicFreeScreenScaffold(
+        title = uiState.playlistName.ifBlank { "歌单编辑" },
+        onBack = onBack,
+        actions = {
+            if (uiState.hasPendingChanges) {
+                TextButton(onClick = viewModel::saveChanges) {
+                    Text("保存", color = MusicFreeTheme.colors.appBarText)
                 }
-            },
-            actions = {
-                if (uiState.hasPendingChanges) {
-                    TextButton(onClick = viewModel::saveChanges) {
-                        Text("保存", color = MusicFreeTheme.colors.appBarText)
-                    }
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = MusicFreeTheme.colors.appBar),
-        )
-
+            }
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
         if (uiState.items.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
@@ -118,6 +99,7 @@ fun MusicListEditorLiteScreen(
                     )
                 }
             }
+        }
         }
     }
 }

@@ -13,19 +13,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -38,8 +34,8 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistDetailScreen(
     onBack: () -> Unit,
@@ -51,79 +47,72 @@ fun PlaylistDetailScreen(
     val playlist by viewModel.playlist.collectAsStateWithLifecycle()
     val items by viewModel.musicItems.collectAsStateWithLifecycle()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = playlist?.name ?: "",
-                    color = MusicFreeTheme.colors.appBarText,
-                    fontSize = FontSizes.appBar,
+    MusicFreeScreenScaffold(
+        title = playlist?.name ?: "",
+        onBack = onBack,
+        actions = {
+            IconButton(onClick = { onNavigateToMusicListEditorLite(viewModel.playlistId) }) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "编辑歌曲",
+                    tint = MusicFreeTheme.colors.appBarText,
                 )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = MusicFreeTheme.colors.appBarText)
-                }
-            },
-            actions = {
-                IconButton(onClick = { onNavigateToMusicListEditorLite(viewModel.playlistId) }) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "编辑歌曲",
-                        tint = MusicFreeTheme.colors.appBarText,
-                    )
-                }
-                IconButton(onClick = { onNavigateToSearchMusicList(viewModel.playlistId) }) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "搜索",
-                        tint = MusicFreeTheme.colors.appBarText,
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = MusicFreeTheme.colors.appBar),
-        )
-
-        if (items.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("播放列表为空", color = MusicFreeTheme.colors.textSecondary)
             }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "${items.size} 首歌曲",
-                            color = MusicFreeTheme.colors.textSecondary,
-                            fontSize = FontSizes.description,
-                        )
-                        TextButton(onClick = {
-                            viewModel.playAll()
-                            onNavigateToPlayer()
-                        }) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MusicFreeTheme.colors.primary)
-                            Text("播放全部", color = MusicFreeTheme.colors.primary)
+            IconButton(onClick = { onNavigateToSearchMusicList(viewModel.playlistId) }) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "搜索",
+                    tint = MusicFreeTheme.colors.appBarText,
+                )
+            }
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            if (items.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("播放列表为空", color = MusicFreeTheme.colors.textSecondary)
+                }
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "${items.size} 首歌曲",
+                                color = MusicFreeTheme.colors.textSecondary,
+                                fontSize = FontSizes.description,
+                            )
+                            TextButton(onClick = {
+                                viewModel.playAll()
+                                onNavigateToPlayer()
+                            }) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MusicFreeTheme.colors.primary)
+                                Text("播放全部", color = MusicFreeTheme.colors.primary)
+                            }
                         }
                     }
-                }
-                itemsIndexed(items, key = { _, item -> "${item.platform}:${item.id}" }) { index, item ->
-                    PlaylistMusicItem(
-                        item = item,
-                        onClick = {
-                            viewModel.playAll(index)
-                            onNavigateToPlayer()
-                        },
-                        onRemove = { viewModel.removeSong(item) },
-                    )
-                    if (index < items.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 72.dp),
-                            color = MusicFreeTheme.colors.divider,
+                    itemsIndexed(items, key = { _, item -> "${item.platform}:${item.id}" }) { index, item ->
+                        PlaylistMusicItem(
+                            item = item,
+                            onClick = {
+                                viewModel.playAll(index)
+                                onNavigateToPlayer()
+                            },
+                            onRemove = { viewModel.removeSong(item) },
                         )
+                        if (index < items.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 72.dp),
+                                color = MusicFreeTheme.colors.divider,
+                            )
+                        }
                     }
                 }
             }

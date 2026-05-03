@@ -10,16 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -32,9 +25,9 @@ import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumDetailScreen(
     onBack: () -> Unit,
@@ -45,31 +38,16 @@ fun AlbumDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
-    Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = uiState.title,
-                    color = MusicFreeTheme.colors.appBarText,
-                    fontSize = FontSizes.appBar,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "返回",
-                        tint = MusicFreeTheme.colors.appBarText,
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MusicFreeTheme.colors.appBar,
-            ),
-        )
-
+    MusicFreeScreenScaffold(
+        title = uiState.title,
+        onBack = onBack,
+        modifier = modifier.fillMaxSize(),
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
         when {
             uiState.loading && uiState.musicList.isEmpty() -> {
                 Box(
@@ -169,6 +147,7 @@ fun AlbumDetailScreen(
                     }
                 }
             }
+        }
         }
     }
 }

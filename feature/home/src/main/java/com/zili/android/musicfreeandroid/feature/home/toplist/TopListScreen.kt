@@ -10,19 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -39,6 +33,7 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,103 +48,88 @@ fun TopListScreen(
     val selectedPlugin by viewModel.selectedPlugin.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(
+    MusicFreeScreenScaffold(
+        title = "榜单",
+        onBack = onBack,
         modifier = modifier
             .fillMaxSize()
             .testTag(FidelityAnchors.Screen.TopListRoot)
             .semantics { testTagsAsResourceId = true },
-    ) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = "榜单",
-                    fontSize = FontSizes.appBar,
-                    color = MusicFreeTheme.colors.appBarText,
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "返回",
-                        tint = MusicFreeTheme.colors.appBarText,
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MusicFreeTheme.colors.appBar,
-            ),
-        )
-
-        if (plugins.isEmpty()) {
-            EmptyState("暂无已安装插件，请先在设置中安装插件")
-            return
-        }
-
-        SingleChoiceSegmentedButtonRow(
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .fillMaxSize()
+                .padding(innerPadding),
         ) {
-            plugins.forEachIndexed { index, plugin ->
-                SegmentedButton(
-                    selected = selectedPlugin == plugin.platform,
-                    onClick = { viewModel.selectPlugin(plugin.platform) },
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = plugins.size,
-                    ),
-                ) {
-                    Text(
-                        text = plugin.platform,
-                        fontSize = FontSizes.subTitle,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
-
-        when (val state = uiState) {
-            is TopListUiState.Idle,
-            is TopListUiState.Loading,
-            -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
-                }
-            }
-
-            is TopListUiState.Error -> {
-                Column(
+            if (plugins.isEmpty()) {
+                EmptyState("暂无已安装插件，请先在设置中安装插件")
+            } else {
+                SingleChoiceSegmentedButtonRow(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = rpx(24)),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                 ) {
-                    Text(
-                        text = state.message,
-                        color = MusicFreeTheme.colors.danger,
-                        fontSize = FontSizes.content,
-                    )
-                    TextButton(onClick = { viewModel.refresh() }) {
-                        Text("重试", color = MusicFreeTheme.colors.primary)
+                    plugins.forEachIndexed { index, plugin ->
+                        SegmentedButton(
+                            selected = selectedPlugin == plugin.platform,
+                            onClick = { viewModel.selectPlugin(plugin.platform) },
+                            shape = SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = plugins.size,
+                            ),
+                        ) {
+                            Text(
+                                text = plugin.platform,
+                                fontSize = FontSizes.subTitle,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
-            }
 
-            is TopListUiState.Success -> {
-                if (state.groups.isEmpty()) {
-                    EmptyState("当前插件不支持榜单")
-                } else {
-                    TopListGroups(
-                        pluginPlatform = selectedPlugin,
-                        groups = state.groups,
-                        onOpenTopListDetail = onOpenTopListDetail,
-                    )
+                when (val state = uiState) {
+                    is TopListUiState.Idle,
+                    is TopListUiState.Loading,
+                    -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
+                        }
+                    }
+
+                    is TopListUiState.Error -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = rpx(24)),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                text = state.message,
+                                color = MusicFreeTheme.colors.danger,
+                                fontSize = FontSizes.content,
+                            )
+                            TextButton(onClick = { viewModel.refresh() }) {
+                                Text("重试", color = MusicFreeTheme.colors.primary)
+                            }
+                        }
+                    }
+
+                    is TopListUiState.Success -> {
+                        if (state.groups.isEmpty()) {
+                            EmptyState("当前插件不支持榜单")
+                        } else {
+                            TopListGroups(
+                                pluginPlatform = selectedPlugin,
+                                groups = state.groups,
+                                onOpenTopListDetail = onOpenTopListDetail,
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -13,17 +13,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -37,8 +32,8 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchMusicListScreen(
     onBack: () -> Unit,
@@ -48,53 +43,46 @@ fun SearchMusicListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                OutlinedTextField(
-                    value = uiState.query,
-                    onValueChange = viewModel::updateQuery,
-                    placeholder = {
-                        Text(
-                            text = "搜索音乐",
-                            color = MusicFreeTheme.colors.textSecondary,
-                            fontSize = FontSizes.content,
-                        )
-                    },
-                    singleLine = true,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = MusicFreeTheme.colors.textSecondary,
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = MusicFreeTheme.colors.text,
-                        unfocusedTextColor = MusicFreeTheme.colors.text,
-                        cursorColor = MusicFreeTheme.colors.primary,
-                        focusedBorderColor = MusicFreeTheme.colors.primary,
-                        unfocusedBorderColor = MusicFreeTheme.colors.divider,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "返回",
-                        tint = MusicFreeTheme.colors.appBarText,
+    MusicFreeScreenScaffold(
+        titleContent = {
+            OutlinedTextField(
+                value = uiState.query,
+                onValueChange = viewModel::updateQuery,
+                placeholder = {
+                    Text(
+                        text = "搜索音乐",
+                        color = MusicFreeTheme.colors.textSecondary,
+                        fontSize = FontSizes.content,
                     )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MusicFreeTheme.colors.appBar,
-            ),
-        )
-
-        when {
+                },
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MusicFreeTheme.colors.textSecondary,
+                    )
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MusicFreeTheme.colors.text,
+                    unfocusedTextColor = MusicFreeTheme.colors.text,
+                    cursorColor = MusicFreeTheme.colors.primary,
+                    focusedBorderColor = MusicFreeTheme.colors.primary,
+                    unfocusedBorderColor = MusicFreeTheme.colors.divider,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        onBack = onBack,
+        modifier = modifier.fillMaxSize(),
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            when {
             uiState.sourceItems.isEmpty() -> {
                 SearchMusicListEmptyState("暂无可搜索歌曲")
             }
@@ -125,6 +113,7 @@ fun SearchMusicListScreen(
                         }
                     }
                 }
+            }
             }
         }
     }
