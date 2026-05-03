@@ -89,6 +89,15 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 
 ## 核心设计约束
 
+### UI Harness Rules
+
+新增或修改 Compose Screen 前，必须读取并遵守 [screen-chrome-rules](docs/ui-harness/screen-chrome-rules.md)。
+
+- Screen 切换动画、普通 AppBar、沉浸式状态栏处理必须走公共 harness 入口。
+- 普通 AppBar 页面不得直接手写分散的 `TopAppBar` + `TopAppBarDefaults.topAppBarColors(...)`。
+- 特殊 Chrome 页面必须在规则文档中登记，并自行负责状态栏背景和顶部 inset。
+- `docs/superpowers/plans/*.md` 中旧动画或 AppBar 写法不作为当前 UI Harness 规范来源。
+
 ### 主题系统
 
 在 Material3 基础上扩展语义色（`MusicFreeColors` + `CompositionLocal`），并支持亮色/暗色模式。原版主题可参考 `../MusicFree/src/core/theme.ts`。
