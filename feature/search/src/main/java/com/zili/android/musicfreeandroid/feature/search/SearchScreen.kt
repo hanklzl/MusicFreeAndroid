@@ -9,10 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -64,6 +61,7 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,7 +113,7 @@ fun SearchScreen(
                 .fillMaxWidth()
                 .background(colors.appBar),
         ) {
-            Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+            MusicFreeStatusBarChrome(color = colors.appBar)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

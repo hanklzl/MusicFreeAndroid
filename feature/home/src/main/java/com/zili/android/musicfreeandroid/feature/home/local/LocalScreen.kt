@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.home.local
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,7 +21,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
+import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
 import com.zili.android.musicfreeandroid.feature.home.HomeUiState
 import com.zili.android.musicfreeandroid.feature.home.HomeViewModel
 import com.zili.android.musicfreeandroid.feature.home.playlist.AddToPlaylistDialog
@@ -74,25 +77,30 @@ fun LocalScreen(
         else -> uiState.toLocalMusicUiState()
     }
 
-    LocalMusicContent(
-        uiState = localUiState,
-        onItemClick = { item, items ->
-            viewModel.playItem(item, items)
-            onNavigateToPlayer()
-        },
-        onItemLongClick = { item -> addToPlaylistItem = item },
-        onRetry = {
-            if (hasAudioPermission == false) {
-                permissionLauncher.launch(permission)
-            } else {
-                viewModel.scanLocalMusic()
-            }
-        },
+    Column(
         modifier = modifier
             .fillMaxSize()
             .testTag(FidelityAnchors.Screen.LocalRoot)
             .semantics { testTagsAsResourceId = true },
-    )
+    ) {
+        MusicFreeStatusBarChrome(color = MusicFreeTheme.colors.pageBackground)
+        LocalMusicContent(
+            uiState = localUiState,
+            onItemClick = { item, items ->
+                viewModel.playItem(item, items)
+                onNavigateToPlayer()
+            },
+            onItemLongClick = { item -> addToPlaylistItem = item },
+            onRetry = {
+                if (hasAudioPermission == false) {
+                    permissionLauncher.launch(permission)
+                } else {
+                    viewModel.scanLocalMusic()
+                }
+            },
+            modifier = Modifier.weight(1f),
+        )
+    }
 }
 
 private fun HomeUiState.toLocalMusicUiState(): LocalMusicUiState = when (this) {

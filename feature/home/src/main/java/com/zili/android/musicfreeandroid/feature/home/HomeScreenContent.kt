@@ -10,11 +10,13 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
 import com.zili.android.musicfreeandroid.feature.home.component.HomeDrawerContent
 import com.zili.android.musicfreeandroid.feature.home.component.HomeDrawerDialogs
 import com.zili.android.musicfreeandroid.feature.home.component.HomeNavBar
@@ -106,6 +108,9 @@ fun HomeScreenContent(
                 .semantics { testTagsAsResourceId = true },
             contentPadding = PaddingValues(bottom = rpx(160)),
         ) {
+            item {
+                MusicFreeStatusBarChrome(color = Color.Transparent)
+            }
             item {
                 HomeNavBar(
                     searchPlaceholder = visualUiModel.searchPlaceholder,
