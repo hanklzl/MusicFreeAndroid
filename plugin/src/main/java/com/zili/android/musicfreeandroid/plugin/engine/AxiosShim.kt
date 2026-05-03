@@ -17,6 +17,8 @@ import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.net.URLEncoder
+import java.security.MessageDigest
+import java.util.Base64
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPInputStream
 import java.util.zip.InflaterInputStream
@@ -30,6 +32,8 @@ import kotlin.coroutines.resumeWithException
 object AxiosShim {
 
     private const val TAG = "AxiosShim"
+    private const val NETEASE_IMAGE_MAGIC = "3go8&$8*3*3h0k(2)2"
+    private const val NETEASE_IMAGE_HOST = "https://p1.music.126.net"
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -278,8 +282,8 @@ object AxiosShim {
             try {
                 val trimmed = body.trim()
                 when {
-                    trimmed.startsWith("{") -> obj.put("data", JSONObject(trimmed))
-                    trimmed.startsWith("[") -> obj.put("data", JSONArray(trimmed))
+                    trimmed.startsWith("{") -> obj.put("data", normalizeProviderPayload(JSONObject(trimmed)))
+                    trimmed.startsWith("[") -> obj.put("data", normalizeProviderPayload(JSONArray(trimmed)))
                     else -> obj.put("data", body)
                 }
             } catch (_: Exception) {
@@ -311,6 +315,64 @@ object AxiosShim {
         obj.put("data", message)
         obj.put("headers", JSONObject())
         return obj.toString()
+    }
+
+    private fun normalizeProviderPayload(value: Any): Any {
+        return when (value) {
+            is JSONObject -> {
+                backfillNeteasePicUrl(value)
+                val keys = value.keys().asSequence().toList()
+                for (key in keys) {
+                    val child = value.opt(key)
+                    if (child != null && child != JSONObject.NULL) {
+                        value.put(key, normalizeProviderPayload(child))
+                    }
+                }
+                value
+            }
+            is JSONArray -> {
+                for (i in 0 until value.length()) {
+                    val child = value.opt(i)
+                    if (child != null && child != JSONObject.NULL) {
+                        value.put(i, normalizeProviderPayload(child))
+                    }
+                }
+                value
+            }
+            else -> value
+        }
+    }
+
+    private fun backfillNeteasePicUrl(obj: JSONObject) {
+        if (obj.optString("picUrl").isNotBlank()) return
+
+        val picId = neteasePicId(obj) ?: return
+        obj.put("picUrl", neteaseImageUrl(picId))
+    }
+
+    private fun neteasePicId(obj: JSONObject): String? {
+        val raw = obj.opt("picId")
+            ?.takeUnless { it == JSONObject.NULL }
+            ?: return null
+        val value = when (raw) {
+            is Number -> raw.toLong().toString()
+            else -> raw.toString().substringBefore(".")
+        }
+        return value.takeIf { id ->
+            id.isNotBlank() && id != "0" && id.all(Char::isDigit)
+        }
+    }
+
+    private fun neteaseImageUrl(picId: String): String {
+        val encryptedSource = ByteArray(picId.length) { index ->
+            (picId[index].code xor NETEASE_IMAGE_MAGIC[index % NETEASE_IMAGE_MAGIC.length].code).toByte()
+        }
+        val digest = MessageDigest.getInstance("MD5").digest(encryptedSource)
+        val encoded = Base64.getEncoder()
+            .encodeToString(digest)
+            .replace('/', '_')
+            .replace('+', '-')
+        return "$NETEASE_IMAGE_HOST/$encoded/$picId.jpg"
     }
 
     private fun jsonStringify(map: Map<*, *>): String {
