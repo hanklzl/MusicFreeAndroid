@@ -25,15 +25,15 @@ android {
 
 }
 
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
 kotlin {
     jvmToolchain(25)
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
-}
-
-room {
-    schemaDirectory("$projectDir/schemas")
 }
 
 dependencies {

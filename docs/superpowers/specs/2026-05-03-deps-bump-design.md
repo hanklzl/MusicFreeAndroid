@@ -95,18 +95,16 @@ worktree: .worktrees/chore/deps-bump-2026-05
 
 - `gradle/wrapper/gradle-wrapper.properties`：
   `distributionUrl=https\://services.gradle.org/distributions/gradle-9.4.1-bin.zip`
-- 各模块 `build.gradle.kts` 中的 `compileSdk = 36` → `36.1`、`targetSdk` 同步
-- 根 `build.gradle.kts` / 各模块：Java compatibility `VERSION_11` → `VERSION_17`，
-  Kotlin `jvmTarget = "17"`
-- 根 `build.gradle.kts`：JVM toolchain 使用 JDK 25
-  （`kotlin { jvmToolchain(25) }`）
+- 各模块 `build.gradle.kts`：`compileSdk` 当前已是 36.1（DSL `release(36) { minorApiLevel = 1 }`），保持不变
+- 各模块 `build.gradle.kts`：Java compatibility `VERSION_11` → `VERSION_17`，并新增 `kotlin { jvmToolchain(25); compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }` 块（外层、`dependencies` 之前）
+- 根 `build.gradle.kts`：保持现状（仅声明 `apply false` 插件，无 `subprojects {}` 块；toolchain 由各模块自行声明，避免在 AGP 9 built-in Kotlin 模式下插件 ID 检测时机不确定）
 - `gradle.properties`：开启 `org.gradle.java.installations.auto-download=true`
 
 ### 2.6 估算改动文件清单
 
 - `gradle/libs.versions.toml`（核心）
 - `gradle/wrapper/gradle-wrapper.properties`
-- 根 `build.gradle.kts`
+- `gradle.properties`
 - 9 个模块的 `build.gradle.kts`：`:app`、`:core`、`:data`、`:player`、
   `:plugin`、`:feature:home`、`:feature:player-ui`、`:feature:search`、
   `:feature:settings`
