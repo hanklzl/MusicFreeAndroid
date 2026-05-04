@@ -14,6 +14,8 @@ import com.zili.android.musicfreeandroid.player.ext.toMediaItem
 import com.zili.android.musicfreeandroid.player.model.PlaybackState
 import com.zili.android.musicfreeandroid.player.model.PlayerState
 import com.zili.android.musicfreeandroid.player.queue.PlayQueue
+import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueueControls
 import com.zili.android.musicfreeandroid.player.service.PlaybackService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -42,7 +44,7 @@ import kotlin.coroutines.resumeWithException
 @Singleton
 class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : PlaybackNotificationQueueControls {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val connectionMutex = Mutex()
     private var mediaController: MediaController? = null
@@ -61,6 +63,10 @@ class PlayerController @Inject constructor(
 
     private var repeatMode: RepeatMode = RepeatMode.OFF
     private var shuffleEnabled: Boolean = false
+
+    init {
+        PlaybackNotificationCommandHandler.attach(this)
+    }
 
     suspend fun connect() {
         connectionMutex.withLock {
@@ -148,6 +154,14 @@ class PlayerController @Inject constructor(
             controller.prepare()
             controller.play()
         }
+    }
+
+    override fun skipToPreviousFromNotification() {
+        skipToPrevious()
+    }
+
+    override fun skipToNextFromNotification() {
+        skipToNext()
     }
 
     fun skipTo(index: Int) {
@@ -241,6 +255,7 @@ class PlayerController @Inject constructor(
             mediaController = null
             controller?.removeListener(playerListener)
             controller?.release()
+            PlaybackNotificationCommandHandler.detach(this)
         }
     }
 
