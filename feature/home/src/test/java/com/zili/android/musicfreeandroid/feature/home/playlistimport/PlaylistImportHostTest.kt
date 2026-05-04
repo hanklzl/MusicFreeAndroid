@@ -1,16 +1,18 @@
 package com.zili.android.musicfreeandroid.feature.home.playlistimport
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,7 +59,7 @@ class PlaylistImportHostTest {
         }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag("PlaylistImport_NoPlugin").assertExists()
+        composeRule.onNodeWithTag("PlaylistImport_NoPlugin").assertIsDisplayed()
         composeRule.onAllNodesWithText("暂无支持导入歌单的插件").assertCountEquals(1)
     }
 
@@ -148,12 +150,12 @@ class PlaylistImportHostTest {
         }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("发现 2 首歌曲! 现在开始导入吗?").assertExists()
+        composeRule.onNodeWithText("发现 2 首歌曲! 现在开始导入吗?").assertIsDisplayed()
         composeRule.onNodeWithText("确定").performClick()
         composeRule.waitForIdle()
 
         composeRule.runOnIdle {
-            assertEquals(true, confirmed)
+            assertTrue(confirmed)
         }
     }
 
@@ -191,9 +193,9 @@ class PlaylistImportHostTest {
         }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag("PlaylistImport_TargetSheet").assertExists()
-        composeRule.onNodeWithTag("PlaylistImport_TargetContent").assertExists()
-        composeRule.onNodeWithText("我喜欢").assertExists()
+        composeRule.onNodeWithTag("PlaylistImport_TargetSheet").assertIsDisplayed()
+        composeRule.onNodeWithTag("PlaylistImport_TargetContent").assertIsDisplayed()
+        composeRule.onNodeWithText("我喜欢").assertIsDisplayed()
         composeRule.onNodeWithTag("AddToPlaylist_Row_p1").performClick()
         composeRule.waitForIdle()
 
