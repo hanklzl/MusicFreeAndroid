@@ -117,8 +117,9 @@ class PlaylistRepository @Inject constructor(
             }
             addedCount
         }
-        val coverCandidate = insertedItems.firstOrNull { !it.artwork.isNullOrBlank() }
-        coverCandidate?.let { syncPlaylistCoverIfNeeded(playlistId, it) }
+        for (item in insertedItems) {
+            if (syncPlaylistCoverIfNeeded(playlistId, item)) break
+        }
         return addedCount
     }
 
@@ -129,6 +130,9 @@ class PlaylistRepository @Inject constructor(
     }
 
     private suspend fun addMusicToPlaylistNoCoverSync(playlistId: String, item: MusicItem): Boolean {
+        // Keep this order (upsert before cross-ref insert) to preserve existing behavior:
+        // duplicates should still refresh music metadata, while playlist membership is guarded
+        // by the unique cross-ref insert.
         musicDao.upsert(item.toEntity(converters))
         val nextOrder = playlistDao.maxSortOrderInPlaylist(playlistId) + 1
         val now = System.currentTimeMillis()
@@ -144,13 +148,16 @@ class PlaylistRepository @Inject constructor(
         return rowId != -1L
     }
 
-    private suspend fun syncPlaylistCoverIfNeeded(playlistId: String, item: MusicItem) {
-        if (item.artwork.isNullOrBlank()) return
+    private suspend fun syncPlaylistCoverIfNeeded(playlistId: String, item: MusicItem): Boolean {
+        if (item.artwork.isNullOrBlank()) return false
         val playlist = playlistDao.getPlaylistById(playlistId)
-        if (playlist != null && playlist.coverUri == null) {
-            val rel = coverStore.copyFromArtwork(playlistId, item.artwork)
-            if (rel != null) playlistDao.setCoverUri(playlistId, rel, System.currentTimeMillis())
+        if (playlist?.coverUri != null) return true
+        val rel = coverStore.copyFromArtwork(playlistId, item.artwork)
+        if (rel != null) {
+            playlistDao.setCoverUri(playlistId, rel, System.currentTimeMillis())
+            return true
         }
+        return false
     }
 
     suspend fun removeMusicFromPlaylist(playlistId: String, item: MusicItem) {

@@ -228,6 +228,27 @@ class PlaylistRepositoryTest {
     }
 
     @Test
+    fun addMusicsToPlaylist_retriesCoverSyncAfterInvalidArtwork() = runBlocking {
+        val invalidArtwork = "file://${java.io.File(ctx.cacheDir, "does-not-exist-artwork.jpg").absolutePath}"
+        val validArtwork = java.io.File(ctx.cacheDir, "valid-cover-artwork.jpg").apply {
+            writeBytes(ByteArray(32) { 9 })
+        }
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Import", coverUri = null))
+        val items = listOf(
+            sampleMusic("m1", title = "Invalid Artwork", artwork = invalidArtwork),
+            sampleMusic("m2", title = "Valid Artwork", artwork = "file://${validArtwork.absolutePath}"),
+        )
+
+        val added = playlistRepo.addMusicsToPlaylist(id, items)
+
+        val playlist = playlistRepo.getPlaylistById(id)
+        assertEquals(2, added)
+        assertNotNull(playlist?.coverUri)
+        assertTrue(playlist!!.coverUri!!.startsWith("playlist_covers/"))
+    }
+
+    @Test
     fun toggleFavorite_isReciprocal() = runBlocking {
         val item = sampleMusic("m42")
         assertFalse(playlistRepo.isFavorite(item).first())
