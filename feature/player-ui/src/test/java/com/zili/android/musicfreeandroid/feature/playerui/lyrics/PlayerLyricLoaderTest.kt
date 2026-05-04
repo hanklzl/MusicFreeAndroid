@@ -247,6 +247,47 @@ class PlayerLyricLoaderTest {
     }
 
     @Test
+    fun autoSearchSkipsCurrentPlatformSearchCandidates() = runTest {
+        val loader = loader()
+        val music = music("auto-skip-current", "demo", title = "Song", artist = "Artist")
+        val currentCandidate = music("current-candidate", "demo", title = "Song", artist = "Artist")
+        val otherCandidate = music("other-candidate", "lyric", title = "Song", artist = "Artist")
+        val currentPlugin = plugin(
+            platform = "demo",
+            search = SearchResult(
+                isEnd = true,
+                data = listOf(currentCandidate),
+            ),
+            lyric = null,
+        )
+        val lyricPlugin = plugin(
+            platform = "lyric",
+            search = SearchResult(
+                isEnd = true,
+                data = listOf(otherCandidate),
+            ),
+            lyric = lyricResult("Other Platform Lyric"),
+        )
+        runBlocking {
+            whenever(currentPlugin.getLyric(any())).thenAnswer { invocation ->
+                val target = invocation.arguments[0] as MusicItem
+                if (target.id == currentCandidate.id) lyricResult("Current Platform Candidate") else null
+            }
+        }
+
+        whenever(pluginManager.getPlugin("demo")).thenReturn(currentPlugin)
+        whenever(pluginManager.getPlugin("lyric")).thenReturn(lyricPlugin)
+        lyricPlugins.value = listOf(currentPlugin, lyricPlugin)
+        whenever(lyricRepository.observeCache(music)).thenReturn(flowOf(null))
+
+        val state = loader.observeLyrics(music).firstReady()
+
+        assertEquals("Other Platform Lyric", state.document.lines.first().text)
+        assertTrue(state.document.source is LyricSourceInfo.AutoSearch)
+        assertEquals("lyric", (state.document.source as LyricSourceInfo.AutoSearch).platform)
+    }
+
+    @Test
     fun autoSearchPrefersExactTitleAndArtist() = runTest {
         val loader = loader()
         val music = music("match", "demo", title = "Song A", artist = "Artist A")
@@ -383,6 +424,30 @@ class PlayerLyricLoaderTest {
                 loader.searchCandidates(music)
             }
         }
+    }
+
+    @Test
+    fun searchCandidatesIncludesCurrentPlatformForManualSearch() = runTest {
+        val loader = loader()
+        val music = music("manual-query", "demo")
+        val currentCandidate = music("manual-current", "demo")
+        val otherCandidate = music("manual-other", "lyric")
+        val currentPlugin = plugin(
+            platform = "demo",
+            search = SearchResult(isEnd = true, data = listOf(currentCandidate)),
+        )
+        val otherPlugin = plugin(
+            platform = "lyric",
+            search = SearchResult(isEnd = true, data = listOf(otherCandidate)),
+        )
+
+        lyricPlugins.value = listOf(currentPlugin, otherPlugin)
+
+        val groups = loader.searchCandidates(music)
+
+        assertEquals(listOf("demo", "lyric"), groups.map { it.plugin.platform })
+        assertEquals(listOf(currentCandidate), groups[0].items)
+        assertEquals(listOf(otherCandidate), groups[1].items)
     }
 
     @Test

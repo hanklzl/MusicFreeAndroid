@@ -79,9 +79,13 @@ class PlayerLyricLoader @Inject constructor(
         return LyricLoadState.NoLyric(music)
     }
 
-    suspend fun searchCandidates(music: MusicItem, query: String = music.title): List<LyricSearchGroup> =
+    suspend fun searchCandidates(
+        music: MusicItem,
+        query: String = music.title,
+        includeCurrentPlatform: Boolean = true,
+    ): List<LyricSearchGroup> =
         pluginManager.getLyricSearchablePlugins().first()
-            .filter { it.info.platform != music.platform }
+            .filter { includeCurrentPlatform || it.info.platform != music.platform }
             .map { plugin ->
                 try {
                     LyricSearchGroup(plugin.info, plugin.search(query = query, page = 1, type = "lyric").data.take(2))
@@ -180,7 +184,7 @@ class PlayerLyricLoader @Inject constructor(
     }
 
     private suspend fun autoSearch(music: MusicItem): Pair<RawLyricPayload, LyricSourceInfo>? {
-        val candidates = searchCandidates(music)
+        val candidates = searchCandidates(music, includeCurrentPlatform = false)
             .flatMap { it.items.take(2).map { candidate -> candidate to it } }
             .mapNotNull { (candidate, group) ->
                 val exactMatch =

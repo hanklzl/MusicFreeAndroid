@@ -288,6 +288,18 @@ class PlayerViewModelTest {
     }
 
     @Test
+    fun `clearAssociatedLyric delegates current item`() = runTest {
+        val item = MusicItem(id = "clear-associated", platform = "demo", title = "Song", artist = "A", album = null, duration = 0L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+
+        val viewModel = createViewModel()
+        viewModel.clearAssociatedLyric()
+        advanceUntilIdle()
+
+        verify(playerLyricLoader).clearAssociatedLyric(item)
+    }
+
+    @Test
     fun `setLyricOffset delegates current item and offset`() = runTest {
         val item = MusicItem(id = "offset", platform = "demo", title = "Song", artist = "A", album = null, duration = 0L, url = null, artwork = null, qualities = null)
         playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)

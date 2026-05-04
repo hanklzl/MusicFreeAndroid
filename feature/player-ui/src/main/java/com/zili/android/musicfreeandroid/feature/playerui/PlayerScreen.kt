@@ -58,6 +58,7 @@ import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
+import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricMoreDialog
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricSearchSheet
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsContent
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsOperations
@@ -278,7 +279,7 @@ fun PlayerScreen(
         }
 
         if (showLyricMoreDialog) {
-            LyricMoreDialog(
+            PlayerLyricMoreDialog(
                 onDismiss = { showLyricMoreDialog = false },
                 onImportRaw = {
                     showLyricMoreDialog = false
@@ -294,6 +295,11 @@ fun PlayerScreen(
                     viewModel.deleteLocalLyric()
                     showLyricMoreDialog = false
                     Toast.makeText(context, "已删除本地歌词", Toast.LENGTH_SHORT).show()
+                },
+                onClearAssociated = {
+                    viewModel.clearAssociatedLyric()
+                    showLyricMoreDialog = false
+                    Toast.makeText(context, "已解除关联歌词", Toast.LENGTH_SHORT).show()
                 },
             )
         }
@@ -665,44 +671,6 @@ private fun LyricOffsetDialog(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("重置")
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("关闭") }
-        },
-    )
-}
-
-@Composable
-private fun LyricMoreDialog(
-    onDismiss: () -> Unit,
-    onImportRaw: () -> Unit,
-    onImportTranslation: () -> Unit,
-    onDeleteLocal: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("歌词更多") },
-        text = {
-            Column {
-                TextButton(
-                    onClick = onImportRaw,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("导入本地歌词")
-                }
-                TextButton(
-                    onClick = onImportTranslation,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("导入翻译歌词")
-                }
-                TextButton(
-                    onClick = onDeleteLocal,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("删除本地歌词")
                 }
             }
         },

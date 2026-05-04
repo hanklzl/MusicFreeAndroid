@@ -187,6 +187,13 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun clearAssociatedLyric() {
+        val item = playerState.value.currentItem ?: return
+        viewModelScope.launch {
+            playerLyricLoader.clearAssociatedLyric(item)
+        }
+    }
+
     fun setLyricOffset(offsetMs: Long) {
         val item = playerState.value.currentItem ?: return
         viewModelScope.launch {
