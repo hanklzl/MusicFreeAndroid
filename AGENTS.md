@@ -35,13 +35,15 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 ```bash
 ./gradlew assembleDebug              # 构建 Debug APK
 ./gradlew assembleRelease            # 构建 Release APK
-./gradlew :app:build                 # 仅构建 app 模块
+./gradlew :app:assembleDebug         # 仅构建 app Debug 变体
 ./gradlew :<module>:assembleDebug    # 构建指定模块
 ./gradlew test                       # 运行单元测试
 ./gradlew :app:testDebugUnitTest     # 运行 app 模块单元测试
 ./gradlew connectedAndroidTest       # 运行仪器测试（需设备/模拟器）
 ./gradlew lint                       # 运行 lint
 ```
+
+本地功能收尾默认验证 Debug 构建，不要求验证 Release 构建。Release 构建只在签名环境变量齐备或任务明确涉及发布/签名时验证。
 
 ## 当前构建基线（已校验）
 
@@ -171,6 +173,7 @@ Room Entity 不直接暴露给上层；通过 mapper 转换为 domain model。Re
 ## 验收闸门
 
 - 编译、单测、集成测试、模拟器/设备验证、最终 review 必须集中执行
+- 默认构建闸门使用 Debug 构建（如 `:app:assembleDebug`）；不要因缺少 Release 签名环境变量而阻塞普通功能收尾。
 - 运行态验收优先于“代码看起来没问题”的乐观判断
 - 功能可能通过编译和测试，但仍会在运行态失败；结论必须以运行证据为准
 
