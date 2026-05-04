@@ -1,6 +1,5 @@
 package com.zili.android.musicfreeandroid.feature.home.playlist
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,33 +7,36 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.R as CoreR
 import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.theme.FontSizes
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.core.ui.MusicItemAction
+import com.zili.android.musicfreeandroid.core.ui.MusicItemMoreMenu
 
 @Composable
 fun PlaylistDetailScreen(
@@ -48,114 +50,174 @@ fun PlaylistDetailScreen(
     val playlist = state.playlist
     val items = state.musics
 
+    var menuExpanded by remember { mutableStateOf(false) }
+    var showSortDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     MusicFreeScreenScaffold(
-        title = playlist?.name ?: "",
+        title = playlist?.name ?: "歌单",
         onBack = onBack,
         actions = {
-            IconButton(onClick = { onNavigateToMusicListEditorLite(viewModel.playlistId) }) {
+            IconButton(onClick = { menuExpanded = true }) {
                 Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "编辑歌曲",
-                    tint = MusicFreeTheme.colors.appBarText,
+                    painter = painterResource(id = CoreR.drawable.ic_ellipsis_vertical),
+                    contentDescription = "更多",
                 )
             }
-            IconButton(onClick = { onNavigateToSearchMusicList(viewModel.playlistId) }) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "搜索",
-                    tint = MusicFreeTheme.colors.appBarText,
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(
+                    text = { Text("编辑信息") },
+                    onClick = { menuExpanded = false; showEditDialog = true },
                 )
+                DropdownMenuItem(
+                    text = { Text("排序") },
+                    onClick = { menuExpanded = false; showSortDialog = true },
+                )
+                if (playlist?.isDefault == false) {
+                    DropdownMenuItem(
+                        text = { Text("删除歌单") },
+                        onClick = { menuExpanded = false; showDeleteDialog = true },
+                    )
+                }
             }
         },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
+    ) { padding ->
+        if (state.isLoading || playlist == null) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center,
+            ) { Text("加载中…") }
+            return@MusicFreeScreenScaffold
+        }
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            PlaylistDetailHeader(
+                playlist = playlist,
+                musicCount = items.size,
+                onPlayAll = {
+                    viewModel.playAll()
+                    onNavigateToPlayer()
+                },
+                onSearch = { onNavigateToSearchMusicList(playlist.id) },
+            )
             if (items.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("播放列表为空", color = MusicFreeTheme.colors.textSecondary)
-                }
+                EmptyState(onSearchAdd = { onNavigateToSearchMusicList(playlist.id) })
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "${items.size} 首歌曲",
-                                color = MusicFreeTheme.colors.textSecondary,
-                                fontSize = FontSizes.description,
-                            )
-                            TextButton(onClick = {
-                                viewModel.playAll()
-                                onNavigateToPlayer()
-                            }) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MusicFreeTheme.colors.primary)
-                                Text("播放全部", color = MusicFreeTheme.colors.primary)
-                            }
-                        }
-                    }
-                    itemsIndexed(items, key = { _, item -> "${item.platform}:${item.id}" }) { index, item ->
-                        PlaylistMusicItem(
+                    items(items = items, key = { "${it.platform}::${it.id}" }) { item ->
+                        PlaylistRow(
                             item = item,
-                            onClick = {
-                                viewModel.playAll(index)
+                            onClickRow = {
+                                val idx = items.indexOf(item)
+                                viewModel.playAll(startIndex = if (idx >= 0) idx else 0)
                                 onNavigateToPlayer()
                             },
-                            onRemove = { viewModel.removeFromPlaylist(item) },
+                            onAction = { action ->
+                                when (action) {
+                                    MusicItemAction.ToggleFavorite -> viewModel.toggleFavorite(item)
+                                    MusicItemAction.RemoveFromPlaylist -> viewModel.removeFromPlaylist(item)
+                                    MusicItemAction.PlayNext -> {
+                                        // TODO Task 27 — wire to PlayerController.playNext if available
+                                    }
+                                    MusicItemAction.AddToPlaylist -> {
+                                        // TODO Task 27 — wire AddToPlaylistBottomSheet
+                                    }
+                                }
+                            },
                         )
-                        if (index < items.lastIndex) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(start = 72.dp),
-                                color = MusicFreeTheme.colors.divider,
-                            )
-                        }
                     }
                 }
             }
         }
     }
+
+    if (showSortDialog && playlist != null) {
+        SortModeDialog(
+            current = playlist.sortMode,
+            onSelect = { mode ->
+                viewModel.setSortMode(mode)
+                showSortDialog = false
+            },
+            onDismiss = { showSortDialog = false },
+        )
+    }
+    if (showEditDialog && playlist != null) {
+        EditPlaylistDialog(
+            playlist = playlist,
+            onDismiss = { showEditDialog = false },
+            onSave = { name, description, coverUri ->
+                viewModel.updateInfo(name, description, coverUri)
+                showEditDialog = false
+            },
+        )
+    }
+    if (showDeleteDialog && playlist != null) {
+        DeletePlaylistDialog(
+            playlist = playlist,
+            onDismiss = { showDeleteDialog = false },
+            onDelete = {
+                viewModel.deletePlaylistAndExit(onDone = onBack)
+                showDeleteDialog = false
+            },
+        )
+    }
 }
 
 @Composable
-private fun PlaylistMusicItem(
+private fun EmptyState(onSearchAdd: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("歌单还没有歌曲", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = onSearchAdd) { Text("去搜索添加") }
+    }
+}
+
+@Composable
+private fun PlaylistRow(
     item: MusicItem,
-    onClick: () -> Unit,
-    onRemove: () -> Unit,
+    onClickRow: () -> Unit,
+    onAction: (MusicItemAction) -> Unit,
 ) {
     Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        CoverImage(uri = item.artwork, size = 48.dp, cornerRadius = 4.dp)
+        CoverImage(
+            uri = item.artwork,
+            size = 40.dp,
+            cornerRadius = 4.dp,
+        )
         Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = item.title,
-                color = MusicFreeTheme.colors.text,
-                fontSize = FontSizes.content,
+                item.title,
+                style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (item.artist.isNotBlank()) {
-                Text(
-                    text = item.artist,
-                    color = MusicFreeTheme.colors.textSecondary,
-                    fontSize = FontSizes.description,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                item.artist,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
-        IconButton(onClick = onRemove) {
-            Icon(Icons.Default.Delete, contentDescription = "移除", tint = MusicFreeTheme.colors.danger)
-        }
+        MusicItemMoreMenu(
+            actions = setOf(
+                MusicItemAction.PlayNext,
+                MusicItemAction.ToggleFavorite,
+                MusicItemAction.AddToPlaylist,
+                MusicItemAction.RemoveFromPlaylist,
+            ),
+            isFavorite = false, // TODO Task 27 — collect viewModel.isFavoriteFlow(item) per row
+            onAction = onAction,
+            triggerIcon = painterResource(id = CoreR.drawable.ic_ellipsis_vertical),
+        )
     }
 }
