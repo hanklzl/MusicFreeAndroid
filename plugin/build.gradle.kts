@@ -16,6 +16,8 @@ android {
     defaultConfig {
         minSdk = 29
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["pluginNetworkTests"] =
+            if (project.hasProperty("integration")) "true" else "false"
     }
 
     compileOptions {
@@ -55,4 +57,5 @@ dependencies {
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.okhttp.mockwebserver)
 }
