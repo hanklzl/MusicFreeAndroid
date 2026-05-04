@@ -5,7 +5,12 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -27,6 +32,7 @@ class PluginRuntimeNetworkIntegrationTest {
 
     private lateinit var appContext: Context
     private lateinit var pluginManager: PluginManager
+    private val dataStoreScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Before
     fun setUp() {
@@ -38,10 +44,21 @@ class PluginRuntimeNetworkIntegrationTest {
 
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-runtime-network-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()
+    }
+
+    @After
+    fun tearDown() {
+        runBlocking {
+            if (::pluginManager.isInitialized) {
+                pluginManager.uninstallAllPlugins()
+            }
+        }
+        dataStoreScope.cancel()
     }
 
     @Test
@@ -129,6 +146,8 @@ class PluginRuntimeNetworkIntegrationTest {
 
         val update = pluginManager.updatePlugin(platform)
         assertEquals(PluginOperationType.UPDATE_SINGLE, update.operationType)
+        assertEquals("Plugin update should succeed", 1, update.successCount)
+        assertEquals("Plugin update should not report failures", 0, update.failureCount)
 
         val updated = pluginManager.getPlugin(platform)
         assertNotNull("Updated plugin should remain selectable by platform", updated)
@@ -169,6 +188,8 @@ class PluginRuntimeNetworkIntegrationTest {
 
         val update = pluginManager.updatePlugin(wy.info.platform)
         assertEquals(PluginOperationType.UPDATE_SINGLE, update.operationType)
+        assertEquals("Plugin update should succeed", 1, update.successCount)
+        assertEquals("Plugin update should not report failures", 0, update.failureCount)
 
         val selectedAfterUpdate = pluginManager.getPlugin(wy.info.platform)
         assertNotNull("Updated plugin should remain selectable by platform", selectedAfterUpdate)

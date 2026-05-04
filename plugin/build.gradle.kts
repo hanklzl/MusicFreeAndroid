@@ -5,6 +5,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val pluginNetworkTestsEnabled = providers.gradleProperty("integration")
+    .map { value -> value.isBlank() || value.toBooleanStrictOrNull() == true }
+    .orElse(false)
+
 android {
     namespace = "com.zili.android.musicfreeandroid.plugin"
     compileSdk {
@@ -17,7 +21,7 @@ android {
         minSdk = 29
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["pluginNetworkTests"] =
-            if (project.hasProperty("integration")) "true" else "false"
+            pluginNetworkTestsEnabled.get().toString()
     }
 
     compileOptions {

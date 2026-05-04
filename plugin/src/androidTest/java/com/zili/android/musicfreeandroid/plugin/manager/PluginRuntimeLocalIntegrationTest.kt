@@ -5,7 +5,12 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -25,15 +30,27 @@ class PluginRuntimeLocalIntegrationTest {
 
     private lateinit var appContext: Context
     private lateinit var pluginManager: PluginManager
+    private val dataStoreScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Before
     fun setUp() {
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-runtime-local-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()
+    }
+
+    @After
+    fun tearDown() {
+        runBlocking {
+            if (::pluginManager.isInitialized) {
+                pluginManager.uninstallAllPlugins()
+            }
+        }
+        dataStoreScope.cancel()
     }
 
     @Test

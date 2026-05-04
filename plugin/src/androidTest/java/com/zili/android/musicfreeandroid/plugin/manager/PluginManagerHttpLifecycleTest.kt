@@ -5,6 +5,10 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -16,6 +20,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.concurrent.TimeUnit
 import java.util.UUID
 
 /**
@@ -31,11 +36,13 @@ class PluginManagerHttpLifecycleTest {
     private lateinit var appContext: Context
     private lateinit var pluginManager: PluginManager
     private lateinit var server: MockWebServer
+    private val dataStoreScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Before
     fun setUp() {
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-http-lifecycle-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
@@ -46,7 +53,15 @@ class PluginManagerHttpLifecycleTest {
 
     @After
     fun tearDown() {
-        server.shutdown()
+        runBlocking {
+            if (::pluginManager.isInitialized) {
+                pluginManager.uninstallAllPlugins()
+            }
+        }
+        if (::server.isInitialized) {
+            server.shutdown()
+        }
+        dataStoreScope.cancel()
     }
 
     @Test
@@ -60,6 +75,7 @@ class PluginManagerHttpLifecycleTest {
         )
 
         assertNotNull("MockWebServer-served plugin should install", plugin)
+        assertNextRequestPath("/mockws.js")
         assertEquals(PLATFORM, plugin!!.info.platform)
         assertEquals("1.0.0", plugin.info.version)
         assertEquals(
@@ -92,6 +108,7 @@ class PluginManagerHttpLifecycleTest {
             fileName = "mockws-update.js",
         )
         assertNotNull("Initial install should succeed", installed)
+        assertNextRequestPath("/mockws.js")
         assertEquals("1.0.0", installed!!.info.version)
 
         // updatePlugin re-fetches via PluginInfo.srcUrl (the JS module's `srcUrl`
@@ -106,6 +123,7 @@ class PluginManagerHttpLifecycleTest {
             1,
             update.successCount,
         )
+        assertNextRequestPath("/mockws.js")
 
         val updated = pluginManager.getPlugin(PLATFORM)
         assertNotNull("Updated plugin should remain selectable by platform", updated)
@@ -146,6 +164,10 @@ class PluginManagerHttpLifecycleTest {
 
     private fun testPreferencesFile(prefix: String): File =
         File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")
+
+    private fun assertNextRequestPath(path: String) {
+        assertEquals(path, server.takeRequest(5, TimeUnit.SECONDS)?.path)
+    }
 
     private companion object {
         const val PLATFORM = "mockws-lifecycle"
