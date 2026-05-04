@@ -16,7 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -43,7 +43,7 @@ class PlayerViewModel @Inject constructor(
 
     private val lyricLoadState: StateFlow<LyricLoadState> = playerState
         .map { it.currentItem }
-        .distinctUntilChanged()
+        .distinctUntilChangedBy { item -> item?.let { it.platform to it.id } }
         .flatMapLatest { item ->
             playerLyricLoader.observeLyrics(item)
         }

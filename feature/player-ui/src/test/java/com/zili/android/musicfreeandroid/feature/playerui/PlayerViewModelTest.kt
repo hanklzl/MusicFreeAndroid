@@ -177,6 +177,36 @@ class PlayerViewModelTest {
     }
 
     @Test
+    fun `lyrics loader uses music identity key instead of full item equality`() = runTest {
+        val item = MusicItem(
+            id = "same",
+            platform = "demo",
+            title = "Song",
+            artist = "A",
+            album = null,
+            duration = 10_000L,
+            url = null,
+            artwork = null,
+            qualities = null,
+        )
+        val rebuiltItem = item.copy(raw = mapOf("source" to "updated"), addedAt = 99L)
+        whenever(playerLyricLoader.observeLyrics(item)).thenReturn(
+            flowOf(readyLyricState(item, listOf(ParsedLyricLine(0, 1_000L, "A")))),
+        )
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+
+        val viewModel = createViewModel()
+        val job = backgroundScope.launch { viewModel.lyricsUiState.collect {} }
+        advanceUntilIdle()
+
+        playerStateFlow.value = playerStateFlow.value.copy(currentItem = rebuiltItem)
+        advanceUntilIdle()
+
+        verify(playerLyricLoader, times(1)).observeLyrics(item)
+        job.cancel()
+    }
+
+    @Test
     fun `lyrics ui state reflects translation and font size preferences`() = runTest {
         val item = MusicItem(id = "2", platform = "demo", title = "Track", artist = "B", album = null, duration = 12_000L, url = null, artwork = null, qualities = null)
         whenever(playerLyricLoader.observeLyrics(item)).thenReturn(
