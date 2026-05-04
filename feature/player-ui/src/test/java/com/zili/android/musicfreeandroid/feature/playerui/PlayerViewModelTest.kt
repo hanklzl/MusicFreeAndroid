@@ -161,6 +161,7 @@ class PlayerViewModelTest {
         val s = viewModel.sheetState.value
         assertTrue(s.visible)
         assertEquals(item, s.pendingItem)
+        assertEquals(listOf(item), s.pendingItems)
     }
 
     @Test
