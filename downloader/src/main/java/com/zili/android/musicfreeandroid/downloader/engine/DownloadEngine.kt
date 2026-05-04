@@ -27,7 +27,11 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -51,6 +55,7 @@ class DownloadEngine(
     private val mutex = Mutex()
     private val inflight = ConcurrentHashMap<MediaKey, Job>()
     private val progressCache = ConcurrentHashMap<MediaKey, Pair<Long?, Long?>>()
+    private var networkWatchJob: Job? = null
 
     private val _events = MutableSharedFlow<DownloadEvent>(extraBufferCapacity = 16)
     val events: SharedFlow<DownloadEvent> = _events.asSharedFlow()
@@ -69,10 +74,35 @@ class DownloadEngine(
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
     fun start() {
-        // hook for restart recovery — implemented in T14
+        scope.launch {
+            // Restart recovery: any PREPARING/DOWNLOADING become PENDING (with resolvedUrl cleared)
+            taskDao.resetInflightToPending()
+            // Wipe stale cache files left over from a previous run
+            runCatching { cacheDir.listFiles()?.forEach { it.delete() } }
+            // Watch network for mid-download cellular cutoff; resched on any state change
+            networkWatchJob = combine(networkFlow, configFlow) { net, cfg ->
+                net to cfg.useCellularDownload
+            }.onEach { (net, cellularAllowed) ->
+                if (net == NetworkState.Cellular && !cellularAllowed) {
+                    // mid-download cellular cutoff: cancel all inflight, push them back to PENDING
+                    inflight.values.forEach { it.cancel() }
+                    inflight.clear()
+                    val rows = taskDao.observeAll().first()
+                    rows.filter {
+                        it.status == DownloadStatus.PREPARING.name || it.status == DownloadStatus.DOWNLOADING.name
+                    }.forEach {
+                        taskDao.updateStatus(it.id, it.platform, DownloadStatus.PENDING.name, System.currentTimeMillis())
+                    }
+                } else {
+                    scheduleNext()
+                }
+            }.launchIn(scope)
+        }
     }
 
     fun stop() {
+        networkWatchJob?.cancel()
+        networkWatchJob = null
         inflight.values.forEach { it.cancel() }
         inflight.clear()
     }
