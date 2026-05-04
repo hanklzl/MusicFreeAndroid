@@ -4,6 +4,7 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityInfo
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ConvertersTest {
@@ -27,6 +28,12 @@ class ConvertersTest {
                     size = 1234L,
                 ),
             ),
+            raw = mapOf(
+                "source" to "plugin",
+                "nested" to mapOf("rank" to 1),
+                "tags" to listOf("a", "b"),
+            ),
+            addedAt = 123L,
         )
 
         val restored = converters.jsonToMusicItem(converters.musicItemToJson(item))
@@ -40,5 +47,35 @@ class ConvertersTest {
         assertEquals(item.url, restored?.url)
         assertEquals(item.artwork, restored?.artwork)
         assertEquals(item.qualities, restored?.qualities)
+        assertEquals(item.raw, restored?.raw)
+        assertEquals(item.addedAt, restored?.addedAt)
+    }
+
+    @Test
+    fun jsonToMusicItemReturnsNullForEmptyInput() {
+        assertNull(converters.jsonToMusicItem(null))
+        assertNull(converters.jsonToMusicItem(""))
+    }
+
+    @Test
+    fun musicItemRoundTripPreservesNullableFields() {
+        val item = MusicItem(
+            id = "2",
+            platform = "demo",
+            title = "Title",
+            artist = "Artist",
+            album = null,
+            duration = 0L,
+            url = null,
+            artwork = null,
+            qualities = null,
+        )
+
+        val restored = converters.jsonToMusicItem(converters.musicItemToJson(item))
+
+        assertNull(restored?.album)
+        assertNull(restored?.url)
+        assertNull(restored?.artwork)
+        assertNull(restored?.qualities)
     }
 }

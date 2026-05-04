@@ -66,6 +66,18 @@ class LyricCacheDaoTest {
         assertNull(row?.localTranslation)
     }
 
+    @Test
+    fun setOffsetUpdatesOnlyOffsetAndUpdatedAt() = runTest {
+        dao.upsert(entity("1", "demo", remoteRawLrc = "remote"))
+
+        dao.setOffset("demo", "1", 500L, updatedAt = 400L)
+        val row = dao.getByKey("demo", "1")
+
+        assertEquals(500L, row?.userOffsetMs)
+        assertEquals(400L, row?.updatedAt)
+        assertEquals("remote", row?.remoteRawLrc)
+    }
+
     private fun entity(
         id: String,
         platform: String,
