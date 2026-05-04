@@ -61,7 +61,10 @@ class PlayerControllerTest {
     @After
     fun tearDown() {
         runOnAppThread {
-            controller.release()
+            if (::controller.isInitialized) {
+                controller.reset()
+                controller.release()
+            }
         }
     }
 
@@ -101,7 +104,10 @@ class PlayerControllerTest {
 
             assertTrue(unconnectedController.playerState.value.hasMedia)
         } finally {
-            unconnectedController.release()
+            runOnAppThread {
+                unconnectedController.reset()
+                unconnectedController.release()
+            }
         }
     }
 

@@ -169,15 +169,24 @@ class PlaybackServiceTest {
         assertTrue(runOnAppThread { controller!!.playWhenReady })
 
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        val focusResult = audioManager.requestAudioFocus(
-            AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
-                .build()
-        )
-        assertEquals(AudioManager.AUDIOFOCUS_REQUEST_GRANTED, focusResult)
+        val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+            .build()
+        val focusResult = audioManager.requestAudioFocus(focusRequest)
         assumeTrue(
-            "Device did not dispatch audio focus loss to the playback service",
-            eventually { !runOnAppThread { controller!!.playWhenReady } },
+            "Audio focus request must be granted to exercise focus-loss behavior.",
+            focusResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED,
         )
+        try {
+            waitUntil("audio focus loss pauses playback") {
+                !runOnAppThread { controller!!.isPlaying }
+            }
+            assertFalse(
+                "Audio focus loss should stop active playback",
+                runOnAppThread { controller!!.isPlaying },
+            )
+        } finally {
+            audioManager.abandonAudioFocusRequest(focusRequest)
+        }
     }
 
     private fun <T> runOnAppThread(timeoutMs: Long = 5_000L, block: () -> T): T {
