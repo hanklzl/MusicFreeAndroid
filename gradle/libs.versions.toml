@@ -89,6 +89,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 quickjs-kt-android = { group = "io.github.dokar3", name = "quickjs-kt-android", version.ref = "quickjsKt" }
 # OkHttp
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 
 [plugins]
