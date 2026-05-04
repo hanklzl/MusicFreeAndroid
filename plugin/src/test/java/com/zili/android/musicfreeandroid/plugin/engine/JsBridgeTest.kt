@@ -385,6 +385,18 @@ class JsBridgeTest {
     }
 
     @Test
+    fun `parseLyricResult does not parse translation as lyric lines`() {
+        val result = JsBridge.parseLyricResult(
+            mapOf(
+                "translation" to "[00:01.00]你好",
+            ),
+        )
+
+        assertEquals("[00:01.00]你好", result.translation)
+        assertTrue(result.lines.isEmpty())
+    }
+
+    @Test
     fun `parseAlbumInfoResult parses album payload`() {
         val payload = mapOf<String, Any?>(
             "isEnd" to false,
