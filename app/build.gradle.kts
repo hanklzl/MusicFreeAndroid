@@ -62,6 +62,7 @@ dependencies {
     implementation(project(":feature:player-ui"))
     implementation(project(":feature:search"))
     implementation(project(":feature:settings"))
+    implementation(project(":downloader"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)
