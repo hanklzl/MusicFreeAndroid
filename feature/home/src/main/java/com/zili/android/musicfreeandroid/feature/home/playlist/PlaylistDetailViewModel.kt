@@ -58,7 +58,7 @@ class PlaylistDetailViewModel @Inject constructor(
     fun isFavoriteFlow(item: MusicItem): Flow<Boolean> = playlistRepository.isFavorite(item)
 
     fun showAddToPlaylistSheet(item: MusicItem) {
-        _sheetState.value = AddToPlaylistSheetState(visible = true, pendingItem = item)
+        _sheetState.value = AddToPlaylistSheetState.single(item)
     }
 
     fun hideAddToPlaylistSheet() {

@@ -53,7 +53,7 @@ class PluginSheetDetailViewModel @Inject constructor(
     }
 
     fun showAddToPlaylistSheet(item: MusicItem) {
-        _sheetState.value = AddToPlaylistSheetState(visible = true, pendingItem = item)
+        _sheetState.value = AddToPlaylistSheetState.single(item)
     }
 
     fun hideAddToPlaylistSheet() {

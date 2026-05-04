@@ -7,12 +7,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.zili.android.musicfreeandroid.feature.home.playlist.CreatePlaylistDialog
+import com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportRoute
+import com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportViewModel
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
 import kotlinx.coroutines.launch
@@ -30,6 +33,7 @@ fun HomeScreen(
     onNavigateToPlaylistDetail: (String) -> Unit,
     homeSystemActionHandler: HomeSystemActionHandler,
     viewModel: HomeViewModel = hiltViewModel(),
+    importViewModel: PlaylistImportViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -103,7 +107,7 @@ fun HomeScreen(
         onNavigateToLocal = onNavigateToLocal,
         onSelectTab = { selectedTab = it },
         onCreateClick = { showCreateDialog = true },
-        onImportClick = {},
+        onImportClick = { importViewModel.openImportSheet() },
         onOpenMineSheet = { sheetId -> onNavigateToPlaylistDetail(sheetId) },
         onOpenStarredSheet = { /* keep mock; Phase 4 spec leaves starred tab as TODO */ },
     )
@@ -117,6 +121,11 @@ fun HomeScreen(
             },
         )
     }
+
+    PlaylistImportRoute(
+        modifier = Modifier,
+        viewModel = importViewModel,
+    )
 }
 
 private fun PackageManager.versionNameForPackage(packageName: String): String? {

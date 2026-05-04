@@ -51,6 +51,22 @@ class PluginManager @Inject constructor(
         private const val TAG = "PluginManager"
         private const val PLUGINS_DIR_NAME = "plugins"
         private const val PLUGIN_META_SUFFIX = ".meta.properties"
+        private val CORE_PLUGIN_METHODS = setOf(
+            "search",
+            "getMediaSource",
+            "getMusicInfo",
+            "getLyric",
+            "getAlbumInfo",
+            "getArtistWorks",
+            "importMusicSheet",
+            "importMusicItem",
+            "getTopLists",
+            "getTopListDetail",
+            "getMusicSheetInfo",
+            "getRecommendSheetTags",
+            "getRecommendSheetsByTag",
+            "getMusicComments",
+        )
     }
 
     private val pluginsDir: File by lazy {
@@ -844,6 +860,16 @@ class PluginManager @Inject constructor(
             return if (str == "undefined" || str == "null" || str.isNullOrBlank()) null else str
         }
 
+        suspend fun supportedMethods(): Set<String> {
+            return CORE_PLUGIN_METHODS.filter { method ->
+                try {
+                    engine.evaluate<Boolean>("typeof __plugin.$method === 'function'")
+                } catch (_: Exception) {
+                    false
+                }
+            }.toSet()
+        }
+
         val platform = prop("platform")
             ?: throw IllegalStateException("Plugin missing required 'platform' property")
 
@@ -885,6 +911,7 @@ class PluginManager @Inject constructor(
             defaultSearchType = prop("defaultSearchType"),
             cacheControl = prop("cacheControl"),
             hints = hintsJson,
+            supportedMethods = supportedMethods(),
         )
     }
 }

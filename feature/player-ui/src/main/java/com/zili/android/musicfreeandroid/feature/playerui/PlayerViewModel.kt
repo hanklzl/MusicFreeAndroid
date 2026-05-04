@@ -58,7 +58,7 @@ class PlayerViewModel @Inject constructor(
 
     fun showAddToPlaylistSheet() {
         val item = playerState.value.currentItem ?: return
-        _sheetState.value = AddToPlaylistSheetState(visible = true, pendingItem = item)
+        _sheetState.value = AddToPlaylistSheetState.single(item)
     }
 
     fun hideAddToPlaylistSheet() {

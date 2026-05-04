@@ -422,4 +422,27 @@ class JsBridgeTest {
         assertEquals(1, result.data[0].replies.size)
         assertEquals("Agree", result.data[0].replies[0].comment)
     }
+
+    @Test
+    fun `parseImportMusicSheetResult backfills blank platforms from loaded plugin`() {
+        val payload = listOf(
+            mapOf("id" to "m1", "platform" to "", "title" to "Song A", "artist" to "A"),
+            mapOf("id" to "m2", "title" to "Song B", "artist" to "B"),
+        )
+
+        val result = JsBridge.parseImportMusicSheetResult(payload, fallbackPlatform = "demo")
+
+        assertEquals(listOf("demo", "demo"), result.map { it.platform })
+    }
+
+    @Test
+    fun `parseImportMusicSheetResult keeps explicit non blank platform`() {
+        val payload = listOf(
+            mapOf("id" to "m1", "platform" to "explicit", "title" to "Song A", "artist" to "A"),
+        )
+
+        val result = JsBridge.parseImportMusicSheetResult(payload, fallbackPlatform = "demo")
+
+        assertEquals("explicit", result.single().platform)
+    }
 }

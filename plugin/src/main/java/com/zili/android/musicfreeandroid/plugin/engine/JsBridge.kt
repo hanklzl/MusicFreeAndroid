@@ -128,10 +128,16 @@ object JsBridge {
         return toMusicItem(merged, fallbackPlatform = base.platform)
     }
 
-    fun parseImportMusicSheetResult(payload: Any?): List<MusicItem> {
+    @Suppress("UNCHECKED_CAST")
+    fun parseImportMusicSheetResult(
+        payload: Any?,
+        fallbackPlatform: String? = null,
+    ): List<MusicItem> {
         val list = payload as? List<*> ?: return emptyList()
         return list.mapNotNull { entry ->
-            (entry as? Map<String, Any?>)?.let(::toMusicItem)
+            (entry as? Map<String, Any?>)?.let {
+                toMusicItem(it, fallbackPlatform = fallbackPlatform)
+            }
         }
     }
 

@@ -12,4 +12,5 @@ data class PluginInfo(
     val defaultSearchType: String? = null,
     val cacheControl: String? = null,
     val hints: Map<String, List<String>>? = null,
+    val supportedMethods: Set<String> = emptySet(),
 )

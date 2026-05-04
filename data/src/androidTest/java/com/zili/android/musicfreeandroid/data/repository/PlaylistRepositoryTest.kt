@@ -41,7 +41,7 @@ class PlaylistRepositoryTest {
             .build()
         val converters = Converters()
         val coverStore = PlaylistCoverStore(ctx)
-        playlistRepo = PlaylistRepository(db.playlistDao(), db.musicDao(), coverStore, converters)
+        playlistRepo = PlaylistRepository(db, db.playlistDao(), db.musicDao(), coverStore, converters)
         musicRepo = MusicRepository(db.musicDao(), converters)
     }
 
@@ -172,6 +172,24 @@ class PlaylistRepositoryTest {
     }
 
     @Test
+    fun addMusicsToPlaylist_returnsAddedCountAndSkipsDuplicates() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Imported", coverUri = null))
+        val items = listOf(
+            sampleMusic("m1", title = "One"),
+            sampleMusic("m2", title = "Two"),
+            sampleMusic("m1", title = "One Again"),
+        )
+
+        val first = playlistRepo.addMusicsToPlaylist(id, items)
+        val second = playlistRepo.addMusicsToPlaylist(id, items)
+
+        assertEquals(2, first)
+        assertEquals(0, second)
+        assertEquals(2, playlistRepo.countMusicInPlaylist(id))
+    }
+
+    @Test
     fun addMusicsToPlaylist_emptyListReturnsZero() = runBlocking {
         val id = UUID.randomUUID().toString()
         playlistRepo.createPlaylist(Playlist(id = id, name = "Imported", coverUri = null))
@@ -183,12 +201,49 @@ class PlaylistRepositoryTest {
     }
 
     @Test
+    fun addMusicsToPlaylist_preservesImportOrderForManualSort() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Imported", coverUri = null))
+        val items = listOf(
+            sampleMusic("m3", title = "Third"),
+            sampleMusic("m1", title = "First"),
+            sampleMusic("m2", title = "Second"),
+        )
+
+        playlistRepo.addMusicsToPlaylist(id, items)
+
+        val titles = playlistRepo.observeMusicInPlaylist(id).first().map { it.title }
+        assertEquals(listOf("Third", "First", "Second"), titles)
+    }
+
+    @Test
     fun addMusic_autoSyncsCoverFromArtworkOnEmptyPlaylist() = runBlocking {
         val tmp = java.io.File(ctx.cacheDir, "art.jpg").apply { writeBytes(ByteArray(32) { 9 }) }
         val id = UUID.randomUUID().toString()
         playlistRepo.createPlaylist(Playlist(id = id, name = "Mix", coverUri = null))
         playlistRepo.addMusicToPlaylist(id, sampleMusic("m1", artwork = "file://${tmp.absolutePath}"))
         val playlist = playlistRepo.observePlaylist(id).first()
+        assertNotNull(playlist?.coverUri)
+        assertTrue(playlist!!.coverUri!!.startsWith("playlist_covers/"))
+    }
+
+    @Test
+    fun addMusicsToPlaylist_retriesCoverSyncAfterInvalidArtwork() = runBlocking {
+        val invalidArtwork = "file://${java.io.File(ctx.cacheDir, "does-not-exist-artwork.jpg").absolutePath}"
+        val validArtwork = java.io.File(ctx.cacheDir, "valid-cover-artwork.jpg").apply {
+            writeBytes(ByteArray(32) { 9 })
+        }
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Import", coverUri = null))
+        val items = listOf(
+            sampleMusic("m1", title = "Invalid Artwork", artwork = invalidArtwork),
+            sampleMusic("m2", title = "Valid Artwork", artwork = "file://${validArtwork.absolutePath}"),
+        )
+
+        val added = playlistRepo.addMusicsToPlaylist(id, items)
+
+        val playlist = playlistRepo.getPlaylistById(id)
+        assertEquals(2, added)
         assertNotNull(playlist?.coverUri)
         assertTrue(playlist!!.coverUri!!.startsWith("playlist_covers/"))
     }
