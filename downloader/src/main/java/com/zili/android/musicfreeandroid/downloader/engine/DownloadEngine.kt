@@ -1,0 +1,249 @@
+package com.zili.android.musicfreeandroid.downloader.engine
+
+import android.net.Uri
+import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao
+import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
+import com.zili.android.musicfreeandroid.data.db.entity.DownloadTaskEntity
+import com.zili.android.musicfreeandroid.data.db.entity.DownloadedTrackEntity
+import com.zili.android.musicfreeandroid.downloader.io.HttpDownloadException
+import com.zili.android.musicfreeandroid.downloader.io.HttpDownloader
+import com.zili.android.musicfreeandroid.downloader.io.NetworkState
+import com.zili.android.musicfreeandroid.downloader.model.DownloadFailReason
+import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
+import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
+import com.zili.android.musicfreeandroid.downloader.model.MediaKey
+import com.zili.android.musicfreeandroid.downloader.prefs.DownloadConfig
+import com.zili.android.musicfreeandroid.downloader.quality.QualityFallback
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.io.File
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+
+class DownloadEngine(
+    private val taskDao: DownloadTaskDao,
+    private val downloadedDao: DownloadedTrackDao,
+    private val http: HttpDownloader,
+    private val writer: suspend (cacheFile: File, displayName: String, mime: String, relPath: String, size: Long) -> Uri,
+    private val resolver: suspend (MusicItem, qualityWire: String) -> MediaSourceResult?,
+    private val configFlow: StateFlow<DownloadConfig>,
+    private val networkFlow: StateFlow<NetworkState>,
+    private val cacheDir: File,
+    ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) {
+    private val scope = CoroutineScope(ioDispatcher + SupervisorJob())
+    private val mutex = Mutex()
+    private val inflight = ConcurrentHashMap<MediaKey, Job>()
+    private val progressCache = ConcurrentHashMap<MediaKey, Pair<Long?, Long?>>()
+
+    private val _events = MutableSharedFlow<DownloadEvent>(extraBufferCapacity = 16)
+    val events: SharedFlow<DownloadEvent> = _events.asSharedFlow()
+
+    val tasks: StateFlow<List<DownloadTaskUi>> = taskDao.observeAll()
+        .map { rows -> rows.map { it.toUi(progressCache[MediaKey.of(it.id, it.platform)]) } }
+        .stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    val downloadedKeys: StateFlow<Set<MediaKey>> = downloadedDao.observeKeys()
+        .map { list ->
+            list.map { keyStr ->
+                val parts = keyStr.split("@", limit = 2)
+                MediaKey.of(parts[0], parts.getOrNull(1) ?: "")
+            }.toSet()
+        }
+        .stateIn(scope, SharingStarted.Eagerly, emptySet())
+
+    fun start() {
+        // hook for restart recovery — implemented in T14
+    }
+
+    fun stop() {
+        inflight.values.forEach { it.cancel() }
+        inflight.clear()
+    }
+
+    fun enqueue(items: List<MusicItem>, quality: PlayQuality?) {
+        scope.launch {
+            val effectiveQuality = quality ?: configFlow.value.defaultDownloadQuality
+            val now = System.currentTimeMillis()
+            val toAdd = mutableListOf<DownloadTaskEntity>()
+            for (item in items) {
+                if (downloadedDao.exists(item.id, item.platform)) continue
+                if (taskDao.findByKey(item.id, item.platform) != null) continue
+                toAdd += DownloadTaskEntity(
+                    id = item.id, platform = item.platform, title = item.title, artist = item.artist,
+                    album = item.album, artwork = item.artwork, durationMs = item.duration,
+                    targetQuality = effectiveQuality.name.lowercase(),
+                    status = DownloadStatus.PENDING.name, errorReason = null,
+                    resolvedUrl = null, resolvedHeadersJson = null,
+                    fileSize = null, downloadedSize = null,
+                    createdAt = now, updatedAt = now,
+                )
+            }
+            toAdd.forEach { taskDao.upsert(it) }
+            scheduleNext()
+        }
+    }
+
+    private suspend fun scheduleNext() = mutex.withLock {
+        val cap = configFlow.value.maxDownload.coerceIn(1, 10)
+        if (inflight.size >= cap) return@withLock
+        val net = networkFlow.value
+        if (net == NetworkState.Offline) return@withLock
+        if (net == NetworkState.Cellular && !configFlow.value.useCellularDownload) return@withLock
+        val next = taskDao.findNextPending() ?: return@withLock
+        val key = MediaKey.of(next.id, next.platform)
+        if (inflight.containsKey(key)) return@withLock
+        taskDao.updateStatus(next.id, next.platform, DownloadStatus.PREPARING.name, System.currentTimeMillis())
+        val job = scope.launch { runOne(next, key) }
+        inflight[key] = job
+    }
+
+    private suspend fun runOne(task: DownloadTaskEntity, key: MediaKey) {
+        val musicItem = task.toMusicItemSeed()
+        val targetQuality = runCatching {
+            PlayQuality.valueOf(task.targetQuality.uppercase())
+        }.getOrDefault(PlayQuality.STANDARD)
+
+        val resolved = QualityFallback.resolve(musicItem, targetQuality, resolver)
+        if (resolved == null) {
+            markFailed(key, DownloadFailReason.FailToFetchSource)
+            inflight.remove(key)
+            scheduleNext()
+            return
+        }
+        val (_, source) = resolved
+        taskDao.setResolved(task.id, task.platform, source.url, null, System.currentTimeMillis())
+        taskDao.updateStatus(task.id, task.platform, DownloadStatus.DOWNLOADING.name, System.currentTimeMillis())
+
+        val ext = DownloadFilenames.extensionFromUrl(source.url)
+        val mime = DownloadFilenames.mimeFor(ext)
+        val displayName = DownloadFilenames.displayName(musicItem, ext)
+        val relPath = configFlow.value.downloadDirRelative
+
+        val cacheFile = File(cacheDir, "${UUID.randomUUID()}.$ext").also { it.parentFile?.mkdirs() }
+        try {
+            http.download(
+                url = source.url,
+                headers = source.headers ?: emptyMap(),
+                target = cacheFile,
+                onProgress = { p ->
+                    progressCache[key] = p.downloaded to p.total.takeIf { it > 0 }
+                    scope.launch {
+                        taskDao.updateProgress(
+                            task.id, task.platform,
+                            p.total.takeIf { it > 0 }, p.downloaded,
+                            System.currentTimeMillis(),
+                        )
+                    }
+                },
+            )
+            val size = cacheFile.length()
+            val uri = writer(cacheFile, displayName, mime, relPath, size)
+            downloadedDao.insert(
+                DownloadedTrackEntity(
+                    id = task.id, platform = task.platform,
+                    mediaStoreUri = uri.toString(), relativePath = relPath,
+                    mimeType = mime, quality = task.targetQuality,
+                    sizeBytes = size, downloadedAt = System.currentTimeMillis(),
+                ),
+            )
+            taskDao.deleteByKey(task.id, task.platform)
+            progressCache.remove(key)
+            _events.tryEmit(DownloadEvent.Completed(key))
+        } catch (e: HttpDownloadException) {
+            markFailed(key, DownloadFailReason.Unknown)
+        } catch (t: Throwable) {
+            markFailed(key, DownloadFailReason.Unknown)
+        } finally {
+            if (cacheFile.exists()) cacheFile.delete()
+            inflight.remove(key)
+            scheduleNext()
+            if (inflight.isEmpty() && taskDao.findNextPending() == null) {
+                _events.tryEmit(DownloadEvent.QueueIdle)
+            }
+        }
+    }
+
+    private suspend fun markFailed(key: MediaKey, reason: DownloadFailReason) {
+        taskDao.markFailed(
+            id = key.id, platform = key.platform,
+            reason = reason.name, now = System.currentTimeMillis(),
+        )
+        progressCache.remove(key)
+    }
+
+    fun cancel(key: MediaKey) {
+        scope.launch {
+            inflight[key]?.cancel()
+            inflight.remove(key)
+            taskDao.deleteByKey(key.id, key.platform)
+            progressCache.remove(key)
+            scheduleNext()
+        }
+    }
+
+    fun retry(key: MediaKey) {
+        scope.launch {
+            val row = taskDao.findByKey(key.id, key.platform) ?: return@launch
+            if (row.status != DownloadStatus.FAILED.name) return@launch
+            taskDao.updateStatus(key.id, key.platform, DownloadStatus.PENDING.name, System.currentTimeMillis())
+            scheduleNext()
+        }
+    }
+
+    fun clearFailed() {
+        scope.launch { taskDao.deleteAllFailed() }
+    }
+
+    fun retryAllFailed() {
+        scope.launch {
+            taskDao.resetAllFailedToPending()
+            scheduleNext()
+        }
+    }
+
+    fun cancelAllInflight() {
+        scope.launch {
+            inflight.values.forEach { it.cancel() }
+            inflight.clear()
+            taskDao.deleteAllInflight()
+        }
+    }
+}
+
+private fun DownloadTaskEntity.toUi(progress: Pair<Long?, Long?>?): DownloadTaskUi = DownloadTaskUi(
+    key = MediaKey.of(id, platform),
+    title = title, artist = artist, artwork = artwork,
+    status = runCatching { DownloadStatus.valueOf(status) }.getOrDefault(DownloadStatus.FAILED),
+    targetQuality = targetQuality,
+    downloadedBytes = progress?.first ?: downloadedSize,
+    totalBytes = progress?.second ?: fileSize,
+    errorReason = errorReason?.let { runCatching { DownloadFailReason.valueOf(it) }.getOrNull() },
+)
+
+private fun DownloadTaskEntity.toMusicItemSeed(): MusicItem = MusicItem(
+    id = id, platform = platform, title = title, artist = artist,
+    album = album, duration = durationMs, url = null, artwork = artwork, qualities = null,
+)
+
+sealed interface DownloadEvent {
+    data class Completed(val key: MediaKey) : DownloadEvent
+    data object QueueIdle : DownloadEvent
+    data class Toast(val reason: DownloadFailReason) : DownloadEvent
+}
