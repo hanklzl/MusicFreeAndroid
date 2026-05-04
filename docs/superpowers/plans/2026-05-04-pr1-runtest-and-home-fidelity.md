@@ -1,14 +1,14 @@
-# PR 1: runTest 迁移 + HomeFidelity 断言改写 — 实现计划
+# PR 1: feature runner 基线 + runTest 迁移 + HomeFidelity 断言改写 — 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Group C 的 3 个 hang 用例改造为确定性 `runTest` 模式；Group A 的 2 个 ignore 用例反应化（1 个改写为真实 cold-launch 断言、1 个删除）。方法级 `@Ignore` 从 5 降到 0。
+**Goal:** 先修复全量 `connectedAndroidTest` 在 feature 模块缺 runner 依赖时崩溃的问题；再将 Group C 的 3 个 hang 用例改造为确定性 `runTest` 模式；最后将 Group A 的 2 个 ignore 用例反应化（1 个改写为真实 cold-launch 断言、1 个删除）。方法级 `@Ignore` 从 5 降到 0，feature 模块 connected runner 崩溃归零。
 
-**Architecture:** 纯测试侧改动，零生产代码触动。在隔离 worktree 内分多个原子 commit 完成，每次 commit 都跑相应模块的 `testDebugUnitTest`/`connectedAndroidTest` 验证。
+**Architecture:** 只触碰 Gradle 测试依赖与测试代码，零生产代码触动。在隔离 worktree 内分多个原子 commit 完成，每次 commit 都跑相应模块的 `testDebugUnitTest`/`connectedAndroidTest` 验证。
 
 **Tech Stack:** Kotlin、JUnit 4、`kotlinx.coroutines.test`（`runTest`、`advanceUntilIdle`）、Compose UI Test、Hilt androidTest（仅消费现有 `HiltAndroidRule`）。
 
-**Spec:** [`../specs/2026-05-04-test-suite-rehabilitation-design.md`](../specs/2026-05-04-test-suite-rehabilitation-design.md)（PR 1 = §2 + §3）
+**Spec:** [`../specs/2026-05-04-test-suite-rehabilitation-design.md`](../specs/2026-05-04-test-suite-rehabilitation-design.md)（PR 1 = §2 + §3 + §4）
 
 ---
 
@@ -16,6 +16,10 @@
 
 | 路径 | 操作 | 责任 |
 |---|---|---|
+| `feature/home/build.gradle.kts` | Modify | 新增 androidTest runner / junit / espresso 基础依赖，修复空 feature 模块 connected runner crash |
+| `feature/player-ui/build.gradle.kts` | Modify | 同上 |
+| `feature/search/build.gradle.kts` | Modify | 同上 |
+| `feature/settings/build.gradle.kts` | Modify | 同上 |
 | `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt` | Modify | 删 `@Ignore` 与上方 TODO 注释；将 1 个用例迁到 `runTest(mainDispatcherRule.dispatcher) + advanceUntilIdle` |
 | `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt` | Modify | 删 2 处 `@Ignore` 与上方 TODO；同样迁移 2 个用例 |
 | `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt` | Modify | 删 2 处 `@Ignore` 与上方 TODO；用例 1 改写、用例 2 删除 |
@@ -26,21 +30,34 @@
 
 **Files:** 无（仅 git/shell 操作）
 
-- [ ] **Step 1：从仓库根目录创建 worktree + 分支**
+- [ ] **Step 1：从仓库根目录进入或创建 worktree + 分支**
+
+```bash
+git worktree list
+```
+
+如果列表里已经有 `.worktrees/test/runtest-and-home-fidelity`，直接进入：
+
+```bash
+cd .worktrees/test/runtest-and-home-fidelity
+```
+
+如果不存在，再创建：
 
 ```bash
 git worktree add .worktrees/test/runtest-and-home-fidelity -b test/runtest-and-home-fidelity
 cd .worktrees/test/runtest-and-home-fidelity
 ```
 
-- [ ] **Step 2：确认分支干净 + 当前 `@Ignore` 数为 5**
+- [ ] **Step 2：确认分支、工作区和当前 `@Ignore` 数**
 
 ```bash
 git status
+git branch --show-current
 grep -rn "@Ignore" --include="*.kt" 2>/dev/null | grep -v build/ | grep -v .worktrees/ | wc -l
 ```
 
-预期：`git status` 显示 `nothing to commit, working tree clean`；`grep | wc -l` 输出 `7`（5 个方法级 + 1 类级 + 1 行 TODO 引用注释）。注：grep 同时命中类级和注释，整数计数仅做哨兵；以下 task 通过修改对应文件后再次 grep 验证。
+预期：`git status` 显示 `nothing to commit, working tree clean`；当前分支是 `test/runtest-and-home-fidelity`；`grep | wc -l` 输出约 `7`（5 个方法级 + 1 类级 + 1 行历史注释引用）。注：grep 同时命中类级和注释，整数计数仅做哨兵；以下 task 通过修改对应文件后再次 grep 验证。
 
 - [ ] **Step 3：跑一次 baseline `:feature:settings:testDebugUnitTest`**
 
@@ -52,7 +69,75 @@ grep -rn "@Ignore" --include="*.kt" 2>/dev/null | grep -v build/ | grep -v .work
 
 ---
 
-## Task 2：迁移 `SettingsViewModelTest.set storage directory persists selected tree uri`
+## Task 2：修复 feature 模块 androidTest runner 基线
+
+**Files:**
+- Modify: `feature/home/build.gradle.kts`
+- Modify: `feature/player-ui/build.gradle.kts`
+- Modify: `feature/search/build.gradle.kts`
+- Modify: `feature/settings/build.gradle.kts`
+
+- [ ] **Step 1：确认当前失败签名（可选，但建议先跑）**
+
+```bash
+./gradlew :feature:home:connectedDebugAndroidTest --no-daemon
+```
+
+当前已复现的失败签名：
+
+```text
+Test run failed to complete. Instrumentation run failed due to Process crashed.
+Caused by: java.lang.ClassNotFoundException:
+Didn't find class "androidx.test.runner.AndroidJUnitRunner" on path: DexPathList...
+```
+
+如果该命令在你的环境已通过，仍执行本 task：其它 feature 模块存在同类配置风险，补齐基线是低成本防回归。
+
+- [ ] **Step 2：给 4 个 feature 模块补 androidTest 基础依赖**
+
+在以下 4 个文件的 `dependencies` 块末尾追加同一组依赖：
+
+```kotlin
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+```
+
+目标文件：
+
+```text
+feature/home/build.gradle.kts
+feature/player-ui/build.gradle.kts
+feature/search/build.gradle.kts
+feature/settings/build.gradle.kts
+```
+
+不要添加 Compose UI test androidTest 依赖；当前问题只需要 runner 基线，Compose v2 迁移也不在本 PR 范围内。
+
+- [ ] **Step 3：逐模块 connected smoke，确认空/无测试模块不再 crash**
+
+```bash
+./gradlew :feature:home:connectedDebugAndroidTest --no-daemon
+./gradlew :feature:player-ui:connectedDebugAndroidTest --no-daemon
+./gradlew :feature:search:connectedDebugAndroidTest --no-daemon
+./gradlew :feature:settings:connectedDebugAndroidTest --no-daemon
+```
+
+预期：全部 `BUILD SUCCESSFUL`。对于无 androidTest 源的模块，输出可能显示 `Starting 0 tests` / `Finished 0 tests`，这是可接受结果；关键是不再出现 runner `ClassNotFoundException`。
+
+- [ ] **Step 4：commit**
+
+```bash
+git add feature/home/build.gradle.kts \
+        feature/player-ui/build.gradle.kts \
+        feature/search/build.gradle.kts \
+        feature/settings/build.gradle.kts
+git commit -m "test(feature): add androidTest runner baseline dependencies"
+```
+
+---
+
+## Task 3：迁移 `SettingsViewModelTest.set storage directory persists selected tree uri`
 
 **Files:**
 - Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt`
@@ -123,7 +208,7 @@ import org.junit.rules.TemporaryFolder
 
 预期：`SettingsViewModelTest > set storage directory persists selected tree uri PASSED`，`@Ignore` 不再出现在 SettingsViewModelTest 中。
 
-如果失败：检查 `mainDispatcherRule.dispatcher` 是否仍为 `UnconfinedTestDispatcher()`（`MainDispatcherRule.kt` 默认值）；按 spec §5.4 fallback：改为 `runTest(mainDispatcherRule.dispatcher) { ... ; advanceUntilIdle() ; ... }` 显式包裹。
+如果失败：检查 `mainDispatcherRule.dispatcher` 是否仍为 `UnconfinedTestDispatcher()`（`MainDispatcherRule.kt` 默认值）；按 spec §6.4 fallback：改为 `runTest(mainDispatcherRule.dispatcher) { ... ; advanceUntilIdle() ; ... }` 显式包裹。
 
 - [ ] **Step 3：commit**
 
@@ -143,7 +228,7 @@ EOF
 
 ---
 
-## Task 3：迁移 `FileSelectorLiteViewModelTest.onDirectorySelected persists selected tree uri`
+## Task 4：迁移 `FileSelectorLiteViewModelTest.onDirectorySelected persists selected tree uri`
 
 **Files:**
 - Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt`
@@ -231,7 +316,7 @@ EOF
 
 ---
 
-## Task 4：迁移 `FileSelectorLiteViewModelTest.onDirectorySelected replaces previous selected directory`
+## Task 5：迁移 `FileSelectorLiteViewModelTest.onDirectorySelected replaces previous selected directory`
 
 **Files:**
 - Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt`
@@ -284,7 +369,7 @@ EOF
 
 ---
 
-## Task 5：Hang 不回归验证（连跑两轮）
+## Task 6：Hang 不回归验证（连跑两轮）
 
 **Files:** 无
 
@@ -296,7 +381,7 @@ EOF
 
 预期：两轮均 `BUILD SUCCESSFUL`，无任何用例 hang 或 timeout。
 
-如果 hang：按 spec §5.4 fallback——`runTest(mainDispatcherRule.dispatcher)` 改为 `runBlocking(Dispatchers.Default)` 兜底，并在该用例上方追加 `// TODO: investigate root cause of dispatcher races` 注释。**不要**回到 `@Ignore`。
+如果 hang：按 spec §6.4 fallback——`runTest(mainDispatcherRule.dispatcher)` 改为 `runBlocking(Dispatchers.Default)` 兜底，并在该用例上方追加 `// TODO: investigate root cause of dispatcher races` 注释。**不要**回到 `@Ignore`。
 
 - [ ] **Step 2：grep 验证 `:feature:settings` 已无 `@Ignore`**
 
@@ -308,7 +393,7 @@ grep -rn "@Ignore" feature/settings/src/test/ 2>/dev/null
 
 ---
 
-## Task 6：HomeFidelity 用例 1 — 改写为 cold launch 真实断言
+## Task 7：HomeFidelity 用例 1 — 改写为 cold launch 真实断言
 
 **Files:**
 - Modify: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt`
@@ -373,7 +458,7 @@ EOF
 
 ---
 
-## Task 7：HomeFidelity 用例 2 — 删除
+## Task 8：HomeFidelity 用例 2 — 删除
 
 **Files:**
 - Modify: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt`
@@ -434,11 +519,22 @@ EOF
 
 ---
 
-## Task 8：跨模块回归验证
+## Task 9：跨模块回归验证
 
 **Files:** 无
 
-- [ ] **Step 1：跑 `:app:testDebugUnitTest` 防止跨模块 import 影响**
+- [ ] **Step 1：跑 4 个 feature focused connected task，确认 runner baseline 仍有效**
+
+```bash
+./gradlew :feature:home:connectedDebugAndroidTest --no-daemon
+./gradlew :feature:player-ui:connectedDebugAndroidTest --no-daemon
+./gradlew :feature:search:connectedDebugAndroidTest --no-daemon
+./gradlew :feature:settings:connectedDebugAndroidTest --no-daemon
+```
+
+预期：全部 `BUILD SUCCESSFUL`，无 `AndroidJUnitRunner` `ClassNotFoundException`。
+
+- [ ] **Step 2：跑 `:app:testDebugUnitTest` 防止跨模块 import 影响**
 
 ```bash
 ./gradlew :app:testDebugUnitTest
@@ -446,7 +542,7 @@ EOF
 
 预期：`BUILD SUCCESSFUL`。
 
-- [ ] **Step 2：跑 `:feature:search:testDebugUnitTest` 验证两份 `MainDispatcherRule` 仍各自能用**
+- [ ] **Step 3：跑 `:feature:search:testDebugUnitTest` 验证两份 `MainDispatcherRule` 仍各自能用**
 
 ```bash
 ./gradlew :feature:search:testDebugUnitTest
@@ -454,7 +550,7 @@ EOF
 
 预期：`BUILD SUCCESSFUL`。
 
-- [ ] **Step 3：`:app:assembleDebug` 编译保护**
+- [ ] **Step 4：`:app:assembleDebug` 编译保护**
 
 ```bash
 ./gradlew :app:assembleDebug
@@ -464,7 +560,7 @@ EOF
 
 ---
 
-## Task 9：终态指标确认 + push
+## Task 10：终态指标确认 + push
 
 **Files:** 无
 
@@ -495,18 +591,23 @@ git push -u origin test/runtest-and-home-fidelity
 - [ ] **Step 4：用 spec 对照写 PR 描述并创建 PR**
 
 ```bash
-gh pr create --title "test: runTest migration + HomeFidelity cold-launch rewrite" --body "$(cat <<'EOF'
+gh pr create --title "test: stabilize connected runner + runTest migrations" --body "$(cat <<'EOF'
 ## Summary
 
+- Adds androidTest runner / junit / espresso baseline dependencies to 4 feature modules so full `connectedAndroidTest` no longer crashes while instantiating `AndroidJUnitRunner`.
 - Migrates 3 hang-prone Settings/FileSelector ViewModel tests from `runBlocking + Flow.first { predicate }` to `runTest(mainDispatcherRule.dispatcher) + advanceUntilIdle + Flow.first()`.
 - Rewrites HomeFidelity structure test to assert only cold-launch reality (real MiniPlayer is absent without media).
 - Deletes the obsolete HomeFidelity mini-player-overlap test (premise no longer holds; coverage already in MiniPlayerContentTest).
-- Net: 5 method-level `@Ignore` → 0; 1 dead test removed; 0 production code changed.
+- Net: 5 method-level `@Ignore` → 0; 1 dead test removed; 4 feature connected runner crashes prevented; 0 production code changed.
 
-Spec: `docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md` §2 + §3.
+Spec: `docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md` §2 + §3 + §4.
 
 ## Test plan
 
+- [ ] `./gradlew :feature:home:connectedDebugAndroidTest`
+- [ ] `./gradlew :feature:player-ui:connectedDebugAndroidTest`
+- [ ] `./gradlew :feature:search:connectedDebugAndroidTest`
+- [ ] `./gradlew :feature:settings:connectedDebugAndroidTest`
 - [ ] `./gradlew :feature:settings:testDebugUnitTest` (run twice for hang-regression check)
 - [ ] `./gradlew :feature:search:testDebugUnitTest`
 - [ ] `./gradlew :app:testDebugUnitTest`
@@ -526,6 +627,7 @@ EOF
 
 合并前必须满足：
 
+- 4 个 feature focused `connectedDebugAndroidTest` PASS，且无 runner crash
 - `:feature:settings:testDebugUnitTest` 两轮 PASS
 - `:feature:search:testDebugUnitTest`、`:app:testDebugUnitTest`、`:app:assembleDebug` PASS
 - `connectedAndroidTest` 在至少一台设备/模拟器上 PASS（HomeFidelity 用例 1 PASSED）

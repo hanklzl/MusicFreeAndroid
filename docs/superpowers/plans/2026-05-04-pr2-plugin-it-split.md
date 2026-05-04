@@ -8,7 +8,9 @@
 
 **Tech Stack:** Kotlin、JUnit 4（`Assume`）、AndroidJUnit4、OkHttp `mockwebserver`、AndroidX Datastore（用于构造 `PluginMetaStore` 的 in-memory 实例，沿用原 IntegrationTest 模式）。
 
-**Spec:** [`../specs/2026-05-04-test-suite-rehabilitation-design.md`](../specs/2026-05-04-test-suite-rehabilitation-design.md)（PR 2 = §4）
+**Spec:** [`../specs/2026-05-04-test-suite-rehabilitation-design.md`](../specs/2026-05-04-test-suite-rehabilitation-design.md)（PR 2 = §5）
+
+**Prerequisite:** PR 1 的 feature androidTest runner 基线应先合入主线。PR 2 自身 focused `:plugin:*` 验证不依赖 PR 1，但最终 `./gradlew connectedAndroidTest` 全仓库验证必须基于包含 PR 1 的主线重跑，否则仍可能被 feature 模块 runner crash 阻塞。
 
 ---
 
@@ -29,14 +31,35 @@
 
 **Files:** 无
 
-- [ ] **Step 1：从仓库根目录创建 worktree + 分支**
+- [ ] **Step 1：从仓库根目录进入或创建 worktree + 分支**
+
+```bash
+git worktree list
+```
+
+如果列表里已经有 `.worktrees/test/plugin-it-split`，直接进入：
+
+```bash
+cd .worktrees/test/plugin-it-split
+```
+
+如果不存在，再创建：
 
 ```bash
 git worktree add .worktrees/test/plugin-it-split -b test/plugin-it-split
 cd .worktrees/test/plugin-it-split
 ```
 
-- [ ] **Step 2：跑一次 baseline `:plugin:testDebugUnitTest`**
+- [ ] **Step 2：确认分支干净**
+
+```bash
+git status
+git branch --show-current
+```
+
+预期：`git status` 显示 `nothing to commit, working tree clean`；当前分支是 `test/plugin-it-split`。
+
+- [ ] **Step 3：跑一次 baseline `:plugin:testDebugUnitTest`**
 
 ```bash
 ./gradlew :plugin:testDebugUnitTest
@@ -44,7 +67,7 @@ cd .worktrees/test/plugin-it-split
 
 预期：`BUILD SUCCESSFUL`，`:plugin` 单测全绿。
 
-- [ ] **Step 3：（如有连接的设备）跑 baseline `:plugin:connectedAndroidTest`**
+- [ ] **Step 4：（如有连接的设备）跑 baseline `:plugin:connectedAndroidTest`**
 
 ```bash
 ./gradlew :plugin:connectedAndroidTest
@@ -762,7 +785,7 @@ class PluginManagerHttpLifecycleTest {
 
 预期：2 个用例 PASSED。
 
-如果 `installFromUrl_writesPluginAndLoadsMeta` 失败、报 `version == null`：检查 `PluginInfo` 解析 JS `version` 字段的路径是否正常（这是已实现行为，理论应通过——若失败属新发现 bug，按 §5.4 处理）。
+如果 `installFromUrl_writesPluginAndLoadsMeta` 失败、报 `version == null`：检查 `PluginInfo` 解析 JS `version` 字段的路径是否正常（这是已实现行为，理论应通过——若失败属新发现 bug，按 spec §6.4 处理）。
 
 如果端口冲突：MockWebServer 默认随机端口；如发生冲突，重跑或在 `@Before` 中显式 `server.start(0)`。
 
@@ -907,7 +930,7 @@ grep -rn "@Ignore" --include="*.kt" 2>/dev/null | grep -v build/ | grep -v .work
 
 预期：空输出。
 
-如有残留：查 spec §5.3 终态指标表，确定残留是否在本 PR 范围；如不在本范围，记录 follow-up；如在本范围，回到对应 task 修复。
+如有残留：查 spec §6.3 终态指标表，确定残留是否在本 PR 范围；如不在本范围，记录 follow-up；如在本范围，回到对应 task 修复。
 
 - [ ] **Step 3：push 分支**
 
@@ -926,7 +949,7 @@ gh pr create --title "test(plugin): split runtime IT into local/network + MockWe
 - Adds `okhttp-mockwebserver` library entry (reuses existing OkHttp 5.3.2).
 - Net: class-level `@Ignore` eliminated; CI default channel runs 5 cases (was 0); `-Pintegration` channel runs all 9.
 
-Spec: `docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md` §4.
+Spec: `docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md` §5.
 
 ## Test plan
 
@@ -934,6 +957,7 @@ Spec: `docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md` §
 - [ ] `./gradlew :plugin:connectedAndroidTest` — 5 PASSED, 4 SKIPPED
 - [ ] `./gradlew :plugin:connectedAndroidTest -Pintegration` — 9 PASSED (requires `kstore.vip` reachable; not blocking if intermittent)
 - [ ] `./gradlew assembleDebug && ./gradlew lint`
+- [ ] `./gradlew connectedAndroidTest` after PR 1 is merged/rebased into this branch
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
@@ -953,9 +977,10 @@ EOF
 - `assembleDebug`、`lint` PASS
 - `grep -rn "@Ignore" plugin/src/androidTest/` 输出为空
 - `:plugin:connectedAndroidTest -Pintegration` 至少在本地真机 PASS 一次（贴 baseline 至 PR 描述）
+- 基于包含 PR 1 的主线重跑 `./gradlew connectedAndroidTest` PASS
 - 无新引入的 `@Ignore`
 
 合并后：
 
 - 删除 worktree（`git worktree remove .worktrees/test/plugin-it-split`）。
-- **PR 2 是 spec 的最后一块**。一旦 PR 1 + PR 2 都合入 main，按 spec §7 把 [`docs/DOCS_STATUS.md`](../../DOCS_STATUS.md) 中本 spec 行的状态从 `当前规范（测试反应化与轻量优化专项）` 降为 `当前参考`，并把 `最后校验` 字段更新到验收日期。该收尾通过单独的 docs commit 完成，不在本 PR 范围内。
+- **PR 2 是 spec 的最后一块**。一旦 PR 1 + PR 2 都合入 main，按 spec §8 把 [`docs/DOCS_STATUS.md`](../../DOCS_STATUS.md) 中本 spec 行的状态从 `当前规范（Android 测试稳定性专项）` 降为 `当前参考`，并把 `最后校验` 字段更新到验收日期。该收尾通过单独的 docs commit 完成，不在本 PR 范围内。
