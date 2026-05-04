@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.search
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
@@ -32,6 +33,7 @@ class SearchViewModelTest {
     private val pluginManager: PluginManager = mock()
     private val playerController: PlayerController = mock()
     private val appPreferences: AppPreferences = mock()
+    private val playlistRepository: PlaylistRepository = mock()
     private val pluginFlow = MutableStateFlow<List<LoadedPlugin>>(emptyList())
     private val searchablePluginFlow = MutableStateFlow<List<LoadedPlugin>>(emptyList())
 
@@ -43,9 +45,10 @@ class SearchViewModelTest {
             pluginFlow.value.find { it.info.platform == platform }
         }
         whenever(appPreferences.searchHistory).thenReturn(flowOf(emptyList()))
+        whenever(playlistRepository.observeAllPlaylists()).thenReturn(flowOf(emptyList()))
     }
 
-    private fun createViewModel() = SearchViewModel(pluginManager, playerController, appPreferences)
+    private fun createViewModel() = SearchViewModel(pluginManager, playerController, appPreferences, playlistRepository)
 
     @Test
     fun `filters searchable plugins and auto-selects first`() = runTest {

@@ -4,11 +4,15 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -20,6 +24,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -27,6 +32,7 @@ class SearchViewModel @Inject constructor(
     private val pluginManager: PluginManager,
     private val playerController: PlayerController,
     private val appPreferences: AppPreferences,
+    private val playlistRepository: PlaylistRepository,
 ) : ViewModel() {
 
     companion object {
@@ -65,6 +71,48 @@ class SearchViewModel @Inject constructor(
 
     private val _selectedPlatform = MutableStateFlow<String?>(null)
     val selectedPlatform: StateFlow<String?> = _selectedPlatform.asStateFlow()
+
+    // ── 歌单 / 收藏 ──
+    private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())
+    val sheetState: StateFlow<AddToPlaylistSheetState> = _sheetState.asStateFlow()
+
+    val allPlaylists: StateFlow<List<Playlist>> =
+        playlistRepository.observeAllPlaylists()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun isFavoriteFlow(item: MusicItem): Flow<Boolean> = playlistRepository.isFavorite(item)
+
+    fun toggleFavorite(item: MusicItem) {
+        viewModelScope.launch { playlistRepository.toggleFavorite(item) }
+    }
+
+    fun showAddToPlaylistSheet(item: MusicItem) {
+        _sheetState.value = AddToPlaylistSheetState(visible = true, pendingItem = item)
+    }
+
+    fun hideAddToPlaylistSheet() {
+        _sheetState.value = AddToPlaylistSheetState()
+    }
+
+    fun addPendingToPlaylist(targetPlaylistId: String) {
+        val item = _sheetState.value.pendingItem ?: return
+        viewModelScope.launch {
+            playlistRepository.addMusicToPlaylist(targetPlaylistId, item)
+            hideAddToPlaylistSheet()
+        }
+    }
+
+    fun createPlaylistAndAddPending(name: String) {
+        val item = _sheetState.value.pendingItem ?: return
+        viewModelScope.launch {
+            val newId = UUID.randomUUID().toString()
+            playlistRepository.createPlaylist(
+                Playlist(id = newId, name = name, coverUri = null)
+            )
+            playlistRepository.addMusicToPlaylist(newId, item)
+            hideAddToPlaylistSheet()
+        }
+    }
 
     // ── 二维搜索结果 ──
     // searchResults[mediaType][platform] = PluginSearchState

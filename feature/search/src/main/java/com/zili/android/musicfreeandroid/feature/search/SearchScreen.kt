@@ -21,23 +21,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,9 +61,12 @@ import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +83,9 @@ fun SearchScreen(
     val pageStatus by viewModel.pageStatus.collectAsStateWithLifecycle()
     val currentPluginState by viewModel.currentPluginState.collectAsStateWithLifecycle()
     val history by viewModel.searchHistory.collectAsStateWithLifecycle()
+
+    val sheetState by viewModel.sheetState.collectAsState()
+    val allPlaylists by viewModel.allPlaylists.collectAsState()
 
     val context = LocalContext.current
     var query by remember { mutableStateOf(viewModel.currentQuery.value) }
@@ -233,8 +241,35 @@ fun SearchScreen(
                         viewModel.resolveAndPlay(music, items)
                     },
                     onPlayNext = { music -> viewModel.playNext(music) },
+                    onAddToPlaylist = { music -> viewModel.showAddToPlaylistSheet(music) },
+                    onToggleFavorite = { music -> viewModel.toggleFavorite(music) },
+                    isFavoriteFlow = viewModel::isFavoriteFlow,
                 )
             }
+        }
+    }
+
+    if (sheetState.visible) {
+        var showCreateInSheet by remember { mutableStateOf(false) }
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.hideAddToPlaylistSheet() },
+        ) {
+            AddToPlaylistBottomSheetContent(
+                playlists = allPlaylists,
+                onSelect = { viewModel.addPendingToPlaylist(it.id) },
+                onCreateNew = { showCreateInSheet = true },
+                folderPlusIcon = painterResource(id = R.drawable.ic_folder_plus),
+                favoriteCoverIcon = painterResource(id = R.drawable.ic_playlist_favorite_cover),
+            )
+        }
+        if (showCreateInSheet) {
+            InlineCreatePlaylistDialog(
+                onDismiss = { showCreateInSheet = false },
+                onCreate = { name ->
+                    viewModel.createPlaylistAndAddPending(name)
+                    showCreateInSheet = false
+                },
+            )
         }
     }
 }
@@ -330,6 +365,9 @@ private fun SearchResultPanel(
     onLoadMore: () -> Unit,
     onMusicClick: (MusicItem, List<MusicItem>) -> Unit,
     onPlayNext: (MusicItem) -> Unit,
+    onAddToPlaylist: (MusicItem) -> Unit,
+    onToggleFavorite: (MusicItem) -> Unit,
+    isFavoriteFlow: (MusicItem) -> kotlinx.coroutines.flow.Flow<Boolean>,
 ) {
     val colors = MusicFreeTheme.colors
 
@@ -425,6 +463,9 @@ private fun SearchResultPanel(
                                 item = music,
                                 onClick = { onMusicClick(music, items) },
                                 onPlayNext = { onPlayNext(music) },
+                                onAddToPlaylist = { onAddToPlaylist(music) },
+                                onToggleFavorite = { onToggleFavorite(music) },
+                                isFavoriteFlow = isFavoriteFlow,
                             )
                         }
 
@@ -458,10 +499,14 @@ private fun MusicResultItem(
     item: MusicItem,
     onClick: () -> Unit,
     onPlayNext: () -> Unit = {},
+    onAddToPlaylist: () -> Unit = {},
+    onToggleFavorite: () -> Unit = {},
+    isFavoriteFlow: ((MusicItem) -> kotlinx.coroutines.flow.Flow<Boolean>)? = null,
 ) {
     val colors = MusicFreeTheme.colors
-    val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
+    val isFav by (isFavoriteFlow?.invoke(item) ?: kotlinx.coroutines.flow.flowOf(false))
+        .collectAsState(initial = false)
 
     Row(
         modifier = Modifier
@@ -527,7 +572,7 @@ private fun MusicResultItem(
                 text = { Text("添加到歌单") },
                 onClick = {
                     showMenu = false
-                    Toast.makeText(context, "添加到歌单功能即将上线", Toast.LENGTH_SHORT).show()
+                    onAddToPlaylist()
                 },
                 leadingIcon = {
                     Icon(
@@ -537,6 +582,42 @@ private fun MusicResultItem(
                     )
                 },
             )
+            DropdownMenuItem(
+                text = { Text(if (isFav) "取消收藏" else "收藏") },
+                onClick = {
+                    showMenu = false
+                    onToggleFavorite()
+                },
+            )
         }
     }
+}
+
+// ── InlineCreatePlaylistDialog ────────────────────────────────────────────────
+
+@Composable
+private fun InlineCreatePlaylistDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("新建歌单") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("名称") },
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                if (name.isNotBlank()) onCreate(name.trim())
+            }) { Text("创建") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        },
+    )
 }
