@@ -172,6 +172,17 @@ class PlaylistRepositoryTest {
     }
 
     @Test
+    fun addMusicsToPlaylist_emptyListReturnsZero() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Imported", coverUri = null))
+
+        val added = playlistRepo.addMusicsToPlaylist(id, emptyList())
+
+        assertEquals(0, added)
+        assertEquals(0, playlistRepo.countMusicInPlaylist(id))
+    }
+
+    @Test
     fun addMusic_autoSyncsCoverFromArtworkOnEmptyPlaylist() = runBlocking {
         val tmp = java.io.File(ctx.cacheDir, "art.jpg").apply { writeBytes(ByteArray(32) { 9 }) }
         val id = UUID.randomUUID().toString()

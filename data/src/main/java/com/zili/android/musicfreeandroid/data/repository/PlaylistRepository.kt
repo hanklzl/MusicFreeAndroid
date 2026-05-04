@@ -5,6 +5,7 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.model.SortMode
 import com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStore
+import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
@@ -13,6 +14,7 @@ import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
 import com.zili.android.musicfreeandroid.data.mapper.toEntity
 import com.zili.android.musicfreeandroid.data.mapper.toModel
 import com.zili.android.musicfreeandroid.data.sort.applySort
+import androidx.room.withTransaction
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -27,6 +29,7 @@ class PlaylistRepository @Inject constructor(
     private val musicDao: MusicDao,
     private val coverStore: PlaylistCoverStore,
     private val converters: Converters,
+    private val db: AppDatabase? = null,
 ) {
 
     fun observeAllPlaylists(): Flow<List<Playlist>> =
@@ -99,6 +102,39 @@ class PlaylistRepository @Inject constructor(
     }
 
     suspend fun addMusicToPlaylist(playlistId: String, item: MusicItem): Boolean {
+        val added = db?.withTransaction { insertMusicIntoPlaylist(playlistId, item) }
+            ?: insertMusicIntoPlaylist(playlistId, item)
+        if (added) syncCoverFromArtworkIfNeeded(playlistId, item)
+        return added
+    }
+
+    suspend fun addMusicsToPlaylist(playlistId: String, items: List<MusicItem>): Int {
+        val insertedItems = mutableListOf<MusicItem>()
+        val addedCount = db?.withTransaction {
+            var count = 0
+            for (item in items) {
+                if (insertMusicIntoPlaylist(playlistId, item)) {
+                    count++
+                    insertedItems.add(item)
+                }
+            }
+            count
+        } ?: run {
+            var count = 0
+            for (item in items) {
+                if (insertMusicIntoPlaylist(playlistId, item)) {
+                    count++
+                    insertedItems.add(item)
+                }
+            }
+            count
+        }
+        val coverCandidate = insertedItems.firstOrNull { !it.artwork.isNullOrBlank() }
+        coverCandidate?.let { syncCoverFromArtworkIfNeeded(playlistId, it) }
+        return addedCount
+    }
+
+    private suspend fun insertMusicIntoPlaylist(playlistId: String, item: MusicItem): Boolean {
         musicDao.upsert(item.toEntity(converters))
         val nextOrder = playlistDao.maxSortOrderInPlaylist(playlistId) + 1
         val now = System.currentTimeMillis()
@@ -111,23 +147,16 @@ class PlaylistRepository @Inject constructor(
                 addedAt = now,
             )
         )
-        val added = rowId != -1L
-        if (added) {
-            val playlist = playlistDao.getPlaylistById(playlistId)
-            if (playlist != null && playlist.coverUri == null && !item.artwork.isNullOrBlank()) {
-                val rel = coverStore.copyFromArtwork(playlistId, item.artwork)
-                if (rel != null) playlistDao.setCoverUri(playlistId, rel, System.currentTimeMillis())
-            }
-        }
-        return added
+        return rowId != -1L
     }
 
-    suspend fun addMusicsToPlaylist(playlistId: String, items: List<MusicItem>): Int {
-        var addedCount = 0
-        for (item in items) {
-            if (addMusicToPlaylist(playlistId, item)) addedCount++
+    private suspend fun syncCoverFromArtworkIfNeeded(playlistId: String, item: MusicItem) {
+        if (item.artwork.isNullOrBlank()) return
+        val playlist = playlistDao.getPlaylistById(playlistId)
+        if (playlist != null && playlist.coverUri == null) {
+            val rel = coverStore.copyFromArtwork(playlistId, item.artwork)
+            if (rel != null) playlistDao.setCoverUri(playlistId, rel, System.currentTimeMillis())
         }
-        return addedCount
     }
 
     suspend fun removeMusicFromPlaylist(playlistId: String, item: MusicItem) {
