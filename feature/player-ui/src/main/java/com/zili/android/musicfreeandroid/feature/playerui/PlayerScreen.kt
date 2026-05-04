@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +55,8 @@ import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
+import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsContent
+import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsOperations
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,10 +66,12 @@ fun PlayerScreen(
 ) {
     val state by viewModel.playerState.collectAsStateWithLifecycle()
     val currentItem = state.currentItem
+    val lyricsUiState by viewModel.lyricsUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isFav by viewModel.isCurrentFavorite.collectAsStateWithLifecycle()
     val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
     val allPlaylists by viewModel.allPlaylists.collectAsStateWithLifecycle()
+    var contentPage by remember { mutableStateOf(PlayerContentPage.Cover) }
 
     LaunchedEffect(Unit) {
         viewModel.errorEvents.collect { message ->
@@ -120,17 +125,52 @@ fun PlayerScreen(
 
             Spacer(Modifier.weight(1f))
 
-            PlayerCoverArt(
-                artworkUrl = artworkUrl,
-                modifier = Modifier.size(rpx(500)),
-            )
+            when (contentPage) {
+                PlayerContentPage.Cover -> {
+                    PlayerCoverArt(
+                        artworkUrl = artworkUrl,
+                        modifier = Modifier
+                            .size(rpx(500))
+                            .clickable { contentPage = PlayerContentPage.Lyrics },
+                    )
 
-            PlayerOperationsBar(
-                isFav = isFav,
-                hasCurrentItem = currentItem != null,
-                onToggleFav = { viewModel.toggleCurrentFavorite() },
-                onAddToPlaylist = { viewModel.showAddToPlaylistSheet() },
-            )
+                    Spacer(Modifier.weight(1f))
+
+                    PlayerOperationsBar(
+                        isFav = isFav,
+                        hasCurrentItem = currentItem != null,
+                        onToggleFav = { viewModel.toggleCurrentFavorite() },
+                        onAddToPlaylist = { viewModel.showAddToPlaylistSheet() },
+                        onToggleLyrics = { contentPage = PlayerContentPage.Lyrics },
+                    )
+                }
+
+                PlayerContentPage.Lyrics -> {
+                    PlayerLyricsContent(
+                        state = lyricsUiState,
+                        durationMs = state.duration,
+                        onBackToCover = { contentPage = PlayerContentPage.Cover },
+                        onSeekToLine = viewModel::seekToLyricLine,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
+
+                    PlayerLyricsOperations(
+                        state = lyricsUiState,
+                        onFontSize = {
+                            val nextFontLevel = (lyricsUiState.fontSizeLevel + 1).mod(4)
+                            viewModel.setLyricDetailFontSize(nextFontLevel)
+                        },
+                        onOffset = {},
+                        onSearch = {},
+                        onToggleTranslation = {
+                            viewModel.setLyricShowTranslation(!lyricsUiState.showTranslation)
+                        },
+                        onMore = {},
+                    )
+                }
+            }
 
             Spacer(Modifier.weight(1f))
 
@@ -180,6 +220,11 @@ fun PlayerScreen(
             }
         }
     }
+}
+
+private enum class PlayerContentPage {
+    Cover,
+    Lyrics,
 }
 
 @Composable
@@ -301,6 +346,7 @@ private fun PlayerOperationsBar(
     hasCurrentItem: Boolean,
     onToggleFav: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    onToggleLyrics: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Row(
@@ -342,7 +388,10 @@ private fun PlayerOperationsBar(
             color = Color.White.copy(alpha = 0.7f),
             fontSize = FontSizes.description,
         )
-        IconButton(onClick = {}) {
+        IconButton(
+            onClick = onToggleLyrics,
+            enabled = hasCurrentItem,
+        ) {
             Icon(
                 painter = painterResource(R.drawable.ic_chat_bubble),
                 contentDescription = "歌词",
