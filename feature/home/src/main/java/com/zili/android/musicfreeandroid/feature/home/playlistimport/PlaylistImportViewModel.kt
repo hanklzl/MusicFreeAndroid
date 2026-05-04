@@ -10,6 +10,8 @@ import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
@@ -45,6 +48,8 @@ class PlaylistImportViewModel @Inject constructor(
     private val _events = Channel<PlaylistImportEvent>(capacity = Channel.BUFFERED)
     val events: Flow<PlaylistImportEvent> = _events.receiveAsFlow()
 
+    private var activeJob: Job? = null
+
     val allPlaylists: StateFlow<List<Playlist>> = playlistRepository.observeAllPlaylists()
         .stateIn(
             scope = viewModelScope,
@@ -55,7 +60,7 @@ class PlaylistImportViewModel @Inject constructor(
     fun openImportSheet() {
         _importState.value = PlaylistImportState.LoadingPlugins
 
-        viewModelScope.launch {
+        launchImportJob {
             try {
                 pluginManager.ensurePluginsLoaded()
                 val plugins = pluginManager.getSortedEnabledPlugins().first()
@@ -96,12 +101,12 @@ class PlaylistImportViewModel @Inject constructor(
         }
 
         _importState.value = PlaylistImportState.Parsing(state.plugin.name)
-        viewModelScope.launch {
+        launchImportJob {
             val plugin = pluginManager.getPlugin(state.plugin.platform)
             if (plugin == null) {
                 postToast(PARSE_ERROR_TOAST)
                 _importState.value = PlaylistImportState.Idle
-                return@launch
+                return@launchImportJob
             }
 
             try {
@@ -109,7 +114,7 @@ class PlaylistImportViewModel @Inject constructor(
                 if (parsedItems == null || parsedItems.isEmpty()) {
                     postToast(PARSE_ERROR_TOAST)
                     _importState.value = PlaylistImportState.Idle
-                    return@launch
+                    return@launchImportJob
                 }
 
                 _importState.value = PlaylistImportState.ConfirmFound(state.plugin, parsedItems)
@@ -136,11 +141,13 @@ class PlaylistImportViewModel @Inject constructor(
     }
 
     fun hideTargetSheet() {
+        cancelActiveJob()
         _sheetState.value = AddToPlaylistSheetState()
         _importState.value = PlaylistImportState.Idle
     }
 
     fun dismissImportFlow() {
+        cancelActiveJob()
         _sheetState.value = AddToPlaylistSheetState()
         _importState.value = PlaylistImportState.Idle
     }
@@ -149,7 +156,7 @@ class PlaylistImportViewModel @Inject constructor(
         val items = currentPendingItems()
         if (items.isEmpty()) return
 
-        viewModelScope.launch {
+        launchImportJob {
             try {
                 val added = playlistRepository.addMusicsToPlaylist(targetPlaylistId, items)
                 val skipped = items.size - added
@@ -176,7 +183,7 @@ class PlaylistImportViewModel @Inject constructor(
         val items = currentPendingItems()
         if (items.isEmpty()) return
 
-        viewModelScope.launch {
+        launchImportJob {
             val playlistId = UUID.randomUUID().toString()
             var createdPlaylist: Playlist? = null
 
@@ -198,6 +205,9 @@ class PlaylistImportViewModel @Inject constructor(
                 )
                 postToast(importResultMessage(added, skipped))
             } catch (e: CancellationException) {
+                createdPlaylist?.let { playlist ->
+                    withContext(NonCancellable) { cleanupCreatedPlaylist(playlist) }
+                }
                 throw e
             } catch (e: Exception) {
                 logError("Failed to create playlist and import items", e)
@@ -206,6 +216,22 @@ class PlaylistImportViewModel @Inject constructor(
                 _importState.value = PlaylistImportState.ChooseTarget(items)
             }
         }
+    }
+
+    private fun launchImportJob(block: suspend () -> Unit) {
+        activeJob?.cancel()
+        val job = viewModelScope.launch { block() }
+        activeJob = job
+        job.invokeOnCompletion {
+            if (activeJob === job) {
+                activeJob = null
+            }
+        }
+    }
+
+    private fun cancelActiveJob() {
+        activeJob?.cancel()
+        activeJob = null
     }
 
     private fun currentPendingItems(): List<MusicItem> =
@@ -228,7 +254,12 @@ class PlaylistImportViewModel @Inject constructor(
     }
 
     private fun postToast(message: String) {
-        _events.trySend(PlaylistImportEvent.Toast(message))
+        val result = _events.trySend(PlaylistImportEvent.Toast(message))
+        if (result.isFailure) {
+            val cause = result.exceptionOrNull()
+                ?: IllegalStateException("Playlist import event channel rejected toast")
+            logError("Failed to enqueue playlist import event", cause)
+        }
     }
 
     private fun logError(message: String, throwable: Throwable) {

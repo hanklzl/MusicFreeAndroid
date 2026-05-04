@@ -6,6 +6,7 @@ import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.mock
@@ -301,6 +303,39 @@ class PlaylistImportViewModelTest {
     }
 
     @Test
+    fun `dismissImportFlow cancels pending parser result`() = runTest {
+        val songs = listOf(musicItem("1", "Song A"))
+        val parseGate = CompletableDeferred<List<MusicItem>>()
+        val plugin = loadedPlugin(
+            platform = "music-a",
+            supportedMethods = setOf("importMusicSheet"),
+            importResult = songs,
+        )
+        runBlocking {
+            whenever(plugin.importMusicSheet(any())).doSuspendableAnswer {
+                parseGate.await()
+            }
+        }
+        enabledPluginFlow.value = listOf(plugin)
+
+        val viewModel = createViewModel()
+        viewModel.openImportSheet()
+        advanceUntilIdle()
+        viewModel.selectPlugin("music-a")
+        viewModel.submitUrl("https://music.example.com/list")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.importState.value is PlaylistImportState.Parsing)
+
+        viewModel.dismissImportFlow()
+        parseGate.complete(songs)
+        advanceUntilIdle()
+
+        assertEquals(PlaylistImportState.Idle, viewModel.importState.value)
+        assertFalse(viewModel.sheetState.value.visible)
+    }
+
+    @Test
     fun `addImportedItemsToPlaylist computes added skipped and closes sheet`() = runTest {
         val songs = listOf(
             musicItem("1", "Song A"),
@@ -387,6 +422,31 @@ class PlaylistImportViewModelTest {
         toastCollector.cancel()
         assertTrue(viewModel.importState.value is PlaylistImportState.ChooseTarget)
         assertTrue(viewModel.sheetState.value.visible)
+    }
+
+    @Test
+    fun `dismissImportFlow cancels pending add to existing playlist`() = runTest {
+        val songs = listOf(musicItem("1", "Song A"), musicItem("2", "Song B"))
+        val addGate = CompletableDeferred<Int>()
+        runBlocking {
+            whenever(playlistRepository.addMusicsToPlaylist("playlist-1", songs)).doSuspendableAnswer {
+                addGate.await()
+            }
+        }
+
+        val viewModel = createViewModel()
+        viewModel.confirmImportTarget(songs)
+        viewModel.addImportedItemsToPlaylist("playlist-1")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.importState.value is PlaylistImportState.ChooseTarget)
+
+        viewModel.dismissImportFlow()
+        addGate.complete(2)
+        advanceUntilIdle()
+
+        assertEquals(PlaylistImportState.Idle, viewModel.importState.value)
+        assertFalse(viewModel.sheetState.value.visible)
     }
 
     @Test
@@ -478,6 +538,42 @@ class PlaylistImportViewModelTest {
         assertTrue(viewModel.importState.value is PlaylistImportState.ChooseTarget)
         assertTrue(viewModel.sheetState.value.visible)
         toastCollector.cancel()
+    }
+
+    @Test
+    fun `dismissImportFlow cleans up created playlist while new playlist import is pending`() = runTest {
+        val songs = listOf(musicItem("1", "Song A"), musicItem("2", "Song B"))
+        val addGate = CompletableDeferred<Int>()
+        var createdPlaylist: Playlist? = null
+        var deletedPlaylist: Playlist? = null
+        runBlocking {
+            whenever(playlistRepository.createPlaylist(any())).thenAnswer { invocation ->
+                createdPlaylist = invocation.getArgument<Playlist>(0)
+                Unit
+            }
+            whenever(playlistRepository.addMusicsToPlaylist(any(), eq(songs))).doSuspendableAnswer {
+                addGate.await()
+            }
+            whenever(playlistRepository.deletePlaylist(any())).thenAnswer { invocation ->
+                deletedPlaylist = invocation.getArgument<Playlist>(0)
+                Unit
+            }
+        }
+
+        val viewModel = createViewModel()
+        viewModel.confirmImportTarget(songs)
+        viewModel.createPlaylistAndImport("新歌单")
+        advanceUntilIdle()
+
+        assertTrue(createdPlaylist != null)
+
+        viewModel.dismissImportFlow()
+        addGate.complete(2)
+        advanceUntilIdle()
+
+        assertEquals(createdPlaylist, deletedPlaylist)
+        assertEquals(PlaylistImportState.Idle, viewModel.importState.value)
+        assertFalse(viewModel.sheetState.value.visible)
     }
 
     @Test
