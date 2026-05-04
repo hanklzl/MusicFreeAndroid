@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.core.model
 
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LyricDocumentTest {
@@ -19,5 +20,18 @@ class LyricDocumentTest {
         )
 
         assertFalse(doc.isTimed)
+    }
+
+    @Test
+    fun timedLinesWithoutRawLrcAreTimed() {
+        val doc = LyricDocument(
+            musicId = "m1",
+            musicPlatform = "demo",
+            lines = listOf(ParsedLyricLine(index = 0, timeMs = 1_000L, text = "A")),
+            metaOffsetMs = 0L,
+            source = LyricSourceInfo.Plugin("demo"),
+        )
+
+        assertTrue(doc.isTimed)
     }
 }
