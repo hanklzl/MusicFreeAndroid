@@ -65,13 +65,15 @@ class PlayerController @Inject constructor(
     private var shuffleEnabled: Boolean = false
 
     init {
-        PlaybackNotificationCommandHandler.attach(this)
+        attachNotificationControls()
     }
 
     suspend fun connect() {
         connectionMutex.withLock {
+            attachNotificationControls()
             if (mediaController != null) return
             withContext(Dispatchers.Main.immediate) {
+                attachNotificationControls()
                 if (mediaController != null) return@withContext
                 val sessionToken = SessionToken(
                     context,
@@ -93,6 +95,7 @@ class PlayerController @Inject constructor(
                 }
                 mediaController = controller
                 controller.addListener(playerListener)
+                attachNotificationControls()
                 emitState()
             }
         }
@@ -274,6 +277,7 @@ class PlayerController @Inject constructor(
     }
 
     private fun withConnectedController(action: (MediaController) -> Unit) {
+        attachNotificationControls()
         mediaController?.let { controller ->
             runOnControllerThread {
                 action(controller)
@@ -305,12 +309,17 @@ class PlayerController @Inject constructor(
             }
 
             runOnControllerThread {
+                attachNotificationControls()
                 mediaController?.let { controller ->
                     action(controller)
                     emitState()
                 }
             }
         }
+    }
+
+    private fun attachNotificationControls() {
+        PlaybackNotificationCommandHandler.attach(this)
     }
 
     private fun runOnControllerThread(block: () -> Unit) {

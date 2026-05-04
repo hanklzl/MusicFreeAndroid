@@ -28,5 +28,8 @@ object PlaybackNotificationActions {
         )
     }
 
-    private fun emptyCommandExtras(): Bundle = Bundle.EMPTY ?: Bundle()
+    private fun emptyCommandExtras(): Bundle {
+        // Android's JVM test stub can expose Bundle.EMPTY as null; use a real empty Bundle there.
+        return Bundle.EMPTY ?: Bundle()
+    }
 }

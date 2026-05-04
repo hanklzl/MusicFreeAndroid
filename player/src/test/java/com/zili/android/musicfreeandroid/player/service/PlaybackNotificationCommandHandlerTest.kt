@@ -1,9 +1,15 @@
 package com.zili.android.musicfreeandroid.player.service
 
 import org.junit.Assert.assertEquals
+import org.junit.After
 import org.junit.Test
 
 class PlaybackNotificationCommandHandlerTest {
+
+    @After
+    fun tearDown() {
+        PlaybackNotificationCommandHandler.detachAllForTest()
+    }
 
     @Test
     fun `skip commands are no-op without attached controls`() {

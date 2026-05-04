@@ -1,13 +1,11 @@
 package com.zili.android.musicfreeandroid.player.service
 
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 
-@OptIn(UnstableApi::class)
 class PlaybackNotificationActionsTest {
 
     @Test
@@ -18,6 +16,7 @@ class PlaybackNotificationActionsTest {
 
         val previous = buttons[0]
         assertEquals(CommandButton.ICON_PREVIOUS, previous.icon)
+        assertEquals("上一首", previous.displayName)
         assertEquals(CommandButton.SLOT_BACK, previous.slots.get(0))
         assertEquals(Player.COMMAND_INVALID, previous.playerCommand)
         assertNotNull(previous.sessionCommand)
@@ -28,6 +27,7 @@ class PlaybackNotificationActionsTest {
 
         val next = buttons[1]
         assertEquals(CommandButton.ICON_NEXT, next.icon)
+        assertEquals("下一首", next.displayName)
         assertEquals(CommandButton.SLOT_FORWARD, next.slots.get(0))
         assertEquals(Player.COMMAND_INVALID, next.playerCommand)
         assertNotNull(next.sessionCommand)
