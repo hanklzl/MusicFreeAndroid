@@ -81,6 +81,7 @@ data class PaginationResult<T>(
 data class LyricResult(
     val rawLrc: String?,
     val rawLrcTxt: String?,
+    val translation: String?,
     val lines: List<LyricLine>,
 )
 

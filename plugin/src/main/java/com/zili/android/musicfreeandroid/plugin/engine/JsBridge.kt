@@ -151,10 +151,13 @@ object JsBridge {
             ?: map["lyric"]?.toString()
         val rawLrcTxt = map["rawLrcTxt"]?.toString()
             ?: map["txt"]?.toString()
+        val translation = map["translation"]?.toString()
+            ?: map["trans"]?.toString()
         val source = rawLrc ?: rawLrcTxt
         return LyricResult(
             rawLrc = rawLrc,
             rawLrcTxt = rawLrcTxt,
+            translation = translation,
             lines = parseLrcLines(source.orEmpty()),
         )
     }

@@ -3,6 +3,8 @@ package com.zili.android.musicfreeandroid.data.datastore
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -113,5 +115,48 @@ class AppPreferencesTest {
         prefs.setStorageDirectoryUri(null)
 
         assertNull(prefs.storageDirectoryUri.first())
+    }
+
+    @Test
+    fun `default lyric show translation is false`() = testScope.runTest {
+        assertFalse(prefs.lyricShowTranslation.first())
+    }
+
+    @Test
+    fun `set lyric show translation`() = testScope.runTest {
+        prefs.setLyricShowTranslation(true)
+        assertTrue(prefs.lyricShowTranslation.first())
+    }
+
+    @Test
+    fun `default lyric detail font size is one`() = testScope.runTest {
+        assertEquals(1, prefs.lyricDetailFontSize.first())
+    }
+
+    @Test
+    fun `set lyric detail font size coerces to supported range`() = testScope.runTest {
+        prefs.setLyricDetailFontSize(9)
+        assertEquals(3, prefs.lyricDetailFontSize.first())
+
+        prefs.setLyricDetailFontSize(-1)
+        assertEquals(0, prefs.lyricDetailFontSize.first())
+    }
+
+    @Test
+    fun `lyric detail font size read coerces persisted out of range value`() = testScope.runTest {
+        dataStore.edit { it[intPreferencesKey("lyric_detail_font_size")] = 9 }
+
+        assertEquals(3, prefs.lyricDetailFontSize.first())
+    }
+
+    @Test
+    fun `default lyric auto search is true`() = testScope.runTest {
+        assertTrue(prefs.lyricAutoSearchEnabled.first())
+    }
+
+    @Test
+    fun `set lyric auto search`() = testScope.runTest {
+        prefs.setLyricAutoSearchEnabled(false)
+        assertFalse(prefs.lyricAutoSearchEnabled.first())
     }
 }
