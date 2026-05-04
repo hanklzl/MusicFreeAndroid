@@ -9,6 +9,7 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.zili.android.musicfreeandroid.player.ext.defaultAlbumArtworkUri
 import com.zili.android.musicfreeandroid.player.ext.toMediaItem
 import com.zili.android.musicfreeandroid.player.model.PlaybackState
 import com.zili.android.musicfreeandroid.player.model.PlayerState
@@ -47,6 +48,7 @@ class PlayerController @Inject constructor(
     private var mediaController: MediaController? = null
     private var positionUpdateJob: kotlinx.coroutines.Job? = null
     private var connectJob: Job? = null
+    private val defaultArtworkUri = context.defaultAlbumArtworkUri()
 
     val playQueue = PlayQueue()
 
@@ -140,7 +142,7 @@ class PlayerController @Inject constructor(
                 return@withConnectedController
             }
             val prev = playQueue.previous(repeatMode) ?: return@withConnectedController
-            val mediaItem = prev.toMediaItem()
+            val mediaItem = prev.toMediaItem(defaultArtworkUri)
             recordHistory(prev)
             controller.setMediaItem(mediaItem)
             controller.prepare()
@@ -246,7 +248,7 @@ class PlayerController @Inject constructor(
         withConnectedController { controller ->
             try {
                 recordHistory(item)
-                val mediaItem = item.toMediaItem()
+                val mediaItem = item.toMediaItem(defaultArtworkUri)
                 controller.setMediaItem(mediaItem)
                 controller.prepare()
                 controller.play()
