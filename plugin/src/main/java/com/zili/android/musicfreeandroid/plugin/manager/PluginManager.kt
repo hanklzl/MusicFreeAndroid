@@ -299,6 +299,14 @@ class PluginManager @Inject constructor(
             plugins.filter { "music" in it.info.supportedSearchType || it.info.supportedSearchType.isEmpty() }
         }
 
+    /**
+     * Enabled plugins that support lyric search, sorted by user-defined order.
+     */
+    fun getLyricSearchablePlugins(): Flow<List<LoadedPlugin>> =
+        getSortedEnabledPlugins().map { plugins ->
+            plugins.filter { "lyric" in it.info.supportedSearchType }
+        }
+
     // Convenience delegates to PluginMetaStore
     suspend fun setPluginEnabled(platform: String, enabled: Boolean) {
         pluginMetaStore.setPluginEnabled(platform, enabled)
