@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -31,4 +32,5 @@ data class PlaylistMusicCrossRef(
     val musicId: String,
     val musicPlatform: String,
     val sortOrder: Int,
+    @ColumnInfo(defaultValue = "0") val addedAt: Long = 0L,
 )

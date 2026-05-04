@@ -6,12 +6,10 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.semantics.SemanticsActions
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchorPatterns
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
+import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -26,6 +24,26 @@ class HomeScreenMockContentTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private val fakeMineRows = listOf(
+        HomeSheetUiModel(
+            id = "mock-mine-liked",
+            platform = null,
+            tab = HomeSheetTab.Mine,
+            title = "我喜欢",
+            subtitle = "18首",
+            coverUri = null,
+            isDefault = true,
+        ),
+        HomeSheetUiModel(
+            id = "mock-mine-cloud",
+            platform = null,
+            tab = HomeSheetTab.Mine,
+            title = "云端备份",
+            subtitle = "32首",
+            coverUri = null,
+        ),
+    )
+
     @Test
     fun `home screen content renders mock rows instead of empty state and wires mock row click callback`() {
         val openedMineSheetIds = mutableListOf<String>()
@@ -34,7 +52,7 @@ class HomeScreenMockContentTest {
             MusicFreeTheme {
                 HomeScreenContent(
                     state = HomeScreenState(),
-                    visualUiModel = buildHomeVisualUiModel(HomeSheetTab.Mine),
+                    visualUiModel = buildHomeVisualUiModel(HomeSheetTab.Mine, fakeMineRows),
                     drawerUiModel = buildHomeDrawerUiModel(
                         currentLanguage = "中文",
                         currentVersion = "1.0.0",
@@ -67,69 +85,4 @@ class HomeScreenMockContentTest {
         }
     }
 
-    @Test
-    fun `home screen ignores mock mine row navigation at container level`() {
-        var playlistDetailNavigations = 0
-
-        composeRule.setContent {
-            MusicFreeTheme {
-                HomeScreen(
-                    onNavigateToSearch = {},
-                    onNavigateToRecommendSheets = {},
-                    onNavigateToHistory = {},
-                    onNavigateToLocal = {},
-                    onNavigateToSettings = {},
-                    onNavigateToPermissions = {},
-                    onNavigateToTopList = {},
-                    onNavigateToPlaylistDetail = { playlistDetailNavigations++ },
-                    homeSystemActionHandler = object : HomeSystemActionHandler {
-                        override fun backToDesktop() = Unit
-                        override suspend fun exitApp() = Unit
-                    },
-                )
-            }
-        }
-
-        composeRule.onNodeWithTag(FidelityAnchorPatterns.mineSheetItem("mock-mine-liked")).performClick()
-
-        composeRule.runOnIdle {
-            assertEquals(0, playlistDetailNavigations)
-        }
-    }
-
-    @Test
-    fun `home screen ignores mock starred row navigation at container level`() {
-        var playlistDetailNavigations = 0
-
-        composeRule.setContent {
-            MusicFreeTheme {
-                HomeScreen(
-                    onNavigateToSearch = {},
-                    onNavigateToRecommendSheets = {},
-                    onNavigateToHistory = {},
-                    onNavigateToLocal = {},
-                    onNavigateToSettings = {},
-                    onNavigateToPermissions = {},
-                    onNavigateToTopList = {},
-                    onNavigateToPlaylistDetail = { playlistDetailNavigations++ },
-                    homeSystemActionHandler = object : HomeSystemActionHandler {
-                        override fun backToDesktop() = Unit
-                        override suspend fun exitApp() = Unit
-                    },
-                )
-            }
-        }
-
-        composeRule.onAllNodesWithTag(FidelityAnchorPatterns.starredSheetItem("mock-starred-neo")).assertCountEquals(0)
-        composeRule.onAllNodesWithTag(FidelityAnchorPatterns.mineSheetItem("mock-mine-liked")).assertCountEquals(1)
-        composeRule.onNodeWithTag(FidelityAnchors.Home.SheetsStarredTab, useUnmergedTree = true)
-            .performSemanticsAction(SemanticsActions.OnClick)
-        composeRule.waitForIdle()
-        composeRule.onAllNodesWithTag(FidelityAnchorPatterns.starredSheetItem("mock-starred-neo")).assertCountEquals(1)
-        composeRule.onNodeWithTag(FidelityAnchorPatterns.starredSheetItem("mock-starred-neo")).performClick()
-
-        composeRule.runOnIdle {
-            assertEquals(0, playlistDetailNavigations)
-        }
-    }
 }

@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.home
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -10,7 +11,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.zili.android.musicfreeandroid.feature.home.playlist.CreatePlaylistDialog
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
+import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -25,13 +29,30 @@ fun HomeScreen(
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
     homeSystemActionHandler: HomeSystemActionHandler,
+    viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val state = remember { HomeScreenState() }
-    val allowHomeMockSheetNavigation = false
     var selectedTab by rememberSaveable { mutableStateOf(HomeSheetTab.Mine) }
-    val visualUiModel = remember(selectedTab) { buildHomeVisualUiModel(selectedTab) }
+    val playlists by viewModel.playlists.collectAsState()
+
+    val mineRows = remember(playlists) {
+        playlists.map { p ->
+            HomeSheetUiModel.fromPlaylist(
+                playlist = p,
+                musicCount = p.worksNum,
+                isDefault = p.isDefault,
+            )
+        }
+    }
+
+    val visualUiModel = remember(selectedTab, mineRows) {
+        buildHomeVisualUiModel(selectedTab, mineRows)
+    }
+
+    var showCreateDialog by rememberSaveable { mutableStateOf(false) }
+
     val currentLanguage = remember {
         Locale.getDefault().getDisplayLanguage(Locale.getDefault())
     }
@@ -81,19 +102,21 @@ fun HomeScreen(
         onNavigateToHistory = onNavigateToHistory,
         onNavigateToLocal = onNavigateToLocal,
         onSelectTab = { selectedTab = it },
-        onCreateClick = {},
+        onCreateClick = { showCreateDialog = true },
         onImportClick = {},
-        onOpenMineSheet = { sheetId ->
-            if (allowHomeMockSheetNavigation) {
-                onNavigateToPlaylistDetail(sheetId)
-            }
-        },
-        onOpenStarredSheet = {
-            if (allowHomeMockSheetNavigation) {
-                Unit
-            }
-        },
+        onOpenMineSheet = { sheetId -> onNavigateToPlaylistDetail(sheetId) },
+        onOpenStarredSheet = { /* keep mock; Phase 4 spec leaves starred tab as TODO */ },
     )
+
+    if (showCreateDialog) {
+        CreatePlaylistDialog(
+            onDismiss = { showCreateDialog = false },
+            onCreate = { name ->
+                viewModel.createPlaylist(name)
+                showCreateDialog = false
+            },
+        )
+    }
 }
 
 private fun PackageManager.versionNameForPackage(packageName: String): String? {

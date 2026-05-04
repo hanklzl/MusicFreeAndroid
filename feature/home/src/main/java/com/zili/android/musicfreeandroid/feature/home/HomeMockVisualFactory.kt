@@ -28,42 +28,6 @@ private val HOME_OPERATIONS = listOf(
     ),
 )
 
-private val MINE_ROWS = listOf(
-    HomeSheetUiModel(
-        id = "mock-mine-liked",
-        platform = null,
-        tab = HomeSheetTab.Mine,
-        title = "我喜欢",
-        subtitle = "18首",
-        coverUri = null,
-        isDefault = true,
-    ),
-    HomeSheetUiModel(
-        id = "mock-mine-cloud",
-        platform = null,
-        tab = HomeSheetTab.Mine,
-        title = "云端备份",
-        subtitle = "32首",
-        coverUri = null,
-    ),
-    HomeSheetUiModel(
-        id = "mock-mine-focus",
-        platform = null,
-        tab = HomeSheetTab.Mine,
-        title = "专注循环",
-        subtitle = "24首",
-        coverUri = null,
-    ),
-    HomeSheetUiModel(
-        id = "mock-mine-drive",
-        platform = null,
-        tab = HomeSheetTab.Mine,
-        title = "通勤节奏",
-        subtitle = "16首",
-        coverUri = null,
-    ),
-)
-
 private val STARRED_ROWS = listOf(
     HomeSheetUiModel(
         id = "mock-starred-neo",
@@ -99,9 +63,12 @@ private val STARRED_ROWS = listOf(
     ),
 )
 
-fun buildHomeVisualUiModel(selectedTab: HomeSheetTab): HomeVisualUiModel {
+fun buildHomeVisualUiModel(
+    selectedTab: HomeSheetTab,
+    mineRows: List<HomeSheetUiModel>,
+): HomeVisualUiModel {
     val rows = when (selectedTab) {
-        HomeSheetTab.Mine -> MINE_ROWS
+        HomeSheetTab.Mine -> mineRows
         HomeSheetTab.Starred -> STARRED_ROWS
     }
 
@@ -110,7 +77,7 @@ fun buildHomeVisualUiModel(selectedTab: HomeSheetTab): HomeVisualUiModel {
         operations = HOME_OPERATIONS,
         playlistSection = HomePlaylistSectionUiModel(
             selectedTab = selectedTab,
-            mineCount = MINE_ROWS.size,
+            mineCount = mineRows.size,
             starredCount = STARRED_ROWS.size,
             rows = rows,
         ),

@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.home.playlist
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,11 +39,11 @@ fun PlaylistSection(
     playlists: List<Playlist>,
     onPlaylistClick: (Playlist) -> Unit,
     onCreate: (String) -> Unit,
-    onRename: (Playlist, String) -> Unit,
+    onEdit: (Playlist, name: String?, description: String?, coverUri: Uri?) -> Unit,
     onDelete: (Playlist) -> Unit,
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
-    var renameTarget by remember { mutableStateOf<Playlist?>(null) }
+    var editTarget by remember { mutableStateOf<Playlist?>(null) }
     var deleteTarget by remember { mutableStateOf<Playlist?>(null) }
 
     if (showCreateDialog) {
@@ -52,11 +53,14 @@ fun PlaylistSection(
         )
     }
 
-    renameTarget?.let { playlist ->
-        RenamePlaylistDialog(
+    editTarget?.let { playlist ->
+        EditPlaylistDialog(
             playlist = playlist,
-            onDismiss = { renameTarget = null },
-            onRename = { newName -> onRename(playlist, newName) },
+            onDismiss = { editTarget = null },
+            onSave = { name, description, coverUri ->
+                onEdit(playlist, name, description, coverUri)
+                editTarget = null
+            },
         )
     }
 
@@ -89,7 +93,7 @@ fun PlaylistSection(
             PlaylistListItem(
                 playlist = playlist,
                 onClick = { onPlaylistClick(playlist) },
-                onRename = { renameTarget = playlist },
+                onEdit = { editTarget = playlist },
                 onDelete = { deleteTarget = playlist },
             )
         }
@@ -100,7 +104,7 @@ fun PlaylistSection(
 private fun PlaylistListItem(
     playlist: Playlist,
     onClick: () -> Unit,
-    onRename: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Row(
@@ -121,8 +125,8 @@ private fun PlaylistListItem(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        IconButton(onClick = onRename) {
-            Icon(Icons.Default.Edit, contentDescription = "重命名", tint = MusicFreeTheme.colors.textSecondary)
+        IconButton(onClick = onEdit) {
+            Icon(Icons.Default.Edit, contentDescription = "编辑", tint = MusicFreeTheme.colors.textSecondary)
         }
         IconButton(onClick = onDelete) {
             Icon(Icons.Default.Delete, contentDescription = "删除", tint = MusicFreeTheme.colors.danger)
