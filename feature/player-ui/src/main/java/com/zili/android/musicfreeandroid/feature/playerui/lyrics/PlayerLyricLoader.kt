@@ -29,21 +29,33 @@ class PlayerLyricLoader @Inject constructor(
             return@flow
         }
 
-        emit(LyricLoadState.Loading(music))
+        var firstEmission = true
+        lyricRepository.observeCache(music).collect { cache ->
+            if (firstEmission) {
+                emit(LyricLoadState.Loading(music))
+            }
+            emit(resolveLyrics(music, cache))
+            firstEmission = false
+        }
+    }.catch { e ->
+        if (e is CancellationException || (e is IllegalStateException && e.message?.contains("Flow exception transparency is violated") == true)) {
+            throw e
+        }
+        val fallbackMusic = music ?: return@catch
+        emit(LyricLoadState.Error(fallbackMusic, e.message ?: "歌词加载失败"))
+    }
 
-        val cache = lyricRepository.observeCache(music).first()
+    private suspend fun resolveLyrics(music: MusicItem, cache: LyricCache?): LyricLoadState {
         val userOffsetMs = cache?.userOffsetMs ?: 0L
 
         localDocument(music, cache)?.let {
-            emit(LyricLoadState.Ready(music, it, userOffsetMs))
-            return@flow
+            return LyricLoadState.Ready(music, it, userOffsetMs)
         }
 
         val target = cache?.associatedMusic ?: music
 
         cachedDocument(music, target, cache)?.let {
-            emit(LyricLoadState.Ready(music, it, userOffsetMs))
-            return@flow
+            return LyricLoadState.Ready(music, it, userOffsetMs)
         }
 
         val sourceForMusic = cache?.associatedMusic?.let {
@@ -52,8 +64,7 @@ class PlayerLyricLoader @Inject constructor(
 
         fetchFromPlugin(target, sourceForMusic)?.let { payload ->
             lyricRepository.saveRemoteLyric(music, sourceForMusic, payload)
-            emit(LyricLoadState.Ready(music, parse(music, payload, sourceForMusic), userOffsetMs))
-            return@flow
+            return LyricLoadState.Ready(music, parse(music, payload, sourceForMusic), userOffsetMs)
         }
 
         val autoSearchEnabled = appPreferences.lyricAutoSearchEnabled.first()
@@ -61,18 +72,11 @@ class PlayerLyricLoader @Inject constructor(
             autoSearch(music)
                 ?.let { (payload, source) ->
                     lyricRepository.saveRemoteLyric(music, source, payload)
-                    emit(LyricLoadState.Ready(music, parse(music, payload, source), userOffsetMs))
-                    return@flow
+                    return LyricLoadState.Ready(music, parse(music, payload, source), userOffsetMs)
                 }
         }
 
-        emit(LyricLoadState.NoLyric(music))
-    }.catch { e ->
-        if (e is CancellationException || (e is IllegalStateException && e.message?.contains("Flow exception transparency is violated") == true)) {
-            throw e
-        }
-        val fallbackMusic = music ?: return@catch
-        emit(LyricLoadState.Error(fallbackMusic, e.message ?: "歌词加载失败"))
+        return LyricLoadState.NoLyric(music)
     }
 
     suspend fun searchCandidates(music: MusicItem, query: String = music.title): List<LyricSearchGroup> =

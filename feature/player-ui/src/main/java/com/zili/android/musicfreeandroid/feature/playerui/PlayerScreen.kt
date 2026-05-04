@@ -2,11 +2,13 @@ package com.zili.android.musicfreeandroid.feature.playerui
 
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,8 +57,11 @@ import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
+import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
+import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricSearchSheet
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsContent
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsOperations
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +76,33 @@ fun PlayerScreen(
     val isFav by viewModel.isCurrentFavorite.collectAsStateWithLifecycle()
     val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
     val allPlaylists by viewModel.allPlaylists.collectAsStateWithLifecycle()
+    val lyricSearchResults by viewModel.lyricSearchResults.collectAsStateWithLifecycle()
+    val lyricSearchLoading by viewModel.lyricSearchLoading.collectAsStateWithLifecycle()
     var contentPage by remember { mutableStateOf(PlayerContentPage.Cover) }
+    var showLyricSearchSheet by remember { mutableStateOf(false) }
+    var showLyricOffsetDialog by remember { mutableStateOf(false) }
+    var showLyricMoreDialog by remember { mutableStateOf(false) }
+    var pendingImportKind by remember { mutableStateOf<LocalLyricKind?>(null) }
+    val openLyricDocument = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        val kind = pendingImportKind
+        pendingImportKind = null
+        if (kind != null && uri != null) {
+            runCatching {
+                context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader()
+                    ?.use { it.readText() }
+                    .orEmpty()
+                    .take(512 * 1024)
+            }.onSuccess { text ->
+                viewModel.importLocalLyric(text, kind)
+                Toast.makeText(context, "已导入歌词", Toast.LENGTH_SHORT).show()
+            }.onFailure {
+                Toast.makeText(context, "读取歌词失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.errorEvents.collect { message ->
@@ -164,18 +195,15 @@ fun PlayerScreen(
                             val nextFontLevel = (lyricsUiState.fontSizeLevel + 1).mod(4)
                             viewModel.setLyricDetailFontSize(nextFontLevel)
                         },
-                        onOffset = {
-                            // Task 10 接入歌词偏移弹窗。
-                        },
+                        onOffset = { showLyricOffsetDialog = true },
                         onSearch = {
-                            // Task 10 接入歌词搜索面板。
+                            showLyricSearchSheet = true
+                            viewModel.searchLyrics()
                         },
                         onToggleTranslation = {
                             viewModel.setLyricShowTranslation(!lyricsUiState.showTranslation)
                         },
-                        onMore = {
-                            // Task 10 接入本地导入、删除等更多歌词操作。
-                        },
+                        onMore = { showLyricMoreDialog = true },
                     )
 
                     Spacer(Modifier.height(rpx(16)))
@@ -226,6 +254,48 @@ fun PlayerScreen(
                     },
                 )
             }
+        }
+
+        if (showLyricSearchSheet) {
+            PlayerLyricSearchSheet(
+                groups = lyricSearchResults,
+                loading = lyricSearchLoading,
+                onDismiss = { showLyricSearchSheet = false },
+                onSelect = { target ->
+                    viewModel.associateLyric(target)
+                    showLyricSearchSheet = false
+                    Toast.makeText(context, "已关联歌词", Toast.LENGTH_SHORT).show()
+                },
+            )
+        }
+
+        if (showLyricOffsetDialog) {
+            LyricOffsetDialog(
+                currentOffsetMs = lyricsUiState.userOffsetMs,
+                onDismiss = { showLyricOffsetDialog = false },
+                onSetOffset = viewModel::setLyricOffset,
+            )
+        }
+
+        if (showLyricMoreDialog) {
+            LyricMoreDialog(
+                onDismiss = { showLyricMoreDialog = false },
+                onImportRaw = {
+                    showLyricMoreDialog = false
+                    pendingImportKind = LocalLyricKind.Raw
+                    openLyricDocument.launch(arrayOf("text/*", "application/octet-stream"))
+                },
+                onImportTranslation = {
+                    showLyricMoreDialog = false
+                    pendingImportKind = LocalLyricKind.Translation
+                    openLyricDocument.launch(arrayOf("text/*", "application/octet-stream"))
+                },
+                onDeleteLocal = {
+                    viewModel.deleteLocalLyric()
+                    showLyricMoreDialog = false
+                    Toast.makeText(context, "已删除本地歌词", Toast.LENGTH_SHORT).show()
+                },
+            )
         }
     }
 }
@@ -566,6 +636,83 @@ private fun PlayerControls(
 }
 
 @Composable
+private fun LyricOffsetDialog(
+    currentOffsetMs: Long,
+    onDismiss: () -> Unit,
+    onSetOffset: (Long) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("设置歌词进度") },
+        text = {
+            Column {
+                Text("当前：${formatLyricOffset(currentOffsetMs)}")
+                Spacer(Modifier.height(rpx(8)))
+                TextButton(
+                    onClick = { onSetOffset(currentOffsetMs + 500L) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("提前0.5s")
+                }
+                TextButton(
+                    onClick = { onSetOffset(currentOffsetMs - 500L) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("延后0.5s")
+                }
+                TextButton(
+                    onClick = { onSetOffset(0L) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("重置")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("关闭") }
+        },
+    )
+}
+
+@Composable
+private fun LyricMoreDialog(
+    onDismiss: () -> Unit,
+    onImportRaw: () -> Unit,
+    onImportTranslation: () -> Unit,
+    onDeleteLocal: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("歌词更多") },
+        text = {
+            Column {
+                TextButton(
+                    onClick = onImportRaw,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("导入本地歌词")
+                }
+                TextButton(
+                    onClick = onImportTranslation,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("导入翻译歌词")
+                }
+                TextButton(
+                    onClick = onDeleteLocal,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("删除本地歌词")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("关闭") }
+        },
+    )
+}
+
+@Composable
 private fun InlinePlayerCreatePlaylistDialog(
     onDismiss: () -> Unit,
     onCreate: (String) -> Unit,
@@ -597,4 +744,13 @@ private fun formatDuration(ms: Long): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return "%d:%02d".format(minutes, seconds)
+}
+
+private fun formatLyricOffset(offsetMs: Long): String {
+    val seconds = String.format(Locale.US, "%.1f", kotlin.math.abs(offsetMs) / 1000f)
+    return when {
+        offsetMs > 0L -> "提前 ${seconds}s"
+        offsetMs < 0L -> "延后 ${seconds}s"
+        else -> "0.0s"
+    }
 }

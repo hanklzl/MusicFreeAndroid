@@ -7,11 +7,14 @@ import com.zili.android.musicfreeandroid.core.model.LyricDocument
 import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
 import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
+import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricSearchGroup
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.player.model.PlayerState
+import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -256,6 +259,71 @@ class PlayerViewModelTest {
     }
 
     @Test
+    fun `searchLyrics stores lyric candidates`() = runTest {
+        val item = MusicItem(id = "lyric-search", platform = "demo", title = "Song", artist = "A", album = null, duration = 0L, url = null, artwork = null, qualities = null)
+        val candidate = item.copy(id = "candidate", platform = "lyric")
+        val groups = listOf(LyricSearchGroup(pluginInfo("lyric"), listOf(candidate)))
+        whenever(playerLyricLoader.searchCandidates(item)).thenReturn(groups)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+
+        val viewModel = createViewModel()
+        viewModel.searchLyrics()
+        advanceUntilIdle()
+
+        assertEquals(groups, viewModel.lyricSearchResults.value)
+        assertFalse(viewModel.lyricSearchLoading.value)
+    }
+
+    @Test
+    fun `associateLyric delegates current item and target`() = runTest {
+        val item = MusicItem(id = "current", platform = "demo", title = "Song", artist = "A", album = null, duration = 0L, url = null, artwork = null, qualities = null)
+        val target = item.copy(id = "target", platform = "lyric")
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+
+        val viewModel = createViewModel()
+        viewModel.associateLyric(target)
+        advanceUntilIdle()
+
+        verify(playerLyricLoader).associateLyric(item, target)
+    }
+
+    @Test
+    fun `setLyricOffset delegates current item and offset`() = runTest {
+        val item = MusicItem(id = "offset", platform = "demo", title = "Song", artist = "A", album = null, duration = 0L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+
+        val viewModel = createViewModel()
+        viewModel.setLyricOffset(1_500L)
+        advanceUntilIdle()
+
+        verify(playerLyricLoader).setLyricOffset(item, 1_500L)
+    }
+
+    @Test
+    fun `importLocalLyric delegates current item and kind`() = runTest {
+        val item = MusicItem(id = "import", platform = "demo", title = "Song", artist = "A", album = null, duration = 0L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+
+        val viewModel = createViewModel()
+        viewModel.importLocalLyric("[00:01.00]歌词", LocalLyricKind.Raw)
+        advanceUntilIdle()
+
+        verify(playerLyricLoader).importLocalLyric(item, "[00:01.00]歌词", LocalLyricKind.Raw)
+    }
+
+    @Test
+    fun `deleteLocalLyric delegates current item`() = runTest {
+        val item = MusicItem(id = "delete", platform = "demo", title = "Song", artist = "A", album = null, duration = 0L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+
+        val viewModel = createViewModel()
+        viewModel.deleteLocalLyric()
+        advanceUntilIdle()
+
+        verify(playerLyricLoader).deleteLocalLyric(item)
+    }
+
+    @Test
     fun `seekToLyricLine applies lyric and meta offset`() = runTest {
         val item = MusicItem(id = "3", platform = "demo", title = "Line Seek", artist = "C", album = null, duration = 10_000L, url = null, artwork = null, qualities = null)
         val document = LyricDocument(
@@ -392,3 +460,12 @@ class PlayerViewModelTest {
         job.cancel()
     }
 }
+
+private fun pluginInfo(platform: String) = PluginInfo(
+    platform = platform,
+    version = null,
+    author = null,
+    description = null,
+    srcUrl = null,
+    supportedSearchType = listOf("lyric"),
+)

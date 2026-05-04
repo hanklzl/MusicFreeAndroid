@@ -93,7 +93,7 @@ fun PlayerLyricsOperations(
         IconButton(onClick = onMore) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_ellipsis_vertical),
-                contentDescription = "更多",
+                contentDescription = "歌词更多",
                 tint = Color.White,
             )
         }

@@ -18,7 +18,9 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -120,6 +122,38 @@ class PlayerLyricLoaderTest {
         assertEquals(LyricSourceInfo.Cache, state.document.source)
         verify(pluginManager, never()).getPlugin(any())
         verify(lyricRepository, never()).saveRemoteLyric(any(), any(), any())
+    }
+
+    @Test
+    fun cacheOffsetUpdatesReemitReadyState() = runTest {
+        val loader = loader()
+        val music = music("offset-live", "demo")
+        val cacheFlow = MutableStateFlow(
+            lyricCache(
+                music = music,
+                remotePayload = RawLyricPayload(rawLrc = "[00:01.00]Cached Lyric"),
+                userOffsetMs = 100L,
+            ),
+        )
+        whenever(lyricRepository.observeCache(music)).thenReturn(cacheFlow)
+
+        val states = mutableListOf<LyricLoadState>()
+        val job = launch {
+            loader.observeLyrics(music).toList(states)
+        }
+        advanceUntilIdle()
+
+        assertEquals(100L, states.filterIsInstance<LyricLoadState.Ready>().last().userOffsetMs)
+
+        cacheFlow.value = lyricCache(
+            music = music,
+            remotePayload = RawLyricPayload(rawLrc = "[00:01.00]Cached Lyric"),
+            userOffsetMs = 1_200L,
+        )
+        advanceUntilIdle()
+
+        assertEquals(1_200L, states.filterIsInstance<LyricLoadState.Ready>().last().userOffsetMs)
+        job.cancel()
     }
 
     @Test
@@ -399,6 +433,7 @@ private fun lyricCache(
     localRawLrc: String? = null,
     localTranslation: String? = null,
     associatedMusic: MusicItem? = null,
+    userOffsetMs: Long = 0L,
 ): LyricCache = LyricCache(
     musicId = music.id,
     musicPlatform = music.platform,
@@ -410,7 +445,7 @@ private fun lyricCache(
     localRawLrc = localRawLrc,
     localTranslation = localTranslation,
     associatedMusic = associatedMusic,
-    userOffsetMs = 0L,
+    userOffsetMs = userOffsetMs,
 )
 
 private fun plugin(
