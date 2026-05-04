@@ -22,7 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.R as CoreR
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
@@ -43,9 +44,9 @@ fun PlaylistImportRoute(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val importState by viewModel.importState.collectAsState()
-    val sheetState by viewModel.sheetState.collectAsState()
-    val playlists by viewModel.allPlaylists.collectAsState()
+    val importState by viewModel.importState.collectAsStateWithLifecycle()
+    val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
+    val playlists by viewModel.allPlaylists.collectAsStateWithLifecycle()
 
     LaunchedEffect(viewModel) {
         viewModel.events
@@ -85,8 +86,19 @@ fun PlaylistImportHost(
     onSelectTarget: (String) -> Unit,
     onCreateTarget: (String) -> Unit,
 ) {
-    var inputUrl by remember { mutableStateOf("") }
+    var inputUrl by rememberSaveable { mutableStateOf("") }
+    var activeInputPluginPlatform by rememberSaveable { mutableStateOf<String?>(null) }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    val inputPluginPlatform = (importState as? PlaylistImportState.InputUrl)?.plugin?.platform
+
+    LaunchedEffect(inputPluginPlatform) {
+        if (inputPluginPlatform == null) {
+            activeInputPluginPlatform = null
+        } else if (activeInputPluginPlatform != inputPluginPlatform) {
+            inputUrl = ""
+            activeInputPluginPlatform = inputPluginPlatform
+        }
+    }
 
     when (importState) {
         is PlaylistImportState.Idle,
@@ -115,7 +127,12 @@ fun PlaylistImportHost(
                 onDismissRequest = onDismiss,
                 modifier = modifier.testTag("PlaylistImport_PluginSheet"),
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .testTag("PlaylistImport_PluginList"),
+                ) {
                     Text(
                         text = "导入歌单",
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
@@ -146,11 +163,7 @@ fun PlaylistImportHost(
                 }
             }
 
-        is PlaylistImportState.InputUrl -> {
-            LaunchedEffect(importState.plugin.platform) {
-                inputUrl = ""
-            }
-
+        is PlaylistImportState.InputUrl ->
             AlertDialog(
                 modifier = modifier,
                 onDismissRequest = onDismiss,
@@ -187,7 +200,6 @@ fun PlaylistImportHost(
                     }
                 },
             )
-        }
 
         is PlaylistImportState.Parsing ->
             AlertDialog(
@@ -241,6 +253,7 @@ fun PlaylistImportHost(
                 onCreateNew = { showCreatePlaylistDialog = true },
                 folderPlusIcon = painterResource(id = CoreR.drawable.ic_folder_plus),
                 favoriteCoverIcon = painterResource(id = CoreR.drawable.ic_playlist_favorite_cover),
+                modifier = Modifier.testTag("PlaylistImport_TargetContent"),
             )
         }
         if (showCreatePlaylistDialog) {

@@ -7,9 +7,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.zili.android.musicfreeandroid.feature.home.playlist.CreatePlaylistDialog
@@ -17,7 +18,6 @@ import com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImp
 import com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportViewModel
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
-import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -33,13 +33,13 @@ fun HomeScreen(
     onNavigateToPlaylistDetail: (String) -> Unit,
     homeSystemActionHandler: HomeSystemActionHandler,
     viewModel: HomeViewModel = hiltViewModel(),
+    importViewModel: PlaylistImportViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val state = remember { HomeScreenState() }
     var selectedTab by rememberSaveable { mutableStateOf(HomeSheetTab.Mine) }
     val playlists by viewModel.playlists.collectAsState()
-    val importViewModel: PlaylistImportViewModel = hiltViewModel()
 
     val mineRows = remember(playlists) {
         playlists.map { p ->
