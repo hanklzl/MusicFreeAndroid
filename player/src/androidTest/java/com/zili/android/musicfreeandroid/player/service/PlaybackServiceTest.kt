@@ -25,7 +25,6 @@ import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.FutureTask
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
@@ -162,44 +161,36 @@ class PlaybackServiceTest {
 
     @Test
     fun setMediaItemAndPrepareTransitionsToReady() {
-        val latch = CountDownLatch(1)
         val uri = "android.resource://${context.packageName}/${
             com.zili.android.musicfreeandroid.player.test.R.raw.test_audio
         }"
 
         runOnAppThread {
-            controller!!.addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(state: Int) {
-                    if (state == Player.STATE_READY) latch.countDown()
-                }
-            })
             controller!!.setMediaItem(MediaItem.fromUri(uri))
             controller!!.prepare()
         }
 
-        assertTrue("等待 READY 状态超时", latch.await(5, TimeUnit.SECONDS))
+        waitUntil("controller reaches READY state") {
+            runOnAppThread { controller!!.playbackState } == Player.STATE_READY
+        }
         assertEquals(Player.STATE_READY, runOnAppThread { controller!!.playbackState })
     }
 
     @Test
     fun playAndPauseWork() {
-        val readyLatch = CountDownLatch(1)
         val uri = "android.resource://${context.packageName}/${
             com.zili.android.musicfreeandroid.player.test.R.raw.test_audio
         }"
 
         runOnAppThread {
-            controller!!.addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(state: Int) {
-                    if (state == Player.STATE_READY) readyLatch.countDown()
-                }
-            })
             controller!!.setMediaItem(MediaItem.fromUri(uri))
             controller!!.prepare()
             controller!!.play()
         }
 
-        assertTrue(readyLatch.await(5, TimeUnit.SECONDS))
+        waitUntil("controller reaches READY state") {
+            runOnAppThread { controller!!.playbackState } == Player.STATE_READY
+        }
         assertTrue(runOnAppThread { controller!!.playWhenReady })
 
         runOnAppThread {
@@ -210,7 +201,6 @@ class PlaybackServiceTest {
 
     @Test
     fun mediaSessionMetadataReflectsCurrentTrack() {
-        val readyLatch = CountDownLatch(1)
         val mediaItem = MediaItem.Builder()
             .setMediaId("test:1")
             .setUri("android.resource://${context.packageName}/${
@@ -225,16 +215,13 @@ class PlaybackServiceTest {
             .build()
 
         runOnAppThread {
-            controller!!.addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(state: Int) {
-                    if (state == Player.STATE_READY) readyLatch.countDown()
-                }
-            })
             controller!!.setMediaItem(mediaItem)
             controller!!.prepare()
         }
 
-        assertTrue(readyLatch.await(5, TimeUnit.SECONDS))
+        waitUntil("controller reaches READY state") {
+            runOnAppThread { controller!!.playbackState } == Player.STATE_READY
+        }
 
         val metadata = runOnAppThread { controller!!.mediaMetadata }
         assertEquals("Test Song", metadata.title?.toString())
@@ -243,27 +230,23 @@ class PlaybackServiceTest {
 
     @Test
     fun audioFocusLossPausesPlayback() {
-        val readyLatch = CountDownLatch(1)
         val uri = "android.resource://${context.packageName}/${
             com.zili.android.musicfreeandroid.player.test.R.raw.test_audio
         }"
 
         runOnAppThread {
-            controller!!.addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(state: Int) {
-                    if (state == Player.STATE_READY) readyLatch.countDown()
-                }
-            })
             controller!!.setMediaItem(MediaItem.fromUri(uri))
             controller!!.prepare()
             controller!!.play()
         }
-        assertTrue(readyLatch.await(5, TimeUnit.SECONDS))
+        waitUntil("controller reaches READY state") {
+            runOnAppThread { controller!!.playbackState } == Player.STATE_READY
+        }
         assertTrue(runOnAppThread { controller!!.playWhenReady })
 
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
         val focusRequest = android.media.AudioFocusRequest.Builder(
-            android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE,
+            android.media.AudioManager.AUDIOFOCUS_GAIN,
         )
             .setAudioAttributes(
                 android.media.AudioAttributes.Builder()
@@ -283,7 +266,7 @@ class PlaybackServiceTest {
             val pausedForFocusLoss = waitUntilOrFalse {
                 !runOnAppThread { controller!!.playWhenReady }
             }
-            assumeTrue("测试设备未向 Media3 player 分发音频焦点丢失", pausedForFocusLoss)
+            assertTrue("音频焦点丢失后 playWhenReady 应为 false", pausedForFocusLoss)
             assertFalse(runOnAppThread { controller!!.playWhenReady })
         } finally {
             audioManager.abandonAudioFocusRequest(focusRequest)
