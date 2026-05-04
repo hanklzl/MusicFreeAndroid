@@ -41,7 +41,7 @@ class PlaylistRepositoryTest {
             .build()
         val converters = Converters()
         val coverStore = PlaylistCoverStore(ctx)
-        playlistRepo = PlaylistRepository(db.playlistDao(), db.musicDao(), coverStore, converters)
+        playlistRepo = PlaylistRepository(db, db.playlistDao(), db.musicDao(), coverStore, converters)
         musicRepo = MusicRepository(db.musicDao(), converters)
     }
 
@@ -169,6 +169,40 @@ class PlaylistRepositoryTest {
         val second = playlistRepo.addMusicToPlaylist(id, sampleMusic("m1"))
         assertTrue(first)
         assertFalse(second)
+    }
+
+    @Test
+    fun addMusicsToPlaylist_returnsAddedCountAndSkipsDuplicates() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Imported", coverUri = null))
+        val items = listOf(
+            sampleMusic("m1", title = "One"),
+            sampleMusic("m2", title = "Two"),
+            sampleMusic("m1", title = "One Again"),
+        )
+
+        val first = playlistRepo.addMusicsToPlaylist(id, items)
+        val second = playlistRepo.addMusicsToPlaylist(id, items)
+
+        assertEquals(2, first)
+        assertEquals(0, second)
+        assertEquals(2, playlistRepo.countMusicInPlaylist(id))
+    }
+
+    @Test
+    fun addMusicsToPlaylist_preservesImportOrderForManualSort() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Imported", coverUri = null))
+        val items = listOf(
+            sampleMusic("m3", title = "Third"),
+            sampleMusic("m1", title = "First"),
+            sampleMusic("m2", title = "Second"),
+        )
+
+        playlistRepo.addMusicsToPlaylist(id, items)
+
+        val titles = playlistRepo.observeMusicInPlaylist(id).first().map { it.title }
+        assertEquals(listOf("Third", "First", "Second"), titles)
     }
 
     @Test

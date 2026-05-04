@@ -1,10 +1,12 @@
 package com.zili.android.musicfreeandroid.data.repository
 
 import android.net.Uri
+import androidx.room.withTransaction
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.model.SortMode
 import com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStore
+import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
@@ -23,6 +25,7 @@ import javax.inject.Singleton
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class PlaylistRepository @Inject constructor(
+    private val db: AppDatabase,
     private val playlistDao: PlaylistDao,
     private val musicDao: MusicDao,
     private val coverStore: PlaylistCoverStore,
@@ -98,7 +101,23 @@ class PlaylistRepository @Inject constructor(
         playlistDao.deletePlaylistById(playlist.id)
     }
 
-    suspend fun addMusicToPlaylist(playlistId: String, item: MusicItem): Boolean {
+    suspend fun addMusicToPlaylist(playlistId: String, item: MusicItem): Boolean =
+        addMusicToPlaylistInternal(playlistId, item)
+
+    suspend fun addMusicsToPlaylist(playlistId: String, items: List<MusicItem>): Int {
+        if (items.isEmpty()) return 0
+        return db.withTransaction {
+            var addedCount = 0
+            for (item in items) {
+                if (addMusicToPlaylistInternal(playlistId, item)) {
+                    addedCount++
+                }
+            }
+            addedCount
+        }
+    }
+
+    private suspend fun addMusicToPlaylistInternal(playlistId: String, item: MusicItem): Boolean {
         musicDao.upsert(item.toEntity(converters))
         val nextOrder = playlistDao.maxSortOrderInPlaylist(playlistId) + 1
         val now = System.currentTimeMillis()
@@ -120,14 +139,6 @@ class PlaylistRepository @Inject constructor(
             }
         }
         return added
-    }
-
-    suspend fun addMusicsToPlaylist(playlistId: String, items: List<MusicItem>): Int {
-        var addedCount = 0
-        for (item in items) {
-            if (addMusicToPlaylist(playlistId, item)) addedCount++
-        }
-        return addedCount
     }
 
     suspend fun removeMusicFromPlaylist(playlistId: String, item: MusicItem) {

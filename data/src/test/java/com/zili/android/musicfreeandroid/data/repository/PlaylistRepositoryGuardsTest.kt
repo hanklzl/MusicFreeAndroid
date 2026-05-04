@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.data.repository
 
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStore
+import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
@@ -14,11 +15,12 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 class PlaylistRepositoryGuardsTest {
+    private val db: AppDatabase = mockk(relaxed = true)
     private val playlistDao: PlaylistDao = mockk(relaxed = true)
     private val musicDao: MusicDao = mockk(relaxed = true)
     private val coverStore: PlaylistCoverStore = mockk(relaxed = true)
     private val converters = Converters()
-    private val repo = PlaylistRepository(playlistDao, musicDao, coverStore, converters)
+    private val repo = PlaylistRepository(db, playlistDao, musicDao, coverStore, converters)
 
     @Test fun deletePlaylist_throwsForFavorite() = runTest {
         assertThrows(IllegalStateException::class.java) {
