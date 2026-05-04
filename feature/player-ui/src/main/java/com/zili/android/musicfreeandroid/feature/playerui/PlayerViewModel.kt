@@ -3,13 +3,19 @@ package com.zili.android.musicfreeandroid.feature.playerui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.core.lyric.LyricTiming
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
+import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
+import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsUiState
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.player.model.PlayerState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,10 +33,44 @@ import javax.inject.Inject
 class PlayerViewModel @Inject constructor(
     private val playerController: PlayerController,
     private val playlistRepository: PlaylistRepository,
+    private val playerLyricLoader: PlayerLyricLoader,
+    private val appPreferences: AppPreferences,
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = playerController.playerState
     val errorEvents: SharedFlow<String> = playerController.errorEvents
+
+    private val lyricLoadState: StateFlow<LyricLoadState> = playerState
+        .map { it.currentItem }
+        .flatMapLatest { item ->
+            playerLyricLoader.observeLyrics(item)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LyricLoadState.NoTrack)
+
+    val lyricsUiState: StateFlow<PlayerLyricsUiState> = combine(
+        playerState,
+        lyricLoadState,
+        appPreferences.lyricShowTranslation,
+        appPreferences.lyricDetailFontSize,
+    ) { playback, lyricState, showTranslation, fontSize ->
+        val ready = lyricState as? LyricLoadState.Ready
+        PlayerLyricsUiState(
+            loadState = lyricState,
+            document = ready?.document,
+            currentLineIndex = ready?.document?.let {
+                LyricTiming.currentLineIndex(
+                    lines = it.lines,
+                    playbackPositionMs = playback.position,
+                    userOffsetMs = ready.userOffsetMs,
+                    metaOffsetMs = it.metaOffsetMs,
+                )
+            },
+            showTranslation = showTranslation,
+            fontSizeLevel = fontSize,
+            userOffsetMs = ready?.userOffsetMs ?: 0L,
+        )
+    }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayerLyricsUiState())
 
     // ---- favorite ----
 
@@ -102,4 +142,25 @@ class PlayerViewModel @Inject constructor(
     fun cycleRepeatMode() = playerController.cycleRepeatMode()
 
     fun toggleShuffle() = playerController.toggleShuffle()
+
+    fun setLyricShowTranslation(enabled: Boolean) {
+        viewModelScope.launch { appPreferences.setLyricShowTranslation(enabled) }
+    }
+
+    fun setLyricDetailFontSize(level: Int) {
+        viewModelScope.launch { appPreferences.setLyricDetailFontSize(level) }
+    }
+
+    fun seekToLyricLine(lineTimeMs: Long) {
+        val ready = lyricLoadState.value as? LyricLoadState.Ready ?: return
+        val duration = playerState.value.duration
+        val seekMs = LyricTiming.seekPositionForLine(
+            lineTimeMs = lineTimeMs,
+            userOffsetMs = ready.userOffsetMs,
+            metaOffsetMs = ready.document.metaOffsetMs,
+            durationMs = duration,
+        )
+        playerController.seekTo(seekMs)
+        playerController.play()
+    }
 }
