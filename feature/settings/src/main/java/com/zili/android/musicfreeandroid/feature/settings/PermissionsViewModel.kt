@@ -10,6 +10,7 @@ import javax.inject.Inject
 data class PermissionsUiState(
     val overlayGranted: Boolean = false,
     val storageAudioGranted: Boolean = false,
+    val notificationGranted: Boolean = false,
 )
 
 @HiltViewModel

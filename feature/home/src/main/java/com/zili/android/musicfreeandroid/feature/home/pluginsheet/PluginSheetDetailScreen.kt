@@ -11,34 +11,47 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.R
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.core.ui.MusicItemAction
+import com.zili.android.musicfreeandroid.core.ui.MusicItemMoreMenu
+import com.zili.android.musicfreeandroid.feature.home.playlist.CreatePlaylistDialog
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PluginSheetDetailScreen(
     onBack: () -> Unit,
     onNavigateToPlayer: () -> Unit,
-    onOpenMusicDetail: (MusicItem) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PluginSheetDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val sheetState by viewModel.sheetState.collectAsState()
+    val allPlaylists by viewModel.allPlaylists.collectAsState()
 
     MusicFreeScreenScaffold(
         title = uiState.title,
@@ -82,6 +95,7 @@ fun PluginSheetDetailScreen(
                         items = uiState.musicList,
                         key = { _, item -> "${item.platform}:${item.id}" },
                     ) { index, item ->
+                        val isFav by viewModel.isFavoriteFlow(item).collectAsStateWithLifecycle(initialValue = false)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -125,9 +139,25 @@ fun PluginSheetDetailScreen(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            TextButton(onClick = { onOpenMusicDetail(item) }) {
-                                Text("详情", color = MusicFreeTheme.colors.primary)
-                            }
+                            MusicItemMoreMenu(
+                                actions = setOf(
+                                    MusicItemAction.PlayNext,
+                                    MusicItemAction.ToggleFavorite,
+                                    MusicItemAction.AddToPlaylist,
+                                ),
+                                isFavorite = isFav,
+                                onAction = { action ->
+                                    when (action) {
+                                        MusicItemAction.ToggleFavorite -> viewModel.toggleFavorite(item)
+                                        MusicItemAction.AddToPlaylist -> viewModel.showAddToPlaylistSheet(item)
+                                        MusicItemAction.PlayNext -> {
+                                            // TODO: PlayerController.playNext when API is wired
+                                        }
+                                        MusicItemAction.RemoveFromPlaylist -> {}
+                                    }
+                                },
+                                triggerIcon = painterResource(id = R.drawable.ic_ellipsis_vertical),
+                            )
                         }
                     }
 
@@ -152,6 +182,30 @@ fun PluginSheetDetailScreen(
                 }
             }
         }
+        }
+    }
+
+    if (sheetState.visible) {
+        var showCreateInSheet by remember { mutableStateOf(false) }
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.hideAddToPlaylistSheet() },
+        ) {
+            AddToPlaylistBottomSheetContent(
+                playlists = allPlaylists,
+                onSelect = { viewModel.addPendingToPlaylist(it.id) },
+                onCreateNew = { showCreateInSheet = true },
+                folderPlusIcon = painterResource(id = R.drawable.ic_folder_plus),
+                favoriteCoverIcon = painterResource(id = R.drawable.ic_playlist_favorite_cover),
+            )
+        }
+        if (showCreateInSheet) {
+            CreatePlaylistDialog(
+                onDismiss = { showCreateInSheet = false },
+                onCreate = { name ->
+                    viewModel.createPlaylistAndAddPending(name)
+                    showCreateInSheet = false
+                },
+            )
         }
     }
 }

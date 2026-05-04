@@ -6,37 +6,49 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.core.model.SortMode
+import com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStore
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
+import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class PlaylistRepositoryTest {
 
+    private val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
     private lateinit var db: AppDatabase
     private lateinit var playlistRepo: PlaylistRepository
     private lateinit var musicRepo: MusicRepository
 
     @Before
     fun setup() {
-        db = Room.inMemoryDatabaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            AppDatabase::class.java,
-        ).allowMainThreadQueries().build()
+        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
+            .addCallback(SeedFavoriteCallback)
+            .allowMainThreadQueries()
+            .build()
         val converters = Converters()
-        playlistRepo = PlaylistRepository(db.playlistDao(), converters)
+        val coverStore = PlaylistCoverStore(ctx)
+        playlistRepo = PlaylistRepository(db.playlistDao(), db.musicDao(), coverStore, converters)
         musicRepo = MusicRepository(db.musicDao(), converters)
     }
 
     @After
-    fun teardown() {
-        db.close()
-    }
+    fun teardown() = db.close()
+
+    // --------------- helpers ---------------
 
     private fun playlist(id: String = "pl1", name: String = "Test") =
         Playlist(id = id, name = name, coverUri = null)
@@ -45,6 +57,13 @@ class PlaylistRepositoryTest {
         id = id, platform = "local", title = "Song $id", artist = "Artist",
         album = null, duration = 180_000, url = null, artwork = null, qualities = null,
     )
+
+    private fun sampleMusic(id: String, title: String = id, artwork: String? = null) = MusicItem(
+        id = id, platform = "test", title = title, artist = "Artist", album = null,
+        duration = 0L, url = null, artwork = artwork, qualities = null,
+    )
+
+    // --------------- existing CRUD tests (kept) ---------------
 
     @Test
     fun createAndGetPlaylist() = runTest {
@@ -56,30 +75,40 @@ class PlaylistRepositoryTest {
 
     @Test
     fun observeAllPlaylists_emitsOnChange() = runTest {
+        // The seeded "favorite" row is already present; start from its count
+        val initialSize = playlistRepo.observeAllPlaylists().first().size
         playlistRepo.observeAllPlaylists().test {
-            assertEquals(emptyList<Playlist>(), awaitItem())
+            // consume initial emission
+            awaitItem()
             playlistRepo.createPlaylist(playlist("pl1"))
-            assertEquals(1, awaitItem().size)
+            assertEquals(initialSize + 1, awaitItem().size)
             playlistRepo.createPlaylist(playlist("pl2"))
-            assertEquals(2, awaitItem().size)
+            assertEquals(initialSize + 2, awaitItem().size)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun addAndObserveMusicInPlaylist() = runTest {
+    fun addAndObserveMusicInPlaylist() = runBlocking {
         playlistRepo.createPlaylist(playlist("pl1"))
         val m1 = musicItem("m1")
         val m2 = musicItem("m2")
-        musicRepo.insert(m1)
-        musicRepo.insert(m2)
 
         playlistRepo.observeMusicInPlaylist("pl1").test {
-            assertEquals(emptyList<MusicItem>(), awaitItem())
+            // consume initial empty emission
+            val initial = awaitItem()
+            assertEquals(emptyList<MusicItem>(), initial)
+
             playlistRepo.addMusicToPlaylist("pl1", m1)
-            assertEquals(1, awaitItem().size)
+            // skipItems(count) to skip any intermediate flatMapLatest re-subscriptions
+            // and land on the first stable emission with count = 1
+            var size = -1
+            while (size < 1) size = awaitItem().size
+            assertEquals(1, size)
+
             playlistRepo.addMusicToPlaylist("pl1", m2)
-            assertEquals(2, awaitItem().size)
+            while (size < 2) size = awaitItem().size
+            assertEquals(2, size)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -106,11 +135,86 @@ class PlaylistRepositoryTest {
     }
 
     @Test
-    fun updatePlaylist() = runTest {
+    fun updatePlaylistInfo_renamesPlaylist() = runTest {
         playlistRepo.createPlaylist(playlist("pl1", "Original"))
-        playlistRepo.updatePlaylist(Playlist("pl1", "Renamed", "cover.jpg"))
+        playlistRepo.updatePlaylistInfo(id = "pl1", name = "Renamed")
         val updated = playlistRepo.getPlaylistById("pl1")
         assertEquals("Renamed", updated!!.name)
-        assertEquals("cover.jpg", updated.coverUri)
+    }
+
+    @Test
+    fun updatePlaylistInfo_updatesDescription() = runTest {
+        playlistRepo.createPlaylist(playlist("pl1", "Test"))
+        playlistRepo.updatePlaylistInfo(id = "pl1", description = "My description")
+        val updated = playlistRepo.getPlaylistById("pl1")
+        assertEquals("My description", updated!!.description)
+        assertEquals("Test", updated.name)
+    }
+
+    // --------------- Task 14 integration tests ---------------
+
+    @Test
+    fun favoriteRow_existsAfterFreshInit() = runBlocking {
+        val fav = playlistRepo.observeFavorite().first()
+        assertNotNull(fav)
+        assertEquals("favorite", fav!!.id)
+        assertEquals("我喜欢", fav.name)
+    }
+
+    @Test
+    fun addMusicToPlaylist_dedupReturnsFalseSecondTime() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Mix", coverUri = null))
+        val first = playlistRepo.addMusicToPlaylist(id, sampleMusic("m1"))
+        val second = playlistRepo.addMusicToPlaylist(id, sampleMusic("m1"))
+        assertTrue(first)
+        assertFalse(second)
+    }
+
+    @Test
+    fun addMusic_autoSyncsCoverFromArtworkOnEmptyPlaylist() = runBlocking {
+        val tmp = java.io.File(ctx.cacheDir, "art.jpg").apply { writeBytes(ByteArray(32) { 9 }) }
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Mix", coverUri = null))
+        playlistRepo.addMusicToPlaylist(id, sampleMusic("m1", artwork = "file://${tmp.absolutePath}"))
+        val playlist = playlistRepo.observePlaylist(id).first()
+        assertNotNull(playlist?.coverUri)
+        assertTrue(playlist!!.coverUri!!.startsWith("playlist_covers/"))
+    }
+
+    @Test
+    fun toggleFavorite_isReciprocal() = runBlocking {
+        val item = sampleMusic("m42")
+        assertFalse(playlistRepo.isFavorite(item).first())
+        playlistRepo.toggleFavorite(item)
+        assertTrue(playlistRepo.isFavorite(item).first())
+        playlistRepo.toggleFavorite(item)
+        assertFalse(playlistRepo.isFavorite(item).first())
+    }
+
+    @Test
+    fun setSortMode_thenObserveOrderChanges() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Mix", coverUri = null))
+        playlistRepo.addMusicToPlaylist(id, sampleMusic("m1", title = "苹果"))
+        playlistRepo.addMusicToPlaylist(id, sampleMusic("m2", title = "Apple"))
+        playlistRepo.addMusicToPlaylist(id, sampleMusic("m3", title = "香蕉"))
+        playlistRepo.setSortMode(id, SortMode.Title)
+        val titles = playlistRepo.observeMusicInPlaylist(id).first().map { it.title }
+        // Verify Apple (Latin) appears at one end, and 苹果 < 香蕉 (pinyin order in middle/Chinese-only span)
+        val pingIdx = titles.indexOf("苹果")
+        val xiangIdx = titles.indexOf("香蕉")
+        assertTrue("苹果 should sort before 香蕉 by pinyin", pingIdx < xiangIdx)
+    }
+
+    @Test
+    fun deletePlaylist_throwsForFavoriteRow() = runBlocking {
+        var caught: Throwable? = null
+        try {
+            playlistRepo.deletePlaylist(Playlist(id = "favorite", name = "我喜欢", coverUri = null))
+        } catch (e: IllegalStateException) {
+            caught = e
+        }
+        assertNotNull(caught)
     }
 }

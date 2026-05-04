@@ -19,29 +19,24 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
 import com.zili.android.musicfreeandroid.feature.home.HomeUiState
 import com.zili.android.musicfreeandroid.feature.home.HomeViewModel
-import com.zili.android.musicfreeandroid.feature.home.playlist.AddToPlaylistDialog
-import com.zili.android.musicfreeandroid.feature.home.playlist.PlaylistViewModel
 
 @Composable
 fun LocalScreen(
     onNavigateToPlayer: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
-    playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val permission = remember { requiredAudioPermission() }
 
-    var addToPlaylistItem by remember { mutableStateOf<MusicItem?>(null) }
+    // TODO(Task 27): track addToPlaylistItem for AddToPlaylistBottomSheet
     var hasAudioPermission by remember { mutableStateOf<Boolean?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -62,15 +57,8 @@ fun LocalScreen(
         }
     }
 
-    addToPlaylistItem?.let { item ->
-        AddToPlaylistDialog(
-            playlists = playlists,
-            onDismiss = { addToPlaylistItem = null },
-            onSelect = { playlist ->
-                viewModel.addToPlaylist(playlist.id, item)
-            },
-        )
-    }
+    // TODO(Task 27): wire AddToPlaylistBottomSheet (core/ui/AddToPlaylistBottomSheetContent)
+    // addToPlaylistItem?.let { item -> AddToPlaylistBottomSheet(...) }
 
     val localUiState = when (hasAudioPermission) {
         false -> LocalMusicUiState.Error("未授予音频读取权限，请授权后重试")
@@ -90,7 +78,7 @@ fun LocalScreen(
                 viewModel.playItem(item, items)
                 onNavigateToPlayer()
             },
-            onItemLongClick = { item -> addToPlaylistItem = item },
+            onItemLongClick = { _ -> /* TODO(Task 27): show AddToPlaylistBottomSheet */ },
             onRetry = {
                 if (hasAudioPermission == false) {
                     permissionLauncher.launch(permission)

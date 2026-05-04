@@ -9,10 +9,13 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.zili.android.musicfreeandroid.player.ext.defaultAlbumArtworkUri
 import com.zili.android.musicfreeandroid.player.ext.toMediaItem
 import com.zili.android.musicfreeandroid.player.model.PlaybackState
 import com.zili.android.musicfreeandroid.player.model.PlayerState
 import com.zili.android.musicfreeandroid.player.queue.PlayQueue
+import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueueControls
 import com.zili.android.musicfreeandroid.player.service.PlaybackService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -41,12 +44,13 @@ import kotlin.coroutines.resumeWithException
 @Singleton
 class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : PlaybackNotificationQueueControls {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val connectionMutex = Mutex()
     private var mediaController: MediaController? = null
     private var positionUpdateJob: kotlinx.coroutines.Job? = null
     private var connectJob: Job? = null
+    private val defaultArtworkUri = context.defaultAlbumArtworkUri()
 
     val playQueue = PlayQueue()
 
@@ -60,10 +64,16 @@ class PlayerController @Inject constructor(
     private var repeatMode: RepeatMode = RepeatMode.OFF
     private var shuffleEnabled: Boolean = false
 
+    init {
+        attachNotificationControls()
+    }
+
     suspend fun connect() {
         connectionMutex.withLock {
+            attachNotificationControls()
             if (mediaController != null) return
             withContext(Dispatchers.Main.immediate) {
+                attachNotificationControls()
                 if (mediaController != null) return@withContext
                 val sessionToken = SessionToken(
                     context,
@@ -85,6 +95,7 @@ class PlayerController @Inject constructor(
                 }
                 mediaController = controller
                 controller.addListener(playerListener)
+                attachNotificationControls()
                 emitState()
             }
         }
@@ -140,12 +151,20 @@ class PlayerController @Inject constructor(
                 return@withConnectedController
             }
             val prev = playQueue.previous(repeatMode) ?: return@withConnectedController
-            val mediaItem = prev.toMediaItem()
+            val mediaItem = prev.toMediaItem(defaultArtworkUri)
             recordHistory(prev)
             controller.setMediaItem(mediaItem)
             controller.prepare()
             controller.play()
         }
+    }
+
+    override fun skipToPreviousFromNotification() {
+        skipToPrevious()
+    }
+
+    override fun skipToNextFromNotification() {
+        skipToNext()
     }
 
     fun skipTo(index: Int) {
@@ -239,6 +258,7 @@ class PlayerController @Inject constructor(
             mediaController = null
             controller?.removeListener(playerListener)
             controller?.release()
+            PlaybackNotificationCommandHandler.detach(this)
         }
     }
 
@@ -246,7 +266,7 @@ class PlayerController @Inject constructor(
         withConnectedController { controller ->
             try {
                 recordHistory(item)
-                val mediaItem = item.toMediaItem()
+                val mediaItem = item.toMediaItem(defaultArtworkUri)
                 controller.setMediaItem(mediaItem)
                 controller.prepare()
                 controller.play()
@@ -257,6 +277,7 @@ class PlayerController @Inject constructor(
     }
 
     private fun withConnectedController(action: (MediaController) -> Unit) {
+        attachNotificationControls()
         mediaController?.let { controller ->
             runOnControllerThread {
                 action(controller)
@@ -288,12 +309,17 @@ class PlayerController @Inject constructor(
             }
 
             runOnControllerThread {
+                attachNotificationControls()
                 mediaController?.let { controller ->
                     action(controller)
                     emitState()
                 }
             }
         }
+    }
+
+    private fun attachNotificationControls() {
+        PlaybackNotificationCommandHandler.attach(this)
     }
 
     private fun runOnControllerThread(block: () -> Unit) {

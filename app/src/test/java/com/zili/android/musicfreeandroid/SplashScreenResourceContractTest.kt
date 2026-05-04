@@ -326,6 +326,7 @@ class SplashScreenResourceContractTest {
             projectRoot.resolve("../MusicFree/android/app/src/main").normalize(),
             projectRoot.resolve("../../MusicFree/android/app/src/main").normalize(),
             projectRoot.resolve("../../../MusicFree/android/app/src/main").normalize(),
+            projectRoot.resolve("../../../../MusicFree/android/app/src/main").normalize(),
         )
 
         return candidates.firstOrNull { Files.isDirectory(it) }

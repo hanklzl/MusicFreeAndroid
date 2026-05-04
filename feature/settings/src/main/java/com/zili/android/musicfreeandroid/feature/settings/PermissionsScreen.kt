@@ -29,10 +29,11 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
+import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
-import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 
@@ -46,8 +47,15 @@ fun PermissionsScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val storagePermission = requiredAudioPermission()
+    val notificationPermission = requiredNotificationPermission()
 
     val storagePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) {
+        viewModel.updateUiState(readPermissionsUiState(context))
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) {
         viewModel.updateUiState(readPermissionsUiState(context))
@@ -98,6 +106,15 @@ fun PermissionsScreen(
                 actionEnabled = !uiState.storageAudioGranted,
                 onAction = {
                     storagePermissionLauncher.launch(storagePermission)
+                },
+            )
+            PermissionRowCard(
+                title = "通知权限",
+                statusText = permissionStatusText(uiState.notificationGranted),
+                actionText = if (uiState.notificationGranted) "已授权" else "请求权限",
+                actionEnabled = !uiState.notificationGranted && notificationPermission != null,
+                onAction = {
+                    notificationPermission?.let(notificationPermissionLauncher::launch)
                 },
             )
         }

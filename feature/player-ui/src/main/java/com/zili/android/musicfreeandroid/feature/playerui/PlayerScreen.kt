@@ -14,11 +14,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,7 +53,9 @@ import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
     onBack: () -> Unit,
@@ -55,6 +64,9 @@ fun PlayerScreen(
     val state by viewModel.playerState.collectAsStateWithLifecycle()
     val currentItem = state.currentItem
     val context = LocalContext.current
+    val isFav by viewModel.isCurrentFavorite.collectAsStateWithLifecycle()
+    val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
+    val allPlaylists by viewModel.allPlaylists.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.errorEvents.collect { message ->
@@ -113,7 +125,12 @@ fun PlayerScreen(
                 modifier = Modifier.size(rpx(500)),
             )
 
-            PlayerOperationsBar()
+            PlayerOperationsBar(
+                isFav = isFav,
+                hasCurrentItem = currentItem != null,
+                onToggleFav = { viewModel.toggleCurrentFavorite() },
+                onAddToPlaylist = { viewModel.showAddToPlaylistSheet() },
+            )
 
             Spacer(Modifier.weight(1f))
 
@@ -136,6 +153,31 @@ fun PlayerScreen(
             )
 
             Spacer(Modifier.height(rpx(48)))
+        }
+
+        // Add-to-playlist bottom sheet
+        if (sheetState.visible) {
+            var showCreateInSheet by remember { mutableStateOf(false) }
+            ModalBottomSheet(
+                onDismissRequest = { viewModel.hideAddToPlaylistSheet() },
+            ) {
+                AddToPlaylistBottomSheetContent(
+                    playlists = allPlaylists,
+                    onSelect = { viewModel.addPendingToPlaylist(it.id) },
+                    onCreateNew = { showCreateInSheet = true },
+                    folderPlusIcon = painterResource(id = R.drawable.ic_folder_plus),
+                    favoriteCoverIcon = painterResource(id = R.drawable.ic_playlist_favorite_cover),
+                )
+            }
+            if (showCreateInSheet) {
+                InlinePlayerCreatePlaylistDialog(
+                    onDismiss = { showCreateInSheet = false },
+                    onCreate = { name ->
+                        viewModel.createPlaylistAndAddPending(name)
+                        showCreateInSheet = false
+                    },
+                )
+            }
         }
     }
 }
@@ -254,7 +296,13 @@ private fun PlayerCoverArt(
 }
 
 @Composable
-private fun PlayerOperationsBar() {
+private fun PlayerOperationsBar(
+    isFav: Boolean,
+    hasCurrentItem: Boolean,
+    onToggleFav: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -263,11 +311,16 @@ private fun PlayerOperationsBar() {
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = {}) {
+        IconButton(
+            onClick = onToggleFav,
+            enabled = hasCurrentItem,
+        ) {
             Icon(
-                painter = painterResource(R.drawable.ic_heart_outline),
-                contentDescription = "收藏",
-                tint = Color.White.copy(alpha = 0.7f),
+                painter = painterResource(
+                    id = if (isFav) R.drawable.ic_heart else R.drawable.ic_heart_outline,
+                ),
+                contentDescription = if (isFav) "取消收藏" else "收藏",
+                tint = if (isFav) Color(0xFFE54B4B) else Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(IconSizes.normal),
             )
         }
@@ -297,13 +350,27 @@ private fun PlayerOperationsBar() {
                 modifier = Modifier.size(IconSizes.normal),
             )
         }
-        IconButton(onClick = {}) {
-            Icon(
-                painter = painterResource(R.drawable.ic_ellipsis_vertical),
-                contentDescription = "更多",
-                tint = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.size(IconSizes.normal),
-            )
+        Box {
+            IconButton(onClick = { menuExpanded = true }) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_ellipsis_vertical),
+                    contentDescription = "更多",
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(IconSizes.normal),
+                )
+            }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text("加入歌单") },
+                    onClick = {
+                        menuExpanded = false
+                        onAddToPlaylist()
+                    },
+                )
+            }
         }
     }
 }
@@ -439,6 +506,33 @@ private fun PlayerControls(
             )
         }
     }
+}
+
+@Composable
+private fun InlinePlayerCreatePlaylistDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("新建歌单") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("名称") },
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                if (name.isNotBlank()) onCreate(name.trim())
+            }) { Text("创建") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        },
+    )
 }
 
 private fun formatDuration(ms: Long): String {

@@ -30,7 +30,7 @@ class PlaylistViewModel @Inject constructor(
 
     fun renamePlaylist(playlist: Playlist, newName: String) {
         viewModelScope.launch {
-            playlistRepository.updatePlaylist(playlist.copy(name = newName))
+            playlistRepository.updatePlaylistInfo(id = playlist.id, name = newName)
         }
     }
 

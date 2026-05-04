@@ -22,7 +22,7 @@ import com.zili.android.musicfreeandroid.data.db.entity.StarredSheetEntity
         PlayQueueEntity::class,
         StarredSheetEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

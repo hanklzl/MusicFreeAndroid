@@ -183,21 +183,6 @@ fun AppNavHost(
         pluginSheetDetailScreen(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
-            onOpenMusicDetail = { item ->
-                val seedToken = MusicDetailSeedStore.put(item)
-                navController.navigate(
-                    MusicDetailRoute(
-                        pluginPlatform = item.platform,
-                        musicId = item.id,
-                        title = item.title,
-                        artist = item.artist,
-                        album = item.album,
-                        artwork = item.artwork,
-                        durationMs = item.duration,
-                        seedToken = seedToken,
-                    ),
-                )
-            },
         )
         musicDetailScreen(
             onBack = { navController.popBackStack() },

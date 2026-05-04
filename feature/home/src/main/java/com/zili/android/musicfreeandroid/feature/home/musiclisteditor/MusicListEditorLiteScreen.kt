@@ -34,7 +34,6 @@ import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
-import com.zili.android.musicfreeandroid.feature.home.playlist.AddToPlaylistDialog
 
 @Composable
 fun MusicListEditorLiteScreen(
@@ -42,15 +41,8 @@ fun MusicListEditorLiteScreen(
     viewModel: MusicListEditorLiteViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // TODO(Task 27): replace with AddToPlaylistBottomSheet (core/ui/AddToPlaylistBottomSheetContent)
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
-
-    if (showAddToPlaylistDialog) {
-        AddToPlaylistDialog(
-            playlists = uiState.availableTargetPlaylists,
-            onDismiss = { showAddToPlaylistDialog = false },
-            onSelect = { playlist -> viewModel.addSelectedToPlaylist(playlist.id) },
-        )
-    }
 
     MusicFreeScreenScaffold(
         title = uiState.playlistName.ifBlank { "歌单编辑" },
