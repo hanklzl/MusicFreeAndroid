@@ -13,6 +13,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -64,6 +66,7 @@ class PlaylistImportViewModel @Inject constructor(
         launchImportJob {
             try {
                 pluginManager.ensurePluginsLoaded()
+                currentCoroutineContext().ensureActive()
                 val plugins = pluginManager.getSortedEnabledPlugins().first()
                     .mapNotNull { plugin ->
                         if (!plugin.info.supportedMethods.contains("importMusicSheet")) return@mapNotNull null
@@ -74,6 +77,7 @@ class PlaylistImportViewModel @Inject constructor(
                             hints = plugin.info.hints?.get("importMusicSheet") ?: emptyList(),
                         )
                     }
+                currentCoroutineContext().ensureActive()
 
                 _importState.value = PlaylistImportState.ChoosePlugin(plugins)
             } catch (e: CancellationException) {
@@ -112,6 +116,7 @@ class PlaylistImportViewModel @Inject constructor(
 
             try {
                 val parsedItems = plugin.importMusicSheet(trimmed)
+                currentCoroutineContext().ensureActive()
                 if (parsedItems == null || parsedItems.isEmpty()) {
                     postToast(PARSE_ERROR_TOAST)
                     _importState.value = PlaylistImportState.Idle
@@ -162,6 +167,7 @@ class PlaylistImportViewModel @Inject constructor(
         launchImportJob {
             try {
                 val added = playlistRepository.addMusicsToPlaylist(targetPlaylistId, items)
+                currentCoroutineContext().ensureActive()
                 val skipped = items.size - added
                 _sheetState.value = AddToPlaylistSheetState()
                 _importState.value = PlaylistImportState.Completed(
@@ -201,8 +207,10 @@ class PlaylistImportViewModel @Inject constructor(
                 )
                 createdPlaylist = playlist
                 playlistRepository.createPlaylist(playlist)
+                currentCoroutineContext().ensureActive()
 
                 val added = playlistRepository.addMusicsToPlaylist(playlistId, items)
+                currentCoroutineContext().ensureActive()
                 val skipped = items.size - added
                 _sheetState.value = AddToPlaylistSheetState()
                 _importState.value = PlaylistImportState.Completed(

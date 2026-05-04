@@ -21,6 +21,8 @@ import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.api.TopListDetailResult
 import com.zili.android.musicfreeandroid.plugin.engine.JsBridge
 import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 
@@ -69,6 +71,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout SearchResult(isEnd = true, data = emptyList())
                 JsBridge.parseSearchResult(map)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "search failed for query='$query' on ${info.platform}", e)
                 try {
                     val lastResp = engine.evaluate<Any?>(
@@ -76,6 +79,7 @@ class LoadedPlugin(
                     )
                     Log.e(TAG, "  last axios response on ${info.platform}: $lastResp")
                 } catch (dumpEx: Exception) {
+                    rethrowIfExternalCancellation(dumpEx)
                     Log.w(TAG, "  failed to dump __lastAxiosResponse", dumpEx)
                 }
                 SearchResult(isEnd = true, data = emptyList())
@@ -112,6 +116,7 @@ class LoadedPlugin(
                     }
                 }
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getMediaSource failed for ${musicItem.id} on ${info.platform}", e)
                 null
             }
@@ -129,6 +134,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout null
                 JsBridge.parseMusicInfoResult(musicItem, map)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getMusicInfo failed for ${musicItem.id} on ${info.platform}", e)
                 null
             }
@@ -146,6 +152,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout null
                 JsBridge.parseLyricResult(map)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getLyric failed for ${musicItem.id} on ${info.platform}", e)
                 null
             }
@@ -163,6 +170,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout null
                 JsBridge.parseAlbumInfoResult(map)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getAlbumInfo failed for ${albumItem.id} on ${info.platform}", e)
                 null
             }
@@ -184,6 +192,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout null
                 JsBridge.parseArtistWorksResult(map, type)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getArtistWorks failed for ${artistItem.id} on ${info.platform}", e)
                 null
             }
@@ -199,6 +208,7 @@ class LoadedPlugin(
                 )
                 JsBridge.parseImportMusicSheetResult(result, fallbackPlatform = info.platform)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "importMusicSheet failed on ${info.platform}", e)
                 null
             }
@@ -215,6 +225,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout null
                 JsBridge.parseImportMusicItemResult(map)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "importMusicItem failed on ${info.platform}", e)
                 null
             }
@@ -231,6 +242,7 @@ class LoadedPlugin(
                 val list = result as? List<*> ?: return@withTimeout emptyList()
                 JsBridge.parseTopListGroups(list)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getTopLists failed on ${info.platform}", e)
                 emptyList()
             }
@@ -251,6 +263,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout null
                 JsBridge.parseTopListDetailResult(map, fallbackPlatform = info.platform)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getTopListDetail failed on ${info.platform}", e)
                 null
             }
@@ -271,6 +284,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout null
                 JsBridge.parseMusicSheetInfoResult(map, fallbackPlatform = info.platform)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getMusicSheetInfo failed on ${info.platform}", e)
                 null
             }
@@ -287,6 +301,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout null
                 JsBridge.parseRecommendSheetTagsResult(map)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getRecommendSheetTags failed on ${info.platform}", e)
                 null
             }
@@ -307,6 +322,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout null
                 JsBridge.parseRecommendSheetsByTagResult(map)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getRecommendSheetsByTag failed on ${info.platform}", e)
                 null
             }
@@ -327,6 +343,7 @@ class LoadedPlugin(
                 val map = toMap(result) ?: return@withTimeout null
                 JsBridge.parseMusicCommentsResult(map)
             } catch (e: Exception) {
+                rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getMusicComments failed for ${musicItem.id} on ${info.platform}", e)
                 null
             }
@@ -343,7 +360,15 @@ class LoadedPlugin(
         return try {
             engine.evaluate<Boolean>("typeof __plugin.$name === 'function'")
         } catch (e: Exception) {
+            rethrowIfExternalCancellation(e)
             false
+        }
+    }
+
+    private fun rethrowIfExternalCancellation(e: Exception) {
+        // Keep existing timeout fallbacks, but never turn parent-job cancellation into plugin errors.
+        if (e is CancellationException && e !is TimeoutCancellationException) {
+            throw e
         }
     }
 

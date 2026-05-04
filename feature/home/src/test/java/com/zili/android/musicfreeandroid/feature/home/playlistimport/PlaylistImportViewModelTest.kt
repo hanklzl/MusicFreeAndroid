@@ -6,6 +6,7 @@ import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -337,6 +338,47 @@ class PlaylistImportViewModelTest {
     }
 
     @Test
+    fun `dismissImportFlow ignores parser fallback when plugin swallows cancellation`() = runTest {
+        val songs = listOf(musicItem("1", "Song A"))
+        val parseGate = CompletableDeferred<List<MusicItem>>()
+        val plugin = loadedPlugin(
+            platform = "music-a",
+            supportedMethods = setOf("importMusicSheet"),
+            importResult = songs,
+        )
+        runBlocking {
+            whenever(plugin.importMusicSheet(any())).doSuspendableAnswer {
+                try {
+                    parseGate.await()
+                } catch (e: CancellationException) {
+                    null
+                }
+            }
+        }
+        enabledPluginFlow.value = listOf(plugin)
+
+        val viewModel = createViewModel()
+        val toastEvents = mutableListOf<String>()
+        val toastCollector = launch {
+            viewModel.events.filterIsInstance<PlaylistImportEvent.Toast>()
+                .collect { toastEvents.add(it.message) }
+        }
+        viewModel.openImportSheet()
+        advanceUntilIdle()
+        viewModel.selectPlugin("music-a")
+        viewModel.submitUrl("https://music.example.com/list")
+        advanceUntilIdle()
+
+        viewModel.dismissImportFlow()
+        advanceUntilIdle()
+
+        assertEquals(PlaylistImportState.Idle, viewModel.importState.value)
+        assertFalse(viewModel.sheetState.value.visible)
+        assertTrue(toastEvents.isEmpty())
+        toastCollector.cancel()
+    }
+
+    @Test
     fun `addImportedItemsToPlaylist computes added skipped and closes sheet`() = runTest {
         val songs = listOf(
             musicItem("1", "Song A"),
@@ -449,6 +491,39 @@ class PlaylistImportViewModelTest {
 
         assertEquals(PlaylistImportState.Idle, viewModel.importState.value)
         assertFalse(viewModel.sheetState.value.visible)
+    }
+
+    @Test
+    fun `dismissImportFlow ignores add result when repository swallows cancellation`() = runTest {
+        val songs = listOf(musicItem("1", "Song A"), musicItem("2", "Song B"))
+        val addGate = CompletableDeferred<Int>()
+        runBlocking {
+            whenever(playlistRepository.addMusicsToPlaylist("playlist-1", songs)).doSuspendableAnswer {
+                try {
+                    addGate.await()
+                } catch (e: CancellationException) {
+                    2
+                }
+            }
+        }
+
+        val viewModel = createViewModel()
+        val toastEvents = mutableListOf<String>()
+        val toastCollector = launch {
+            viewModel.events.filterIsInstance<PlaylistImportEvent.Toast>()
+                .collect { toastEvents.add(it.message) }
+        }
+        viewModel.confirmImportTarget(songs)
+        viewModel.addImportedItemsToPlaylist("playlist-1")
+        advanceUntilIdle()
+
+        viewModel.dismissImportFlow()
+        advanceUntilIdle()
+
+        assertEquals(PlaylistImportState.Idle, viewModel.importState.value)
+        assertFalse(viewModel.sheetState.value.visible)
+        assertTrue(toastEvents.isEmpty())
+        toastCollector.cancel()
     }
 
     @Test
