@@ -13,6 +13,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.UUID
 
 /**
  * Local-only integration tests for PluginManager runtime shims.
@@ -29,7 +30,7 @@ class PluginRuntimeLocalIntegrationTest {
     fun setUp() {
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(appContext.cacheDir, "plugin-runtime-local-it.preferences_pb") },
+            produceFile = { testPreferencesFile("plugin-runtime-local-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()
@@ -170,4 +171,7 @@ class PluginRuntimeLocalIntegrationTest {
           }
         };
     """.trimIndent()
+
+    private fun testPreferencesFile(prefix: String): File =
+        File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")
 }

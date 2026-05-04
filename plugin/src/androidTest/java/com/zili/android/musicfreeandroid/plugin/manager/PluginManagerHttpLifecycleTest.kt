@@ -16,6 +16,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.UUID
 
 /**
  * MockWebServer-backed lifecycle tests for PluginManager.installFromUrl
@@ -35,7 +36,7 @@ class PluginManagerHttpLifecycleTest {
     fun setUp() {
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(appContext.cacheDir, "plugin-http-lifecycle-it.preferences_pb") },
+            produceFile = { testPreferencesFile("plugin-http-lifecycle-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()
@@ -142,6 +143,9 @@ class PluginManagerHttpLifecycleTest {
           }
         };
     """.trimIndent()
+
+    private fun testPreferencesFile(prefix: String): File =
+        File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")
 
     private companion object {
         const val PLATFORM = "mockws-lifecycle"

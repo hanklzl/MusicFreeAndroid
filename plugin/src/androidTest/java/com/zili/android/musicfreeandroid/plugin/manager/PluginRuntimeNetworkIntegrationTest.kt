@@ -14,6 +14,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.UUID
 
 /**
  * Live-network integration tests for PluginManager. Depends on
@@ -37,7 +38,7 @@ class PluginRuntimeNetworkIntegrationTest {
 
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(appContext.cacheDir, "plugin-runtime-network-it.preferences_pb") },
+            produceFile = { testPreferencesFile("plugin-runtime-network-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()
@@ -186,4 +187,7 @@ class PluginRuntimeNetworkIntegrationTest {
         }
         pluginManager.loadAllPlugins()
     }
+
+    private fun testPreferencesFile(prefix: String): File =
+        File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")
 }
