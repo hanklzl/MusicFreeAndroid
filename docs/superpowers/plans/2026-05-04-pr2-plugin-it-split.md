@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 `PluginRuntimeIntegrationTest`（类级 `@Ignore`，覆盖 7 个用例）拆分为本地（3 个）与网络（4 个）两套，网络套通过 `Assume.assumeTrue` 在缺少 `-Pintegration` Gradle 属性时跳过；同时新增 1 个 `PluginManagerHttpLifecycleTest`（2 个用例）覆盖 `installFromUrl + updatePlugin` 编排路径。CI 默认通道执行 5 个用例（3 本地 + 2 MockWebServer），按需启用 `-Pintegration` 跑全 9 个。所有新 instrumentation test 手工 DataStore 文件必须按 test 实例隔离。
+**Goal:** 将 `PluginRuntimeIntegrationTest`（类级 `@Ignore`，覆盖 7 个用例）拆分为本地（3 个）与网络（4 个）两套，网络套通过 `Assume.assumeTrue` 在缺少 `-Pintegration` Gradle 属性时跳过；同时新增 1 个 `PluginManagerHttpLifecycleTest`（2 个用例）覆盖 `installFromUrl + updatePlugin` 编排路径。CI 默认通道执行 5 个用例（3 本地 + 2 MockWebServer），按需启用 `-Pintegration` 跑全 9 个。所有新 instrumentation test 手工 DataStore 文件必须按 test 实例隔离，并在 teardown 中释放 DataStore scope 与 loaded QuickJS plugins。
 
 **Architecture:** 拆分原文件为 3 个 androidTest 文件；引入 `mockwebserver` 依赖；在 `:plugin/build.gradle.kts` 通过 `testInstrumentationRunnerArguments` 把 Gradle property 转成 instrumentation arg。无生产代码触动。
 
@@ -45,12 +45,29 @@ private fun testPreferencesFile(prefix: String): File =
 各测试类 `setUp()` 中使用：
 
 ```kotlin
+private val dataStoreScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
 val dataStore = PreferenceDataStoreFactory.create(
+    scope = dataStoreScope,
     produceFile = { testPreferencesFile("plugin-runtime-local-it") },
 )
 ```
 
-需要在文件中导入 `java.util.UUID`。
+需要在文件中导入 `java.util.UUID`、`kotlinx.coroutines.CoroutineScope`、`Dispatchers`、`SupervisorJob`、`cancel`。每个测试类添加：
+
+```kotlin
+@After
+fun tearDown() {
+    runBlocking {
+        if (::pluginManager.isInitialized) {
+            pluginManager.uninstallAllPlugins()
+        }
+    }
+    dataStoreScope.cancel()
+}
+```
+
+`PluginManagerHttpLifecycleTest` 还要在同一个 `@After` 中 `server.shutdown()`。顺序建议：先 `uninstallAllPlugins()`，再 shutdown server，最后 cancel scope。
 
 ---
 
@@ -143,16 +160,26 @@ EOF
 
 - [ ] **Step 1：修改 `defaultConfig` 块**
 
-将 `defaultConfig` 块（当前内容为 `minSdk = 29` 与 `testInstrumentationRunner = "..."`）替换为：
+在 `plugins { ... }` 后、`android { ... }` 前新增：
+
+```kotlin
+val pluginNetworkTestsEnabled = providers.gradleProperty("integration")
+    .map { value -> value.isBlank() || value.toBooleanStrictOrNull() == true }
+    .orElse(false)
+```
+
+然后将 `defaultConfig` 块（当前内容为 `minSdk = 29` 与 `testInstrumentationRunner = "..."`）替换为：
 
 ```kotlin
     defaultConfig {
         minSdk = 29
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["pluginNetworkTests"] =
-            if (project.hasProperty("integration")) "true" else "false"
+            pluginNetworkTestsEnabled.get().toString()
     }
 ```
+
+语义要求：`-Pintegration` 与 `-Pintegration=true` 启用网络用例；缺省、`-Pintegration=false`、`integration=false` 都跳过网络用例。
 
 - [ ] **Step 2：在 `dependencies` 块末尾追加 androidTest 依赖**
 
@@ -207,7 +234,12 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -227,15 +259,27 @@ class PluginRuntimeLocalIntegrationTest {
 
     private lateinit var appContext: Context
     private lateinit var pluginManager: PluginManager
+    private val dataStoreScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Before
     fun setUp() {
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-runtime-local-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()
+    }
+
+    @After
+    fun tearDown() {
+        runBlocking {
+            if (::pluginManager.isInitialized) {
+                pluginManager.uninstallAllPlugins()
+            }
+        }
+        dataStoreScope.cancel()
     }
 
     @Test
@@ -382,7 +426,8 @@ class PluginRuntimeLocalIntegrationTest {
 - [ ] **Step 2：（如有设备）跑 androidTest 验证**
 
 ```bash
-./gradlew :plugin:connectedAndroidTest --tests "com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeLocalIntegrationTest"
+./gradlew :plugin:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeLocalIntegrationTest
 ```
 
 预期：3 个用例 PASSED。
@@ -429,7 +474,12 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -451,6 +501,7 @@ class PluginRuntimeNetworkIntegrationTest {
 
     private lateinit var appContext: Context
     private lateinit var pluginManager: PluginManager
+    private val dataStoreScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Before
     fun setUp() {
@@ -462,10 +513,21 @@ class PluginRuntimeNetworkIntegrationTest {
 
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-runtime-network-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()
+    }
+
+    @After
+    fun tearDown() {
+        runBlocking {
+            if (::pluginManager.isInitialized) {
+                pluginManager.uninstallAllPlugins()
+            }
+        }
+        dataStoreScope.cancel()
     }
 
     @Test
@@ -553,6 +615,8 @@ class PluginRuntimeNetworkIntegrationTest {
 
         val update = pluginManager.updatePlugin(platform)
         assertEquals(PluginOperationType.UPDATE_SINGLE, update.operationType)
+        assertEquals("Plugin update should succeed", 1, update.successCount)
+        assertEquals("Plugin update should not report failures", 0, update.failureCount)
 
         val updated = pluginManager.getPlugin(platform)
         assertNotNull("Updated plugin should remain selectable by platform", updated)
@@ -593,6 +657,8 @@ class PluginRuntimeNetworkIntegrationTest {
 
         val update = pluginManager.updatePlugin(wy.info.platform)
         assertEquals(PluginOperationType.UPDATE_SINGLE, update.operationType)
+        assertEquals("Plugin update should succeed", 1, update.successCount)
+        assertEquals("Plugin update should not report failures", 0, update.failureCount)
 
         val selectedAfterUpdate = pluginManager.getPlugin(wy.info.platform)
         assertNotNull("Updated plugin should remain selectable by platform", selectedAfterUpdate)
@@ -622,7 +688,8 @@ class PluginRuntimeNetworkIntegrationTest {
 无 `-Pintegration`（CI 默认）：
 
 ```bash
-./gradlew :plugin:connectedAndroidTest --tests "com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeNetworkIntegrationTest"
+./gradlew :plugin:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeNetworkIntegrationTest
 ```
 
 预期：4 个用例 SKIPPED（assumption violated）。
@@ -630,7 +697,8 @@ class PluginRuntimeNetworkIntegrationTest {
 有 `-Pintegration`（按需）：
 
 ```bash
-./gradlew :plugin:connectedAndroidTest --tests "com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeNetworkIntegrationTest" -Pintegration
+./gradlew :plugin:connectedDebugAndroidTest -Pintegration \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeNetworkIntegrationTest
 ```
 
 预期：4 个用例 PASSED（需 kstore.vip 可达）。如真机 PASS，建议把 stdout 头部贴入 PR 描述作为 baseline。
@@ -679,6 +747,10 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -690,6 +762,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.concurrent.TimeUnit
 import java.util.UUID
 
 /**
@@ -705,11 +778,13 @@ class PluginManagerHttpLifecycleTest {
     private lateinit var appContext: Context
     private lateinit var pluginManager: PluginManager
     private lateinit var server: MockWebServer
+    private val dataStoreScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Before
     fun setUp() {
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-http-lifecycle-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
@@ -720,21 +795,36 @@ class PluginManagerHttpLifecycleTest {
 
     @After
     fun tearDown() {
-        server.shutdown()
+        runBlocking {
+            if (::pluginManager.isInitialized) {
+                pluginManager.uninstallAllPlugins()
+            }
+        }
+        if (::server.isInitialized) {
+            server.shutdown()
+        }
+        dataStoreScope.cancel()
     }
 
     @Test
     fun installFromUrl_writesPluginAndLoadsMeta() = runBlocking {
-        server.enqueue(MockResponse().setBody(scriptForVersion("1.0.0")))
+        val url = server.url("/mockws.js").toString()
+        server.enqueue(MockResponse().setBody(scriptForVersion(version = "1.0.0", srcUrl = url)))
 
         val plugin = pluginManager.installFromUrl(
-            url = server.url("/mockws.js").toString(),
+            url = url,
             fileName = "mockws-lifecycle.js",
         )
 
         assertNotNull("MockWebServer-served plugin should install", plugin)
+        assertNextRequestPath("/mockws.js")
         assertEquals(PLATFORM, plugin!!.info.platform)
         assertEquals("1.0.0", plugin.info.version)
+        assertEquals(
+            "Plugin info.srcUrl should round-trip from the JS module's srcUrl export",
+            url,
+            plugin.info.srcUrl,
+        )
 
         assertTrue(
             "Installed plugin file should be on disk",
@@ -753,15 +843,17 @@ class PluginManagerHttpLifecycleTest {
 
     @Test
     fun updatePlugin_refetchesAndReplaces() = runBlocking {
-        server.enqueue(MockResponse().setBody(scriptForVersion("1.0.0")))
+        val url = server.url("/mockws.js").toString()
+        server.enqueue(MockResponse().setBody(scriptForVersion(version = "1.0.0", srcUrl = url)))
         val installed = pluginManager.installFromUrl(
-            url = server.url("/mockws.js").toString(),
+            url = url,
             fileName = "mockws-update.js",
         )
         assertNotNull("Initial install should succeed", installed)
+        assertNextRequestPath("/mockws.js")
         assertEquals("1.0.0", installed!!.info.version)
 
-        server.enqueue(MockResponse().setBody(scriptForVersion("1.0.1")))
+        server.enqueue(MockResponse().setBody(scriptForVersion(version = "1.0.1", srcUrl = url)))
         val update = pluginManager.updatePlugin(PLATFORM)
 
         assertEquals(PluginOperationType.UPDATE_SINGLE, update.operationType)
@@ -770,6 +862,7 @@ class PluginManagerHttpLifecycleTest {
             1,
             update.successCount,
         )
+        assertNextRequestPath("/mockws.js")
 
         val updated = pluginManager.getPlugin(PLATFORM)
         assertNotNull("Updated plugin should remain selectable by platform", updated)
@@ -793,10 +886,11 @@ class PluginManagerHttpLifecycleTest {
         pluginManager.loadAllPlugins()
     }
 
-    private fun scriptForVersion(version: String): String = """
+    private fun scriptForVersion(version: String, srcUrl: String): String = """
         module.exports = {
           platform: '$PLATFORM',
           version: '$version',
+          srcUrl: '${srcUrl.replace("'", "\\'")}',
           supportedSearchType: ['music'],
           async search(query, page) {
             return { isEnd: true, data: [] };
@@ -810,6 +904,10 @@ class PluginManagerHttpLifecycleTest {
     private fun testPreferencesFile(prefix: String): File =
         File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")
 
+    private fun assertNextRequestPath(path: String) {
+        assertEquals(path, server.takeRequest(5, TimeUnit.SECONDS)?.path)
+    }
+
     private companion object {
         const val PLATFORM = "mockws-lifecycle"
     }
@@ -819,7 +917,8 @@ class PluginManagerHttpLifecycleTest {
 - [ ] **Step 2：（如有设备）跑 androidTest 验证**
 
 ```bash
-./gradlew :plugin:connectedAndroidTest --tests "com.zili.android.musicfreeandroid.plugin.manager.PluginManagerHttpLifecycleTest"
+./gradlew :plugin:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginManagerHttpLifecycleTest
 ```
 
 预期：2 个用例 PASSED。
@@ -984,7 +1083,8 @@ gh pr create --title "test(plugin): split runtime IT into local/network + MockWe
 ## Summary
 
 - Splits the class-ignored `PluginRuntimeIntegrationTest` into 3 files: 3 local cases (always-on), 4 network cases gated by `Assume.assumeTrue` on the `pluginNetworkTests` instrumentation arg, and 2 new `MockWebServer` lifecycle cases (`installFromUrl` + `updatePlugin` orchestration).
-- Wires `-Pintegration` Gradle property → `pluginNetworkTests=true` instrumentation arg in `:plugin/build.gradle.kts`.
+- Wires `-Pintegration` / `-Pintegration=true` Gradle property → `pluginNetworkTests=true` instrumentation arg in `:plugin/build.gradle.kts`; `-Pintegration=false` stays skipped.
+- Isolates instrumentation DataStore files per test instance and tears down loaded plugins/DataStore scopes.
 - Adds `okhttp-mockwebserver` library entry (reuses existing OkHttp 5.3.2).
 - Net: class-level `@Ignore` eliminated; CI default channel runs 5 cases (was 0); `-Pintegration` channel runs all 9.
 
@@ -994,6 +1094,7 @@ Spec: `docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md` §
 
 - [ ] `./gradlew :plugin:testDebugUnitTest`
 - [ ] `./gradlew :plugin:connectedAndroidTest` — 5 PASSED, 4 SKIPPED
+- [ ] `./gradlew :plugin:connectedDebugAndroidTest -Pintegration=false -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeNetworkIntegrationTest` — 4 SKIPPED
 - [ ] `./gradlew :plugin:connectedAndroidTest -Pintegration` — 9 PASSED (requires `kstore.vip` reachable; not blocking if intermittent)
 - [ ] `./gradlew assembleDebug && ./gradlew lint`
 - [ ] `./gradlew connectedAndroidTest` after PR 1 is merged/rebased into this branch

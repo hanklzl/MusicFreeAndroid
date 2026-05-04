@@ -318,9 +318,9 @@ private fun runOnAppThread(description: String = "main thread action", block: ()
 | 文件 | 操作 |
 |---|---|
 | `plugin/src/androidTest/.../PluginRuntimeIntegrationTest.kt` | **删除**（拆为下面 3 个文件） |
-| `plugin/src/androidTest/.../PluginRuntimeLocalIntegrationTest.kt` | **新增**：3 个本地用例 + 共享的 `runtimeShimScript` + `clearPluginStorage()` 工具；类**不带** `@Ignore`；DataStore 文件名带唯一后缀 |
-| `plugin/src/androidTest/.../PluginRuntimeNetworkIntegrationTest.kt` | **新增**：4 个网络用例；类无 `@Ignore`，但 `@Before` 通过 `Assume.assumeTrue(...)` 在缺少 `-Pintegration` 时跳过；DataStore 文件名带唯一后缀 |
-| `plugin/src/androidTest/.../PluginManagerHttpLifecycleTest.kt` | **新增**：使用 MockWebServer 覆盖 `installFromUrl + updatePlugin` 编排路径（详见 §5.4）；DataStore 文件名带唯一后缀 |
+| `plugin/src/androidTest/.../PluginRuntimeLocalIntegrationTest.kt` | **新增**：3 个本地用例 + 共享的 `runtimeShimScript` + `clearPluginStorage()` 工具；类**不带** `@Ignore`；DataStore 文件名带唯一后缀；`@After` 销毁 loaded plugins 并取消 DataStore scope |
+| `plugin/src/androidTest/.../PluginRuntimeNetworkIntegrationTest.kt` | **新增**：4 个网络用例；类无 `@Ignore`，但 `@Before` 通过 `Assume.assumeTrue(...)` 在缺少 `-Pintegration` 时跳过；DataStore 文件名带唯一后缀；update 用例必须断言 `successCount=1/failureCount=0` |
+| `plugin/src/androidTest/.../PluginManagerHttpLifecycleTest.kt` | **新增**：使用 MockWebServer 覆盖 `installFromUrl + updatePlugin` 编排路径（详见 §5.4）；DataStore 文件名带唯一后缀；断言 MockWebServer request path |
 | `plugin/build.gradle.kts` | 新增：`testInstrumentationRunnerArguments` 把 `-Pintegration` 转成 `pluginNetworkTests=true`；`androidTestImplementation` 加 `mockwebserver` |
 | `gradle/libs.versions.toml` | 新增：`okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }` |
 
@@ -329,10 +329,14 @@ private fun runOnAppThread(description: String = "main thread action", block: ()
 **`plugin/build.gradle.kts`**（增量片段）：
 
 ```kotlin
+val pluginNetworkTestsEnabled = providers.gradleProperty("integration")
+    .map { value -> value.isBlank() || value.toBooleanStrictOrNull() == true }
+    .orElse(false)
+
 android {
     defaultConfig {
         testInstrumentationRunnerArguments["pluginNetworkTests"] =
-            if (project.hasProperty("integration")) "true" else "false"
+            pluginNetworkTestsEnabled.get().toString()
     }
 }
 
@@ -367,17 +371,22 @@ class PluginRuntimeNetworkIntegrationTest {
 
 `Assume.assumeTrue` 失败 = "ignored/skipped"，**不污染 `@Ignore` 计数**——与真正"坏掉的 ignore"区分开。
 
+`-Pintegration`、`-Pintegration=true` 启用真网络用例；缺省、`-Pintegration=false`、`integration=false` 都必须保持默认跳过，避免本地/CI 意外触网。
+
 ### 5.3.1 instrumentation DataStore 隔离
 
 PR 2 的 3 个新 instrumentation test 类都会手工构造：
 
 ```kotlin
+private val dataStoreScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
 val dataStore = PreferenceDataStoreFactory.create(
+    scope = dataStoreScope,
     produceFile = { testPreferencesFile("plugin-runtime-local-it") },
 )
 ```
 
-`testPreferencesFile(prefix)` 必须返回 `File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")`。不要复用固定文件名；AndroidJUnit4 每个 `@Test` 方法会创建新的 test class 实例，DataStore 对同一路径的 active scope 有单例约束，固定文件名会让后续实例在 `PluginMetaStore.getUserVariables(...).first()` 时抛 `There are multiple DataStores active for the same file`。
+`testPreferencesFile(prefix)` 必须返回 `File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")`。不要复用固定文件名；AndroidJUnit4 每个 `@Test` 方法会创建新的 test class 实例，DataStore 对同一路径的 active scope 有单例约束，固定文件名会让后续实例在 `PluginMetaStore.getUserVariables(...).first()` 时抛 `There are multiple DataStores active for the same file`。每个类还需在 `@After` 中调用 `pluginManager.uninstallAllPlugins()` 关闭 QuickJS，再 `dataStoreScope.cancel()` 关闭 DataStore scope。
 
 ### 5.4 MockWebServer Lifecycle 用例（`PluginManagerHttpLifecycleTest`）
 
@@ -387,6 +396,7 @@ val dataStore = PreferenceDataStoreFactory.create(
 
 1. `installFromUrl_writesPluginAndLoadsMeta`：MockWebServer 返回 `runtimeShimScript`，`installFromUrl(url)` 应：插件文件落盘、`pluginMetaStore` 记录 sourceUrl、`plugins` StateFlow 包含新插件、`getPlugin(platform)` 可定位。
 2. `updatePlugin_refetchesAndReplaces`：先 `installFromUrl` 拿到 v1 脚本；MockWebServer 切换到 v2（修改 platform 字段以外的内容如版本号 `1.0.0 → 1.0.1`）；`updatePlugin(platform)` 后磁盘内容更新、`plugins` StateFlow 单例不重复、版本号更新。
+3. 两条用例都用 `server.takeRequest(...).path` 断言请求 path，避免 MockWebServer 队列响应掩盖错误 URL。
 
 **不覆盖**：search/getMediaSource 的 JS 执行路径——本地 shim 用例已覆盖；JS 引擎本身的测试由 `:plugin/src/test/...` 单测层守护。
 
@@ -416,12 +426,14 @@ PR 描述需明确："新增 feature androidTest runner 基线覆盖 4 个 featu
 ```bash
 ./gradlew :plugin:testDebugUnitTest                       # PASS
 ./gradlew :plugin:connectedAndroidTest                    # PASS（5 跑通，4 SKIPPED）
+./gradlew :plugin:connectedDebugAndroidTest -Pintegration=false -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeNetworkIntegrationTest
+                                                           # PASS（4 SKIPPED，确认 false 不触发真网络）
 ./gradlew :plugin:connectedAndroidTest -Pintegration      # PASS（9 全跑，需稳定网络 + kstore.vip 可达）
 ./gradlew connectedAndroidTest                            # 全仓库 PASS
 ./gradlew assembleDebug && ./gradlew lint                 # 整体编译/lint 保护
 ```
 
-PR 描述需明确："拆分后 `@Ignore` 在 `:plugin/src/androidTest` 归零；新增 MockWebServer 用例 2 条；网络用例通过 `Assume` 门控（非 `@Ignore`），CI 默认跳过；instrumentation DataStore 文件按测试实例隔离，避免 multiple active DataStores"。
+PR 描述需明确："拆分后 `@Ignore` 在 `:plugin/src/androidTest` 归零；新增 MockWebServer 用例 2 条；网络用例通过 `Assume` 门控（非 `@Ignore`），CI 默认跳过；instrumentation DataStore 文件按测试实例隔离并在 teardown 取消 scope，避免 multiple active DataStores；`-Pintegration=false` 不触发真网络"。
 
 ### 6.3 终态指标
 
@@ -454,6 +466,9 @@ grep -rn "@Ignore" --include="*.kt" 2>/dev/null | grep -v build/ | grep -v .work
 | HomeFidelity 用例 1 仍失败 | 真实 cold launch 时某个 anchor（如 `OperationsRoot`）也是延迟挂载 | 调整 `waitUntil` timeout 或换更稳定的 anchor；不应回到 `@Ignore` |
 | MockWebServer 用例不稳 | 端口冲突 / 服务未就绪 | 用 `mockWebServer.url("/wy.js")` 拿到带端口的 URL；`@Before` 中 `start()`，`@After` 中 `shutdown()` |
 | plugin 本地/MockWebServer 用例安装返回 `null` | DataStore 多个 test 实例复用同一个 `*.preferences_pb` 文件 | `PreferenceDataStoreFactory.create` 的 `produceFile` 使用 UUID 后缀；不要在 instrumentation tests 中复用固定 DataStore 路径 |
+| plugin instrumentation 后续测试资源膨胀 | `LoadedPlugin` 未 destroy / DataStore scope 未取消 | `@After` 调 `pluginManager.uninstallAllPlugins()`，再 `dataStoreScope.cancel()`；MockWebServer 类还要 `server.shutdown()` |
+| `-Pintegration=false` 仍触网 | Gradle gating 只判断 property 是否存在 | 用 `providers.gradleProperty("integration").map { it.isBlank() || it.toBooleanStrictOrNull() == true }.orElse(false)`，明确 false 为禁用 |
+| live-network update 测试假通过 | 只断言 `operationType == UPDATE_SINGLE`，失败结果也满足 | update 用例必须同时断言 `successCount == 1` 与 `failureCount == 0` |
 | `-Pintegration` 通道在真机失败 | kstore.vip 临时不可达或 wy.js 行为变更 | 不阻塞 PR——这是设计上"按需手动通道"，单独排查；可在 PR 描述里贴一次成功的 log 作为 baseline |
 | Hilt singleton 状态在 androidTest 之间泄漏 | `@HiltAndroidTest` + 复用 application | β 方案不主动改 PlayerController 状态，无此风险 |
 
