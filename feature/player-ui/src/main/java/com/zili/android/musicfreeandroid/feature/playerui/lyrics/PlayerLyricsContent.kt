@@ -1,8 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.playerui.lyrics
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,9 +32,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -96,26 +98,47 @@ fun PlayerLyricsContent(
         }
     }
 
-    LaunchedEffect(currentLineIndex, state.document) {
-        if (listState.isScrollInProgress) return@LaunchedEffect
+    LaunchedEffect(
+        currentLineIndex,
+        state.document,
+        state.fontSizeLevel,
+        state.userOffsetMs,
+        showDragSeekOverlay,
+    ) {
+        if (!shouldAutoFollowLyricLine(listState.isScrollInProgress, showDragSeekOverlay)) {
+            return@LaunchedEffect
+        }
         val currentLineIndexFinal = currentLineIndex ?: return@LaunchedEffect
         val doc = loadState as? LyricLoadState.Ready ?: return@LaunchedEffect
         if (currentLineIndexFinal !in doc.document.lines.indices) return@LaunchedEffect
-        listState.scrollToItem(currentLineIndexFinal)
+        listState.animateScrollToItem(currentLineIndexFinal)
     }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                enabled = !showDragSeekOverlay,
-                onClick = onBackToCover,
-            )
+            .pointerInput(document, showDragSeekOverlay) {
+                detectTapGestures { offset ->
+                    val visibleItemBounds = listState.layoutInfo.visibleItemsInfo.map { item ->
+                        VisibleLyricItemBounds(
+                            top = item.offset,
+                            bottom = item.offset + item.size,
+                        )
+                    }
+                    if (shouldHandleLyricBackTap(offset.y, visibleItemBounds, showDragSeekOverlay)) {
+                        onBackToCover()
+                    }
+                }
+            }
             .semantics {
                 contentDescription = "返回封面"
-                role = androidx.compose.ui.semantics.Role.Button
+                role = Role.Button
+                if (!showDragSeekOverlay) {
+                    onClick(label = "返回封面") {
+                        onBackToCover()
+                        true
+                    }
+                }
             },
     ) {
         when (val load = loadState) {
@@ -155,7 +178,10 @@ fun PlayerLyricsContent(
                         DragSeekOverlay(
                             line = dragSeekLine!!,
                             durationMs = durationMs,
-                            onSeekToLine = onSeekToLine,
+                            onSeekToLine = {
+                                onSeekToLine(it)
+                                showDragSeekOverlay = false
+                            },
                             modifier = Modifier.align(Alignment.Center),
                         )
                     }
@@ -206,6 +232,9 @@ private fun LyricsList(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .pointerInput(line.index) {
+                        detectTapGestures { }
+                    }
                     .padding(horizontal = rpx(64), vertical = rpx(20)),
             )
         }
@@ -305,4 +334,25 @@ private fun formatMsToMinuteSecond(timeMs: Long, durationMs: Long): String {
     val minutes = clamped / 60_000
     val seconds = (clamped / 1000) % 60
     return "%d:%02d".format(minutes, seconds)
+}
+
+internal data class VisibleLyricItemBounds(
+    val top: Int,
+    val bottom: Int,
+)
+
+internal fun shouldAutoFollowLyricLine(
+    isScrollInProgress: Boolean,
+    dragSeekOverlayVisible: Boolean,
+): Boolean = !isScrollInProgress && !dragSeekOverlayVisible
+
+internal fun shouldHandleLyricBackTap(
+    tapY: Float,
+    visibleItemBounds: List<VisibleLyricItemBounds>,
+    dragSeekOverlayVisible: Boolean,
+): Boolean {
+    if (dragSeekOverlayVisible) return false
+    return visibleItemBounds.none { bounds ->
+        tapY >= bounds.top && tapY <= bounds.bottom
+    }
 }
