@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 `PluginRuntimeIntegrationTest`（类级 `@Ignore`，覆盖 7 个用例）拆分为本地（3 个）与网络（4 个）两套，网络套通过 `Assume.assumeTrue` 在缺少 `-Pintegration` Gradle 属性时跳过；同时新增 1 个 `PluginManagerHttpLifecycleTest`（2 个用例）覆盖 `installFromUrl + updatePlugin` 编排路径。CI 默认通道执行 5 个用例（3 本地 + 2 MockWebServer），按需启用 `-Pintegration` 跑全 9 个。
+**Goal:** 将 `PluginRuntimeIntegrationTest`（类级 `@Ignore`，覆盖 7 个用例）拆分为本地（3 个）与网络（4 个）两套，网络套通过 `Assume.assumeTrue` 在缺少 `-Pintegration` Gradle 属性时跳过；同时新增 1 个 `PluginManagerHttpLifecycleTest`（2 个用例）覆盖 `installFromUrl + updatePlugin` 编排路径。CI 默认通道执行 5 个用例（3 本地 + 2 MockWebServer），按需启用 `-Pintegration` 跑全 9 个。所有新 instrumentation test 手工 DataStore 文件必须按 test 实例隔离。
 
 **Architecture:** 拆分原文件为 3 个 androidTest 文件；引入 `mockwebserver` 依赖；在 `:plugin/build.gradle.kts` 通过 `testInstrumentationRunnerArguments` 把 Gradle property 转成 instrumentation arg。无生产代码触动。
 
-**Tech Stack:** Kotlin、JUnit 4（`Assume`）、AndroidJUnit4、OkHttp `mockwebserver`、AndroidX Datastore（用于构造 `PluginMetaStore` 的 in-memory 实例，沿用原 IntegrationTest 模式）。
+**Tech Stack:** Kotlin、JUnit 4（`Assume`）、AndroidJUnit4、OkHttp `mockwebserver`、AndroidX Datastore（用于构造 `PluginMetaStore` 的测试实例；每个 test 实例使用 UUID 后缀 preferences 文件，避免 multiple active DataStores）。
 
 **Spec:** [`../specs/2026-05-04-test-suite-rehabilitation-design.md`](../specs/2026-05-04-test-suite-rehabilitation-design.md)（PR 2 = §5）
 
@@ -21,9 +21,36 @@
 | `gradle/libs.versions.toml` | Modify | 新增 `okhttp-mockwebserver` 库条目 |
 | `plugin/build.gradle.kts` | Modify | 新增 `testInstrumentationRunnerArguments["pluginNetworkTests"]` 桥接；`androidTestImplementation(libs.okhttp.mockwebserver)` |
 | `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeIntegrationTest.kt` | Delete | 拆分到下面 3 个文件 |
-| `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeLocalIntegrationTest.kt` | Create | 3 个无网络依赖的 runtime shim 用例 + 共享 helpers |
-| `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeNetworkIntegrationTest.kt` | Create | 4 个 kstore.vip 网络用例；类不带 `@Ignore`，`@Before` 做 `Assume` 门控 |
-| `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerHttpLifecycleTest.kt` | Create | 2 个 MockWebServer 用例覆盖 `installFromUrl + updatePlugin` 编排 |
+| `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeLocalIntegrationTest.kt` | Create | 3 个无网络依赖的 runtime shim 用例 + 共享 helpers；DataStore 文件名带 UUID 后缀 |
+| `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeNetworkIntegrationTest.kt` | Create | 4 个 kstore.vip 网络用例；类不带 `@Ignore`，`@Before` 做 `Assume` 门控；DataStore 文件名带 UUID 后缀 |
+| `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerHttpLifecycleTest.kt` | Create | 2 个 MockWebServer 用例覆盖 `installFromUrl + updatePlugin` 编排；DataStore 文件名带 UUID 后缀 |
+
+---
+
+## 全局测试隔离规则：DataStore 文件唯一
+
+这 3 个 instrumentation test 类都会直接调用 `PreferenceDataStoreFactory.create(...)`。不要复用固定的 `plugin-*.preferences_pb` 文件名。AndroidJUnit4 会为每个 `@Test` 方法创建新的测试类实例，旧 DataStore scope 不会因为实例丢弃而同步关闭；如果新实例访问同一路径，DataStore 会抛：
+
+```text
+There are multiple DataStores active for the same file
+```
+
+统一写法：
+
+```kotlin
+private fun testPreferencesFile(prefix: String): File =
+    File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")
+```
+
+各测试类 `setUp()` 中使用：
+
+```kotlin
+val dataStore = PreferenceDataStoreFactory.create(
+    produceFile = { testPreferencesFile("plugin-runtime-local-it") },
+)
+```
+
+需要在文件中导入 `java.util.UUID`。
 
 ---
 
@@ -188,6 +215,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.UUID
 
 /**
  * Local-only integration tests for PluginManager runtime shims.
@@ -204,7 +232,7 @@ class PluginRuntimeLocalIntegrationTest {
     fun setUp() {
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(appContext.cacheDir, "plugin-runtime-local-it.preferences_pb") },
+            produceFile = { testPreferencesFile("plugin-runtime-local-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()
@@ -345,6 +373,9 @@ class PluginRuntimeLocalIntegrationTest {
           }
         };
     """.trimIndent()
+
+    private fun testPreferencesFile(prefix: String): File =
+        File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")
 }
 ```
 
@@ -407,6 +438,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.UUID
 
 /**
  * Live-network integration tests for PluginManager. Depends on
@@ -430,7 +462,7 @@ class PluginRuntimeNetworkIntegrationTest {
 
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(appContext.cacheDir, "plugin-runtime-network-it.preferences_pb") },
+            produceFile = { testPreferencesFile("plugin-runtime-network-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()
@@ -579,6 +611,9 @@ class PluginRuntimeNetworkIntegrationTest {
         }
         pluginManager.loadAllPlugins()
     }
+
+    private fun testPreferencesFile(prefix: String): File =
+        File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")
 }
 ```
 
@@ -655,6 +690,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.UUID
 
 /**
  * MockWebServer-backed lifecycle tests for PluginManager.installFromUrl
@@ -674,7 +710,7 @@ class PluginManagerHttpLifecycleTest {
     fun setUp() {
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(appContext.cacheDir, "plugin-http-lifecycle-it.preferences_pb") },
+            produceFile = { testPreferencesFile("plugin-http-lifecycle-it") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()
@@ -770,6 +806,9 @@ class PluginManagerHttpLifecycleTest {
           }
         };
     """.trimIndent()
+
+    private fun testPreferencesFile(prefix: String): File =
+        File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")
 
     private companion object {
         const val PLATFORM = "mockws-lifecycle"

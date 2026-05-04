@@ -19,8 +19,9 @@
 - `./gradlew connectedAndroidTest --no-daemon`：初始失败点在 `:feature:home:connectedDebugAndroidTest`。测试进程崩溃原因是 test APK 找不到 `androidx.test.runner.AndroidJUnitRunner`，即 feature 模块声明了 `testInstrumentationRunner`，但没有打包 runner 依赖。后续 `:feature:player-ui`、`:feature:search`、`:feature:settings` 也存在同类配置风险。
 - 在修复 feature runner baseline 后，full `connectedAndroidTest` 继续暴露第二层失败：`D8: java.lang.OutOfMemoryError: Java heap space`，失败 task 为 `:plugin:mergeExtDexDebugAndroidTest`。单变量验证显示临时 `-Dorg.gradle.jvmargs=-Xmx4096m` 能越过该失败点，当前 `-Xmx2048m` 不足以支撑全量 androidTest dex 合并。
 - 在 4 GiB heap 下继续执行 full `connectedAndroidTest` 后，`:player:connectedDebugAndroidTest` 会卡在 `Starting 15 tests ... Tests 0/15 completed`。单类复现 `PlayerControllerTest` 卡在 `Starting 9 tests ... Tests 0/9 completed`，根因是 `@Before` 在 `context.mainExecutor` 主线程块中执行 `runBlocking { controller.connect() }`，阻塞了 `MediaController.buildAsync()` 需要的主线程/回调路径。
+- 在 PR 2 拆出本地 plugin instrumentation tests 后，默认 `:plugin:connectedAndroidTest` 暴露出 `installFromFile/installFromUrl` 返回 `null`：logcat 根因为 `PreferenceDataStoreFactory.create` 多个测试实例复用同一个 `*.preferences_pb` 文件，DataStore 抛 `There are multiple DataStores active for the same file`。该问题属于测试隔离缺陷，需为每个 test 实例创建唯一 preferences 文件。
 
-仓库当前共有 5 个方法级 `@Ignore` 与 1 个类级 `@Ignore`，分布在 4 个文件中。这些用例的失败均**非生产代码缺陷**，而是测试侧的根因。叠加全量 `connectedAndroidTest` 的 runner 崩溃、D8 OOM 与 player instrumentation setUp 死锁，按根因归为 6 组：
+仓库当前共有 5 个方法级 `@Ignore` 与 1 个类级 `@Ignore`，分布在 4 个文件中。这些用例的失败均**非生产代码缺陷**，而是测试侧的根因。叠加全量 `connectedAndroidTest` 的 runner 崩溃、D8 OOM、player instrumentation setUp 死锁与 plugin instrumentation DataStore 隔离问题，按根因归为 7 组：
 
 | 组 | 文件 | 案例 | 根因 |
 |---|---|---|---|
@@ -30,6 +31,7 @@
 | D | `feature/home`、`feature/player-ui`、`feature/search`、`feature/settings` 的 `build.gradle.kts` | 全量 `connectedAndroidTest` | feature 模块声明 `androidx.test.runner.AndroidJUnitRunner`，但未声明 androidTest runner 基础依赖；空/无测试模块仍会被全量 connected task 执行，导致 test APK 无法实例化 runner |
 | E | `gradle.properties` | 全量 `connectedAndroidTest` | Gradle daemon heap 固定 `-Xmx2048m`；full androidTest 构建到 `:plugin:mergeExtDexDebugAndroidTest` 时 D8 合并 dex OOM |
 | F | `player/src/androidTest/.../PlayerControllerTest.kt` | `PlayerControllerTest` 单类 + full `:player:connectedDebugAndroidTest` | `@Before` 在主线程 executor 内 `runBlocking { controller.connect() }`，主线程被阻塞后 MediaController async 连接无法完成；helper 的无界 `latch.await()` 放大为永久挂起 |
+| G | `plugin/src/androidTest/.../PluginRuntimeLocalIntegrationTest.kt`、`PluginRuntimeNetworkIntegrationTest.kt`、`PluginManagerHttpLifecycleTest.kt` | PR 2 默认 `:plugin:connectedAndroidTest` | AndroidJUnit4 每个方法创建新测试实例，但测试代码复用固定 DataStore 文件；旧 DataStore scope 未关闭时新实例访问同一路径会抛 multiple active DataStores |
 
 目标：
 
@@ -40,6 +42,7 @@
 5. 修复 `PlayerControllerTest` 的 setUp 主线程死锁，并让测试 helper 使用 bounded await，避免 instrumentation 无期限卡住。
 6. 不动生产代码（仅允许测试代码、测试依赖与 Gradle 测试 wiring）。
 7. 顺手补 1 条 `MockWebServer` lifecycle 用例，覆盖 `PluginManager.installFromUrl + updatePlugin` 编排路径——即"我们的代码"，与"真插件 JS 解析"双层正交。
+8. PR 2 中所有手工创建 `PreferenceDataStoreFactory.create(...)` 的 instrumentation test 必须使用唯一 preferences 文件，避免测试实例间共享 DataStore 文件。
 
 非目标（详见 §7 Out-of-scope）：
 
@@ -57,7 +60,7 @@
 ```
 
 - **PR 1**：Group D feature androidTest runner 基线 + Group E Gradle heap 基线 + Group F PlayerController instrumentation 死锁修复 + Group C `runTest` 迁移 + Group A HomeFidelity 断言改写。改动只触及 Gradle 测试依赖、Gradle 内存配置与测试代码。
-- **PR 2**：Group B `:plugin` 集成测试拆分 + MockWebServer + `-Pintegration` Gradle 门控 + 1 行 wiring 改 `:plugin/build.gradle.kts`。
+- **PR 2**：Group B/G `:plugin` 集成测试拆分 + MockWebServer + `-Pintegration` Gradle 门控 + instrumentation DataStore 文件隔离 + 1 行 wiring 改 `:plugin/build.gradle.kts`。
 
 执行顺序：PR 1 先行（先修全量 connected runner 崩溃，再 unblock 5 个方法级 ignore），PR 2 紧随。两 PR 文件路径基本不交集，可并行 review；若并行开发，PR 2 的最终 `./gradlew connectedAndroidTest` 需基于 PR 1 合入后的主线重跑。
 
@@ -315,9 +318,9 @@ private fun runOnAppThread(description: String = "main thread action", block: ()
 | 文件 | 操作 |
 |---|---|
 | `plugin/src/androidTest/.../PluginRuntimeIntegrationTest.kt` | **删除**（拆为下面 3 个文件） |
-| `plugin/src/androidTest/.../PluginRuntimeLocalIntegrationTest.kt` | **新增**：3 个本地用例 + 共享的 `runtimeShimScript` + `clearPluginStorage()` 工具；类**不带** `@Ignore` |
-| `plugin/src/androidTest/.../PluginRuntimeNetworkIntegrationTest.kt` | **新增**：4 个网络用例；类无 `@Ignore`，但 `@Before` 通过 `Assume.assumeTrue(...)` 在缺少 `-Pintegration` 时跳过 |
-| `plugin/src/androidTest/.../PluginManagerHttpLifecycleTest.kt` | **新增**：使用 MockWebServer 覆盖 `installFromUrl + updatePlugin` 编排路径（详见 §5.4） |
+| `plugin/src/androidTest/.../PluginRuntimeLocalIntegrationTest.kt` | **新增**：3 个本地用例 + 共享的 `runtimeShimScript` + `clearPluginStorage()` 工具；类**不带** `@Ignore`；DataStore 文件名带唯一后缀 |
+| `plugin/src/androidTest/.../PluginRuntimeNetworkIntegrationTest.kt` | **新增**：4 个网络用例；类无 `@Ignore`，但 `@Before` 通过 `Assume.assumeTrue(...)` 在缺少 `-Pintegration` 时跳过；DataStore 文件名带唯一后缀 |
+| `plugin/src/androidTest/.../PluginManagerHttpLifecycleTest.kt` | **新增**：使用 MockWebServer 覆盖 `installFromUrl + updatePlugin` 编排路径（详见 §5.4）；DataStore 文件名带唯一后缀 |
 | `plugin/build.gradle.kts` | 新增：`testInstrumentationRunnerArguments` 把 `-Pintegration` 转成 `pluginNetworkTests=true`；`androidTestImplementation` 加 `mockwebserver` |
 | `gradle/libs.versions.toml` | 新增：`okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }` |
 
@@ -364,6 +367,18 @@ class PluginRuntimeNetworkIntegrationTest {
 
 `Assume.assumeTrue` 失败 = "ignored/skipped"，**不污染 `@Ignore` 计数**——与真正"坏掉的 ignore"区分开。
 
+### 5.3.1 instrumentation DataStore 隔离
+
+PR 2 的 3 个新 instrumentation test 类都会手工构造：
+
+```kotlin
+val dataStore = PreferenceDataStoreFactory.create(
+    produceFile = { testPreferencesFile("plugin-runtime-local-it") },
+)
+```
+
+`testPreferencesFile(prefix)` 必须返回 `File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")`。不要复用固定文件名；AndroidJUnit4 每个 `@Test` 方法会创建新的 test class 实例，DataStore 对同一路径的 active scope 有单例约束，固定文件名会让后续实例在 `PluginMetaStore.getUserVariables(...).first()` 时抛 `There are multiple DataStores active for the same file`。
+
 ### 5.4 MockWebServer Lifecycle 用例（`PluginManagerHttpLifecycleTest`）
 
 **目标**：覆盖"我们的代码"——`PluginManager.installFromUrl` 与 `updatePlugin` 的编排路径，无需触网、无需真实插件 JS 解析能力，CI 默认运行。
@@ -406,7 +421,7 @@ PR 描述需明确："新增 feature androidTest runner 基线覆盖 4 个 featu
 ./gradlew assembleDebug && ./gradlew lint                 # 整体编译/lint 保护
 ```
 
-PR 描述需明确："拆分后 `@Ignore` 在 `:plugin/src/androidTest` 归零；新增 MockWebServer 用例 2 条；网络用例通过 `Assume` 门控（非 `@Ignore`），CI 默认跳过"。
+PR 描述需明确："拆分后 `@Ignore` 在 `:plugin/src/androidTest` 归零；新增 MockWebServer 用例 2 条；网络用例通过 `Assume` 门控（非 `@Ignore`），CI 默认跳过；instrumentation DataStore 文件按测试实例隔离，避免 multiple active DataStores"。
 
 ### 6.3 终态指标
 
@@ -438,6 +453,7 @@ grep -rn "@Ignore" --include="*.kt" 2>/dev/null | grep -v build/ | grep -v .work
 | `PlayerControllerTest` 停在 `Tests 0/N completed` | `@Before` 或 helper 仍在主线程执行无界 blocking wait | 禁止主线程 `runBlocking`；所有 `CountDownLatch.await()` 必须 bounded；连接用 `withTimeout` 让失败可诊断 |
 | HomeFidelity 用例 1 仍失败 | 真实 cold launch 时某个 anchor（如 `OperationsRoot`）也是延迟挂载 | 调整 `waitUntil` timeout 或换更稳定的 anchor；不应回到 `@Ignore` |
 | MockWebServer 用例不稳 | 端口冲突 / 服务未就绪 | 用 `mockWebServer.url("/wy.js")` 拿到带端口的 URL；`@Before` 中 `start()`，`@After` 中 `shutdown()` |
+| plugin 本地/MockWebServer 用例安装返回 `null` | DataStore 多个 test 实例复用同一个 `*.preferences_pb` 文件 | `PreferenceDataStoreFactory.create` 的 `produceFile` 使用 UUID 后缀；不要在 instrumentation tests 中复用固定 DataStore 路径 |
 | `-Pintegration` 通道在真机失败 | kstore.vip 临时不可达或 wy.js 行为变更 | 不阻塞 PR——这是设计上"按需手动通道"，单独排查；可在 PR 描述里贴一次成功的 log 作为 baseline |
 | Hilt singleton 状态在 androidTest 之间泄漏 | `@HiltAndroidTest` + 复用 application | β 方案不主动改 PlayerController 状态，无此风险 |
 
