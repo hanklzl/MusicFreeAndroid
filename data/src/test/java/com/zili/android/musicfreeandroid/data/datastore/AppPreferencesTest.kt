@@ -3,6 +3,8 @@ package com.zili.android.musicfreeandroid.data.datastore
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -134,6 +136,16 @@ class AppPreferencesTest {
     @Test
     fun `set lyric detail font size coerces to supported range`() = testScope.runTest {
         prefs.setLyricDetailFontSize(9)
+        assertEquals(3, prefs.lyricDetailFontSize.first())
+
+        prefs.setLyricDetailFontSize(-1)
+        assertEquals(0, prefs.lyricDetailFontSize.first())
+    }
+
+    @Test
+    fun `lyric detail font size read coerces persisted out of range value`() = testScope.runTest {
+        dataStore.edit { it[intPreferencesKey("lyric_detail_font_size")] = 9 }
+
         assertEquals(3, prefs.lyricDetailFontSize.first())
     }
 
