@@ -146,6 +146,26 @@ class PlaylistImportViewModelTest {
     }
 
     @Test
+    fun `openImportSheet emits import failed message when plugin loading throws`() = runTest {
+        runBlocking {
+            whenever(pluginManager.ensurePluginsLoaded()).thenThrow(RuntimeException("load failed"))
+        }
+        val viewModel = createViewModel()
+        val toastEvents = mutableListOf<String>()
+        val toastCollector = launch {
+            viewModel.events.filterIsInstance<PlaylistImportEvent.Toast>()
+                .collect { toastEvents.add(it.message) }
+        }
+
+        viewModel.openImportSheet()
+        advanceUntilIdle()
+
+        assertEquals("歌单导入失败", toastEvents.singleOrNull())
+        assertTrue(viewModel.importState.value is PlaylistImportState.Idle)
+        toastCollector.cancel()
+    }
+
+    @Test
     fun `submitUrl keeps InputUrl when blank and does not call plugin`() = runTest {
         val plugin = loadedPlugin(
             platform = "music-a",
@@ -409,6 +429,54 @@ class PlaylistImportViewModelTest {
         assertTrue(viewModel.importState.value is PlaylistImportState.Completed)
         assertTrue(!createdPlaylist?.id.isNullOrBlank())
         assertEquals(0, viewModel.sheetState.value.pendingItems.size)
+        toastCollector.cancel()
+    }
+
+    @Test
+    fun `createPlaylistAndImport cleans up created playlist when import fails`() = runTest {
+        val songs = listOf(musicItem("1", "Song A"), musicItem("2", "Song B"))
+        val plugin = loadedPlugin(
+            platform = "music-a",
+            supportedMethods = setOf("importMusicSheet"),
+            importResult = songs,
+        )
+        enabledPluginFlow.value = listOf(plugin)
+        var createdPlaylist: Playlist? = null
+        var deletedPlaylist: Playlist? = null
+        runBlocking {
+            whenever(playlistRepository.createPlaylist(any())).thenAnswer { invocation ->
+                createdPlaylist = invocation.getArgument<Playlist>(0)
+                Unit
+            }
+            whenever(playlistRepository.addMusicsToPlaylist(any(), eq(songs)))
+                .thenThrow(RuntimeException("db error"))
+            whenever(playlistRepository.deletePlaylist(any())).thenAnswer { invocation ->
+                deletedPlaylist = invocation.getArgument<Playlist>(0)
+                Unit
+            }
+        }
+
+        val viewModel = createViewModel()
+        viewModel.openImportSheet()
+        advanceUntilIdle()
+        viewModel.selectPlugin("music-a")
+        viewModel.submitUrl("https://music.example.com/list")
+        advanceUntilIdle()
+        viewModel.confirmFoundItems()
+
+        val toastEvents = mutableListOf<String>()
+        val toastCollector = launch {
+            viewModel.events.filterIsInstance<PlaylistImportEvent.Toast>()
+                .collect { toastEvents.add(it.message) }
+        }
+        advanceUntilIdle()
+        viewModel.createPlaylistAndImport("新歌单")
+        advanceUntilIdle()
+
+        assertEquals("导入失败，请重试", toastEvents.singleOrNull())
+        assertEquals(createdPlaylist, deletedPlaylist)
+        assertTrue(viewModel.importState.value is PlaylistImportState.ChooseTarget)
+        assertTrue(viewModel.sheetState.value.visible)
         toastCollector.cancel()
     }
 

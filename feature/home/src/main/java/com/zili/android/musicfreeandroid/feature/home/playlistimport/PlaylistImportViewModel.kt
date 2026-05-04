@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.home.playlistimport
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
@@ -8,14 +9,15 @@ import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -28,6 +30,7 @@ class PlaylistImportViewModel @Inject constructor(
 ) : ViewModel() {
 
     private companion object {
+        const val TAG = "PlaylistImportViewModel"
         const val PARSE_ERROR_TOAST = "链接有误或目标歌单为空"
         const val PARSE_EXCEPTION_TOAST = "歌单导入失败"
         const val IMPORT_ERROR_TOAST = "导入失败，请重试"
@@ -39,8 +42,8 @@ class PlaylistImportViewModel @Inject constructor(
     private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())
     val sheetState: StateFlow<AddToPlaylistSheetState> = _sheetState.asStateFlow()
 
-    private val _events = MutableSharedFlow<PlaylistImportEvent>(extraBufferCapacity = 1)
-    val events: SharedFlow<PlaylistImportEvent> = _events.asSharedFlow()
+    private val _events = Channel<PlaylistImportEvent>(capacity = Channel.BUFFERED)
+    val events: Flow<PlaylistImportEvent> = _events.receiveAsFlow()
 
     val allPlaylists: StateFlow<List<Playlist>> = playlistRepository.observeAllPlaylists()
         .stateIn(
@@ -67,7 +70,11 @@ class PlaylistImportViewModel @Inject constructor(
                     }
 
                 _importState.value = PlaylistImportState.ChoosePlugin(plugins)
-            } catch (_: Exception) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logError("Failed to load import-capable plugins", e)
+                postToast(PARSE_EXCEPTION_TOAST)
                 _importState.value = PlaylistImportState.Idle
             }
         }
@@ -106,7 +113,10 @@ class PlaylistImportViewModel @Inject constructor(
                 }
 
                 _importState.value = PlaylistImportState.ConfirmFound(state.plugin, parsedItems)
-            } catch (_: Exception) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logError("Failed to import playlist from ${state.plugin.platform}", e)
                 postToast(PARSE_EXCEPTION_TOAST)
                 _importState.value = PlaylistImportState.Idle
             }
@@ -149,7 +159,10 @@ class PlaylistImportViewModel @Inject constructor(
                     skipped = skipped,
                 )
                 postToast(importResultMessage(added, skipped))
-            } catch (_: Exception) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logError("Failed to add imported items to playlist $targetPlaylistId", e)
                 postToast(IMPORT_ERROR_TOAST)
                 _importState.value = PlaylistImportState.ChooseTarget(items)
             }
@@ -165,15 +178,16 @@ class PlaylistImportViewModel @Inject constructor(
 
         viewModelScope.launch {
             val playlistId = UUID.randomUUID().toString()
+            var createdPlaylist: Playlist? = null
 
             try {
-                playlistRepository.createPlaylist(
-                    Playlist(
-                        id = playlistId,
-                        name = playlistName,
-                        coverUri = null,
-                    ),
+                val playlist = Playlist(
+                    id = playlistId,
+                    name = playlistName,
+                    coverUri = null,
                 )
+                playlistRepository.createPlaylist(playlist)
+                createdPlaylist = playlist
 
                 val added = playlistRepository.addMusicsToPlaylist(playlistId, items)
                 val skipped = items.size - added
@@ -183,7 +197,11 @@ class PlaylistImportViewModel @Inject constructor(
                     skipped = skipped,
                 )
                 postToast(importResultMessage(added, skipped))
-            } catch (_: Exception) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logError("Failed to create playlist and import items", e)
+                createdPlaylist?.let { cleanupCreatedPlaylist(it) }
                 postToast(IMPORT_ERROR_TOAST)
                 _importState.value = PlaylistImportState.ChooseTarget(items)
             }
@@ -204,7 +222,16 @@ class PlaylistImportViewModel @Inject constructor(
             "已导入 $added 首"
         }
 
-    private suspend fun postToast(message: String) {
-        _events.emit(PlaylistImportEvent.Toast(message))
+    private suspend fun cleanupCreatedPlaylist(playlist: Playlist) {
+        runCatching { playlistRepository.deletePlaylist(playlist) }
+            .onFailure { e -> logError("Failed to clean up playlist ${playlist.id}", e) }
+    }
+
+    private fun postToast(message: String) {
+        _events.trySend(PlaylistImportEvent.Toast(message))
+    }
+
+    private fun logError(message: String, throwable: Throwable) {
+        runCatching { Log.e(TAG, message, throwable) }
     }
 }
