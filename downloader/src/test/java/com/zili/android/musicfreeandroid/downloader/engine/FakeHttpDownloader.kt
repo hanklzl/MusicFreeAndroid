@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.downloader.engine
 
+import com.zili.android.musicfreeandroid.downloader.io.HttpDownloadException
 import com.zili.android.musicfreeandroid.downloader.io.HttpDownloadProgress
 import com.zili.android.musicfreeandroid.downloader.io.HttpDownloader
 import kotlinx.coroutines.CompletableDeferred
@@ -16,6 +17,8 @@ class FakeHttpDownloader : HttpDownloader {
     private val allGates = mutableListOf<CompletableDeferred<Unit>>()
     private val nextGateIndex = AtomicInteger(0)
 
+    @Volatile private var pendingFailure = false
+
     fun holdNextN(n: Int) {
         repeat(n) { allGates += CompletableDeferred() }
     }
@@ -25,6 +28,8 @@ class FakeHttpDownloader : HttpDownloader {
         allGates.clear()
         nextGateIndex.set(0)
     }
+
+    fun failNext() { pendingFailure = true }
 
     override suspend fun download(
         url: String,
@@ -37,6 +42,10 @@ class FakeHttpDownloader : HttpDownloader {
         val idx = nextGateIndex.getAndIncrement()
         val gate: CompletableDeferred<Unit>? = if (idx < allGates.size) allGates[idx] else null
         try {
+            if (pendingFailure) {
+                pendingFailure = false
+                throw HttpDownloadException("simulated")
+            }
             target.parentFile?.mkdirs()
             target.writeBytes("ok".toByteArray())
             onProgress(HttpDownloadProgress(2, 2))
