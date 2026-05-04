@@ -50,16 +50,22 @@ class PluginManagerHttpLifecycleTest {
 
     @Test
     fun installFromUrl_writesPluginAndLoadsMeta() = runBlocking {
-        server.enqueue(MockResponse().setBody(scriptForVersion("1.0.0")))
+        val url = server.url("/mockws.js").toString()
+        server.enqueue(MockResponse().setBody(scriptForVersion(version = "1.0.0", srcUrl = url)))
 
         val plugin = pluginManager.installFromUrl(
-            url = server.url("/mockws.js").toString(),
+            url = url,
             fileName = "mockws-lifecycle.js",
         )
 
         assertNotNull("MockWebServer-served plugin should install", plugin)
         assertEquals(PLATFORM, plugin!!.info.platform)
         assertEquals("1.0.0", plugin.info.version)
+        assertEquals(
+            "Plugin info.srcUrl should round-trip from the JS module's srcUrl export",
+            url,
+            plugin.info.srcUrl,
+        )
 
         assertTrue(
             "Installed plugin file should be on disk",
@@ -78,15 +84,19 @@ class PluginManagerHttpLifecycleTest {
 
     @Test
     fun updatePlugin_refetchesAndReplaces() = runBlocking {
-        server.enqueue(MockResponse().setBody(scriptForVersion("1.0.0")))
+        val url = server.url("/mockws.js").toString()
+        server.enqueue(MockResponse().setBody(scriptForVersion(version = "1.0.0", srcUrl = url)))
         val installed = pluginManager.installFromUrl(
-            url = server.url("/mockws.js").toString(),
+            url = url,
             fileName = "mockws-update.js",
         )
         assertNotNull("Initial install should succeed", installed)
         assertEquals("1.0.0", installed!!.info.version)
 
-        server.enqueue(MockResponse().setBody(scriptForVersion("1.0.1")))
+        // updatePlugin re-fetches via PluginInfo.srcUrl (the JS module's `srcUrl`
+        // export field) — NOT the original installFromUrl `url` parameter — so the
+        // generated script must export srcUrl for the update path to be exercised.
+        server.enqueue(MockResponse().setBody(scriptForVersion(version = "1.0.1", srcUrl = url)))
         val update = pluginManager.updatePlugin(PLATFORM)
 
         assertEquals(PluginOperationType.UPDATE_SINGLE, update.operationType)
@@ -118,10 +128,11 @@ class PluginManagerHttpLifecycleTest {
         pluginManager.loadAllPlugins()
     }
 
-    private fun scriptForVersion(version: String): String = """
+    private fun scriptForVersion(version: String, srcUrl: String): String = """
         module.exports = {
           platform: '$PLATFORM',
           version: '$version',
+          srcUrl: '${srcUrl.replace("'", "\\'")}',
           supportedSearchType: ['music'],
           async search(query, page) {
             return { isEnd: true, data: [] };
