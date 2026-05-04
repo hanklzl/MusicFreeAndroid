@@ -34,4 +34,18 @@ class LyricDocumentTest {
 
         assertTrue(doc.isTimed)
     }
+
+    @Test
+    fun zeroTimestampLinesCanBeExplicitlyTimedWithoutRawLrc() {
+        val doc = LyricDocument(
+            musicId = "m1",
+            musicPlatform = "demo",
+            lines = listOf(ParsedLyricLine(index = 0, timeMs = 0L, text = "Intro")),
+            metaOffsetMs = 0L,
+            source = LyricSourceInfo.Plugin("demo"),
+            isTimed = true,
+        )
+
+        assertTrue(doc.isTimed)
+    }
 }

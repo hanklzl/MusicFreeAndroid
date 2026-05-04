@@ -9,11 +9,10 @@ data class LyricDocument(
     val rawLrc: String? = null,
     val rawLrcTxt: String? = null,
     val translationRaw: String? = null,
+    val isTimed: Boolean = lines.any { it.timeMs > 0L } ||
+        (lines.isNotEmpty() && rawLrc?.containsValidTimestamp() == true),
 ) {
     val hasTranslation: Boolean get() = lines.any { !it.translation.isNullOrBlank() }
-    val isTimed: Boolean
-        get() = lines.any { it.timeMs > 0L } ||
-            (lines.isNotEmpty() && rawLrc?.containsValidTimestamp() == true)
 }
 
 private val lyricTimestampRegex = Regex("\\[(?:\\d+:)?\\d+:\\d+(?:\\.\\d+)?]")

@@ -80,6 +80,24 @@ class LyricParserTest {
     }
 
     @Test
+    fun fallsBackToPlainTextWhenLrcHasNoLyricLines() {
+        val doc = LyricParser.parse(
+            musicId = "m1",
+            musicPlatform = "demo",
+            payload = RawLyricPayload(
+                rawLrc = "[offset:250]\n[00:01.00]",
+                rawLrcTxt = "Line A",
+            ),
+            source = source,
+        )
+
+        assertFalse(doc.isTimed)
+        assertEquals(250L, doc.metaOffsetMs)
+        assertEquals(listOf("Line A"), doc.lines.map { it.text })
+        assertEquals(listOf(0L), doc.lines.map { it.timeMs })
+    }
+
+    @Test
     fun parsesPlainTextAsStaticLines() {
         val doc = LyricParser.parse(
             musicId = "m1",
@@ -108,6 +126,31 @@ class LyricParserTest {
         assertTrue(doc.hasTranslation)
         assertEquals("你好", doc.lines[0].translation)
         assertEquals("世界", doc.lines[1].translation)
+    }
+
+    @Test
+    fun preservesBracketedTextAfterTimestamp() {
+        val doc = LyricParser.parse(
+            musicId = "m1",
+            musicPlatform = "demo",
+            payload = RawLyricPayload(rawLrc = "[00:01.00][Chorus] Hello"),
+            source = source,
+        )
+
+        assertEquals("[Chorus] Hello", doc.lines.single().text)
+    }
+
+    @Test
+    fun inlineOffsetTagIsLyricText() {
+        val doc = LyricParser.parse(
+            musicId = "m1",
+            musicPlatform = "demo",
+            payload = RawLyricPayload(rawLrc = "[00:01.00][offset:250] Hello"),
+            source = source,
+        )
+
+        assertEquals(0L, doc.metaOffsetMs)
+        assertEquals("[offset:250] Hello", doc.lines.single().text)
     }
 
     @Test

@@ -8,6 +8,7 @@ import kotlin.math.roundToLong
 
 object LyricParser {
     private val tagRegex = Regex("\\[([^\\]]+)]")
+    private val timestampTokenRegex = Regex("\\[(?:\\d+:)?\\d+:\\d+(?:\\.\\d+)?]")
 
     fun parse(
         musicId: String,
@@ -18,7 +19,9 @@ object LyricParser {
         val primaryRaw = payload.rawLrc?.takeIf { it.isNotBlank() }
         val parsedPrimary = primaryRaw?.let(::parseLrc)
         val baseLines = parsedPrimary?.lines
+            ?.takeIf { it.isNotEmpty() }
             ?: parsePlainText(payload.rawLrcTxt)
+        val isTimed = parsedPrimary?.hasTimestampLine == true && parsedPrimary.lines.isNotEmpty()
 
         val translationByTime = payload.translation
             ?.takeIf { it.isNotBlank() }
@@ -40,23 +43,26 @@ object LyricParser {
             rawLrc = payload.rawLrc,
             rawLrcTxt = payload.rawLrcTxt,
             translationRaw = payload.translation,
+            isTimed = isTimed,
         )
     }
 
     private fun parseLrc(raw: String): ParsedLrc {
         val parsedLines = mutableListOf<TimedText>()
         var metaOffsetMs = 0L
+        var hasTimestampLine = false
 
         raw.lineSequence().forEach { line ->
             val matches = tagRegex.findAll(line).toList()
             val timestamps = matches.mapNotNull { parseTimestampMs(it.groupValues[1]) }
 
-            matches.firstOrNull { it.groupValues[1].startsWith("offset:", ignoreCase = true) }
-                ?.let { metaOffsetMs = parseOffsetMs(it.groupValues[1]) ?: metaOffsetMs }
+            line.trim().takeIf { it.isOffsetMetaLine() }
+                ?.let { metaOffsetMs = parseOffsetMs(it.removeSurrounding("[", "]")) ?: metaOffsetMs }
 
             if (timestamps.isNotEmpty()) {
-                val text = tagRegex.replace(line, "").trim()
+                val text = timestampTokenRegex.replace(line, "").trim()
                 if (text.isNotBlank()) {
+                    hasTimestampLine = true
                     timestamps.forEach { timeMs ->
                         parsedLines += TimedText(timeMs = timeMs, text = text)
                     }
@@ -71,8 +77,9 @@ object LyricParser {
             }
 
         return ParsedLrc(
-            lines = sortedLines.ifEmpty { parsePlainText(tagRegex.replace(raw, "")) },
+            lines = sortedLines.ifEmpty { parsePlainText(removeTimestampOnlyLines(raw)) },
             metaOffsetMs = metaOffsetMs,
+            hasTimestampLine = hasTimestampLine,
         )
     }
 
@@ -92,6 +99,33 @@ object LyricParser {
         val parts = tag.split(':', limit = 2)
         if (parts.size != 2 || !parts[0].equals("offset", ignoreCase = true)) return null
         return parts[1].trim().toLongOrNull()
+    }
+
+    private fun String.isOffsetMetaLine(): Boolean =
+        startsWith("[", ignoreCase = true) &&
+            endsWith("]") &&
+            removeSurrounding("[", "]").startsWith("offset:", ignoreCase = true)
+
+    private fun removeTimestampOnlyLines(raw: String): String = raw
+        .lineSequence()
+        .map { line ->
+            if (line.hasOnlyTimestampOrOffsetTags()) {
+                ""
+            } else {
+                timestampTokenRegex.replace(line, "")
+            }
+        }
+        .joinToString("\n")
+
+    private fun String.hasOnlyTimestampOrOffsetTags(): Boolean {
+        val matches = tagRegex.findAll(this).toList()
+        if (matches.isEmpty()) return false
+
+        val allTagsAreControlTags = matches.all { match ->
+            parseTimestampMs(match.groupValues[1]) != null ||
+                match.groupValues[1].startsWith("offset:", ignoreCase = true)
+        }
+        return allTagsAreControlTags && tagRegex.replace(this, "").isBlank()
     }
 
     private fun parseTimestampMs(tag: String): Long? {
@@ -115,5 +149,6 @@ object LyricParser {
     private data class ParsedLrc(
         val lines: List<ParsedLyricLine>,
         val metaOffsetMs: Long,
+        val hasTimestampLine: Boolean,
     )
 }
