@@ -36,7 +36,6 @@ object LyricParser {
             musicPlatform = musicPlatform,
             lines = mergedLines,
             metaOffsetMs = parsedPrimary?.metaOffsetMs ?: 0L,
-            isTimed = parsedPrimary?.isTimed ?: false,
             source = source,
             rawLrc = payload.rawLrc,
             rawLrcTxt = payload.rawLrcTxt,
@@ -74,7 +73,6 @@ object LyricParser {
         return ParsedLrc(
             lines = sortedLines.ifEmpty { parsePlainText(tagRegex.replace(raw, "")) },
             metaOffsetMs = metaOffsetMs,
-            isTimed = sortedLines.isNotEmpty(),
         )
     }
 
@@ -117,6 +115,5 @@ object LyricParser {
     private data class ParsedLrc(
         val lines: List<ParsedLyricLine>,
         val metaOffsetMs: Long,
-        val isTimed: Boolean,
     )
 }
