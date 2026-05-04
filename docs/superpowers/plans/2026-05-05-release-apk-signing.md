@@ -399,8 +399,8 @@ Expected output includes:
 
 ```text
 Verified using v2 scheme (APK Signature Scheme v2): true
-Verified using v3 scheme (APK Signature Scheme v3): true
-Signer #1 certificate SHA-256 digest:
+Number of signers: 1
+V2 Signer: certificate SHA-256 digest:
 ```
 
 - [ ] **Step 4: Clear signing environment from the shell**
