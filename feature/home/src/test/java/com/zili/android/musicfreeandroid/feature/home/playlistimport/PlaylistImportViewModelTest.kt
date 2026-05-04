@@ -484,7 +484,7 @@ class PlaylistImportViewModelTest {
         viewModel.createPlaylistAndImport("  我的歌单  ")
         advanceUntilIdle()
 
-        assertEquals("playlistName=${createdPlaylist?.name}", "我的歌单", createdPlaylist?.name)
+        assertEquals("我的歌单", createdPlaylist?.name)
         assertEquals("已导入 2 首", toastEvents.singleOrNull())
         assertTrue(viewModel.importState.value is PlaylistImportState.Completed)
         assertTrue(!createdPlaylist?.id.isNullOrBlank())

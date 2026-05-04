@@ -193,8 +193,8 @@ class PlaylistImportViewModel @Inject constructor(
                     name = playlistName,
                     coverUri = null,
                 )
-                playlistRepository.createPlaylist(playlist)
                 createdPlaylist = playlist
+                playlistRepository.createPlaylist(playlist)
 
                 val added = playlistRepository.addMusicsToPlaylist(playlistId, items)
                 val skipped = items.size - added
