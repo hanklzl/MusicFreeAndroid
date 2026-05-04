@@ -7,9 +7,11 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
+import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
@@ -40,6 +42,26 @@ class PermissionsHelpersTest {
     }
 
     @Test
+    fun `requiredNotificationPermission returns POST_NOTIFICATIONS on API 33 and above`() {
+        assertEquals(
+            Manifest.permission.POST_NOTIFICATIONS,
+            requiredNotificationPermission(Build.VERSION_CODES.TIRAMISU),
+        )
+    }
+
+    @Test
+    fun `requiredNotificationPermission returns null below API 33`() {
+        assertNull(requiredNotificationPermission(Build.VERSION_CODES.TIRAMISU - 1))
+    }
+
+    @Test
+    fun `hasNotificationPermission returns true below API 33`() {
+        val context: Context = RuntimeEnvironment.getApplication()
+
+        assertTrue(hasNotificationPermission(context, Build.VERSION_CODES.TIRAMISU - 1))
+    }
+
+    @Test
     fun `openOverlaySettings returns false when intent cannot resolve`() {
         val packageManager = mock<PackageManager>()
         whenever(packageManager.resolveActivity(any(), any<Int>())).thenReturn(null)
@@ -61,6 +83,7 @@ class PermissionsHelpersTest {
 
         assertFalse(uiState.overlayGranted)
         assertFalse(uiState.storageAudioGranted)
+        assertFalse(uiState.notificationGranted)
     }
 }
 
