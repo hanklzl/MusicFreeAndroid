@@ -114,4 +114,37 @@ class AppPreferencesTest {
 
         assertNull(prefs.storageDirectoryUri.first())
     }
+
+    @Test
+    fun `default lyric show translation is false`() = testScope.runTest {
+        assertFalse(prefs.lyricShowTranslation.first())
+    }
+
+    @Test
+    fun `set lyric show translation`() = testScope.runTest {
+        prefs.setLyricShowTranslation(true)
+        assertTrue(prefs.lyricShowTranslation.first())
+    }
+
+    @Test
+    fun `default lyric detail font size is one`() = testScope.runTest {
+        assertEquals(1, prefs.lyricDetailFontSize.first())
+    }
+
+    @Test
+    fun `set lyric detail font size coerces to supported range`() = testScope.runTest {
+        prefs.setLyricDetailFontSize(9)
+        assertEquals(3, prefs.lyricDetailFontSize.first())
+    }
+
+    @Test
+    fun `default lyric auto search is true`() = testScope.runTest {
+        assertTrue(prefs.lyricAutoSearchEnabled.first())
+    }
+
+    @Test
+    fun `set lyric auto search`() = testScope.runTest {
+        prefs.setLyricAutoSearchEnabled(false)
+        assertFalse(prefs.lyricAutoSearchEnabled.first())
+    }
 }

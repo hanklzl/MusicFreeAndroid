@@ -74,6 +74,30 @@ class AppPreferences @Inject constructor(
         }
     }
 
+    val lyricShowTranslation: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_LYRIC_SHOW_TRANSLATION] ?: false
+    }
+
+    suspend fun setLyricShowTranslation(enabled: Boolean) {
+        dataStore.edit { it[KEY_LYRIC_SHOW_TRANSLATION] = enabled }
+    }
+
+    val lyricDetailFontSize: Flow<Int> = dataStore.data.map { prefs ->
+        (prefs[KEY_LYRIC_DETAIL_FONT_SIZE] ?: 1).coerceIn(0, 3)
+    }
+
+    suspend fun setLyricDetailFontSize(size: Int) {
+        dataStore.edit { it[KEY_LYRIC_DETAIL_FONT_SIZE] = size.coerceIn(0, 3) }
+    }
+
+    val lyricAutoSearchEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_LYRIC_AUTO_SEARCH_ENABLED] ?: true
+    }
+
+    suspend fun setLyricAutoSearchEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_LYRIC_AUTO_SEARCH_ENABLED] = enabled }
+    }
+
     // ── Search History ──
 
     val searchHistory: Flow<List<String>> = dataStore.data.map { prefs ->
@@ -111,6 +135,9 @@ class AppPreferences @Inject constructor(
         val KEY_DARK_MODE = booleanPreferencesKey("dark_mode")
         val KEY_CURRENT_MUSIC_INDEX = intPreferencesKey("current_music_index")
         val KEY_STORAGE_DIRECTORY_URI = stringPreferencesKey("storage_directory_uri")
+        val KEY_LYRIC_SHOW_TRANSLATION = booleanPreferencesKey("lyric_show_translation")
+        val KEY_LYRIC_DETAIL_FONT_SIZE = intPreferencesKey("lyric_detail_font_size")
+        val KEY_LYRIC_AUTO_SEARCH_ENABLED = booleanPreferencesKey("lyric_auto_search_enabled")
         val KEY_SEARCH_HISTORY = stringPreferencesKey("search_history")
         const val MAX_SEARCH_HISTORY = 20
     }
