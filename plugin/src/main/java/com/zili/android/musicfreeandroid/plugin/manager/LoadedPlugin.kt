@@ -197,7 +197,7 @@ class LoadedPlugin(
                 val result = engine.evaluate<Any?>(
                     "await __plugin.importMusicSheet('${escapeJsString(urlLike)}')"
                 )
-                JsBridge.parseImportMusicSheetResult(result)
+                JsBridge.parseImportMusicSheetResult(result, fallbackPlatform = info.platform)
             } catch (e: Exception) {
                 Log.e(TAG, "importMusicSheet failed on ${info.platform}", e)
                 null
