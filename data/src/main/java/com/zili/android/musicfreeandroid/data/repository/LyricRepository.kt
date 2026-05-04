@@ -27,49 +27,55 @@ class LyricRepository @Inject constructor(
         lyricCacheDao.getByKey(music.platform, music.id)?.toModel(converters)
 
     suspend fun saveRemoteLyric(music: MusicItem, source: LyricSourceInfo, payload: RawLyricPayload) {
-        val current = lyricCacheDao.getByKey(music.platform, music.id)
-        lyricCacheDao.upsert(
-            baseEntity(music, current).copy(
-                remoteRawLrc = payload.rawLrc,
-                remoteRawLrcTxt = payload.rawLrcTxt,
-                remoteTranslation = payload.translation,
-                remoteSourceType = source::class.simpleName,
-                remoteSourcePlatform = source.platformOrNull(),
-                remoteSourceMusicId = source.idOrNull(),
-                remoteSourceTitle = source.titleOrNull(),
-                updatedAt = System.currentTimeMillis(),
-            ),
+        ensureRow(music)
+        lyricCacheDao.saveRemoteLyric(
+            platform = music.platform,
+            id = music.id,
+            remoteRawLrc = payload.rawLrc,
+            remoteRawLrcTxt = payload.rawLrcTxt,
+            remoteTranslation = payload.translation,
+            remoteSourceType = source.typeOrNull(),
+            remoteSourcePlatform = source.platformOrNull(),
+            remoteSourceMusicId = source.idOrNull(),
+            remoteSourceTitle = source.titleOrNull(),
+            updatedAt = System.currentTimeMillis(),
         )
     }
 
     suspend fun associateLyric(music: MusicItem, target: MusicItem) {
-        val current = lyricCacheDao.getByKey(music.platform, music.id)
-        lyricCacheDao.upsert(
-            baseEntity(music, current).copy(
-                associatedMusicJson = converters.musicItemToJson(target),
-                updatedAt = System.currentTimeMillis(),
-            ),
+        ensureRow(music)
+        lyricCacheDao.setAssociation(
+            platform = music.platform,
+            id = music.id,
+            associatedMusicJson = converters.musicItemToJson(target),
+            updatedAt = System.currentTimeMillis(),
         )
     }
 
     suspend fun clearAssociatedLyric(music: MusicItem) {
-        ensureRow(music)
         lyricCacheDao.clearAssociation(music.platform, music.id, System.currentTimeMillis())
     }
 
     suspend fun importLocalLyric(music: MusicItem, rawText: String, kind: LocalLyricKind) {
-        val current = lyricCacheDao.getByKey(music.platform, music.id)
-        val base = baseEntity(music, current)
-        lyricCacheDao.upsert(
-            when (kind) {
-                LocalLyricKind.Raw -> base.copy(localRawLrc = rawText, updatedAt = System.currentTimeMillis())
-                LocalLyricKind.Translation -> base.copy(localTranslation = rawText, updatedAt = System.currentTimeMillis())
-            },
-        )
+        ensureRow(music)
+        when (kind) {
+            LocalLyricKind.Raw -> lyricCacheDao.setLocalRawLyric(
+                platform = music.platform,
+                id = music.id,
+                raw = rawText,
+                updatedAt = System.currentTimeMillis(),
+            )
+
+            LocalLyricKind.Translation -> lyricCacheDao.setLocalTranslation(
+                platform = music.platform,
+                id = music.id,
+                translation = rawText,
+                updatedAt = System.currentTimeMillis(),
+            )
+        }
     }
 
     suspend fun deleteLocalLyric(music: MusicItem) {
-        ensureRow(music)
         lyricCacheDao.deleteLocalLyrics(music.platform, music.id, System.currentTimeMillis())
     }
 
@@ -79,28 +85,25 @@ class LyricRepository @Inject constructor(
     }
 
     private suspend fun ensureRow(music: MusicItem) {
-        if (lyricCacheDao.getByKey(music.platform, music.id) == null) {
-            lyricCacheDao.upsert(baseEntity(music, null))
-        }
+        lyricCacheDao.insertIgnore(baseEntity(music))
     }
 
-    private fun baseEntity(music: MusicItem, current: LyricCacheEntity?): LyricCacheEntity =
-        current ?: LyricCacheEntity(
-            musicId = music.id,
-            musicPlatform = music.platform,
-            remoteRawLrc = null,
-            remoteRawLrcTxt = null,
-            remoteTranslation = null,
-            remoteSourceType = null,
-            remoteSourcePlatform = null,
-            remoteSourceMusicId = null,
-            remoteSourceTitle = null,
-            localRawLrc = null,
-            localTranslation = null,
-            associatedMusicJson = null,
-            userOffsetMs = 0L,
-            updatedAt = System.currentTimeMillis(),
-        )
+    private fun baseEntity(music: MusicItem): LyricCacheEntity = LyricCacheEntity(
+        musicId = music.id,
+        musicPlatform = music.platform,
+        remoteRawLrc = null,
+        remoteRawLrcTxt = null,
+        remoteTranslation = null,
+        remoteSourceType = null,
+        remoteSourcePlatform = null,
+        remoteSourceMusicId = null,
+        remoteSourceTitle = null,
+        localRawLrc = null,
+        localTranslation = null,
+        associatedMusicJson = null,
+        userOffsetMs = 0L,
+        updatedAt = System.currentTimeMillis(),
+    )
 }
 
 private fun LyricSourceInfo.platformOrNull(): String? = when (this) {
@@ -122,4 +125,13 @@ private fun LyricSourceInfo.titleOrNull(): String? = when (this) {
     is LyricSourceInfo.AutoSearch -> title
     is LyricSourceInfo.Associated -> title
     else -> null
+}
+
+private fun LyricSourceInfo.typeOrNull(): String = when (this) {
+    is LyricSourceInfo.Plugin -> "plugin"
+    is LyricSourceInfo.AutoSearch -> "auto_search"
+    is LyricSourceInfo.Associated -> "associated"
+    LyricSourceInfo.Cache -> "cache"
+    LyricSourceInfo.LocalRaw -> "local_raw"
+    LyricSourceInfo.LocalTranslation -> "local_translation"
 }

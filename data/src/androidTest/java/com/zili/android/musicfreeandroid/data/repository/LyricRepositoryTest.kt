@@ -8,6 +8,7 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.zili.android.musicfreeandroid.data.db.entity.LyricCacheEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -49,14 +50,52 @@ class LyricRepositoryTest {
         val cache = repository.observeCache(music).first()
         assertEquals("[00:01.00]Hello", cache?.remotePayload?.rawLrc)
         assertEquals("[00:01.00]你好", cache?.remotePayload?.translation)
+        assertEquals("plugin", cache?.remoteSourceType)
         assertEquals("demo", cache?.remoteSourcePlatform)
+    }
+
+    @Test
+    fun saveRemoteLyricKeepsLocalAssociationAndOffset() = runTest {
+        val music = musicItem("1", "demo")
+        val target = musicItem("t-1", "lyric")
+
+        repository.importLocalLyric(music, "local", LocalLyricKind.Raw)
+        repository.associateLyric(music, target)
+        repository.setLyricOffset(music, 123L)
+
+        repository.saveRemoteLyric(
+            music = music,
+            source = LyricSourceInfo.Plugin("demo"),
+            payload = RawLyricPayload(rawLrc = "remote"),
+        )
+
+        val cache = repository.getCache(music)
+        assertEquals("remote", cache?.remotePayload?.rawLrc)
+        assertEquals("local", cache?.localRawLrc)
+        assertEquals(target.id, cache?.associatedMusic?.id)
+        assertEquals(123L, cache?.userOffsetMs)
     }
 
     @Test
     fun importLocalLyricKeepsRemoteCache() = runTest {
         val music = musicItem("1", "demo")
         repository.saveRemoteLyric(music, LyricSourceInfo.Plugin("demo"), RawLyricPayload(rawLrc = "remote"))
+        repository.associateLyric(music, musicItem("t-1", "lyric"))
+        repository.setLyricOffset(music, 321L)
 
+        repository.importLocalLyric(music, "local", LocalLyricKind.Translation)
+
+        val cache = repository.getCache(music)
+        assertEquals("remote", cache?.remotePayload?.rawLrc)
+        assertEquals("local", cache?.localTranslation)
+        assertEquals("t-1", cache?.associatedMusic?.id)
+        assertEquals(321L, cache?.userOffsetMs)
+    }
+
+    @Test
+    fun importLocalLyricKeepsRemoteCacheWithNoRow() = runTest {
+        val music = musicItem("2", "demo")
+        repository.saveRemoteLyric(music, LyricSourceInfo.Plugin("demo"), RawLyricPayload(rawLrc = "remote"))
         repository.importLocalLyric(music, "local", LocalLyricKind.Raw)
 
         val cache = repository.getCache(music)
@@ -77,12 +116,57 @@ class LyricRepositoryTest {
     }
 
     @Test
+    fun clearAssociatedLyricDoesNotCreateRowWhenMissing() = runTest {
+        val music = musicItem("2", "demo")
+
+        repository.clearAssociatedLyric(music)
+
+        assertNull(db.lyricCacheDao().getByKey("demo", "2"))
+    }
+
+    @Test
+    fun deleteLocalLyricDoesNotCreateRowWhenMissing() = runTest {
+        val music = musicItem("3", "demo")
+
+        repository.deleteLocalLyric(music)
+
+        assertNull(db.lyricCacheDao().getByKey("demo", "3"))
+    }
+
+    @Test
     fun setOffsetCreatesCacheRow() = runTest {
         val music = musicItem("1", "demo")
 
         repository.setLyricOffset(music, 500L)
 
         assertEquals(500L, repository.getCache(music)?.userOffsetMs)
+    }
+
+    @Test
+    fun associatedMusicJsonCorruptJsonReturnsNull() = runTest {
+        val music = musicItem("4", "demo")
+        db.lyricCacheDao().insertIgnore(
+            LyricCacheEntity(
+                musicId = music.id,
+                musicPlatform = music.platform,
+                remoteRawLrc = null,
+                remoteRawLrcTxt = null,
+                remoteTranslation = null,
+                remoteSourceType = null,
+                remoteSourcePlatform = null,
+                remoteSourceMusicId = null,
+                remoteSourceTitle = null,
+                localRawLrc = null,
+                localTranslation = null,
+                associatedMusicJson = "{invalid-json",
+                userOffsetMs = 0L,
+                updatedAt = 1L,
+            ),
+        )
+
+        val cache = repository.getCache(music)
+
+        assertNull(cache?.associatedMusic)
     }
 
     private fun musicItem(id: String, platform: String) = MusicItem(
