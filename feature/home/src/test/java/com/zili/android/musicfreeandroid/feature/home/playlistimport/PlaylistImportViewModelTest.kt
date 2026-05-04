@@ -30,6 +30,7 @@ import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
@@ -439,7 +440,8 @@ class PlaylistImportViewModelTest {
         viewModel.addImportedItemsToPlaylist("playlist-1")
         advanceUntilIdle()
 
-        assertTrue(viewModel.importState.value is PlaylistImportState.ChooseTarget)
+        assertTrue(viewModel.importState.value is PlaylistImportState.Parsing)
+        assertFalse(viewModel.sheetState.value.visible)
 
         viewModel.dismissImportFlow()
         addGate.complete(2)
@@ -447,6 +449,39 @@ class PlaylistImportViewModelTest {
 
         assertEquals(PlaylistImportState.Idle, viewModel.importState.value)
         assertFalse(viewModel.sheetState.value.visible)
+    }
+
+    @Test
+    fun `addImportedItemsToPlaylist ignores duplicate target clicks while import is pending`() = runTest {
+        val songs = listOf(musicItem("1", "Song A"), musicItem("2", "Song B"))
+        val addGate = CompletableDeferred<Int>()
+        runBlocking {
+            whenever(playlistRepository.addMusicsToPlaylist("playlist-1", songs)).doSuspendableAnswer {
+                addGate.await()
+            }
+        }
+
+        val viewModel = createViewModel()
+        viewModel.confirmImportTarget(songs)
+        viewModel.addImportedItemsToPlaylist("playlist-1")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.importState.value is PlaylistImportState.Parsing)
+        assertFalse(viewModel.sheetState.value.visible)
+
+        viewModel.addImportedItemsToPlaylist("playlist-1")
+        advanceUntilIdle()
+
+        verify(playlistRepository, times(1)).addMusicsToPlaylist("playlist-1", songs)
+
+        addGate.complete(2)
+        advanceUntilIdle()
+
+        val state = viewModel.importState.value
+        assertTrue(state is PlaylistImportState.Completed)
+        state as PlaylistImportState.Completed
+        assertEquals(2, state.added)
+        assertEquals(0, state.skipped)
     }
 
     @Test

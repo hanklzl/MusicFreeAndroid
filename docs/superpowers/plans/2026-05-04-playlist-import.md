@@ -1,75 +1,75 @@
-# 歌单导入功能 Implementation Plan
+# 歌单导入功能实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **面向 agent worker：** 必须使用 `superpowers:subagent-driven-development`（推荐）或 `superpowers:executing-plans`，按任务逐步执行本计划。步骤使用复选框（`- [ ]`）跟踪。
 
-**Goal:** 在首页“我的歌单”区域实现对齐 RN 原版的“导入歌单”链路：选择支持插件、输入链接、解析确认、批量添加到目标歌单并跳过重复歌曲。
+**目标：** 在首页“我的歌单”区域实现对齐 RN 原版的“导入歌单”链路：选择支持插件、输入链接、解析确认、批量添加到目标歌单并跳过重复歌曲。
 
-**Architecture:** 插件模块负责公开 `importMusicSheet` 能力和解析兜底平台；`feature:home` 新增独立 `PlaylistImportViewModel` 管理导入 flow；`core.ui` 的添加到歌单状态扩展为批量歌曲；`data` 的批量写入改为 Room 事务。首页不新增路由，仍通过底部面板和对话框完成交互。
+**架构：** 插件模块负责公开 `importMusicSheet` 能力和解析兜底平台；`feature:home` 新增独立 `PlaylistImportViewModel` 管理导入 flow；`core.ui` 的添加到歌单状态扩展为批量歌曲；`data` 的批量写入改为 Room 事务。首页不新增路由，仍通过底部面板和对话框完成交互。
 
-**Tech Stack:** Kotlin、Coroutines / Flow、Hilt ViewModel、Jetpack Compose Material3、Room、QuickJS 插件桥、JUnit / Mockito / Robolectric / Compose UI Test。
+**技术栈：** Kotlin、Coroutines / Flow、Hilt ViewModel、Jetpack Compose Material3、Room、QuickJS 插件桥、JUnit / Mockito / Robolectric / Compose UI 测试。
 
 ---
 
 ## 工作区
 
 - 分支：`feat/playlist-import`
-- Worktree：`.worktrees/playlist-import`
+- 工作树：`.worktrees/playlist-import`
 - 当前规范：[歌单导入功能设计](../specs/2026-05-04-playlist-import-design.md)
 - 相关规范：[用户歌单功能设计](../specs/2026-05-04-playlist-feature-design.md)、[UI Harness Rules](../../ui-harness/screen-chrome-rules.md)
 
 ## 文件结构
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
+- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
   - 为插件元信息增加 `supportedMethods`。
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
+- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
   - 加载插件时检测核心方法集合。
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
+- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
   - `importMusicSheet` 调用 `JsBridge` 时传入当前插件平台。
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
+- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
   - `parseImportMusicSheetResult` 支持 fallback platform。
-- Modify: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt`
+- 修改： `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt`
   - 覆盖导入歌单解析的平台兜底。
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
+- 修改： `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
   - 单曲 pending 扩展为批量 pending。
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
+- 修改： `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
   - 使用新的批量状态 helper，保持单曲行为。
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
+- 修改： `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
   - 使用新的批量状态 helper，保持单曲行为。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt`
+- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt`
   - 使用新的批量状态 helper，保持单曲行为。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
   - 使用新的批量状态 helper，保持单曲行为。
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
+- 修改： `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
   - 覆盖 `pendingItems`。
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
+- 修改： `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
   - 注入 `AppDatabase`，批量写入使用 `withTransaction`。
-- Modify: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`
+- 修改： `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`
   - 覆盖批量导入新增数、重复跳过、顺序保持。
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportModels.kt`
+- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportModels.kt`
   - 导入 UI 状态、插件 UI 模型、事件模型。
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
+- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
   - 首页导入 flow 状态机。
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt`
-  - Compose host：插件列表底部面板、输入框、解析中、确认、添加到歌单面板。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
+- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt`
+  - Compose Host：插件列表底部面板、输入框、解析中、确认、添加到歌单面板。
+- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
   - 接入 `PlaylistImportViewModel` 和 `PlaylistImportHost`。
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModelTest.kt`
+- 创建： `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModelTest.kt`
   - 覆盖导入状态机。
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHostTest.kt`
+- 创建： `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHostTest.kt`
   - 覆盖导入 UI 关键节点。
-- Modify: `docs/DOCS_STATUS.md`
+- 修改： `docs/DOCS_STATUS.md`
   - plan 完成后确认 spec 已登记；本 plan 不需要登记为当前规范。
 
 ---
 
 ### Task 1: 插件导入解析和能力识别
 
-**Files:**
-- Modify: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
+**文件：**
+- 修改： `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt`
+- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
+- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
+- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
+- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
 
 - [ ] **Step 1: 写失败测试，覆盖导入歌单平台兜底**
 
@@ -102,13 +102,13 @@ fun `parseImportMusicSheetResult keeps explicit non blank platform`() {
 
 - [ ] **Step 2: 运行测试，确认失败**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :plugin:testDebugUnitTest --tests com.zili.android.musicfreeandroid.plugin.engine.JsBridgeTest
 ```
 
-Expected: FAIL，错误为 `parseImportMusicSheetResult` 没有 `fallbackPlatform` 参数。
+预期：失败，错误为 `parseImportMusicSheetResult` 没有 `fallbackPlatform` 参数。
 
 - [ ] **Step 3: 实现 `JsBridge` 平台兜底**
 
@@ -196,13 +196,13 @@ supportedMethods = supportedMethods(),
 
 - [ ] **Step 5: 运行插件测试**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :plugin:testDebugUnitTest --tests com.zili.android.musicfreeandroid.plugin.engine.JsBridgeTest
 ```
 
-Expected: PASS。
+预期：通过。
 
 - [ ] **Step 6: 提交**
 
@@ -215,13 +215,13 @@ git commit -m "feat(plugin): expose import sheet capability"
 
 ### Task 2: 添加到歌单状态支持批量歌曲
 
-**Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
-- Test: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
+**文件：**
+- 修改： `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
+- 修改： `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
+- 修改： `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
+- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt`
+- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- 测试： `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
 
 - [ ] **Step 1: 写失败测试，断言单曲入口写入 `pendingItems`**
 
@@ -236,13 +236,13 @@ assertEquals(listOf(item), s.pendingItems)
 
 - [ ] **Step 2: 运行测试，确认失败**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelTest
 ```
 
-Expected: FAIL，错误为 `pendingItems` 未定义。
+预期：失败，错误为 `pendingItems` 未定义。
 
 - [ ] **Step 3: 扩展 `AddToPlaylistSheetState`**
 
@@ -289,14 +289,14 @@ feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/plugin
 
 - [ ] **Step 5: 运行相关测试**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelTest
 ./gradlew :feature:search:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest
 ```
 
-Expected: PASS。
+预期：通过。
 
 - [ ] **Step 6: 提交**
 
@@ -309,9 +309,9 @@ git commit -m "feat(core): support batch add-to-playlist state"
 
 ### Task 3: 批量导入写入改为事务并返回新增数量
 
-**Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
-- Modify: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`
+**文件：**
+- 修改： `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
+- 修改： `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`
 
 - [ ] **Step 1: 写失败测试，覆盖新增数和重复跳过**
 
@@ -355,13 +355,13 @@ fun addMusicsToPlaylist_preservesImportOrderForManualSort() = runBlocking {
 
 - [ ] **Step 2: 运行测试，确认现有实现对重复输入列表返回值不符合期望时失败**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest
 ```
 
-Expected: 当前实现可能在无设备环境无法运行；有设备时应至少暴露批量事务和重复列表统计的实现差距。若无设备，继续实现后在最终验收记录“未运行 connected 测试：无设备”。
+预期：当前实现可能在无设备环境无法运行；有设备时应至少暴露批量事务和重复列表统计的实现差距。若无设备，继续实现后在最终验收记录“未运行 connected 测试：无设备”。
 
 - [ ] **Step 3: 为 Repository 注入数据库**
 
@@ -438,14 +438,14 @@ private suspend fun addMusicToPlaylistInternal(playlistId: String, item: MusicIt
 
 - [ ] **Step 5: 运行编译和可用测试**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :data:testDebugUnitTest
 ./gradlew :data:compileDebugAndroidTestKotlin
 ```
 
-Expected: PASS。
+预期：通过。
 
 设备可用时再运行：
 
@@ -453,7 +453,7 @@ Expected: PASS。
 ./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest
 ```
 
-Expected: PASS。
+预期：通过。
 
 - [ ] **Step 6: 提交**
 
@@ -466,10 +466,10 @@ git commit -m "feat(data): import playlist songs in batch"
 
 ### Task 4: 新增 PlaylistImportViewModel 状态机
 
-**Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportModels.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModelTest.kt`
+**文件：**
+- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportModels.kt`
+- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
+- 创建： `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModelTest.kt`
 
 - [ ] **Step 1: 写 ViewModel 测试骨架和 helper**
 
@@ -632,13 +632,13 @@ fun `addImportedItemsToPlaylist reports added and skipped counts`() = runTest {
 
 - [ ] **Step 3: 运行测试，确认失败**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportViewModelTest
 ```
 
-Expected: FAIL，类和状态模型尚未创建。
+预期：失败，类和状态模型尚未创建。
 
 - [ ] **Step 4: 创建状态模型**
 
@@ -828,13 +828,13 @@ class PlaylistImportViewModel @Inject constructor(
 
 - [ ] **Step 6: 运行 ViewModel 测试**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportViewModelTest
 ```
 
-Expected: PASS。
+预期：通过。
 
 - [ ] **Step 7: 提交**
 
@@ -847,9 +847,9 @@ git commit -m "feat(home): add playlist import state machine"
 
 ### Task 5: 实现首页导入 UI Host 并接入 HomeScreen
 
-**Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
+**文件：**
+- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt`
+- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
 
 - [ ] **Step 1: 创建导入 UI Host**
 
@@ -1135,13 +1135,13 @@ PlaylistImportRoute(viewModel = importViewModel)
 
 - [ ] **Step 3: 编译 feature home**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :feature:home:compileDebugKotlin
 ```
 
-Expected: PASS。
+预期：通过。
 
 - [ ] **Step 4: 提交**
 
@@ -1154,8 +1154,8 @@ git commit -m "feat(home): wire playlist import UI"
 
 ### Task 6: UI 测试覆盖导入面板关键交互
 
-**Files:**
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHostTest.kt`
+**文件：**
+- 创建： `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHostTest.kt`
 
 - [ ] **Step 1: 写 UI 测试**
 
@@ -1298,13 +1298,13 @@ class PlaylistImportHostTest {
 
 - [ ] **Step 2: 运行 UI 测试**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportHostTest
 ```
 
-Expected: PASS。
+预期：通过。
 
 - [ ] **Step 3: 提交**
 
@@ -1317,42 +1317,42 @@ git commit -m "test(home): cover playlist import UI"
 
 ### Task 7: 集成回归和收口
 
-**Files:**
-- Inspect: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
-- Inspect: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
-- Inspect: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
-- Inspect: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
-- Inspect: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt`
+**文件：**
+- 检查： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
+- 检查： `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
+- 检查： `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
+- 检查： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
+- 检查： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt`
 
 - [ ] **Step 1: 运行模块单测**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :plugin:testDebugUnitTest :feature:player-ui:testDebugUnitTest :feature:search:testDebugUnitTest :feature:home:testDebugUnitTest :data:testDebugUnitTest
 ```
 
-Expected: PASS。
+预期：通过。
 
 - [ ] **Step 2: 编译 Android test 源集**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :data:compileDebugAndroidTestKotlin
 ```
 
-Expected: PASS。
+预期：通过。
 
 - [ ] **Step 3: 构建 Debug APK**
 
-Run:
+运行：
 
 ```bash
 ./gradlew :app:assembleDebug
 ```
 
-Expected: PASS，生成 `app/build/outputs/apk/debug/app-debug.apk`。
+预期：通过，生成 `app/build/outputs/apk/debug/app-debug.apk`。
 
 - [ ] **Step 4: 设备可用时运行数据层 instrumented 测试**
 
@@ -1368,7 +1368,7 @@ adb devices
 ./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest
 ```
 
-Expected: PASS。
+预期：通过。
 
 若没有设备，在最终汇报中写明未运行 connected 测试及原因。
 
@@ -1389,14 +1389,14 @@ Expected: PASS。
 
 - [ ] **Step 6: 最终状态检查**
 
-Run:
+运行：
 
 ```bash
 git status --short
 git log --oneline --decorate -8
 ```
 
-Expected: 工作区只包含本功能预期改动；提交历史包含 spec、plan 和实现提交。
+预期：工作区只包含本功能预期改动；提交历史包含 spec、plan 和实现提交。
 
 ---
 

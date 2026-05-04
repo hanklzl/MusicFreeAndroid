@@ -49,6 +49,7 @@ class PlaylistImportViewModel @Inject constructor(
     val events: Flow<PlaylistImportEvent> = _events.receiveAsFlow()
 
     private var activeJob: Job? = null
+    private var targetImportInProgress = false
 
     val allPlaylists: StateFlow<List<Playlist>> = playlistRepository.observeAllPlaylists()
         .stateIn(
@@ -142,19 +143,21 @@ class PlaylistImportViewModel @Inject constructor(
 
     fun hideTargetSheet() {
         cancelActiveJob()
+        targetImportInProgress = false
         _sheetState.value = AddToPlaylistSheetState()
         _importState.value = PlaylistImportState.Idle
     }
 
     fun dismissImportFlow() {
         cancelActiveJob()
+        targetImportInProgress = false
         _sheetState.value = AddToPlaylistSheetState()
         _importState.value = PlaylistImportState.Idle
     }
 
     fun addImportedItemsToPlaylist(targetPlaylistId: String) {
         val items = currentPendingItems()
-        if (items.isEmpty()) return
+        if (!beginTargetImport(items)) return
 
         launchImportJob {
             try {
@@ -171,7 +174,10 @@ class PlaylistImportViewModel @Inject constructor(
             } catch (e: Exception) {
                 logError("Failed to add imported items to playlist $targetPlaylistId", e)
                 postToast(IMPORT_ERROR_TOAST)
+                _sheetState.value = AddToPlaylistSheetState.batch(items)
                 _importState.value = PlaylistImportState.ChooseTarget(items)
+            } finally {
+                targetImportInProgress = false
             }
         }
     }
@@ -181,7 +187,7 @@ class PlaylistImportViewModel @Inject constructor(
         if (playlistName.isBlank()) return
 
         val items = currentPendingItems()
-        if (items.isEmpty()) return
+        if (!beginTargetImport(items)) return
 
         launchImportJob {
             val playlistId = UUID.randomUUID().toString()
@@ -213,7 +219,10 @@ class PlaylistImportViewModel @Inject constructor(
                 logError("Failed to create playlist and import items", e)
                 createdPlaylist?.let { cleanupCreatedPlaylist(it) }
                 postToast(IMPORT_ERROR_TOAST)
+                _sheetState.value = AddToPlaylistSheetState.batch(items)
                 _importState.value = PlaylistImportState.ChooseTarget(items)
+            } finally {
+                targetImportInProgress = false
             }
         }
     }
@@ -232,6 +241,14 @@ class PlaylistImportViewModel @Inject constructor(
     private fun cancelActiveJob() {
         activeJob?.cancel()
         activeJob = null
+    }
+
+    private fun beginTargetImport(items: List<MusicItem>): Boolean {
+        if (items.isEmpty() || targetImportInProgress) return false
+        targetImportInProgress = true
+        _sheetState.value = AddToPlaylistSheetState()
+        _importState.value = PlaylistImportState.Parsing("导入歌单")
+        return true
     }
 
     private fun currentPendingItems(): List<MusicItem> =
