@@ -506,7 +506,7 @@ private fun MusicResultItem(
     val colors = MusicFreeTheme.colors
     var showMenu by remember { mutableStateOf(false) }
     val isFav by (isFavoriteFlow?.invoke(item) ?: kotlinx.coroutines.flow.flowOf(false))
-        .collectAsState(initial = false)
+        .collectAsStateWithLifecycle(initialValue = false)
 
     Row(
         modifier = Modifier

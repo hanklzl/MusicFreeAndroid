@@ -22,7 +22,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -112,7 +111,7 @@ fun PlaylistDetailScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(items = items, key = { "${it.platform}::${it.id}" }) { item ->
-                        val isFavorite by viewModel.isFavoriteFlow(item).collectAsState(initial = false)
+                        val isFavorite by viewModel.isFavoriteFlow(item).collectAsStateWithLifecycle(initialValue = false)
                         PlaylistRow(
                             item = item,
                             isFavorite = isFavorite,

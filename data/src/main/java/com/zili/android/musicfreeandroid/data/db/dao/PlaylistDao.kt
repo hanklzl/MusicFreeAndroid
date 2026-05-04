@@ -19,6 +19,11 @@ data class MusicItemWithAddedAt(
     @ColumnInfo(name = "pm_addedAt") val addedAt: Long,
 )
 
+data class PlaylistWithCount(
+    @Embedded val playlist: PlaylistEntity,
+    @ColumnInfo(name = "worksNum") val worksNum: Int,
+)
+
 @Dao
 interface PlaylistDao {
 
@@ -39,6 +44,26 @@ interface PlaylistDao {
 
     @Query("SELECT * FROM playlists WHERE id = :id")
     fun observePlaylist(id: String): Flow<PlaylistEntity?>
+
+    @Query("""
+        SELECT p.*, COALESCE(c.cnt, 0) AS worksNum
+        FROM playlists p
+        LEFT JOIN (
+            SELECT playlistId, COUNT(*) AS cnt FROM playlist_music GROUP BY playlistId
+        ) c ON c.playlistId = p.id
+        ORDER BY p.updatedAt DESC
+    """)
+    fun observeAllPlaylistsWithCount(): Flow<List<PlaylistWithCount>>
+
+    @Query("""
+        SELECT p.*, COALESCE(c.cnt, 0) AS worksNum
+        FROM playlists p
+        LEFT JOIN (
+            SELECT playlistId, COUNT(*) AS cnt FROM playlist_music WHERE playlistId = :id GROUP BY playlistId
+        ) c ON c.playlistId = p.id
+        WHERE p.id = :id
+    """)
+    fun observePlaylistWithCount(id: String): Flow<PlaylistWithCount?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCrossRef(crossRef: PlaylistMusicCrossRef)

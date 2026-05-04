@@ -36,7 +36,7 @@ fun CreatePlaylistDialog(
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("新建播放列表") },
+        title = { Text("新建歌单") },
         text = {
             OutlinedTextField(
                 value = name,

@@ -8,6 +8,7 @@ import com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStore
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
+import com.zili.android.musicfreeandroid.data.db.dao.PlaylistWithCount
 import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
 import com.zili.android.musicfreeandroid.data.mapper.toEntity
 import com.zili.android.musicfreeandroid.data.mapper.toModel
@@ -29,10 +30,14 @@ class PlaylistRepository @Inject constructor(
 ) {
 
     fun observeAllPlaylists(): Flow<List<Playlist>> =
-        playlistDao.observeAllPlaylists().map { entities -> entities.map { it.toModel() } }
+        playlistDao.observeAllPlaylistsWithCount().map { rows ->
+            rows.map { it.playlist.toModel(worksNum = it.worksNum) }
+        }
 
     fun observePlaylist(id: String): Flow<Playlist?> =
-        playlistDao.observePlaylist(id).map { it?.toModel() }
+        playlistDao.observePlaylistWithCount(id).map { row ->
+            row?.playlist?.toModel(worksNum = row.worksNum)
+        }
 
     suspend fun getPlaylistById(id: String): Playlist? =
         playlistDao.getPlaylistById(id)?.toModel()

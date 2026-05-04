@@ -29,7 +29,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.R
-import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
@@ -46,7 +45,6 @@ import kotlinx.coroutines.launch
 fun PluginSheetDetailScreen(
     onBack: () -> Unit,
     onNavigateToPlayer: () -> Unit,
-    onOpenMusicDetail: (MusicItem) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PluginSheetDetailViewModel = hiltViewModel(),
 ) {
@@ -97,7 +95,7 @@ fun PluginSheetDetailScreen(
                         items = uiState.musicList,
                         key = { _, item -> "${item.platform}:${item.id}" },
                     ) { index, item ->
-                        val isFav by viewModel.isFavoriteFlow(item).collectAsState(initial = false)
+                        val isFav by viewModel.isFavoriteFlow(item).collectAsStateWithLifecycle(initialValue = false)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
