@@ -31,6 +31,9 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            all {
+                it.jvmArgs("-Dnet.bytebuddy.experimental=true")
+            }
         }
     }
 }
@@ -69,7 +72,6 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.robolectric)
-    testImplementation("androidx.test:core:1.6.1")
 
     // Instrumented tests
     androidTestImplementation(libs.androidx.test.runner)
