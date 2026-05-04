@@ -42,10 +42,8 @@ class PlayerControllerTest {
     @Before
     fun setUp() {
         controller = PlayerController(context)
-        runOnAppThread {
-            kotlinx.coroutines.runBlocking {
-                controller.connect()
-            }
+        kotlinx.coroutines.runBlocking {
+            controller.connect()
         }
     }
 

@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.player.ext
 
+import android.net.Uri
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import org.junit.Assert.*
 import org.junit.Test
@@ -54,5 +55,19 @@ class MusicItemMediaExtTest {
             IllegalArgumentException::class.java,
             ThrowingRunnable { item.toMediaItem() },
         )
+    }
+
+    @Test
+    fun `toMediaItem uses default artwork uri when artwork is blank`() {
+        val fallbackArtwork = Uri.parse("android.resource://test.package/123")
+        val item = MusicItem(
+            id = "3", platform = "local", title = "Song3",
+            artist = "Artist", album = null, duration = 0L,
+            url = "https://example.com/song.mp3", artwork = " ", qualities = null,
+        )
+
+        val mediaItem = item.toMediaItem(defaultArtworkUri = fallbackArtwork)
+
+        assertEquals(fallbackArtwork, mediaItem.mediaMetadata.artworkUri)
     }
 }
