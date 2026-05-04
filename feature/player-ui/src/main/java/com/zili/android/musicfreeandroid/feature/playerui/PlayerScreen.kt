@@ -123,10 +123,10 @@ fun PlayerScreen(
                 onShare = {},
             )
 
-            Spacer(Modifier.weight(1f))
-
             when (contentPage) {
                 PlayerContentPage.Cover -> {
+                    Spacer(Modifier.weight(1f))
+
                     PlayerCoverArt(
                         artworkUrl = artworkUrl,
                         modifier = Modifier
@@ -143,6 +143,8 @@ fun PlayerScreen(
                         onAddToPlaylist = { viewModel.showAddToPlaylistSheet() },
                         onToggleLyrics = { contentPage = PlayerContentPage.Lyrics },
                     )
+
+                    Spacer(Modifier.weight(1f))
                 }
 
                 PlayerContentPage.Lyrics -> {
@@ -162,17 +164,23 @@ fun PlayerScreen(
                             val nextFontLevel = (lyricsUiState.fontSizeLevel + 1).mod(4)
                             viewModel.setLyricDetailFontSize(nextFontLevel)
                         },
-                        onOffset = {},
-                        onSearch = {},
+                        onOffset = {
+                            // Task 10 接入歌词偏移弹窗。
+                        },
+                        onSearch = {
+                            // Task 10 接入歌词搜索面板。
+                        },
                         onToggleTranslation = {
                             viewModel.setLyricShowTranslation(!lyricsUiState.showTranslation)
                         },
-                        onMore = {},
+                        onMore = {
+                            // Task 10 接入本地导入、删除等更多歌词操作。
+                        },
                     )
+
+                    Spacer(Modifier.height(rpx(16)))
                 }
             }
-
-            Spacer(Modifier.weight(1f))
 
             PlayerSeekBar(
                 position = state.position,
