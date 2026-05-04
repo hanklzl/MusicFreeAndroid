@@ -12,6 +12,7 @@ import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
+import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao
 import com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDao
 import dagger.Module
 import dagger.Provides
@@ -45,6 +46,9 @@ object DataModule {
 
     @Provides
     fun provideStarredSheetDao(db: AppDatabase): StarredSheetDao = db.starredSheetDao()
+
+    @Provides
+    fun provideDownloadTaskDao(db: AppDatabase): DownloadTaskDao = db.downloadTaskDao()
 
     @Provides
     @Singleton
