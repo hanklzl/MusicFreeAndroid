@@ -1,7 +1,10 @@
 package com.zili.android.musicfreeandroid.plugin.manager
 
 import android.content.Context
+import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -23,6 +26,8 @@ class PluginManagerUpdateFlowTest {
         whenever(context.filesDir).thenReturn(tempFolder.root)
         val pluginMetaStore = mock<PluginMetaStore>()
         whenever(pluginMetaStore.getUserVariables(any())).thenReturn(flowOf(emptyMap()))
+        whenever(pluginMetaStore.disabledPlugins).thenReturn(flowOf(emptySet()))
+        whenever(pluginMetaStore.pluginOrder).thenReturn(flowOf(emptyList()))
         return PluginManager(context, pluginMetaStore)
     }
 
@@ -61,5 +66,43 @@ class PluginManagerUpdateFlowTest {
         assertEquals(0, result.successCount)
         assertEquals(0, result.failureCount)
         assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `getLyricSearchablePlugins includes lyric and legacy plugins`() = runTest {
+        val manager = createManager()
+        manager.setLoadedPluginsForTest(
+            listOf(
+                plugin("music-only", listOf("music")),
+                plugin("lyric-only", listOf("lyric")),
+                plugin("legacy", emptyList()),
+            ),
+        )
+
+        val searchable = manager.getLyricSearchablePlugins().first()
+
+        assertEquals(listOf("lyric-only", "legacy"), searchable.map { it.info.platform })
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun PluginManager.setLoadedPluginsForTest(plugins: List<LoadedPlugin>) {
+        val field = PluginManager::class.java.getDeclaredField("_plugins")
+        field.isAccessible = true
+        (field.get(this) as MutableStateFlow<List<LoadedPlugin>>).value = plugins
+    }
+
+    private fun plugin(platform: String, supportedSearchType: List<String>): LoadedPlugin {
+        val plugin = mock<LoadedPlugin>()
+        whenever(plugin.info).thenReturn(
+            PluginInfo(
+                platform = platform,
+                version = null,
+                author = null,
+                description = null,
+                srcUrl = null,
+                supportedSearchType = supportedSearchType,
+            ),
+        )
+        return plugin
     }
 }

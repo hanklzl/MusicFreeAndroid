@@ -1340,7 +1340,8 @@ git commit -m "feat(data): add lyric repository"
 **文件：**
 
 - 修改：`plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- 测试：`feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoaderTest.kt` 由任务 7 覆盖使用场景。
+- 测试：`plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerUpdateFlowTest.kt`
+- 后续使用场景：`feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoaderTest.kt` 由任务 7 覆盖。
 
 - [ ] **步骤 1：新增方法**
 
@@ -1349,11 +1350,13 @@ git commit -m "feat(data): add lyric repository"
 ```kotlin
 fun getLyricSearchablePlugins(): Flow<List<LoadedPlugin>> =
     getSortedEnabledPlugins().map { plugins ->
-        plugins.filter { "lyric" in it.info.supportedSearchType }
+        plugins.filter { "lyric" in it.info.supportedSearchType || it.info.supportedSearchType.isEmpty() }
     }
 ```
 
-不要修改 `getSearchablePlugins()`，因为搜索页依赖它只返回音乐搜索插件的现有行为。
+这里的空 `supportedSearchType` 表示旧插件未声明该字段。RN 的 `getSearchablePlugins("lyric")` 会把未声明 `supportedSearchType` 的旧插件纳入候选，因此 Android 侧也必须把空列表视为 legacy 兼容入口。
+
+不要修改 `getSearchablePlugins()` 的外部语义，因为搜索页依赖它只返回音乐搜索插件的现有行为。若 `extractPluginInfo()` 当前把缺省 `supportedSearchType` 解析成 `listOf("music")`，需改为 `emptyList()`，让音乐搜索继续通过现有 `isEmpty()` 分支兼容旧插件，同时让歌词搜索也能兼容旧插件。
 
 - [ ] **步骤 2：运行 plugin 编译**
 

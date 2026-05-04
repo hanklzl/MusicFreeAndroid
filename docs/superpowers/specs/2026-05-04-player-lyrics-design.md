@@ -303,6 +303,7 @@ data class LyricCacheEntity(
 8. 若插件返回有效歌词，写入当前歌曲的远程缓存字段，并记录 `remoteSourceType/sourcePlatform/sourceMusicId/sourceTitle` 后返回 `Ready`。
 9. 若仍无歌词且 `lyric_auto_search_enabled == true`，搜索其他支持 `lyric` 搜索类型的插件：
    - 候选插件来自 `PluginManager.getSortedEnabledPlugins()` 或新增 `getLyricSearchablePlugins()`。
+   - 对齐 RN：未声明 `supportedSearchType` 的旧插件视为 legacy 可搜索插件，应进入歌词候选；显式声明且不包含 `lyric` 的插件不进入候选。
    - 跳过当前播放歌曲所属平台，避免重复。
    - 对每个插件调用 `search(query, page = 1, type = "lyric")`。
    - 每个插件最多取前两个候选。

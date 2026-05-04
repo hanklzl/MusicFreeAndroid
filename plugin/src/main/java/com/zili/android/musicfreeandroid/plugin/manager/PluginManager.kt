@@ -301,10 +301,13 @@ class PluginManager @Inject constructor(
 
     /**
      * Enabled plugins that support lyric search, sorted by user-defined order.
+     *
+     * An empty supportedSearchType means the plugin did not declare the field,
+     * which RN treats as compatible with any requested search type.
      */
     fun getLyricSearchablePlugins(): Flow<List<LoadedPlugin>> =
         getSortedEnabledPlugins().map { plugins ->
-            plugins.filter { "lyric" in it.info.supportedSearchType }
+            plugins.filter { "lyric" in it.info.supportedSearchType || it.info.supportedSearchType.isEmpty() }
         }
 
     // Convenience delegates to PluginMetaStore
@@ -871,7 +874,7 @@ class PluginManager @Inject constructor(
                 listOf("music")
             }
         } else {
-            listOf("music")
+            emptyList()
         }
 
         val hintsJson = try {
