@@ -104,6 +104,41 @@ class AppPreferences @Inject constructor(
         dataStore.edit { it.remove(KEY_SEARCH_HISTORY) }
     }
 
+    // ── Download Settings ──
+
+    val maxDownload: Flow<Int> = dataStore.data.map { prefs ->
+        (prefs[KEY_MAX_DOWNLOAD] ?: 3).coerceIn(1, 10)
+    }
+
+    suspend fun setMaxDownload(value: Int) {
+        dataStore.edit { it[KEY_MAX_DOWNLOAD] = value.coerceIn(1, 10) }
+    }
+
+    val useCellularDownload: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_USE_CELLULAR_DOWNLOAD] ?: false
+    }
+
+    suspend fun setUseCellularDownload(value: Boolean) {
+        dataStore.edit { it[KEY_USE_CELLULAR_DOWNLOAD] = value }
+    }
+
+    val defaultDownloadQuality: Flow<PlayQuality> = dataStore.data.map { prefs ->
+        prefs[KEY_DEFAULT_DOWNLOAD_QUALITY]?.let { runCatching { PlayQuality.valueOf(it) }.getOrNull() }
+            ?: PlayQuality.STANDARD
+    }
+
+    suspend fun setDefaultDownloadQuality(quality: PlayQuality) {
+        dataStore.edit { it[KEY_DEFAULT_DOWNLOAD_QUALITY] = quality.name }
+    }
+
+    val downloadDirRelative: Flow<String> = dataStore.data.map { prefs ->
+        prefs[KEY_DOWNLOAD_DIR_RELATIVE] ?: "Music/MusicFree/"
+    }
+
+    suspend fun setDownloadDirRelative(value: String) {
+        dataStore.edit { it[KEY_DOWNLOAD_DIR_RELATIVE] = value }
+    }
+
     private companion object {
         val KEY_REPEAT_MODE = stringPreferencesKey("repeat_mode")
         val KEY_PLAY_QUALITY = stringPreferencesKey("play_quality")
@@ -113,5 +148,9 @@ class AppPreferences @Inject constructor(
         val KEY_STORAGE_DIRECTORY_URI = stringPreferencesKey("storage_directory_uri")
         val KEY_SEARCH_HISTORY = stringPreferencesKey("search_history")
         const val MAX_SEARCH_HISTORY = 20
+        val KEY_MAX_DOWNLOAD = intPreferencesKey("max_download")
+        val KEY_USE_CELLULAR_DOWNLOAD = booleanPreferencesKey("use_cellular_download")
+        val KEY_DEFAULT_DOWNLOAD_QUALITY = stringPreferencesKey("default_download_quality")
+        val KEY_DOWNLOAD_DIR_RELATIVE = stringPreferencesKey("download_dir_relative")
     }
 }
