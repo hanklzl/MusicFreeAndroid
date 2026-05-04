@@ -6,6 +6,29 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val releaseSigningEnvironmentVariables = listOf(
+    "ANDROID_RELEASE_KEYSTORE_PATH",
+    "ANDROID_RELEASE_STORE_PASSWORD",
+    "ANDROID_RELEASE_KEY_ALIAS",
+    "ANDROID_RELEASE_KEY_PASSWORD",
+)
+
+val releaseSigningRequested = gradle.startParameter.taskNames.any { taskName ->
+    val normalizedTaskName = taskName.substringAfterLast(':')
+    normalizedTaskName.equals("assembleRelease", ignoreCase = true) ||
+        normalizedTaskName.equals("bundleRelease", ignoreCase = true) ||
+        normalizedTaskName.equals("packageRelease", ignoreCase = true) ||
+        normalizedTaskName.equals("build", ignoreCase = true) ||
+        normalizedTaskName.endsWith("Release", ignoreCase = true)
+}
+
+fun requiredReleaseSigningEnv(name: String): String =
+    providers.environmentVariable(name).orNull
+        ?: throw org.gradle.api.GradleException(
+            "Missing release signing environment variable: $name. " +
+                "Set ${releaseSigningEnvironmentVariables.joinToString()} before running a release build."
+        )
+
 android {
     namespace = "com.zili.android.musicfreeandroid"
     compileSdk {
@@ -24,11 +47,23 @@ android {
         testInstrumentationRunner = "com.zili.android.musicfreeandroid.HiltTestRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            if (releaseSigningRequested) {
+                storeFile = file(requiredReleaseSigningEnv("ANDROID_RELEASE_KEYSTORE_PATH"))
+                storePassword = requiredReleaseSigningEnv("ANDROID_RELEASE_STORE_PASSWORD")
+                keyAlias = requiredReleaseSigningEnv("ANDROID_RELEASE_KEY_ALIAS")
+                keyPassword = requiredReleaseSigningEnv("ANDROID_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
         }
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
