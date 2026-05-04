@@ -28,6 +28,33 @@ class LyricParserTest {
     }
 
     @Test
+    fun zeroTimestampLrcIsTimed() {
+        val doc = LyricParser.parse(
+            musicId = "m1",
+            musicPlatform = "demo",
+            payload = RawLyricPayload(rawLrc = "[00:00.00]Intro"),
+            source = source,
+        )
+
+        assertTrue(doc.isTimed)
+        assertEquals(0L, doc.lines.single().timeMs)
+        assertEquals("Intro", doc.lines.single().text)
+    }
+
+    @Test
+    fun parsesHourTimestampedLrc() {
+        val doc = LyricParser.parse(
+            musicId = "m1",
+            musicPlatform = "demo",
+            payload = RawLyricPayload(rawLrc = "[01:02:03.45]Hour"),
+            source = source,
+        )
+
+        assertEquals(3_723_450L, doc.lines.single().timeMs)
+        assertEquals("Hour", doc.lines.single().text)
+    }
+
+    @Test
     fun parsesMultipleTimestampsOnOneLine() {
         val doc = LyricParser.parse(
             musicId = "m1",
