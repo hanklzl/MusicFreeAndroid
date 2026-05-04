@@ -32,6 +32,7 @@
 | [docs/DOCS_STATUS.md](./DOCS_STATUS.md) | 当前规范 | 是 | 文档状态与治理入口 |
 | [docs/ui-harness/screen-chrome-rules.md](./ui-harness/screen-chrome-rules.md) | 当前规范（UI Harness Rules） | 是 | Screen 切换动画、普通 AppBar 与沉浸式状态栏强制规则 |
 | [docs/superpowers/specs/2026-05-04-playlist-feature-design.md](./superpowers/specs/2026-05-04-playlist-feature-design.md) | 当前规范（歌单功能） | 是（作为实现计划输入） | 用户歌单 CRUD + 默认 我喜欢 + 排序 + 封面 + ⭐ surface roll-out 的设计 |
+| [docs/superpowers/specs/2026-05-04-player-statusbar-inset-design.md](./superpowers/specs/2026-05-04-player-statusbar-inset-design.md) | 当前规范（播放器状态栏避让专项） | 是（作为实现计划输入） | 播放器页背景沉浸但内容层避让状态栏的设计 |
 | [docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md](./superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md) | 当前规范（UI Harness 设计） | 是（作为实现计划输入） | Screen 切换动画、普通 AppBar、沉浸式状态栏和 AI Coding 规则入口设计 |
 | [docs/superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md](./superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md) | 当前规范（启动视觉专项） | 是（仅 SplashScreen 与 launcher icon 专项） | AndroidX SplashScreen 接入与 RN 启动图标资源对齐设计 |
 | [docs/superpowers/specs/2026-05-04-github-actions-debug-apk-design.md](./superpowers/specs/2026-05-04-github-actions-debug-apk-design.md) | 当前规范（CI Debug APK） | 是（仅 GitHub Actions Debug APK 打包专项） | 提交触发 Debug APK 构建、artifact 上传与 Debug 独立包名设计 |
