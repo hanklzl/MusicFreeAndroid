@@ -72,6 +72,7 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.robolectric)
+    testImplementation(libs.mockwebserver)
 
     // Instrumented tests
     androidTestImplementation(libs.androidx.test.runner)
