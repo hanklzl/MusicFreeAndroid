@@ -9,14 +9,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -67,18 +65,18 @@ class FileSelectorLiteViewModelTest {
     }
 
     @Test
-    @Ignore("Hangs in full settings test run; same root cause as 'persists selected tree uri'")
-    fun `onDirectorySelected replaces previous selected directory`() = runBlocking {
+    fun `onDirectorySelected replaces previous selected directory`() = runTest(mainDispatcherRule.dispatcher) {
         val appPreferences = createAppPreferences()
         val viewModel = FileSelectorLiteViewModel(appPreferences)
         val firstTreeUri = "content://com.android.externalstorage.documents/tree/primary%3AMusicFree"
         val secondTreeUri = "content://com.android.externalstorage.documents/tree/primary%3ADownload"
 
         viewModel.onDirectorySelected(firstTreeUri)
+        advanceUntilIdle()
         viewModel.onDirectorySelected(secondTreeUri)
+        advanceUntilIdle()
 
-        val persisted = appPreferences.storageDirectoryUri.first { it == secondTreeUri }
-        assertEquals(secondTreeUri, persisted)
+        assertEquals(secondTreeUri, appPreferences.storageDirectoryUri.first())
     }
 
     private fun createAppPreferences(): AppPreferences {
