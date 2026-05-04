@@ -4,23 +4,25 @@ import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
 import com.zili.android.musicfreeandroid.data.mapper.LyricCache
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.LyricRepository
 import com.zili.android.musicfreeandroid.plugin.api.LyricResult
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.kotlin.any
@@ -35,15 +37,20 @@ class PlayerLyricLoaderTest {
 
     private val lyricRepository: LyricRepository = mock()
     private val pluginManager: PluginManager = mock()
+    private val appPreferences: AppPreferences = mock()
     private val lyricPlugins = MutableStateFlow<List<LoadedPlugin>>(emptyList())
+    private val lyricAutoSearchEnabledFlow = MutableStateFlow(true)
 
     init {
         whenever(pluginManager.getLyricSearchablePlugins()).thenReturn(lyricPlugins)
+        whenever(appPreferences.lyricAutoSearchEnabled).thenReturn(lyricAutoSearchEnabledFlow)
     }
+
+    private fun loader() = PlayerLyricLoader(lyricRepository, pluginManager, appPreferences)
 
     @Test
     fun nullTrackEmitsNoTrack() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
 
         val states = loader.observeLyrics(null).toList()
 
@@ -53,7 +60,7 @@ class PlayerLyricLoaderTest {
 
     @Test
     fun localLyricsWinBeforePluginFetch() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
         val music = music("local-primary", "demo")
         val cache = lyricCache(
             music = music,
@@ -74,7 +81,7 @@ class PlayerLyricLoaderTest {
 
     @Test
     fun localTranslationOnlyBuildsStaticDocument() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
         val music = music("local-translation", "demo")
         val cache = lyricCache(
             music = music,
@@ -94,7 +101,7 @@ class PlayerLyricLoaderTest {
 
     @Test
     fun matchingRemoteCacheIsUsedBeforePluginFetch() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
         val music = music("cached", "demo")
         val cache = lyricCache(
             music = music,
@@ -117,7 +124,7 @@ class PlayerLyricLoaderTest {
 
     @Test
     fun mismatchedRemoteCacheFallsThroughToPlugin() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
         val music = music("cache-miss", "demo")
         val cache = lyricCache(
             music = music,
@@ -139,7 +146,7 @@ class PlayerLyricLoaderTest {
 
     @Test
     fun associatedLyricFetchIsCachedForCurrentMusic() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
         val music = music("now", "demo")
         val target = music("associated", "assoc", title = "Assoc Song", artist = "Assoc Artist")
         val cache = lyricCache(music = music, associatedMusic = target)
@@ -164,7 +171,7 @@ class PlayerLyricLoaderTest {
 
     @Test
     fun pluginLyricsAreCached() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
         val music = music("plugin-cache", "demo")
         val demoPlugin = plugin(platform = "demo", lyric = lyricResult("Plugin Lyric"))
 
@@ -180,7 +187,7 @@ class PlayerLyricLoaderTest {
 
     @Test
     fun autoSearchUsesOtherLyricPlugin() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
         val music = music("auto-demo", "demo")
         val candidate = music("auto-result", "lyric", title = "Search Result", artist = "Search Artist")
         val demoPlugin = plugin(platform = "demo", lyric = null)
@@ -207,7 +214,7 @@ class PlayerLyricLoaderTest {
 
     @Test
     fun autoSearchPrefersExactTitleAndArtist() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
         val music = music("match", "demo", title = "Song A", artist = "Artist A")
         val exactCandidate = music("exact", "lyric", title = "Song A", artist = "Artist A")
         val looseCandidate = music("loose", "lyric", title = "Song", artist = "Someone")
@@ -243,7 +250,7 @@ class PlayerLyricLoaderTest {
 
     @Test
     fun pluginFailureFallsThroughToNoLyric() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
         val music = music("failure", "demo")
         val currentPlugin = plugin(platform = "demo", lyric = null)
         val lyricPlugin = plugin(
@@ -268,8 +275,85 @@ class PlayerLyricLoaderTest {
     }
 
     @Test
+    fun cancellationIsRethrownFromPluginFetch() = runTest {
+        val loader = loader()
+        val music = music("cancelled", "demo")
+        val cancelPlugin = mock<LoadedPlugin>()
+        runBlocking {
+            whenever(cancelPlugin.info).thenReturn(
+                PluginInfo(
+                    platform = "demo",
+                    version = null,
+                    author = null,
+                    description = null,
+                    srcUrl = null,
+                    supportedSearchType = listOf("lyric"),
+                ),
+            )
+            whenever(cancelPlugin.getLyric(any())).thenThrow(CancellationException("cancel"))
+        }
+
+        whenever(lyricRepository.observeCache(music)).thenReturn(flowOf(null))
+        whenever(pluginManager.getPlugin("demo")).thenReturn(cancelPlugin)
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking {
+                loader.observeLyrics(music).toList()
+            }
+        }
+    }
+
+    @Test
+    fun remoteTranslationOnlyDoesNotEmitBlankReady() = runTest {
+        val loader = loader()
+        val music = music("remote-translation", "demo")
+        val cache = lyricCache(
+            music = music,
+            remotePayload = RawLyricPayload(translation = "纯翻译"),
+        )
+
+        whenever(lyricRepository.observeCache(music)).thenReturn(flowOf(cache))
+
+        val states = loader.observeLyrics(music).toList()
+        assertTrue(states.any { it is LyricLoadState.NoLyric })
+    }
+
+    @Test
+    fun autoSearchDisabledSkipsLyricPlugins() = runTest {
+        val loader = loader()
+        val music = music("disabled-search", "demo")
+        val searchOnlyPlugin = plugin(platform = "lyric")
+
+        lyricAutoSearchEnabledFlow.value = false
+        lyricPlugins.value = listOf(searchOnlyPlugin)
+        whenever(lyricRepository.observeCache(music)).thenReturn(flowOf(null))
+
+        val states = loader.observeLyrics(music).toList()
+        assertTrue(states.any { it is LyricLoadState.NoLyric })
+        verify(pluginManager, never()).getLyricSearchablePlugins()
+    }
+
+    @Test
+    fun searchCandidatesThrowsOnCancellation() = runTest {
+        val loader = loader()
+        val music = music("query", "demo")
+        val badPlugin = plugin(platform = "bad")
+        runBlocking {
+            whenever(badPlugin.search(any(), any(), any())).thenThrow(CancellationException("cancel"))
+        }
+
+        lyricPlugins.value = listOf(badPlugin)
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking {
+                loader.searchCandidates(music)
+            }
+        }
+    }
+
+    @Test
     fun searchCandidatesReturnsErrorGroupForPluginFailure() = runTest {
-        val loader = PlayerLyricLoader(lyricRepository, pluginManager)
+        val loader = loader()
         val music = music("query", "demo")
         val badPlugin = plugin(platform = "bad")
         runBlocking {

@@ -6,6 +6,7 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
 import com.zili.android.musicfreeandroid.data.mapper.LyricCache
 import com.zili.android.musicfreeandroid.data.repository.LyricRepository
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.plugin.api.LyricResult
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import kotlinx.coroutines.CancellationException
@@ -19,6 +20,7 @@ import javax.inject.Inject
 class PlayerLyricLoader @Inject constructor(
     private val lyricRepository: LyricRepository,
     private val pluginManager: PluginManager,
+    private val appPreferences: AppPreferences,
 ) {
 
     fun observeLyrics(music: MusicItem?): Flow<LyricLoadState> = flow {
@@ -54,12 +56,15 @@ class PlayerLyricLoader @Inject constructor(
             return@flow
         }
 
-        autoSearch(music)
-            ?.let { (payload, source) ->
-                lyricRepository.saveRemoteLyric(music, source, payload)
-                emit(LyricLoadState.Ready(music, parse(music, payload, source), userOffsetMs))
-                return@flow
-            }
+        val autoSearchEnabled = appPreferences.lyricAutoSearchEnabled.first()
+        if (autoSearchEnabled) {
+            autoSearch(music)
+                ?.let { (payload, source) ->
+                    lyricRepository.saveRemoteLyric(music, source, payload)
+                    emit(LyricLoadState.Ready(music, parse(music, payload, source), userOffsetMs))
+                    return@flow
+                }
+        }
 
         emit(LyricLoadState.NoLyric(music))
     }.catch { e ->
@@ -74,9 +79,11 @@ class PlayerLyricLoader @Inject constructor(
         pluginManager.getLyricSearchablePlugins().first()
             .filter { it.info.platform != music.platform }
             .map { plugin ->
-                runCatching {
+                try {
                     LyricSearchGroup(plugin.info, plugin.search(query = query, page = 1, type = "lyric").data.take(2))
-                }.getOrElse { error ->
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
                     LyricSearchGroup(
                         plugin.info,
                         emptyList(),
@@ -128,7 +135,7 @@ class PlayerLyricLoader @Inject constructor(
 
     private fun cachedDocument(music: MusicItem, target: MusicItem, cache: LyricCache?): com.zili.android.musicfreeandroid.core.model.LyricDocument? {
         val payload = cache?.remotePayload ?: return null
-        if (!payload.isValid()) return null
+        if (!payload.isUsableRemoteLyric()) return null
 
         val sourceMatches = when {
             cache.associatedMusic == null -> target == music && isCompatibleHistoryOrCurrentSource(target, cache)
@@ -157,11 +164,15 @@ class PlayerLyricLoader @Inject constructor(
         source: LyricSourceInfo,
     ): RawLyricPayload? {
         val plugin = pluginManager.getPlugin(target.platform) ?: return null
-        return runCatching {
+        return try {
             plugin.getLyric(target)
                 ?.toPayload()
-                ?.takeIf { it.isValid() }
-        }.getOrNull()
+                ?.takeIf { it.isUsableRemoteLyric() }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private suspend fun autoSearch(music: MusicItem): Pair<RawLyricPayload, LyricSourceInfo>? {
@@ -189,11 +200,14 @@ class PlayerLyricLoader @Inject constructor(
 
         for (candidate in candidates) {
             val plugin = pluginManager.getPlugin(candidate.platform) ?: continue
-            val payload = runCatching {
+            val payload = try {
                 plugin.getLyric(candidate.music)
-            }.getOrNull()
-                ?.toPayload()
-                ?.takeIf { it.isValid() }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                null
+            }?.toPayload()
+                ?.takeIf { it.isUsableRemoteLyric() }
 
             if (payload != null) {
                 return payload to
@@ -273,6 +287,5 @@ private fun LyricResult.toPayload(): RawLyricPayload = RawLyricPayload(
     translation = translation,
 )
 
-private fun RawLyricPayload.isValid(): Boolean = !rawLrc.isNullOrBlank() ||
-    !rawLrcTxt.isNullOrBlank() ||
-    !translation.isNullOrBlank()
+private fun RawLyricPayload.isUsableRemoteLyric(): Boolean = !rawLrc.isNullOrBlank() ||
+    !rawLrcTxt.isNullOrBlank()
