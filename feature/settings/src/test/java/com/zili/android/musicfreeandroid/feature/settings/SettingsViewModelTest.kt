@@ -8,7 +8,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -31,7 +30,6 @@ class SettingsViewModelTest {
     @get:Rule
     val tmpFolder = TemporaryFolder()
 
-    private val testDispatcher = UnconfinedTestDispatcher()
     private val dataStoreScopes = mutableListOf<CoroutineScope>()
 
     @After
@@ -59,6 +57,8 @@ class SettingsViewModelTest {
         val treeUri = "content://com.android.externalstorage.documents/tree/primary%3AMusicFree"
 
         viewModel.setStorageDirectory(treeUri)
+        // Drains scheduler-tracked work; with UnconfinedTestDispatcher launches
+        // already run eagerly, but the explicit drain documents the intent.
         advanceUntilIdle()
 
         val persisted = appPreferences.storageDirectoryUri.first()
