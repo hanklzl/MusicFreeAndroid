@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.data.db.converter
 
 import androidx.room.TypeConverter
+import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityInfo
 import org.json.JSONObject
@@ -34,5 +35,36 @@ class Converters {
             )
         }
         return map
+    }
+
+    fun musicItemToJson(item: MusicItem?): String? {
+        if (item == null) return null
+        val json = JSONObject()
+        json.put("id", item.id)
+        json.put("platform", item.platform)
+        json.put("title", item.title)
+        json.put("artist", item.artist)
+        json.put("album", item.album ?: JSONObject.NULL)
+        json.put("duration", item.duration)
+        json.put("url", item.url ?: JSONObject.NULL)
+        json.put("artwork", item.artwork ?: JSONObject.NULL)
+        json.put("qualities", qualitiesToJson(item.qualities) ?: JSONObject.NULL)
+        return json.toString()
+    }
+
+    fun jsonToMusicItem(json: String?): MusicItem? {
+        if (json.isNullOrBlank()) return null
+        val obj = JSONObject(json)
+        return MusicItem(
+            id = obj.getString("id"),
+            platform = obj.getString("platform"),
+            title = obj.optString("title"),
+            artist = obj.optString("artist"),
+            album = if (obj.isNull("album")) null else obj.getString("album"),
+            duration = obj.optLong("duration", 0L),
+            url = if (obj.isNull("url")) null else obj.getString("url"),
+            artwork = if (obj.isNull("artwork")) null else obj.getString("artwork"),
+            qualities = if (obj.isNull("qualities")) null else jsonToQualities(obj.getString("qualities")),
+        )
     }
 }

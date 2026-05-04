@@ -9,6 +9,7 @@ import androidx.room.Room
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.zili.android.musicfreeandroid.data.db.dao.LyricCacheDao
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
@@ -45,6 +46,9 @@ object DataModule {
 
     @Provides
     fun provideStarredSheetDao(db: AppDatabase): StarredSheetDao = db.starredSheetDao()
+
+    @Provides
+    fun provideLyricCacheDao(db: AppDatabase): LyricCacheDao = db.lyricCacheDao()
 
     @Provides
     @Singleton
