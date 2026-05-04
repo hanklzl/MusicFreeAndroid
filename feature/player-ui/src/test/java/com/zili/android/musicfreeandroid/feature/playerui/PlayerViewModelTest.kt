@@ -31,6 +31,7 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
@@ -151,6 +152,27 @@ class PlayerViewModelTest {
         playerStateFlow.value = viewModel.playerState.value.copy(position = 1_500L)
         advanceUntilIdle()
         assertEquals(0, viewModel.lyricsUiState.value.currentLineIndex)
+        job.cancel()
+    }
+
+    @Test
+    fun `lyrics loader is not restarted when only playback position changes`() = runTest {
+        val item = MusicItem(id = "stable", platform = "demo", title = "Song", artist = "A", album = null, duration = 10_000L, url = null, artwork = null, qualities = null)
+        whenever(playerLyricLoader.observeLyrics(item)).thenReturn(
+            flowOf(readyLyricState(item, listOf(ParsedLyricLine(0, 1_000L, "A")))),
+        )
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item, position = 1_000L)
+
+        val viewModel = createViewModel()
+        val job = backgroundScope.launch { viewModel.lyricsUiState.collect {} }
+        advanceUntilIdle()
+
+        playerStateFlow.value = playerStateFlow.value.copy(position = 1_500L)
+        playerStateFlow.value = playerStateFlow.value.copy(position = 2_000L)
+        playerStateFlow.value = playerStateFlow.value.copy(position = 2_500L)
+        advanceUntilIdle()
+
+        verify(playerLyricLoader, times(1)).observeLyrics(item)
         job.cancel()
     }
 

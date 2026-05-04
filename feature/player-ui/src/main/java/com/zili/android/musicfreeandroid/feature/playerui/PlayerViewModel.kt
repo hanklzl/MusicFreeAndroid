@@ -16,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +43,7 @@ class PlayerViewModel @Inject constructor(
 
     private val lyricLoadState: StateFlow<LyricLoadState> = playerState
         .map { it.currentItem }
+        .distinctUntilChanged()
         .flatMapLatest { item ->
             playerLyricLoader.observeLyrics(item)
         }
@@ -152,7 +154,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun seekToLyricLine(lineTimeMs: Long) {
-        val ready = lyricLoadState.value as? LyricLoadState.Ready ?: return
+        val ready = lyricsUiState.value.loadState as? LyricLoadState.Ready ?: return
         val duration = playerState.value.duration
         val seekMs = LyricTiming.seekPositionForLine(
             lineTimeMs = lineTimeMs,
