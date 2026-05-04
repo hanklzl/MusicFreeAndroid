@@ -296,18 +296,18 @@ class PluginManager @Inject constructor(
      */
     fun getSearchablePlugins(): Flow<List<LoadedPlugin>> =
         getSortedEnabledPlugins().map { plugins ->
-            plugins.filter { "music" in it.info.supportedSearchType || it.info.supportedSearchType.isEmpty() }
+            plugins.filter { it.info.supportsSearchType("music") }
         }
 
     /**
      * Enabled plugins that support lyric search, sorted by user-defined order.
      *
-     * An empty supportedSearchType means the plugin did not declare the field,
+     * An undeclared supportedSearchType means the plugin did not declare the field,
      * which RN treats as compatible with any requested search type.
      */
     fun getLyricSearchablePlugins(): Flow<List<LoadedPlugin>> =
         getSortedEnabledPlugins().map { plugins ->
-            plugins.filter { "lyric" in it.info.supportedSearchType || it.info.supportedSearchType.isEmpty() }
+            plugins.filter { it.info.supportsSearchType("lyric") }
         }
 
     // Convenience delegates to PluginMetaStore
@@ -859,6 +859,7 @@ class PluginManager @Inject constructor(
             ?: throw IllegalStateException("Plugin missing required 'platform' property")
 
         val supportedSearchTypeStr = prop("supportedSearchType")
+        val supportedSearchTypeDeclared = !supportedSearchTypeStr.isNullOrBlank()
         val supportedSearchType = if (!supportedSearchTypeStr.isNullOrBlank()) {
             try {
                 val json = engine.evaluate<Any?>("JSON.stringify(__plugin.supportedSearchType)")?.toString()
@@ -891,6 +892,7 @@ class PluginManager @Inject constructor(
             description = prop("description"),
             srcUrl = prop("srcUrl"),
             supportedSearchType = supportedSearchType,
+            supportedSearchTypeDeclared = supportedSearchTypeDeclared,
             appVersion = prop("appVersion"),
             primaryKey = prop("primaryKey"),
             defaultSearchType = prop("defaultSearchType"),
@@ -899,3 +901,6 @@ class PluginManager @Inject constructor(
         )
     }
 }
+
+private fun PluginInfo.supportsSearchType(type: String): Boolean =
+    type in supportedSearchType || !supportedSearchTypeDeclared

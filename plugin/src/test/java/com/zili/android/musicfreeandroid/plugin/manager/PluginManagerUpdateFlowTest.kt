@@ -76,6 +76,7 @@ class PluginManagerUpdateFlowTest {
                 plugin("music-only", listOf("music")),
                 plugin("lyric-only", listOf("lyric")),
                 plugin("legacy", emptyList()),
+                plugin("declared-empty", emptyList(), supportedSearchTypeDeclared = true),
             ),
         )
 
@@ -91,7 +92,11 @@ class PluginManagerUpdateFlowTest {
         (field.get(this) as MutableStateFlow<List<LoadedPlugin>>).value = plugins
     }
 
-    private fun plugin(platform: String, supportedSearchType: List<String>): LoadedPlugin {
+    private fun plugin(
+        platform: String,
+        supportedSearchType: List<String>,
+        supportedSearchTypeDeclared: Boolean = supportedSearchType.isNotEmpty(),
+    ): LoadedPlugin {
         val plugin = mock<LoadedPlugin>()
         whenever(plugin.info).thenReturn(
             PluginInfo(
@@ -101,6 +106,7 @@ class PluginManagerUpdateFlowTest {
                 description = null,
                 srcUrl = null,
                 supportedSearchType = supportedSearchType,
+                supportedSearchTypeDeclared = supportedSearchTypeDeclared,
             ),
         )
         return plugin

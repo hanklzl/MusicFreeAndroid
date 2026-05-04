@@ -1350,13 +1350,13 @@ git commit -m "feat(data): add lyric repository"
 ```kotlin
 fun getLyricSearchablePlugins(): Flow<List<LoadedPlugin>> =
     getSortedEnabledPlugins().map { plugins ->
-        plugins.filter { "lyric" in it.info.supportedSearchType || it.info.supportedSearchType.isEmpty() }
+        plugins.filter { it.info.supportsSearchType("lyric") }
     }
 ```
 
-这里的空 `supportedSearchType` 表示旧插件未声明该字段。RN 的 `getSearchablePlugins("lyric")` 会把未声明 `supportedSearchType` 的旧插件纳入候选，因此 Android 侧也必须把空列表视为 legacy 兼容入口。
+这里必须区分“未声明 `supportedSearchType`”和“显式声明 `supportedSearchType: []`”。RN 的 `getSearchablePlugins("lyric")` 会把未声明字段的旧插件纳入候选，但显式空数组会走 `includes("lyric")` 并被排除。因此 Android 侧需要在 `PluginInfo` 中保留 `supportedSearchTypeDeclared` 之类的声明标记，不能只依赖列表是否为空。
 
-不要修改 `getSearchablePlugins()` 的外部语义，因为搜索页依赖它只返回音乐搜索插件的现有行为。若 `extractPluginInfo()` 当前把缺省 `supportedSearchType` 解析成 `listOf("music")`，需改为 `emptyList()`，让音乐搜索继续通过现有 `isEmpty()` 分支兼容旧插件，同时让歌词搜索也能兼容旧插件。
+不要修改 `getSearchablePlugins()` 的外部语义，因为搜索页依赖它只返回音乐搜索插件的现有行为。若 `extractPluginInfo()` 当前把缺省 `supportedSearchType` 解析成 `listOf("music")`，需改为“空列表 + 未声明标记”，让音乐搜索和歌词搜索都通过同一个 legacy 分支兼容旧插件，同时排除显式声明为空数组的插件。
 
 - [ ] **步骤 2：运行 plugin 编译**
 

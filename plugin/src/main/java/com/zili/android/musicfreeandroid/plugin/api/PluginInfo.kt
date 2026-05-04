@@ -7,6 +7,7 @@ data class PluginInfo(
     val description: String?,
     val srcUrl: String?,
     val supportedSearchType: List<String>,
+    val supportedSearchTypeDeclared: Boolean = supportedSearchType.isNotEmpty(),
     val appVersion: String? = null,
     val primaryKey: String? = null,
     val defaultSearchType: String? = null,
