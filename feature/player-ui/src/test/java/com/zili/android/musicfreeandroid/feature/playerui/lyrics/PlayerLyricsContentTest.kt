@@ -3,9 +3,12 @@ package com.zili.android.musicfreeandroid.feature.playerui.lyrics
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.zili.android.musicfreeandroid.core.model.LyricDocument
 import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
@@ -44,7 +47,10 @@ class PlayerLyricsContentTest {
             }
         }
 
-        composeRule.onNodeWithText("第一行").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("第一行").performTouchInput {
+            click(center)
+        }
 
         composeRule.runOnIdle {
             assertEquals(0, backToCoverClicks)
@@ -52,7 +58,58 @@ class PlayerLyricsContentTest {
     }
 
     @Test
-    fun `auto follow stays paused while drag overlay is visible`() {
+    fun `tapping lyric blank area returns to cover`() {
+        var backToCoverClicks = 0
+
+        composeRule.setContent {
+            MusicFreeTheme {
+                Box(Modifier.size(width = 360.dp, height = 640.dp)) {
+                    PlayerLyricsContent(
+                        state = readyState(),
+                        durationMs = 10_000L,
+                        onBackToCover = { backToCoverClicks++ },
+                        onSeekToLine = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(PlayerLyricsContentTestTag).performTouchInput {
+            click(Offset(x = centerX, y = bottom - 8f))
+        }
+
+        composeRule.runOnIdle {
+            assertEquals(1, backToCoverClicks)
+        }
+    }
+
+    @Test
+    fun `drag overlay blocks lyric blank tap from returning to cover`() {
+        assertFalse(
+            shouldHandleLyricBackTap(
+                tapY = 8f,
+                visibleItemBounds = emptyList(),
+                dragSeekOverlayVisible = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `auto follow only runs when not scrolling and drag overlay is hidden`() {
+        assertEquals(
+            true,
+            shouldAutoFollowLyricLine(
+                isScrollInProgress = false,
+                dragSeekOverlayVisible = false,
+            ),
+        )
+        assertFalse(
+            shouldAutoFollowLyricLine(
+                isScrollInProgress = true,
+                dragSeekOverlayVisible = false,
+            ),
+        )
         assertFalse(
             shouldAutoFollowLyricLine(
                 isScrollInProgress = false,

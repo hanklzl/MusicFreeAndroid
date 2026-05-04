@@ -1,7 +1,8 @@
 package com.zili.android.musicfreeandroid.feature.playerui.lyrics
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,13 +33,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -117,19 +118,13 @@ fun PlayerLyricsContent(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .pointerInput(document, showDragSeekOverlay) {
-                detectTapGestures { offset ->
-                    val visibleItemBounds = listState.layoutInfo.visibleItemsInfo.map { item ->
-                        VisibleLyricItemBounds(
-                            top = item.offset,
-                            bottom = item.offset + item.size,
-                        )
-                    }
-                    if (shouldHandleLyricBackTap(offset.y, visibleItemBounds, showDragSeekOverlay)) {
-                        onBackToCover()
-                    }
-                }
-            }
+            .testTag(PlayerLyricsContentTestTag)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                enabled = !showDragSeekOverlay,
+                onClick = onBackToCover,
+            )
             .semantics {
                 contentDescription = "返回封面"
                 role = Role.Button
@@ -191,6 +186,8 @@ fun PlayerLyricsContent(
     }
 }
 
+internal const val PlayerLyricsContentTestTag = "player.lyrics.content"
+
 @Composable
 private fun LyricsList(
     lines: List<ParsedLyricLine>,
@@ -232,9 +229,11 @@ private fun LyricsList(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .pointerInput(line.index) {
-                        detectTapGestures { }
-                    }
+                    .clickable(
+                        interactionSource = remember(line.index) { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                    )
                     .padding(horizontal = rpx(64), vertical = rpx(20)),
             )
         }
