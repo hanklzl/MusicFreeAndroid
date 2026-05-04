@@ -14,12 +14,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,11 +36,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.R as CoreR
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.core.ui.MusicItemAction
 import com.zili.android.musicfreeandroid.core.ui.MusicItemMoreMenu
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistDetailScreen(
     onBack: () -> Unit,
@@ -49,6 +54,8 @@ fun PlaylistDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val playlist = state.playlist
     val items = state.musics
+    val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
+    val allPlaylists by viewModel.allPlaylists.collectAsStateWithLifecycle()
 
     var menuExpanded by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
@@ -105,8 +112,10 @@ fun PlaylistDetailScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(items = items, key = { "${it.platform}::${it.id}" }) { item ->
+                        val isFavorite by viewModel.isFavoriteFlow(item).collectAsState(initial = false)
                         PlaylistRow(
                             item = item,
+                            isFavorite = isFavorite,
                             onClickRow = {
                                 val idx = items.indexOf(item)
                                 viewModel.playAll(startIndex = if (idx >= 0) idx else 0)
@@ -117,11 +126,9 @@ fun PlaylistDetailScreen(
                                     MusicItemAction.ToggleFavorite -> viewModel.toggleFavorite(item)
                                     MusicItemAction.RemoveFromPlaylist -> viewModel.removeFromPlaylist(item)
                                     MusicItemAction.PlayNext -> {
-                                        // TODO Task 27 — wire to PlayerController.playNext if available
+                                        // TODO: PlayerController.playNext when API exists
                                     }
-                                    MusicItemAction.AddToPlaylist -> {
-                                        // TODO Task 27 — wire AddToPlaylistBottomSheet
-                                    }
+                                    MusicItemAction.AddToPlaylist -> viewModel.showAddToPlaylistSheet(item)
                                 }
                             },
                         )
@@ -161,6 +168,30 @@ fun PlaylistDetailScreen(
             },
         )
     }
+
+    if (sheetState.visible) {
+        var showCreateInSheet by remember { mutableStateOf(false) }
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.hideAddToPlaylistSheet() },
+        ) {
+            AddToPlaylistBottomSheetContent(
+                playlists = allPlaylists,
+                onSelect = { viewModel.addPendingToPlaylist(it.id) },
+                onCreateNew = { showCreateInSheet = true },
+                folderPlusIcon = painterResource(id = CoreR.drawable.ic_folder_plus),
+                favoriteCoverIcon = painterResource(id = CoreR.drawable.ic_playlist_favorite_cover),
+            )
+        }
+        if (showCreateInSheet) {
+            CreatePlaylistDialog(
+                onDismiss = { showCreateInSheet = false },
+                onCreate = { name ->
+                    viewModel.createPlaylistAndAddPending(name)
+                    showCreateInSheet = false
+                },
+            )
+        }
+    }
 }
 
 @Composable
@@ -179,6 +210,7 @@ private fun EmptyState(onSearchAdd: () -> Unit) {
 @Composable
 private fun PlaylistRow(
     item: MusicItem,
+    isFavorite: Boolean,
     onClickRow: () -> Unit,
     onAction: (MusicItemAction) -> Unit,
 ) {
@@ -215,7 +247,7 @@ private fun PlaylistRow(
                 MusicItemAction.AddToPlaylist,
                 MusicItemAction.RemoveFromPlaylist,
             ),
-            isFavorite = false, // TODO Task 27 — collect viewModel.isFavoriteFlow(item) per row
+            isFavorite = isFavorite,
             onAction = onAction,
             triggerIcon = painterResource(id = CoreR.drawable.ic_ellipsis_vertical),
         )
