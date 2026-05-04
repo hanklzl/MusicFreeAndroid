@@ -361,6 +361,30 @@ class JsBridgeTest {
     }
 
     @Test
+    fun `parseLyricResult parses translation field`() {
+        val result = JsBridge.parseLyricResult(
+            mapOf(
+                "rawLrc" to "[00:01.00]Hello",
+                "translation" to "[00:01.00]你好",
+            ),
+        )
+
+        assertEquals("[00:01.00]你好", result.translation)
+    }
+
+    @Test
+    fun `parseLyricResult parses trans alias`() {
+        val result = JsBridge.parseLyricResult(
+            mapOf(
+                "rawLrc" to "[00:01.00]Hello",
+                "trans" to "[00:01.00]你好",
+            ),
+        )
+
+        assertEquals("[00:01.00]你好", result.translation)
+    }
+
+    @Test
     fun `parseAlbumInfoResult parses album payload`() {
         val payload = mapOf<String, Any?>(
             "isEnd" to false,
