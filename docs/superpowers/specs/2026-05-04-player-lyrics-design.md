@@ -1,13 +1,13 @@
-# Player Lyrics Design
+# 播放页歌词设计
 
 > 文档状态：当前规范
 > 适用范围：播放页歌词功能设计，覆盖 Android 原生播放页内歌词，不覆盖悬浮窗/桌面歌词。
-> 直接执行：是（作为后续 implementation plan 输入）
+> 直接执行：是（作为后续实施计划输入）
 > 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md)、[AGENTS](../../../AGENTS.md)
 > 参考来源：`../MusicFree` RN 原版播放页歌词、当前 Android `:feature:player-ui` / `:plugin` / `:data` 实现。
 > 最后校验：2026-05-04
 
-## Summary
+## 概要
 
 实现播放页歌词功能，对齐 RN 原版的核心播放页体验：
 
@@ -19,7 +19,7 @@
 
 本设计不实现 Android 悬浮窗/桌面歌词，不新增独立 Gradle 模块；使用现有 `:core`、`:data`、`:plugin`、`:feature:player-ui` 边界完成。
 
-## Approved Decisions
+## 已确认决策
 
 用户已确认以下边界：
 
@@ -27,10 +27,10 @@
 2. 非目标：暂不做悬浮窗/桌面歌词。
 3. 自动搜索：默认开启，当前歌曲插件无歌词时自动搜索其他支持 `search(type = "lyric")` 的插件。
 4. 播放页切换：对齐 RN，点击封面切到歌词，点击歌词空白处切回封面；歌词图标保留为可发现入口。
-5. 架构方向：采用 `LyricRepository`，播放器 UI 只消费状态，不把歌词加载逻辑堆进 `PlayerViewModel`。
+5. 架构方向：采用歌词仓储/加载器边界，播放器 UI 只消费状态，不把歌词加载逻辑堆进 `PlayerViewModel`。
 6. 开发方式：后续开发必须使用 git worktree，当前设计分支为 `feat-player-lyrics`，worktree 为 `.worktrees/feat-player-lyrics`。
 
-## Current Android Facts
+## 当前 Android 事实
 
 当前仓库已经具备部分基础能力：
 
@@ -56,7 +56,7 @@
   - `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
   - 当前数据库使用 `fallbackToDestructiveMigration(dropAllTables = true)`，新增表和 schema 可控。
 
-## RN Reference Facts
+## RN 参考事实
 
 实现时优先对照以下 RN 文件：
 
@@ -76,7 +76,7 @@
 - `../MusicFree/src/core/pluginManager/plugin.ts`
   - `getLyric()` 加载顺序：关联歌词、本地歌词、缓存、自带歌词、插件远程歌词、本地文件 fallback。
 
-## Non-Goals
+## 非目标
 
 第一版不做：
 
@@ -86,13 +86,18 @@
 - 歌词缓存文件落盘管理和“清除歌词缓存”设置页入口。
 - 网络歌词 URL 下载的完整兼容层。当前插件桥主要支持直接返回 `rawLrc/rawLrcTxt/translation`；若插件仅返回旧 `lrc` URL，第一版可记录为后续兼容项，除非实现时发现主流测试插件依赖它。
 
-## Architecture
+## 架构
 
-采用“domain parser + repository + UI state”的边界。
+采用“领域解析器 + data 层 repository + 插件感知 feature loader + UI 状态”的边界。
+
+重要模块约束：`AGENTS.md` 定义依赖方向为 `:app → :feature:* → :data, :player, :plugin → :core`。因此 `:data` 不能依赖 `:plugin`，插件调用不能放进 `:data` 模块。歌词实现必须拆为：
+
+- `:data`：只负责 Room 缓存、每首歌歌词 metadata、全局歌词偏好。
+- `:feature:player-ui`：依赖 `:data`、`:plugin`、`:player`，负责插件歌词加载、自动搜索、旧请求结果保护和播放页 UI 状态。
 
 ### `:core`
 
-新增或扩展歌词 domain model：
+新增或扩展歌词领域模型：
 
 ```kotlin
 data class ParsedLyricLine(
@@ -114,6 +119,12 @@ data class LyricDocument(
 ) {
     val hasTranslation: Boolean get() = lines.any { !it.translation.isNullOrBlank() }
 }
+
+data class RawLyricPayload(
+    val rawLrc: String? = null,
+    val rawLrcTxt: String? = null,
+    val translation: String? = null,
+)
 ```
 
 `LyricSourceInfo` 应能表达来源：
@@ -125,10 +136,10 @@ data class LyricDocument(
 - `LocalTranslation`
 - `Cache`
 
-新增 parser 建议放在 `core`，例如 `core/model` 或 `core/lyric`：
+新增解析器建议放在 `core`，例如 `core/model` 或 `core/lyric`：
 
 - 输入：`rawLrc`、`rawLrcTxt`、`translation`。
-- 输出：`LyricDocument` 或中间 parse result。
+- 输出：`LyricDocument` 或中间解析结果。
 - 行为：
   - 支持 `[mm:ss.xx]`、`[hh:mm:ss.xx]` 形式。
   - 支持一行多个时间戳。
@@ -164,17 +175,34 @@ data class LyricResult(
 
 ### `:data`
 
-新增 `LyricRepository`，职责集中到数据层：
+新增 `LyricRepository`，职责限定为歌词持久化和偏好，不直接调用插件：
 
-- 根据当前歌曲加载歌词。
-- 缓存远程歌词。
-- 管理本地导入歌词和本地翻译。
-- 管理关联歌词。
-- 管理每首歌歌词偏移。
-- 管理全局歌词偏好。
-- 提供歌词搜索/关联能力。
+- 读写远程歌词缓存。
+- 读写本地导入歌词和本地翻译。
+- 读写关联歌词目标。
+- 读写每首歌歌词偏移。
+- 暴露全局歌词偏好。
 
 建议 API：
+
+```kotlin
+class LyricRepository {
+    fun observeCache(music: MusicItem): Flow<LyricCache?>
+    suspend fun getCache(music: MusicItem): LyricCache?
+    suspend fun saveRemoteLyric(music: MusicItem, source: LyricSourceInfo, payload: RawLyricPayload)
+    suspend fun associateLyric(music: MusicItem, target: MusicItem)
+    suspend fun clearAssociatedLyric(music: MusicItem)
+    suspend fun importLocalLyric(music: MusicItem, rawText: String, kind: LocalLyricKind)
+    suspend fun deleteLocalLyric(music: MusicItem)
+    suspend fun setLyricOffset(music: MusicItem, offsetMs: Long)
+}
+```
+
+`LyricCache` 是 data 层领域包装，包含 Room entity 中的缓存、本地歌词、关联目标和 offset。
+
+### `:feature:player-ui`
+
+新增插件感知加载用例，建议命名为 `PlayerLyricLoader` 或 `PlayerLyricsRepository`，放在 `feature/player-ui`。它负责组合 `LyricRepository`、`PluginManager`、`AppPreferences` 和 core 解析器：
 
 ```kotlin
 sealed interface LyricLoadState {
@@ -189,7 +217,7 @@ sealed interface LyricLoadState {
     data class Error(val music: MusicItem, val message: String) : LyricLoadState
 }
 
-class LyricRepository {
+class PlayerLyricLoader {
     fun observeLyrics(music: MusicItem?): Flow<LyricLoadState>
     suspend fun refresh(music: MusicItem, forceRemote: Boolean = false)
     suspend fun searchCandidates(music: MusicItem, query: String = defaultQuery(music)): List<LyricSearchGroup>
@@ -203,7 +231,7 @@ class LyricRepository {
 
 `LyricSearchGroup` 按插件聚合候选，候选类型复用 `MusicItem`，因为 RN 的歌词候选本质也是 media base。
 
-### Room
+### Room 持久化
 
 新增表用于每首歌歌词状态。建议实体：
 
@@ -230,7 +258,7 @@ data class LyricCacheEntity(
 )
 ```
 
-Notes:
+说明：
 
 - 本地导入内容直接保存文本，不复制外部文件，避免 SAF 权限生命周期复杂化。
 - `associatedMusicJson` 可用现有 Room converter 或新增 converter 序列化 `MusicItem`。若 converter 不适合 `MusicItem`，存为 `String` 并在 repository 内解析。
@@ -243,7 +271,7 @@ Notes:
   - `setOffset(platform, id, offsetMs)`
 - `AppDatabase` version 递增并导出 schema。当前 destructive migration 可继续沿用，但 schema 必须更新。
 
-### App Preferences
+### App 偏好
 
 扩展 `AppPreferences`：
 
@@ -258,12 +286,12 @@ Notes:
 - `2 -> rpx(36)`
 - `3 -> rpx(42)`
 
-## Loading Algorithm
+## 加载算法
 
-`LyricRepository` 对每首歌执行以下优先级：
+`PlayerLyricLoader` 对每首歌执行以下优先级：
 
 1. 若没有当前歌曲，返回 `NoTrack`。
-2. 读取 `LyricCacheEntity`。
+2. 通过 `LyricRepository` 读取 `LyricCacheEntity`。
 3. 若当前歌曲有 `localRawLrc` 或 `localTranslation`，优先生成本地歌词文档。Android 第一版明确让“用户手动导入到当前歌曲的歌词”优先于关联目标，避免导入后仍被关联歌词覆盖。
 4. 若有 `associatedMusicJson`，把关联目标作为歌词目标；否则歌词目标是当前歌曲。
 5. 若有远程缓存 `remoteRawLrc/remoteRawLrcTxt/remoteTranslation`，且缓存来源匹配当前歌词目标：
@@ -284,13 +312,13 @@ Notes:
    - 有效结果写入当前歌曲远程缓存，source 标记为 `AutoSearch`，并记录候选 `platform/id/title`。
 10. 全部失败返回 `NoLyric`；插件异常不影响播放。
 
-防 stale 规则：
+旧请求结果保护规则：
 
 - 加载开始时记录 `musicKey`。
 - 任何异步插件结果返回后，如果当前播放项已变化，丢弃结果。
 - `PlayerViewModel` 订阅当前 item 的 flow，换歌时自动取消前一个加载 job。
 
-## Offset Semantics
+## 偏移语义
 
 Android 内部统一使用毫秒。
 
@@ -316,11 +344,11 @@ UI 文案：
 - 正数：提前 `x.xs`。
 - 负数：延后 `x.xs`。
 
-## Player UI Design
+## 播放页 UI 设计
 
 `PlayerScreen` 保持特殊 Chrome 页面，继续自行负责沉浸式状态栏和顶部 inset，遵守 `docs/ui-harness/screen-chrome-rules.md` 中 `PlayerRoute / PlayerScreen` 登记。
 
-### Screen Structure
+### 屏幕结构
 
 当前播放页结构：
 
@@ -338,9 +366,9 @@ UI 文案：
 - 中部内容改为 `PlayerMainContent`：
   - `AlbumCoverPage`
   - `LyricsPage`
-- 屏内使用 local UI state 保存当前页：`Album` 或 `Lyrics`。
+- 屏内使用本地 UI 状态保存当前页：`Album` 或 `Lyrics`。
 
-### Page Switching
+### 页面切换
 
 - 默认页：`Album`。
 - 点击封面：切换到 `Lyrics`。
@@ -348,13 +376,13 @@ UI 文案：
 - 操作栏歌词图标：切换到 `Lyrics`，若已在歌词页则保持或切回封面，具体实现可用 toggle，但必须保证入口可发现。
 - 换歌不强制回封面，除非实现中发现 RN 行为不同；第一版保留当前页更符合用户连续看歌词场景。
 
-### Lyrics Page
+### 歌词页
 
 布局：
 
 - `LazyColumn` 占据中部主区域。
 - 顶部和底部留白，使当前行可滚到视觉中心。
-- 中线拖动 overlay 包含：
+- 中线拖动浮层包含：
   - 目标时间 pill。
   - 水平线。
   - 播放按钮。
@@ -364,7 +392,7 @@ UI 文案：
 - `Ready` 且歌词有时间戳时，根据 `PlayerState.position` 计算当前行。
 - 播放中自动滚到当前行，`viewPosition` 近似 0.5。
 - 暂停时不因 position 停止而反复调整列表。
-- 用户拖动列表后进入 dragging mode，2 秒无交互后退出；退出后若仍播放，恢复自动滚动。
+- 用户拖动列表后进入拖动模式，2 秒无交互后退出；退出后若仍播放，恢复自动滚动。
 - 纯文本歌词无精确时间戳，显示列表但不做逐行自动滚动。
 
 行样式：
@@ -377,11 +405,11 @@ UI 文案：
 
 空/错误状态：
 
-- Loading：居中白色 loading。
+- Loading：居中白色加载中。
 - NoLyric：居中 “暂无歌词” + “搜索歌词”。
 - Error：居中错误简述 + “重试” + “搜索歌词”。
 
-### Lyrics Operations
+### 歌词操作
 
 播放页歌词操作栏对齐 RN 入口，第一版实现以下功能：
 
@@ -397,7 +425,7 @@ UI 文案：
 
 现有 favorite/add-to-playlist 操作保持，不被歌词功能回归破坏。
 
-## Lyric Search And Association
+## 歌词搜索与关联
 
 歌词搜索 bottom sheet：
 
@@ -418,7 +446,7 @@ UI 文案：
 - 不删除当前歌曲本地歌词和远程缓存。
 - 清除后重新按加载优先级解析当前歌曲歌词。
 
-## Local Lyric Import
+## 本地歌词导入
 
 播放页更多菜单中提供：
 
@@ -440,7 +468,7 @@ UI 文案：
 - 不清远程缓存和关联关系。
 - 重新加载歌词。
 
-## Error Handling
+## 错误处理
 
 - 插件 `getLyric()` 异常：记录日志，继续 fallback。
 - 单个自动搜索插件异常：该插件结果标记 error，不中断其他插件。
@@ -449,7 +477,7 @@ UI 文案：
 - 换歌时返回的旧请求结果必须丢弃。
 - 本地导入读取失败：toast 或错误事件提示，不改变已有歌词。
 
-## Testing Strategy
+## 测试策略
 
 ### `:core:test`
 
@@ -496,7 +524,7 @@ UI 文案：
 
 ### `:feature:player-ui:testDebugUnitTest`
 
-新增 ViewModel/UI state 测试：
+新增 ViewModel/UI 状态测试：
 
 - 当前播放项变化时订阅新歌词状态。
 - `position` 变化更新当前高亮行。
@@ -506,7 +534,7 @@ UI 文案：
 - 歌词拖动 seek 调用 `PlayerController.seekTo()`，并调用 `play()`。
 - 导入本地歌词成功触发 repository。
 
-### Runtime Acceptance
+### 运行态验收
 
 至少验证：
 
@@ -529,7 +557,7 @@ UI 文案：
 - 播放页截图。
 - `uiautomator dump` 中关键文本/按钮存在性。
 
-## Verification Commands
+## 验证命令
 
 实现后至少运行：
 
@@ -546,14 +574,14 @@ UI 文案：
 
 如果完整 instrumentation 成本过高，必须说明未运行原因，并至少完成可运行的目标模块 instrumentation 或手动运行态验收。
 
-## Implementation Plan Handoff Requirements
+## 实施计划交接要求
 
-后续 implementation plan 必须足够详细，便于新 session 直接执行。计划至少要包含：
+后续实施计划必须足够详细，便于新 session 直接执行。计划至少要包含：
 
-1. Worktree 信息：使用 `.worktrees/feat-player-lyrics`，不得在主工作区实现。
+1. git worktree 信息：使用 `.worktrees/feat-player-lyrics`，不得在主工作区实现。
 2. 任务顺序：
-   - parser/domain。
-   - plugin translation parsing。
+   - 解析器/domain。
+   - 插件翻译解析。
    - Room/entity/DAO/repository。
    - preferences。
    - player ViewModel state。
@@ -568,7 +596,7 @@ UI 文案：
 6. 明确不做桌面歌词。
 7. 明确所有文档引用使用相对路径。
 
-## Risks
+## 风险
 
 - 自动搜索可能触发多个插件网络请求。应限制每插件候选数量，并允许后续设置关闭。
 - Room 存储歌词文本可能增加数据库体积。第一版可接受；后续再设计文件缓存和清理。
