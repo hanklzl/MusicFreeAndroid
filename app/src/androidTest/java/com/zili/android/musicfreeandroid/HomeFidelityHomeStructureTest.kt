@@ -4,9 +4,7 @@ import android.content.pm.PackageManager
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -16,7 +14,6 @@ import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,41 +34,17 @@ class HomeFidelityHomeStructureTest {
         grantAudioPermissions()
     }
 
-    // TODO(deps-bump-2026-05): pre-existing stale test/code mismatch unrelated to deps bump.
-    // Test was committed in c6baddc / 714492e (Apr 12, 2026) to validate the home-screen
-    // mock MiniPlayer UI ("In the End"/"Linkin Park" text + always-visible MiniRoot).
-    // Commit bfcc785 (Apr 19, 2026) replaced the mock with the real Hilt-injected MiniPlayer
-    // that early-returns when no media is loaded, so MiniRoot/text never appear in this
-    // launch path. The unit test layer (HomeAnchorContractTest, MiniPlayerContentTest) still
-    // covers the structural anchors. Restore this test by either reintroducing the mock or
-    // priming the player state in test setup.
     @Test
-    @Ignore("Pre-existing stale fixture; assertions match removed mock MiniPlayer (see TODO above)")
-    fun home_exposes_root_nav_operations_sheets_and_drawer_opens_from_menu() {
+    fun home_cold_launch_exposes_navbar_operations_sheets_and_drawer() {
         assertTagDisplayed(FidelityAnchors.Screen.HomeRoot)
         assertTagDisplayed(FidelityAnchors.Home.NavBarRoot)
         assertTagDisplayed(FidelityAnchors.Home.NavBarMenu)
         assertTagDisplayed(FidelityAnchors.Home.OperationsRoot)
         assertTagDisplayed(FidelityAnchors.Home.SheetsRoot)
-        assertTagDisplayed(FidelityAnchors.Player.MiniRoot)
-        assertTagDisplayed(FidelityAnchors.Player.MiniPlayPause)
-        assertTagDisplayed(FidelityAnchors.Player.MiniQueue)
 
         composeRule.onNodeWithTag(FidelityAnchors.Home.NavBarMenu).performClick()
 
         assertTagDisplayed(FidelityAnchors.Home.DrawerRoot)
-    }
-
-    @Test
-    @Ignore("Pre-existing stale fixture; assertions match removed mock MiniPlayer (see TODO above)")
-    fun home_content_remains_visible_above_existingMiniPlayer() {
-        assertTagDisplayed(FidelityAnchors.Screen.HomeRoot)
-        assertTagDisplayed(FidelityAnchors.Home.SheetsRoot)
-        assertTagDisplayed(FidelityAnchors.Player.MiniRoot)
-        assertTagDisplayed(FidelityAnchors.Player.MiniPlayPause)
-        assertTagDisplayed(FidelityAnchors.Player.MiniQueue)
-        assertTextDisplayed("In the End")
-        assertTextDisplayed("Linkin Park")
     }
 
     private fun assertTagDisplayed(tag: String) {
@@ -81,15 +54,6 @@ class HomeFidelityHomeStructureTest {
             }.getOrElse { false }
         }
         composeRule.onNodeWithTag(tag).assertIsDisplayed()
-    }
-
-    private fun assertTextDisplayed(text: String) {
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            runCatching {
-                composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
-            }.getOrElse { false }
-        }
-        composeRule.onNodeWithText(text).assertIsDisplayed()
     }
 
     private fun grantAudioPermissions() {

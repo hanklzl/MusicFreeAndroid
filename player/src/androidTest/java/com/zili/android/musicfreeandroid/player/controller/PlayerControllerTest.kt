@@ -6,6 +6,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -27,30 +30,41 @@ class PlayerControllerTest {
         artwork = null, qualities = null,
     )
 
-    private fun runOnAppThread(block: () -> Unit) {
+    private fun runOnAppThread(timeoutMs: Long = 5_000L, block: () -> Unit) {
         val latch = CountDownLatch(1)
+        var failure: Throwable? = null
         context.mainExecutor.execute {
             try {
                 block()
+            } catch (t: Throwable) {
+                failure = t
             } finally {
                 latch.countDown()
             }
         }
-        latch.await()
+        if (!latch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
+            fail("Timed out waiting for app main thread block")
+        }
+        failure?.let { throw it }
     }
 
     @Before
     fun setUp() {
         controller = PlayerController(context)
-        kotlinx.coroutines.runBlocking {
-            controller.connect()
+        runBlocking {
+            withTimeout(5_000L) {
+                controller.connect()
+            }
         }
     }
 
     @After
     fun tearDown() {
         runOnAppThread {
-            controller.release()
+            if (::controller.isInitialized) {
+                controller.reset()
+                controller.release()
+            }
         }
     }
 
@@ -90,7 +104,10 @@ class PlayerControllerTest {
 
             assertTrue(unconnectedController.playerState.value.hasMedia)
         } finally {
-            unconnectedController.release()
+            runOnAppThread {
+                unconnectedController.reset()
+                unconnectedController.release()
+            }
         }
     }
 

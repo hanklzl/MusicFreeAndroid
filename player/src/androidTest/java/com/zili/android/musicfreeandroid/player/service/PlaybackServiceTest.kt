@@ -2,6 +2,9 @@ package com.zili.android.musicfreeandroid.player.service
 
 import android.content.ComponentName
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.os.Bundle
 import android.os.Looper
 import androidx.media3.common.MediaItem
@@ -17,8 +20,8 @@ import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
@@ -37,8 +40,14 @@ class PlaybackServiceTest {
     private var controller: MediaController? = null
 
     @Before
-    fun setUp() = runTest {
-        controller = connectController()
+    fun setUp() = runBlocking {
+        controller = withTimeout(CONTROLLER_CONNECT_TIMEOUT_MS) {
+            connectController()
+        }
+        runOnAppThread {
+            controller!!.stop()
+            controller!!.clearMediaItems()
+        }
     }
 
     @After
@@ -242,32 +251,35 @@ class PlaybackServiceTest {
         waitUntil("controller reaches READY state") {
             runOnAppThread { controller!!.playbackState } == Player.STATE_READY
         }
+        waitUntil("controller starts playback") {
+            runOnAppThread { controller!!.isPlaying }
+        }
         assertTrue(runOnAppThread { controller!!.playWhenReady })
 
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
-        val focusRequest = android.media.AudioFocusRequest.Builder(
-            android.media.AudioManager.AUDIOFOCUS_GAIN,
-        )
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
             .setAudioAttributes(
-                android.media.AudioAttributes.Builder()
-                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .build(),
             )
             .setOnAudioFocusChangeListener { }
             .build()
-
         val focusResult = audioManager.requestAudioFocus(focusRequest)
+        assumeTrue(
+            "Audio focus request must be granted to exercise focus-loss behavior.",
+            focusResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED,
+        )
+
         try {
-            assumeTrue(
-                "测试设备未授予竞争音频焦点",
-                focusResult == android.media.AudioManager.AUDIOFOCUS_REQUEST_GRANTED,
-            )
-            val pausedForFocusLoss = waitUntilOrFalse {
-                !runOnAppThread { controller!!.playWhenReady }
+            waitUntil("audio focus loss pauses playback") {
+                !runOnAppThread { controller!!.isPlaying }
             }
-            assertTrue("音频焦点丢失后 playWhenReady 应为 false", pausedForFocusLoss)
-            assertFalse(runOnAppThread { controller!!.playWhenReady })
+            assertFalse(
+                "Audio focus loss should stop active playback",
+                runOnAppThread { controller!!.isPlaying },
+            )
         } finally {
             audioManager.abandonAudioFocusRequest(focusRequest)
         }
@@ -275,23 +287,24 @@ class PlaybackServiceTest {
 
     private suspend fun connectController(): MediaController =
         suspendCancellableCoroutine { cont ->
-            val token = SessionToken(
-                context,
-                ComponentName(context, PlaybackService::class.java),
-            )
             val future = runOnAppThread {
-                MediaController.Builder(context, token).buildAsync()
+                val token = SessionToken(
+                    context,
+                    ComponentName(context, PlaybackService::class.java),
+                )
+                MediaController.Builder(context, token).buildAsync().also { future ->
+                    future.addListener(
+                        {
+                            try {
+                                cont.resume(future.get())
+                            } catch (e: Exception) {
+                                cont.resumeWithException(e)
+                            }
+                        },
+                        MoreExecutors.directExecutor(),
+                    )
+                }
             }
-            future.addListener(
-                {
-                    try {
-                        cont.resume(future.get())
-                    } catch (e: Exception) {
-                        cont.resumeWithException(e)
-                    }
-                },
-                MoreExecutors.directExecutor(),
-            )
             cont.invokeOnCancellation { MediaController.releaseFuture(future) }
         }
 
@@ -312,7 +325,9 @@ class PlaybackServiceTest {
     private fun connectPlayerController(playerController: PlayerController) {
         runBlocking {
             withContext(Dispatchers.Main) {
-                playerController.connect()
+                withTimeout(CONTROLLER_CONNECT_TIMEOUT_MS) {
+                    playerController.connect()
+                }
             }
         }
     }
@@ -345,5 +360,9 @@ class PlaybackServiceTest {
             Thread.sleep(50)
         }
         return false
+    }
+
+    private companion object {
+        const val CONTROLLER_CONNECT_TIMEOUT_MS = 5_000L
     }
 }
