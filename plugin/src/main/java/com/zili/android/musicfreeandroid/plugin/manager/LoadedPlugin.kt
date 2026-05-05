@@ -77,6 +77,7 @@ class LoadedPlugin(
         )
 
         return withTimeout(TIMEOUT_MS) {
+            val start = System.nanoTime()
             try {
                 val (result, durationMs) = timedSuspend { block() }
                 MfLog.detail(
@@ -92,6 +93,7 @@ class LoadedPlugin(
                 result
             } catch (e: Exception) {
                 rethrowIfExternalCancellation(e)
+                val durationMs = (System.nanoTime() - start) / 1_000_000
                 MfLog.error(
                     category = LogCategory.PLUGIN,
                     event = "plugin_api_call_failed",
@@ -101,6 +103,8 @@ class LoadedPlugin(
                         "method" to method,
                         "status" to "failed",
                         "errorClass" to e::class.java.name,
+                        "durationMs" to durationMs,
+                        "result" to "failure",
                     ) + inputFields,
                 )
                 onFailure()
@@ -122,11 +126,7 @@ class LoadedPlugin(
             ),
             onFailure = { SearchResult(isEnd = true, data = emptyList()) },
             resultFields = { result ->
-                if (result == null) {
-                    mapOf("resultCount" to 0, "isEnd" to true)
-                } else {
-                    mapOf("resultCount" to result.data.size, "isEnd" to result.isEnd)
-                }
+                mapOf("resultCount" to result.data.size, "isEnd" to result.isEnd)
             },
         ) {
             val result = engine.evaluate<Any?>(
