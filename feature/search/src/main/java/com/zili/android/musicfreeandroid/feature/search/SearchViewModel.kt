@@ -4,10 +4,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -33,6 +35,7 @@ class SearchViewModel @Inject constructor(
     private val playerController: PlayerController,
     private val appPreferences: AppPreferences,
     private val playlistRepository: PlaylistRepository,
+    private val downloader: Downloader,
 ) : ViewModel() {
 
     companion object {
@@ -401,5 +404,13 @@ class SearchViewModel @Inject constructor(
 
     fun backToEditing() {
         _pageStatus.value = SearchPageStatus.EDITING
+    }
+
+    // ── Download ──
+
+    val defaultDownloadQuality = appPreferences.defaultDownloadQuality
+
+    fun download(item: MusicItem, quality: PlayQuality) {
+        downloader.enqueue(listOf(item), quality)
     }
 }

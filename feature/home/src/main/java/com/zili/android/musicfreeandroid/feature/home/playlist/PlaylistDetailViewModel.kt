@@ -6,11 +6,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.model.SortMode
 import com.zili.android.musicfreeandroid.core.navigation.PlaylistDetailRoute
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -36,6 +39,8 @@ class PlaylistDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val playlistRepository: PlaylistRepository,
     private val playerController: PlayerController,
+    private val appPreferences: AppPreferences,
+    private val downloader: Downloader,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<PlaylistDetailRoute>()
@@ -129,5 +134,11 @@ class PlaylistDetailViewModel @Inject constructor(
 
     fun removeFromPlaylist(item: MusicItem) {
         viewModelScope.launch { playlistRepository.removeMusicFromPlaylist(playlistId, item) }
+    }
+
+    val defaultDownloadQuality = appPreferences.defaultDownloadQuality
+
+    fun download(item: MusicItem, quality: PlayQuality) {
+        downloader.enqueue(listOf(item), quality)
     }
 }

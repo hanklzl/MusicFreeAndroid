@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
@@ -94,5 +95,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             playlistRepository.addMusicToPlaylist(playlistId, item)
         }
+    }
+
+    val defaultDownloadQuality = appPreferences.defaultDownloadQuality
+
+    fun download(item: MusicItem, quality: PlayQuality) {
+        downloader.enqueue(listOf(item), quality)
     }
 }

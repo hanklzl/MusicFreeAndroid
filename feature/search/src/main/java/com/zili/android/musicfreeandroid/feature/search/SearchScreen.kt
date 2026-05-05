@@ -1,8 +1,10 @@
 package com.zili.android.musicfreeandroid.feature.search
 
 import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,14 +59,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.R
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
+import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -89,6 +94,9 @@ fun SearchScreen(
 
     val context = LocalContext.current
     var query by remember { mutableStateOf(viewModel.currentQuery.value) }
+    var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
+    var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
+    val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
     // 如果 ViewModel 已有查询（如从历史恢复），同步初始化本地状态
     LaunchedEffect(Unit) {
         val initialQuery = viewModel.currentQuery.value
@@ -244,6 +252,7 @@ fun SearchScreen(
                     onAddToPlaylist = { music -> viewModel.showAddToPlaylistSheet(music) },
                     onToggleFavorite = { music -> viewModel.toggleFavorite(music) },
                     isFavoriteFlow = viewModel::isFavoriteFlow,
+                    onLongClick = { music -> optionsItem = music },
                 )
             }
         }
@@ -271,6 +280,21 @@ fun SearchScreen(
                 },
             )
         }
+    }
+
+    optionsItem?.let { item ->
+        MusicItemOptionsSheet(
+            item = item,
+            onDismiss = { optionsItem = null },
+            onDownload = { qualityFor = it; optionsItem = null },
+        )
+    }
+    qualityFor?.let { item ->
+        DownloadQualityDialog(
+            initial = defaultQuality,
+            onDismiss = { qualityFor = null },
+            onConfirm = { q -> viewModel.download(item, q); qualityFor = null },
+        )
     }
 }
 
@@ -368,6 +392,7 @@ private fun SearchResultPanel(
     onAddToPlaylist: (MusicItem) -> Unit,
     onToggleFavorite: (MusicItem) -> Unit,
     isFavoriteFlow: (MusicItem) -> kotlinx.coroutines.flow.Flow<Boolean>,
+    onLongClick: (MusicItem) -> Unit = {},
 ) {
     val colors = MusicFreeTheme.colors
 
@@ -462,6 +487,7 @@ private fun SearchResultPanel(
                             MusicResultItem(
                                 item = music,
                                 onClick = { onMusicClick(music, items) },
+                                onLongClick = { onLongClick(music) },
                                 onPlayNext = { onPlayNext(music) },
                                 onAddToPlaylist = { onAddToPlaylist(music) },
                                 onToggleFavorite = { onToggleFavorite(music) },
@@ -494,10 +520,12 @@ private fun SearchResultPanel(
 
 // ── MusicResultItem ───────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MusicResultItem(
     item: MusicItem,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     onPlayNext: () -> Unit = {},
     onAddToPlaylist: () -> Unit = {},
     onToggleFavorite: () -> Unit = {},
@@ -512,7 +540,7 @@ private fun MusicResultItem(
         modifier = Modifier
             .fillMaxWidth()
             .height(rpx(120))
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = rpx(24)),
         verticalAlignment = Alignment.CenterVertically,
     ) {

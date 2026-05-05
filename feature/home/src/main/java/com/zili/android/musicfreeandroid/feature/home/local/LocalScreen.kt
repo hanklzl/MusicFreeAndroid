@@ -32,10 +32,14 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
+import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
 import com.zili.android.musicfreeandroid.feature.home.HomeUiState
 import com.zili.android.musicfreeandroid.feature.home.HomeViewModel
 
@@ -51,6 +55,9 @@ fun LocalScreen(
     val downloadedKeys by viewModel.downloadedKeys.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val permission = remember { requiredAudioPermission() }
+    var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
+    var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
+    val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
 
     var hasAudioPermission by remember { mutableStateOf<Boolean?>(null) }
 
@@ -77,6 +84,21 @@ fun LocalScreen(
         else -> uiState.toLocalMusicUiState()
     }
 
+    optionsItem?.let { item ->
+        MusicItemOptionsSheet(
+            item = item,
+            onDismiss = { optionsItem = null },
+            onDownload = { qualityFor = it; optionsItem = null },
+        )
+    }
+    qualityFor?.let { item ->
+        DownloadQualityDialog(
+            initial = defaultQuality,
+            onDismiss = { qualityFor = null },
+            onConfirm = { q -> viewModel.download(item, q); qualityFor = null },
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -95,7 +117,7 @@ fun LocalScreen(
                 viewModel.playItem(item, items)
                 onNavigateToPlayer()
             },
-            onItemLongClick = { _ -> /* TODO(Task 22): show MusicItemOptionsSheet */ },
+            onItemLongClick = { item -> optionsItem = item },
             onRetry = {
                 if (hasAudioPermission == false) {
                     permissionLauncher.launch(permission)

@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.home.pluginsheet
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -34,13 +37,15 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.core.ui.MusicItemAction
 import com.zili.android.musicfreeandroid.core.ui.MusicItemMoreMenu
+import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
 import com.zili.android.musicfreeandroid.feature.home.playlist.CreatePlaylistDialog
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun PluginSheetDetailScreen(
     onBack: () -> Unit,
@@ -52,6 +57,9 @@ fun PluginSheetDetailScreen(
     val scope = rememberCoroutineScope()
     val sheetState by viewModel.sheetState.collectAsState()
     val allPlaylists by viewModel.allPlaylists.collectAsState()
+    var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
+    var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
+    val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
 
     MusicFreeScreenScaffold(
         title = uiState.title,
@@ -99,12 +107,15 @@ fun PluginSheetDetailScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    scope.launch {
-                                        val ok = viewModel.playAt(index)
-                                        if (ok) onNavigateToPlayer()
-                                    }
-                                }
+                                .combinedClickable(
+                                    onClick = {
+                                        scope.launch {
+                                            val ok = viewModel.playAt(index)
+                                            if (ok) onNavigateToPlayer()
+                                        }
+                                    },
+                                    onLongClick = { optionsItem = item },
+                                )
                                 .padding(horizontal = rpx(24), vertical = rpx(12)),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -207,5 +218,20 @@ fun PluginSheetDetailScreen(
                 },
             )
         }
+    }
+
+    optionsItem?.let { item ->
+        MusicItemOptionsSheet(
+            item = item,
+            onDismiss = { optionsItem = null },
+            onDownload = { qualityFor = it; optionsItem = null },
+        )
+    }
+    qualityFor?.let { item ->
+        DownloadQualityDialog(
+            initial = defaultQuality,
+            onDismiss = { qualityFor = null },
+            onConfirm = { q -> viewModel.download(item, q); qualityFor = null },
+        )
     }
 }

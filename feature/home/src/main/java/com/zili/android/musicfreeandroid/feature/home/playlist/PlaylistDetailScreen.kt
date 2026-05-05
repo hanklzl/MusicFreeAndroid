@@ -1,5 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.home.playlist
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,11 +37,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.R as CoreR
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.core.ui.MusicItemAction
 import com.zili.android.musicfreeandroid.core.ui.MusicItemMoreMenu
+import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +65,9 @@ fun PlaylistDetailScreen(
     var showSortDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
+    var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
+    val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
 
     MusicFreeScreenScaffold(
         title = playlist?.name ?: "歌单",
@@ -120,6 +128,7 @@ fun PlaylistDetailScreen(
                                 viewModel.playAll(startIndex = if (idx >= 0) idx else 0)
                                 onNavigateToPlayer()
                             },
+                            onLongClickRow = { optionsItem = item },
                             onAction = { action ->
                                 when (action) {
                                     MusicItemAction.ToggleFavorite -> viewModel.toggleFavorite(item)
@@ -191,6 +200,21 @@ fun PlaylistDetailScreen(
             )
         }
     }
+
+    optionsItem?.let { item ->
+        MusicItemOptionsSheet(
+            item = item,
+            onDismiss = { optionsItem = null },
+            onDownload = { qualityFor = it; optionsItem = null },
+        )
+    }
+    qualityFor?.let { item ->
+        DownloadQualityDialog(
+            initial = defaultQuality,
+            onDismiss = { qualityFor = null },
+            onConfirm = { q -> viewModel.download(item, q); qualityFor = null },
+        )
+    }
 }
 
 @Composable
@@ -206,17 +230,20 @@ private fun EmptyState(onSearchAdd: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PlaylistRow(
     item: MusicItem,
     isFavorite: Boolean,
     onClickRow: () -> Unit,
+    onLongClickRow: () -> Unit = {},
     onAction: (MusicItemAction) -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .combinedClickable(onClick = onClickRow, onLongClick = onLongClickRow)
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         CoverImage(
