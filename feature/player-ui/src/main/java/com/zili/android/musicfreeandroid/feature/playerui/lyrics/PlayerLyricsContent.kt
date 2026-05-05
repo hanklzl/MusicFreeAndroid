@@ -149,7 +149,7 @@ fun PlayerLyricsContent(
             }
 
             is LyricLoadState.NoLyric -> {
-                CenterText("暂无歌词\n搜索歌词")
+                NoLyricContent()
             }
 
             is LyricLoadState.Error -> {
@@ -187,6 +187,8 @@ fun PlayerLyricsContent(
 }
 
 internal const val PlayerLyricsContentTestTag = "player.lyrics.content"
+internal const val PlayerLyricsNoLyricTextTestTag = "player.lyrics.nolyric"
+internal const val PlayerLyricsSearchTextTestTag = "player.lyrics.search"
 
 @Composable
 private fun LyricsList(
@@ -311,6 +313,37 @@ private fun CenterText(text: String) {
             color = Color.White.copy(alpha = 0.8f),
             fontSize = FontSizes.title,
             textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun NoLyricContent() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = "暂无歌词",
+            color = Color.White.copy(alpha = 0.8f),
+            fontSize = FontSizes.title,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.testTag(PlayerLyricsNoLyricTextTestTag),
+        )
+        Text(
+            text = "搜索歌词",
+            color = Color(0xFF66EEFF),
+            fontSize = FontSizes.title,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .padding(top = rpx(14))
+                .testTag(PlayerLyricsSearchTextTestTag)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {},
+                ),
         )
     }
 }
