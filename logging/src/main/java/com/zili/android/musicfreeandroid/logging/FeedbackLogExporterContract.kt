@@ -1,9 +1,9 @@
 package com.zili.android.musicfreeandroid.logging
 
 interface FeedbackLogExporterContract {
-    fun createPackage(): FeedbackPackage
+    suspend fun createPackage(): FeedbackPackage
 
-    fun clearLogs()
+    suspend fun clearLogs()
 
-    fun pruneLogs()
+    suspend fun pruneLogs()
 }

@@ -9,6 +9,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -26,7 +27,7 @@ class FeedbackLogExporterTest {
     val tmp = TemporaryFolder()
 
     @Test
-    fun `createPackage zips manifest readme and raw logan files`() {
+    fun `createPackage zips manifest readme and raw logan files`() = runBlocking {
         val logger = RecordingLogger()
         MfLog.install(logger)
         try {
@@ -49,7 +50,10 @@ class FeedbackLogExporterTest {
                 buildType = "debug",
             )
 
-            val exporter = FeedbackLogExporter(config, sessionId = "session-1")
+            val exporter = FeedbackLogExporter(
+                config,
+                sessionIdProvider = { "session-1" },
+            )
 
             val pkg = exporter.createPackage()
 
@@ -120,7 +124,7 @@ class FeedbackLogExporterTest {
     }
 
     @Test
-    fun `createPackage uses unique filenames for rapid exports`() {
+    fun `createPackage uses unique filenames for rapid exports`() = runBlocking {
         val logger = RecordingLogger()
         MfLog.install(logger)
         try {
@@ -142,7 +146,10 @@ class FeedbackLogExporterTest {
                 buildType = "debug",
             )
 
-            val exporter = FeedbackLogExporter(config, sessionId = "session-1")
+            val exporter = FeedbackLogExporter(
+                config,
+                sessionIdProvider = { "session-1" },
+            )
 
             val first = exporter.createPackage()
             val second = exporter.createPackage()
@@ -181,7 +188,10 @@ class FeedbackLogExporterTest {
             )
 
             assertThrows(IllegalArgumentException::class.java) {
-                FeedbackLogExporter(config, sessionId = "session-1")
+                FeedbackLogExporter(
+                    config,
+                    sessionIdProvider = { "session-1" },
+                )
             }
         } finally {
             MfLog.resetForTest()
@@ -189,7 +199,7 @@ class FeedbackLogExporterTest {
     }
 
     @Test
-    fun `clearLogs deletes feedback and log directories`() {
+    fun `clearLogs deletes feedback and log directories`() = runBlocking {
         val logger = RecordingLogger()
         MfLog.install(logger)
         try {
@@ -212,7 +222,10 @@ class FeedbackLogExporterTest {
                 buildType = "debug",
             )
 
-            val exporter = FeedbackLogExporter(config, sessionId = "session-1")
+            val exporter = FeedbackLogExporter(
+                config,
+                sessionIdProvider = { "session-1" },
+            )
 
             exporter.clearLogs()
 
@@ -237,7 +250,7 @@ class FeedbackLogExporterTest {
     }
 
     @Test
-    fun `pruneLogs deletes old logs`() {
+    fun `pruneLogs deletes old logs`() = runBlocking {
         val logDir = tmp.newFolder("logan")
         val cacheDir = tmp.newFolder("cache")
         val feedbackDir = File(cacheDir, "feedback").apply { mkdirs() }
@@ -258,7 +271,10 @@ class FeedbackLogExporterTest {
             retentionDays = 1,
         )
 
-        val exporter = FeedbackLogExporter(config, sessionId = "session-1")
+        val exporter = FeedbackLogExporter(
+            config,
+            sessionIdProvider = { "session-1" },
+        )
 
         exporter.pruneLogs()
 

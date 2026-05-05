@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid.logging
 
 import android.os.Build
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -16,7 +18,7 @@ import java.util.zip.ZipOutputStream
 
 class FeedbackLogExporter(
     private val config: LoggingConfig,
-    private val sessionId: String = LoggingInitializer.currentSessionId,
+    private val sessionIdProvider: () -> String = { LoggingInitializer.currentSessionId },
 ) : FeedbackLogExporterContract {
     init {
         val feedbackDirectory = config.feedbackDir.toPath().normalize().toAbsolutePath()
@@ -29,9 +31,21 @@ class FeedbackLogExporter(
         }
     }
 
-    override fun createPackage(): FeedbackPackage {
+    override suspend fun createPackage(): FeedbackPackage = withContext(Dispatchers.IO) {
+        createPackageBlocking()
+    }
+
+    override suspend fun clearLogs() = withContext(Dispatchers.IO) {
+        clearLogsBlocking()
+    }
+
+    override suspend fun pruneLogs() = withContext(Dispatchers.IO) {
+        pruneLogsBlocking()
+    }
+
+    private fun createPackageBlocking(): FeedbackPackage {
         MfLog.flush()
-        pruneLogs()
+        pruneLogsBlocking()
 
         config.feedbackDir.mkdirs()
         val target = nextAvailablePackageFile()
@@ -57,13 +71,13 @@ class FeedbackLogExporter(
         return FeedbackPackage(target, target.name, target.length())
     }
 
-    override fun clearLogs() {
+    private fun clearLogsBlocking() {
         clearAndRecreate(config.logDir)
         clearAndRecreate(config.feedbackDir)
         MfLog.trace(LogCategory.FEEDBACK, "feedback_logs_cleared")
     }
 
-    override fun pruneLogs() {
+    private fun pruneLogsBlocking() {
         LogPruner.prune(
             config.logDir,
             config.retentionDays,
@@ -73,7 +87,7 @@ class FeedbackLogExporter(
 
     private fun buildManifest(logFiles: List<File>): String = buildJsonObject {
         put("generatedAt", JsonPrimitive(OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)))
-        put("sessionId", JsonPrimitive(sessionId))
+        put("sessionId", JsonPrimitive(sessionIdProvider()))
         put("applicationId", JsonPrimitive(config.applicationId))
         put("versionName", JsonPrimitive(config.appVersionName))
         put("versionCode", JsonPrimitive(config.appVersionCode))

@@ -26,10 +26,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.rules.TemporaryFolder
-import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.doThrow
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 
@@ -51,11 +47,12 @@ class SettingsViewModelTest {
             scope.cancel()
         }
         dataStoreScopes.clear()
+        MfLog.resetForTest()
     }
 
     @Test
     fun `storage access state is unconfigured by default`() = runTest(mainDispatcherRule.dispatcher) {
-        val viewModel = createViewModel(createAppPreferences(), createExporter())
+        val viewModel = createViewModel(createAppPreferences(), createFakeExporter())
 
         val state = viewModel.storageAccessState.value
 
@@ -66,7 +63,7 @@ class SettingsViewModelTest {
     @Test
     fun `set storage directory persists selected tree uri`() = runTest(mainDispatcherRule.dispatcher) {
         val appPreferences = createAppPreferences()
-        val viewModel = createViewModel(appPreferences, createExporter())
+        val viewModel = createViewModel(appPreferences, createFakeExporter())
         val treeUri = "content://com.android.externalstorage.documents/tree/primary%3AMusicFree"
 
         viewModel.setStorageDirectory(treeUri)
@@ -82,7 +79,9 @@ class SettingsViewModelTest {
     fun `create feedback package emits created package`() = runTest(mainDispatcherRule.dispatcher) {
         val appPreferences = createAppPreferences()
         val expectedPackage = createFeedbackPackage("generated-feedback.zip")
-        val exporter = createExporter(expectedPackage)
+        val exporter = createFakeExporter(
+            feedbackPackage = expectedPackage,
+        )
         val viewModel = createViewModel(appPreferences, exporter)
 
         val emittedPackage = async { viewModel.feedbackPackage.first() }
@@ -91,28 +90,26 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertSame(expectedPackage, emittedPackage.await())
-        verify(exporter).createPackage()
+        assertEquals(1, exporter.createCalls)
     }
 
     @Test
     fun `clear logs calls exporter`() = runTest(mainDispatcherRule.dispatcher) {
         val appPreferences = createAppPreferences()
-        val exporter = createExporter()
+        val exporter = createFakeExporter()
         val viewModel = createViewModel(appPreferences, exporter)
 
         viewModel.clearLogs()
         advanceUntilIdle()
 
-        verify(exporter).clearLogs()
+        assertEquals(1, exporter.clearCalls)
     }
 
     @Test
     fun `create feedback package logs error when exporter throws`() = runTest(mainDispatcherRule.dispatcher) {
         val appPreferences = createAppPreferences()
         val error = RuntimeException("feedback export failed")
-        val exporter = mock<FeedbackLogExporterContract> {
-            on { createPackage() } doThrow error
-        }
+        val exporter = createFakeExporter(exception = error)
         val logger = RecordingLogger()
         MfLog.install(logger)
 
@@ -127,8 +124,6 @@ class SettingsViewModelTest {
                     it.throwable == error
             },
         )
-
-        MfLog.resetForTest()
     }
 
     private fun createAppPreferences(): AppPreferences {
@@ -153,12 +148,37 @@ class SettingsViewModelTest {
         return FeedbackPackage(file = file, fileName = fileName, sizeBytes = file.length())
     }
 
-    private fun createExporter(
+    private fun createFakeExporter(
+        exception: Throwable? = null,
         feedbackPackage: FeedbackPackage = createFeedbackPackage("feedback.zip"),
-    ): FeedbackLogExporterContract {
-        return mock {
-            on { createPackage() } doReturn feedbackPackage
-            on { clearLogs() } doReturn Unit
+    ): FakeFeedbackLogExporter {
+        return FakeFeedbackLogExporter(
+            feedbackPackage = feedbackPackage,
+            exception = exception,
+        )
+    }
+
+    private class FakeFeedbackLogExporter(
+        private val feedbackPackage: FeedbackPackage,
+        private val exception: Throwable? = null,
+    ) : FeedbackLogExporterContract {
+        var createCalls = 0
+        var clearCalls = 0
+
+        override suspend fun createPackage(): FeedbackPackage {
+            createCalls++
+            if (exception != null) {
+                throw exception
+            }
+            return feedbackPackage
+        }
+
+        override suspend fun clearLogs() {
+            clearCalls++
+        }
+
+        override suspend fun pruneLogs() {
+            // no-op
         }
     }
 
