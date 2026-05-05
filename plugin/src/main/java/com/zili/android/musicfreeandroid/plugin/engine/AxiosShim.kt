@@ -34,6 +34,10 @@ object AxiosShim {
 
     private const val NETEASE_IMAGE_MAGIC = "3go8&$8*3*3h0k(2)2"
     private const val NETEASE_IMAGE_HOST = "https://p1.music.126.net"
+    private const val REQUEST_BODY_PREVIEW_CHARS = 200
+    private const val RESPONSE_BODY_PREVIEW_CHARS = 240
+    private const val HEADER_VALUE_PREVIEW_CHARS = 120
+    private const val HEADER_PREVIEW_CHARS = 600
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -199,7 +203,12 @@ object AxiosShim {
 
         val requestBuilder = Request.Builder().url(fullUrl).post(requestBody)
         applyHeaders(requestBuilder, config)
-        logRequest(method = "POST", url = fullUrl, headers = requestBuilder.build().headers, bodyPreview = bodyString.take(400))
+        logRequest(
+            method = "POST",
+            url = fullUrl,
+            headers = requestBuilder.build().headers,
+            bodyPreview = bodyString.takePreview(REQUEST_BODY_PREVIEW_CHARS),
+        )
 
         val startedAt = System.currentTimeMillis()
         val response = client.newCall(requestBuilder.build()).await()
@@ -259,7 +268,7 @@ object AxiosShim {
     }
 
     private fun readResponseBody(response: Response): String? {
-        val body = response.body ?: return null
+        val body = response.body
         val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
         val bytes = body.bytes()
         if (bytes.isEmpty()) return ""
@@ -309,7 +318,11 @@ object AxiosShim {
         body: String?,
         durationMs: Long,
     ) {
-        val preview = body?.replace("\n", " ")?.replace("\r", " ")?.take(800) ?: ""
+        val preview = body
+            ?.replace("\n", " ")
+            ?.replace("\r", " ")
+            ?.takePreview(RESPONSE_BODY_PREVIEW_CHARS)
+            ?: ""
         MfLog.detail(
             category = LogCategory.PLUGIN,
             event = "axios_response",
@@ -327,9 +340,15 @@ object AxiosShim {
     private fun headersPreview(headers: Headers): String {
         return headers.names().joinToString(",") { name ->
             val values = headers.values(name)
-            val joined = values.joinToString("|")
+            val joined = values.joinToString("|") { value ->
+                value.takePreview(HEADER_VALUE_PREVIEW_CHARS)
+            }
             "$name=$joined"
-        }
+        }.takePreview(HEADER_PREVIEW_CHARS)
+    }
+
+    private fun String.takePreview(maxChars: Int): String {
+        return if (length <= maxChars) this else "${take(maxChars)}..."
     }
 
     private fun buildUrlWithParams(baseUrl: String, config: Map<*, *>?): String {

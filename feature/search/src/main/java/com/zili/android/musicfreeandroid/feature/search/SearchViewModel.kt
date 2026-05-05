@@ -235,6 +235,7 @@ class SearchViewModel @Inject constructor(
         plugins.forEach { pluginInfo ->
             viewModelScope.launch {
                 val plugin = pluginManager.getPlugin(pluginInfo.platform) ?: return@launch
+                val startedAt = System.nanoTime()
                 try {
                     val (result, durationMs) = timedSuspend {
                         plugin.search(query, page = 1, type = mediaType.key)
@@ -269,6 +270,7 @@ class SearchViewModel @Inject constructor(
                             "query" to query,
                             "page" to 1,
                             "status" to "failed",
+                            "durationMs" to elapsedMs(startedAt),
                         ),
                     )
                     updatePluginState(mediaType, pluginInfo.platform,
@@ -332,6 +334,7 @@ class SearchViewModel @Inject constructor(
         val query = _currentQuery.value
 
         viewModelScope.launch {
+            val startedAt = System.nanoTime()
             try {
                 val (result, durationMs) = timedSuspend {
                     plugin.search(query, page = nextPage, type = mediaType.key)
@@ -366,6 +369,7 @@ class SearchViewModel @Inject constructor(
                         "query" to query,
                         "page" to nextPage,
                         "status" to "failed",
+                        "durationMs" to elapsedMs(startedAt),
                     ),
                 )
             }
@@ -559,4 +563,7 @@ class SearchViewModel @Inject constructor(
     fun backToEditing() {
         _pageStatus.value = SearchPageStatus.EDITING
     }
+
+    private fun elapsedMs(startedAt: Long): Long =
+        (System.nanoTime() - startedAt) / 1_000_000
 }

@@ -1,7 +1,10 @@
 package com.zili.android.musicfreeandroid.logging
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -24,5 +27,33 @@ class LoggingTimingTest {
 
         assertEquals("done", value)
         assertTrue(durationMs >= 0)
+    }
+
+    @Test
+    fun `timedFields rethrows failures`() {
+        val error = IllegalStateException("boom")
+
+        val thrown = assertThrows(IllegalStateException::class.java) {
+            timedFields {
+                throw error
+            }
+        }
+
+        assertSame(error, thrown)
+    }
+
+    @Test
+    fun `timedSuspend rethrows cancellation`() {
+        val cancellation = CancellationException("cancelled")
+
+        val thrown = assertThrows(CancellationException::class.java) {
+            runBlocking {
+                timedSuspend {
+                    throw cancellation
+                }
+            }
+        }
+
+        assertSame(cancellation, thrown)
     }
 }
