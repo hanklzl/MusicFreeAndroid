@@ -43,6 +43,14 @@ object FidelityAnchors {
         const val DrawerActionExitApp = "home.drawer.action.exitApp"
     }
 
+    object Search {
+        const val Input = "search.input"
+    }
+
+    object SearchMusicList {
+        const val Input = "searchMusicList.input"
+    }
+
     object Player {
         const val MiniRoot = "player.mini.root"
         const val MiniPlayPause = "player.mini.playPause"

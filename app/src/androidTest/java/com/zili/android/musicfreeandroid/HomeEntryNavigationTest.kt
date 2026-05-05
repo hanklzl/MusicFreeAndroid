@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid
 
 import android.content.pm.PackageManager
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -37,10 +39,13 @@ class HomeEntryNavigationTest {
     }
 
     @Test
-    fun searchEntry_opensSearchRoot() {
+    fun searchEntry_opensSearchRootAndFocusesInput() {
         waitForHomeEntry(FidelityAnchors.Home.NavBarSearch)
         composeRule.onNodeWithTag(FidelityAnchors.Home.NavBarSearch).performClick()
         assertTagExists(FidelityAnchors.Screen.SearchRoot)
+        waitUntilFocused(FidelityAnchors.Search.Input)
+        composeRule.onNodeWithTag(FidelityAnchors.Search.Input, useUnmergedTree = true)
+            .assertIsFocused()
     }
 
     @Test
@@ -146,6 +151,16 @@ class HomeEntryNavigationTest {
 
     private fun scrollToNode(tag: String) {
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasTestTag(tag))
+    }
+
+    private fun waitUntilFocused(tag: String) {
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag(tag, useUnmergedTree = true)
+                .fetchSemanticsNodes()
+                .any { node ->
+                    node.config.getOrElseNullable(SemanticsProperties.Focused) { null } == true
+                }
+        }
     }
 
     private fun assertTagExists(tag: String) {
