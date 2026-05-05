@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,11 +31,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -42,11 +47,9 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.zili.android.musicfreeandroid.core.R
 import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
@@ -70,16 +73,19 @@ fun PlayerLyricsContent(
     val document = state.document
     val loadState = state.loadState
     val currentLineIndex = state.currentLineIndex
+    val latestCurrentLineIndex by rememberUpdatedState(currentLineIndex)
     val lines = document?.lines.orEmpty()
     val isTimedDocument = document?.isTimed == true && lines.isNotEmpty()
-    var isUserScrollingLyrics by remember { mutableStateOf(false) }
+    var isUserScrollingLyrics by remember(document) { mutableStateOf(false) }
     var dragSeekLine by remember(document) { mutableStateOf(state.manualSeekPreviewLine) }
     var showDragSeekOverlay by remember(document) {
         mutableStateOf(state.manualSeekPreviewLine != null)
     }
-    var programmaticScrollCount by remember { mutableIntStateOf(0) }
+    var programmaticScrollCount by remember(document) { mutableIntStateOf(0) }
     val isProgrammaticScroll by remember { derivedStateOf { programmaticScrollCount > 0 } }
-    var hasAutoFollowedInitial by remember(document) { mutableStateOf(false) }
+    var hasInitialPositioned by remember(document, state.fontSizeLevel, state.userOffsetMs) {
+        mutableStateOf(false)
+    }
 
     val centerVisibleLine by remember(
         document,
@@ -125,7 +131,7 @@ fun PlayerLyricsContent(
                 source: NestedScrollSource,
             ): Offset {
                 if (source != NestedScrollSource.UserInput || !isTimedDocument) {
-                    return available
+                    return Offset.Zero
                 }
                 isUserScrollingLyrics = true
                 dragSeekLine = centerVisibleLine
@@ -134,7 +140,12 @@ fun PlayerLyricsContent(
                     isTimedDocument = isTimedDocument,
                     targetLine = centerVisibleLine,
                 )
-                return available
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                isUserScrollingLyrics = false
+                return Velocity.Zero
             }
         }
     }
@@ -152,12 +163,31 @@ fun PlayerLyricsContent(
 
     LaunchedEffect(showDragSeekOverlay, isUserScrollingLyrics, state.manualSeekPreviewLine) {
         if (!isUserScrollingLyrics && showDragSeekOverlay && state.manualSeekPreviewLine == null) {
-            delay(1_800L)
-            if (!isUserScrollingLyrics && state.manualSeekPreviewLine == null) {
+            delay(2_000L)
+            if (!isUserScrollingLyrics) {
                 showDragSeekOverlay = false
                 dragSeekLine = null
             }
         }
+    }
+
+    LaunchedEffect(document, state.fontSizeLevel, state.userOffsetMs) {
+        val doc = document ?: return@LaunchedEffect
+        val targetIndex = initialLyricScrollIndex(latestCurrentLineIndex, doc.lines.size)
+            ?: return@LaunchedEffect
+        delay(120L)
+        scrollToLyricIndex(
+            listState = listState,
+            index = targetIndex,
+            animated = false,
+            onIncrementProgrammaticScroll = {
+                programmaticScrollCount++
+            },
+            onDecrementProgrammaticScroll = {
+                programmaticScrollCount = max(0, programmaticScrollCount - 1)
+            },
+        )
+        hasInitialPositioned = true
     }
 
     LaunchedEffect(
@@ -169,8 +199,11 @@ fun PlayerLyricsContent(
         isProgrammaticScroll,
         isUserScrollingLyrics,
         showDragSeekOverlay,
-        hasAutoFollowedInitial,
+        hasInitialPositioned,
     ) {
+        if (!hasInitialPositioned) {
+            return@LaunchedEffect
+        }
         if (!shouldAutoFollowLyricLine(
                 isPlaying = isPlaying,
                 isProgrammaticScroll = isProgrammaticScroll,
@@ -188,7 +221,7 @@ fun PlayerLyricsContent(
         scrollToLyricIndex(
             listState = listState,
             index = currentLineIndexFinal,
-            animated = hasAutoFollowedInitial,
+            animated = true,
             onIncrementProgrammaticScroll = {
                 programmaticScrollCount++
             },
@@ -196,7 +229,6 @@ fun PlayerLyricsContent(
                 programmaticScrollCount = max(0, programmaticScrollCount - 1)
             },
         )
-        hasAutoFollowedInitial = true
     }
 
     Box(
@@ -281,7 +313,11 @@ private suspend fun scrollToLyricIndex(
     onIncrementProgrammaticScroll: () -> Unit,
     onDecrementProgrammaticScroll: () -> Unit,
 ) {
-    val itemHeight = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.size ?: 0
+    val itemHeight = listState.layoutInfo.visibleItemsInfo
+        .firstOrNull { it.index == index }
+        ?.size
+        ?: listState.layoutInfo.visibleItemsInfo.firstOrNull()?.size
+        ?: 0
     val viewportHeight = listState.layoutInfo.viewportSize.height
     val centeredOffset = centeredItemScrollOffset(
         viewportHeight = viewportHeight,
@@ -363,21 +399,21 @@ private fun DragSeekOverlay(
     onSeekToLine: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val lineColor = Color.White.copy(alpha = 0.8f)
-
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = rpx(24))
+            .height(rpx(92))
+            .padding(horizontal = rpx(18))
             .testTag(PlayerLyricsSeekOverlayTestTag),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             text = formatMsToMinuteSecond(line.timeMs, durationMs),
-            color = Color.White,
+            color = Color(0xFFDDDDDD),
             fontSize = FontSizes.description,
             modifier = Modifier
+                .padding(end = rpx(14))
                 .background(
                     color = Color.Black.copy(alpha = 0.35f),
                     shape = RoundedCornerShape(rpx(22)),
@@ -386,17 +422,16 @@ private fun DragSeekOverlay(
         )
 
         HorizontalDivider(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = rpx(10)),
+            modifier = Modifier.weight(1f),
             thickness = 1.dp,
-            color = lineColor,
+            color = Color.White.copy(alpha = 0.4f),
         )
 
         IconButton(
             onClick = { onSeekToLine(line.timeMs) },
             modifier = Modifier
-                .size(rpx(52))
+                .size(rpx(64))
+                .padding(start = rpx(14))
                 .testTag(PlayerLyricsSeekButtonTestTag),
         ) {
             Icon(
