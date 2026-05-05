@@ -155,3 +155,6 @@ data object PluginSortRoute
 
 @Serializable
 data object PluginSubscriptionRoute
+
+@Serializable
+data object DownloadingRoute
