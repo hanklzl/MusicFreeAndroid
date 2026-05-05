@@ -14,10 +14,13 @@ fun Playlist.toEntity(createdAt: Long, updatedAt: Long): PlaylistEntity = Playli
     updatedAt = updatedAt,
 )
 
-fun PlaylistEntity.toModel(worksNum: Int = 0): Playlist = Playlist(
+fun PlaylistEntity.toModel(
+    worksNum: Int = 0,
+    legacyCoverResolver: ((String) -> String?)? = null,
+): Playlist = Playlist(
     id = id,
     name = name,
-    coverUri = coverUri,
+    coverUri = coverUri?.let { raw -> legacyCoverResolver?.invoke(raw) ?: raw },
     description = description,
     sortMode = parseSortMode(sortMode),
     createdAt = createdAt,

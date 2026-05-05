@@ -23,14 +23,17 @@ class PlaylistCoverStore @Inject constructor(
                 dest.outputStream().use { input.copyTo(it) }
             }
         }
-        if (dest.exists() && dest.length() > 0) "$BASE_DIR_NAME/${dest.name}" else null
+        if (dest.exists() && dest.length() > 0) Uri.fromFile(dest).toString() else null
     }
 
     suspend fun copyFromArtwork(playlistId: String, artworkUrl: String?): String? {
         if (artworkUrl.isNullOrBlank()) return null
         val uri = runCatching { Uri.parse(artworkUrl) }.getOrNull() ?: return null
-        if (uri.scheme !in listOf("file", "content")) return null
-        return saveFromUri(playlistId, uri)
+        return when (uri.scheme?.lowercase()) {
+            "http", "https" -> artworkUrl
+            "file", "content" -> saveFromUri(playlistId, uri)
+            else -> null
+        }
     }
 
     suspend fun delete(playlistId: String) = withContext(Dispatchers.IO) {
