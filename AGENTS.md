@@ -102,6 +102,19 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - 特殊 Chrome 页面必须在规则文档中登记，并自行负责状态栏背景和顶部 inset。
 - `docs/superpowers/plans/*.md` 中旧动画或 AppBar 写法不作为当前 UI Harness 规范来源。
 
+### 日志记录规范
+
+项目使用 `:logging` 模块和 `MfLogger` / `MfLog` 记录结构化日志，底层由美团 Logan 持久化。
+
+- 新功能或 bugfix 涉及启动、插件、网络、播放、数据写入、导入导出、跨模块状态变化时，必须补结构化日志。
+- 业务代码使用 `MfLogger` / `MfLog`，禁止新增直接 `android.util.Log.*` 和直接 Logan 调用；日志底层模块内部兜底除外。
+- 日志事件命名使用稳定小写 snake_case，例如 `plugin_install_failed`。
+- catch 后如果吞掉异常、降级返回或转成用户 toast，必须记录 `error`。
+- 耗时操作必须记录 `durationMs`，可使用 `:logging` 模块提供的 timing helper。
+- 日志字段使用稳定 key，避免把临时 UI 文案作为机器可读字段。
+- 日志默认开启，第一阶段暂不做脱敏，也不提供详细日志手动开关；导出前必须提示用户日志可能包含搜索词、请求地址、插件返回内容和设备信息。
+- 默认保留最近 7 天日志，并通过日志包分享能力提供用户反馈材料。
+
 ### 主题系统
 
 在 Material3 基础上扩展语义色（`MusicFreeColors` + `CompositionLocal`），并支持亮色/暗色模式。原版主题可参考 `../MusicFree/src/core/theme.ts`。
