@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.zili.android.musicfreeandroid.core.model.LyricDocument
@@ -118,6 +121,67 @@ class PlayerLyricsContentTest {
         )
     }
 
+    @Test
+    fun `no lyric state shows separate status and search action`() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                Box(Modifier.size(width = 360.dp, height = 640.dp)) {
+                    val music = readyState().music()
+                    PlayerLyricsContent(
+                        state = PlayerLyricsUiState(
+                            loadState = LyricLoadState.NoLyric(music),
+                            document = null,
+                            currentLineIndex = null,
+                        ),
+                        durationMs = 10_000L,
+                        onBackToCover = {},
+                        onSeekToLine = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(PlayerLyricsNoLyricTextTestTag, useUnmergedTree = true)
+            .assertExists()
+        composeRule.onNodeWithTag(PlayerLyricsSearchTextTestTag, useUnmergedTree = true)
+            .assertExists()
+        composeRule.onAllNodesWithText("暂无歌词\n搜索歌词")
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `search action does not trigger back to cover`() {
+        var backToCoverClicks = 0
+
+        composeRule.setContent {
+            MusicFreeTheme {
+                Box(Modifier.size(width = 360.dp, height = 640.dp)) {
+                    val music = readyState().music()
+                    PlayerLyricsContent(
+                        state = PlayerLyricsUiState(
+                            loadState = LyricLoadState.NoLyric(music),
+                            document = null,
+                            currentLineIndex = null,
+                        ),
+                        durationMs = 10_000L,
+                        onBackToCover = { backToCoverClicks++ },
+                        onSeekToLine = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(PlayerLyricsSearchTextTestTag, useUnmergedTree = true)
+            .performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(0, backToCoverClicks)
+        }
+    }
+
     private fun readyState(): PlayerLyricsUiState {
         val music = MusicItem(
             id = "1",
@@ -145,4 +209,7 @@ class PlayerLyricsContentTest {
             currentLineIndex = 0,
         )
     }
+
+    private fun PlayerLyricsUiState.music(): MusicItem =
+        (loadState as LyricLoadState.Ready).music
 }
