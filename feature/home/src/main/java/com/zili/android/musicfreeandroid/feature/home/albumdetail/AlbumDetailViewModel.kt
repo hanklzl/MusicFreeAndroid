@@ -4,7 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.navigation.AlbumDetailRoute
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -20,6 +24,8 @@ class AlbumDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val pluginManager: PluginManager,
     private val playerController: PlayerController,
+    private val appPreferences: AppPreferences,
+    private val downloader: Downloader,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<AlbumDetailRoute>()
@@ -161,5 +167,11 @@ class AlbumDetailViewModel @Inject constructor(
             worksNum = null,
             raw = raw,
         )
+    }
+
+    val defaultDownloadQuality = appPreferences.defaultDownloadQuality
+
+    fun download(item: MusicItem, quality: PlayQuality) {
+        downloader.enqueue(listOf(item), quality)
     }
 }

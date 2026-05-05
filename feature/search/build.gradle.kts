@@ -46,6 +46,7 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":plugin"))
     implementation(project(":player"))
+    implementation(project(":downloader"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)

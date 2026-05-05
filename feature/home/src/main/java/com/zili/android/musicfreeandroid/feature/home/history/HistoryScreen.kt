@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.home.history
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -26,12 +30,17 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HistoryScreen(
     onBack: () -> Unit,
@@ -41,6 +50,9 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel(),
 ) {
     val history by viewModel.history.collectAsStateWithLifecycle()
+    var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
+    var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
+    val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
 
     MusicFreeScreenScaffold(
         title = "播放历史",
@@ -92,9 +104,10 @@ fun HistoryScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    if (viewModel.playAt(index)) onNavigateToPlayer()
-                                }
+                                .combinedClickable(
+                                    onClick = { if (viewModel.playAt(index)) onNavigateToPlayer() },
+                                    onLongClick = { optionsItem = item },
+                                )
                                 .padding(horizontal = rpx(24), vertical = rpx(16)),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(rpx(16)),
@@ -125,5 +138,20 @@ fun HistoryScreen(
                 }
             }
         }
+    }
+
+    optionsItem?.let { item ->
+        MusicItemOptionsSheet(
+            item = item,
+            onDismiss = { optionsItem = null },
+            onDownload = { qualityFor = it; optionsItem = null },
+        )
+    }
+    qualityFor?.let { item ->
+        DownloadQualityDialog(
+            initial = defaultQuality,
+            onDismiss = { qualityFor = null },
+            onConfirm = { q -> viewModel.download(item, q); qualityFor = null },
+        )
     }
 }

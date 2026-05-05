@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.home.toplist
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,20 +16,27 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TopListDetailScreen(
     onBack: () -> Unit,
@@ -39,6 +47,9 @@ fun TopListDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
+    var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
+    val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
 
     MusicFreeScreenScaffold(
         title = uiState.title,
@@ -88,14 +99,17 @@ fun TopListDetailScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    scope.launch {
-                                        val ok = viewModel.playAt(index)
-                                        if (ok) {
-                                            onNavigateToPlayer()
+                                .combinedClickable(
+                                    onClick = {
+                                        scope.launch {
+                                            val ok = viewModel.playAt(index)
+                                            if (ok) {
+                                                onNavigateToPlayer()
+                                            }
                                         }
-                                    }
-                                }
+                                    },
+                                    onLongClick = { optionsItem = item },
+                                )
                                 .padding(horizontal = rpx(24), vertical = rpx(12)),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -158,5 +172,20 @@ fun TopListDetailScreen(
             }
         }
         }
+    }
+
+    optionsItem?.let { item ->
+        MusicItemOptionsSheet(
+            item = item,
+            onDismiss = { optionsItem = null },
+            onDownload = { qualityFor = it; optionsItem = null },
+        )
+    }
+    qualityFor?.let { item ->
+        DownloadQualityDialog(
+            initial = defaultQuality,
+            onDismiss = { qualityFor = null },
+            onConfirm = { q -> viewModel.download(item, q); qualityFor = null },
+        )
     }
 }

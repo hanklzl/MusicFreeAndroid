@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.navigation.MusicListEditorLiteRoute
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,6 +26,8 @@ class MusicListEditorLiteViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val playlistRepository: PlaylistRepository,
     private val playerController: PlayerController,
+    private val downloader: Downloader,
+    private val appPreferences: AppPreferences,
 ) : ViewModel() {
     private val playlistId: String =
         savedStateHandle.get<String>("playlistId")
@@ -134,6 +139,15 @@ class MusicListEditorLiteViewModel @Inject constructor(
             selectedItems.forEach { item ->
                 playlistRepository.addMusicToPlaylist(targetPlaylistId, item)
             }
+        }
+    }
+
+    fun downloadSelected() {
+        val items = selectedItemsInDisplayOrder()
+        if (items.isEmpty()) return
+        viewModelScope.launch {
+            val quality = appPreferences.defaultDownloadQuality.first()
+            downloader.enqueue(items, quality)
         }
     }
 

@@ -9,23 +9,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.plugin.api.MusicComment
+import kotlinx.coroutines.launch
 
 @Composable
 fun MusicDetailScreen(
@@ -36,6 +47,9 @@ fun MusicDetailScreen(
     viewModel: MusicDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
+    var showQualityDialog by remember { mutableStateOf(false) }
+    var defaultQuality by remember { mutableStateOf(PlayQuality.STANDARD) }
 
     MusicFreeScreenScaffold(
         title = uiState.musicItem?.title ?: "歌曲详情",
@@ -130,6 +144,7 @@ fun MusicDetailScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = rpx(24)),
                                 horizontalArrangement = Arrangement.spacedBy(rpx(24)),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 TextButton(onClick = { onOpenAlbumDetail(item) }) {
                                     Text(
@@ -143,6 +158,18 @@ fun MusicDetailScreen(
                                         text = "歌手作品: ${uiState.artistPreviewCount?.toString() ?: "--"} 首",
                                         color = MusicFreeTheme.colors.primary,
                                         fontSize = FontSizes.description,
+                                    )
+                                }
+                                IconButton(onClick = {
+                                    coroutineScope.launch {
+                                        defaultQuality = viewModel.preferredDownloadQuality()
+                                        showQualityDialog = true
+                                    }
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Download,
+                                        contentDescription = "下载",
+                                        tint = MusicFreeTheme.colors.primary,
                                     )
                                 }
                             }
@@ -217,6 +244,17 @@ fun MusicDetailScreen(
             }
         }
         }
+    }
+
+    if (showQualityDialog) {
+        DownloadQualityDialog(
+            initial = defaultQuality,
+            onDismiss = { showQualityDialog = false },
+            onConfirm = { q ->
+                viewModel.download(q)
+                showQualityDialog = false
+            },
+        )
     }
 }
 

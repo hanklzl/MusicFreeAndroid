@@ -5,10 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -29,6 +32,8 @@ class PluginSheetDetailViewModel @Inject constructor(
     private val pluginManager: PluginManager,
     private val playerController: PlayerController,
     private val playlistRepository: PlaylistRepository,
+    private val appPreferences: AppPreferences,
+    private val downloader: Downloader,
 ) : ViewModel() {
     private val route = savedStateHandle.toRoute<PluginSheetDetailRoute>()
 
@@ -214,5 +219,11 @@ class PluginSheetDetailViewModel @Inject constructor(
             worksNum = null,
             raw = raw,
         )
+    }
+
+    val defaultDownloadQuality = appPreferences.defaultDownloadQuality
+
+    fun download(item: MusicItem, quality: PlayQuality) {
+        downloader.enqueue(listOf(item), quality)
     }
 }
