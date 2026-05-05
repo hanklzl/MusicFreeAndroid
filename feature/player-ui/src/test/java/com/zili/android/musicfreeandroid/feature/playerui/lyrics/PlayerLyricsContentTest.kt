@@ -34,7 +34,7 @@ class PlayerLyricsContentTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `tapping lyric text does not return to cover`() {
+    fun `tapping lyric text returns to cover`() {
         var backToCoverClicks = 0
         val state = readyState().copy(currentLineIndex = null)
 
@@ -58,7 +58,7 @@ class PlayerLyricsContentTest {
         }
 
         composeRule.runOnIdle {
-            assertEquals(0, backToCoverClicks)
+            assertEquals(1, backToCoverClicks)
         }
     }
 

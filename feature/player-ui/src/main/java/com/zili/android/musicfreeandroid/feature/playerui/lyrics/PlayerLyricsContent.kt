@@ -396,11 +396,6 @@ private fun LyricsList(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(
-                        interactionSource = remember(line.index) { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {},
-                    )
                     .padding(horizontal = rpx(64), vertical = rpx(20)),
             )
         }
