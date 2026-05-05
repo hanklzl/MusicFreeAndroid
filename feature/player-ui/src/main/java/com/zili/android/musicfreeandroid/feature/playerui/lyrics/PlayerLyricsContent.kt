@@ -186,8 +186,6 @@ fun PlayerLyricsContent(
     }
 }
 
-internal const val PlayerLyricsContentTestTag = "player.lyrics.content"
-
 @Composable
 private fun LyricsList(
     lines: List<ParsedLyricLine>,
@@ -333,25 +331,4 @@ private fun formatMsToMinuteSecond(timeMs: Long, durationMs: Long): String {
     val minutes = clamped / 60_000
     val seconds = (clamped / 1000) % 60
     return "%d:%02d".format(minutes, seconds)
-}
-
-internal data class VisibleLyricItemBounds(
-    val top: Int,
-    val bottom: Int,
-)
-
-internal fun shouldAutoFollowLyricLine(
-    isScrollInProgress: Boolean,
-    dragSeekOverlayVisible: Boolean,
-): Boolean = !isScrollInProgress && !dragSeekOverlayVisible
-
-internal fun shouldHandleLyricBackTap(
-    tapY: Float,
-    visibleItemBounds: List<VisibleLyricItemBounds>,
-    dragSeekOverlayVisible: Boolean,
-): Boolean {
-    if (dragSeekOverlayVisible) return false
-    return visibleItemBounds.none { bounds ->
-        tapY >= bounds.top && tapY <= bounds.bottom
-    }
 }
