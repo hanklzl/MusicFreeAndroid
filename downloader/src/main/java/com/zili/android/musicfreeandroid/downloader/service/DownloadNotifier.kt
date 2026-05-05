@@ -37,8 +37,10 @@ class DownloadNotifier @Inject constructor(
     }
 
     fun buildOngoing(active: Int, total: Int, completed: Int, percent: Int): Notification {
-        val openIntent = Intent(ACTION_OPEN).setPackage(context.packageName)
         val cancelIntent = Intent(ACTION_CANCEL_ALL).setPackage(context.packageName)
+        val openIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?.apply { addCategory(Intent.CATEGORY_LAUNCHER) }
+            ?: Intent()
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download)
@@ -47,8 +49,8 @@ class DownloadNotifier @Inject constructor(
             .setProgress(100, percent, false)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setContentIntent(PendingIntent.getActivity(context, 2, openIntent, flags))
             .addAction(0, "取消所有", PendingIntent.getBroadcast(context, 1, cancelIntent, flags))
-            .addAction(0, "打开", PendingIntent.getBroadcast(context, 2, openIntent, flags))
             .build()
     }
 }

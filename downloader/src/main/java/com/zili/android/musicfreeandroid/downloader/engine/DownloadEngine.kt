@@ -17,11 +17,14 @@ import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
 import com.zili.android.musicfreeandroid.downloader.model.MediaKey
 import com.zili.android.musicfreeandroid.downloader.prefs.DownloadConfig
 import com.zili.android.musicfreeandroid.downloader.quality.QualityFallback
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -86,14 +89,18 @@ class DownloadEngine(
                 net to cfg.useCellularDownload
             }.onEach { (net, cellularAllowed) ->
                 if (net == NetworkState.Cellular && !cellularAllowed) {
-                    // mid-download cellular cutoff: cancel all inflight, push them back to PENDING
+                    // mid-download cellular cutoff: cancel all inflight, mark them FAILED with reason
                     inflight.values.forEach { it.cancel() }
                     inflight.clear()
                     val rows = taskDao.observeAll().first()
                     rows.filter {
                         it.status == DownloadStatus.PREPARING.name || it.status == DownloadStatus.DOWNLOADING.name
                     }.forEach {
-                        taskDao.updateStatus(it.id, it.platform, DownloadStatus.PENDING.name, System.currentTimeMillis())
+                        taskDao.markFailed(
+                            it.id, it.platform,
+                            reason = DownloadFailReason.NotAllowToDownloadInCellular.name,
+                            now = System.currentTimeMillis(),
+                        )
                     }
                 } else {
                     scheduleNext()
@@ -193,18 +200,22 @@ class DownloadEngine(
                 },
             )
             val size = cacheFile.length()
-            val uri = writer(cacheFile, displayName, mime, relPath, size)
-            downloadedDao.insert(
-                DownloadedTrackEntity(
-                    id = task.id, platform = task.platform,
-                    mediaStoreUri = uri.toString(), relativePath = relPath,
-                    mimeType = mime, quality = task.targetQuality,
-                    sizeBytes = size, downloadedAt = System.currentTimeMillis(),
-                ),
-            )
-            taskDao.deleteByKey(task.id, task.platform)
+            withContext(NonCancellable) {
+                val uri = writer(cacheFile, displayName, mime, relPath, size)
+                downloadedDao.insert(
+                    DownloadedTrackEntity(
+                        id = task.id, platform = task.platform,
+                        mediaStoreUri = uri.toString(), relativePath = relPath,
+                        mimeType = mime, quality = task.targetQuality,
+                        sizeBytes = size, downloadedAt = System.currentTimeMillis(),
+                    ),
+                )
+                taskDao.deleteByKey(task.id, task.platform)
+            }
             progressCache.remove(key)
             _events.tryEmit(DownloadEvent.Completed(key))
+        } catch (e: CancellationException) {
+            throw e   // propagate cancellation per Kotlin coroutines convention
         } catch (e: HttpDownloadException) {
             markFailed(key, DownloadFailReason.Unknown)
         } catch (t: Throwable) {
