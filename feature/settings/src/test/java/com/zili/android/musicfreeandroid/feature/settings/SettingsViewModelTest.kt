@@ -12,13 +12,14 @@ import com.zili.android.musicfreeandroid.logging.MfLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -28,6 +29,7 @@ import org.junit.runner.RunWith
 import org.junit.rules.TemporaryFolder
 import org.robolectric.RobolectricTestRunner
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -76,7 +78,7 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `create feedback package emits created package`() = runTest(mainDispatcherRule.dispatcher) {
+    fun `create feedback package updates pending package`() = runTest(mainDispatcherRule.dispatcher) {
         val appPreferences = createAppPreferences()
         val expectedPackage = createFeedbackPackage("generated-feedback.zip")
         val exporter = createFakeExporter(
@@ -84,13 +86,62 @@ class SettingsViewModelTest {
         )
         val viewModel = createViewModel(appPreferences, exporter)
 
-        val emittedPackage = async { viewModel.feedbackPackage.first() }
+        viewModel.createFeedbackPackage()
+        advanceUntilIdle()
+
+        assertSame(expectedPackage, viewModel.feedbackExportUiState.value.pendingPackage)
+        assertEquals(1, exporter.createCalls)
+        assertFalse(viewModel.feedbackExportUiState.value.isOperationInProgress)
+    }
+
+    @Test
+    fun `shared package can be consumed`() = runTest(mainDispatcherRule.dispatcher) {
+        val appPreferences = createAppPreferences()
+        val expectedPackage = createFeedbackPackage("generated-feedback.zip")
+        val exporter = createFakeExporter(feedbackPackage = expectedPackage)
+        val viewModel = createViewModel(appPreferences, exporter)
 
         viewModel.createFeedbackPackage()
         advanceUntilIdle()
 
-        assertSame(expectedPackage, emittedPackage.await())
+        assertEquals(expectedPackage, viewModel.feedbackExportUiState.value.pendingPackage)
+        viewModel.onFeedbackPackageShared()
+
+        assertNull(viewModel.feedbackExportUiState.value.pendingPackage)
+    }
+
+    @Test
+    fun `create feedback package ignores concurrent clicks`() = runTest(mainDispatcherRule.dispatcher) {
+        val appPreferences = createAppPreferences()
+        val expectedPackage = createFeedbackPackage("generated-feedback.zip")
+        val exporter = createFakeExporter(
+            feedbackPackage = expectedPackage,
+            createDelayMs = 100,
+        )
+        val viewModel = createViewModel(appPreferences, exporter)
+
+        viewModel.createFeedbackPackage()
+        viewModel.createFeedbackPackage()
+        advanceUntilIdle()
+
         assertEquals(1, exporter.createCalls)
+        assertEquals(1, exporter.maxConcurrentCreateCalls)
+    }
+
+    @Test
+    fun `clear logs is blocked by create in progress`() = runTest(mainDispatcherRule.dispatcher) {
+        val appPreferences = createAppPreferences()
+        val exporter = createFakeExporter(createDelayMs = 100)
+        val viewModel = createViewModel(appPreferences, exporter)
+
+        viewModel.createFeedbackPackage()
+        viewModel.clearLogs()
+        advanceUntilIdle()
+
+        assertEquals(1, exporter.createCalls)
+        assertEquals(0, exporter.clearCalls)
+        assertEquals(1, exporter.maxConcurrentCreateCalls)
+        assertEquals(0, exporter.maxConcurrentClearCalls)
     }
 
     @Test
@@ -106,6 +157,20 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `clear logs ignores concurrent clicks`() = runTest(mainDispatcherRule.dispatcher) {
+        val appPreferences = createAppPreferences()
+        val exporter = createFakeExporter(clearDelayMs = 100)
+        val viewModel = createViewModel(appPreferences, exporter)
+
+        viewModel.clearLogs()
+        viewModel.clearLogs()
+        advanceUntilIdle()
+
+        assertEquals(1, exporter.clearCalls)
+        assertEquals(1, exporter.maxConcurrentClearCalls)
+    }
+
+    @Test
     fun `create feedback package logs error when exporter throws`() = runTest(mainDispatcherRule.dispatcher) {
         val appPreferences = createAppPreferences()
         val error = RuntimeException("feedback export failed")
@@ -117,6 +182,7 @@ class SettingsViewModelTest {
         viewModel.createFeedbackPackage()
         advanceUntilIdle()
 
+        assertEquals(error.message, viewModel.feedbackExportUiState.value.errorMessage)
         assertTrue(
             logger.errorEvents.any {
                 it.category == LogCategory.FEEDBACK &&
@@ -151,30 +217,68 @@ class SettingsViewModelTest {
     private fun createFakeExporter(
         exception: Throwable? = null,
         feedbackPackage: FeedbackPackage = createFeedbackPackage("feedback.zip"),
+        createDelayMs: Long = 0,
+        clearDelayMs: Long = 0,
     ): FakeFeedbackLogExporter {
         return FakeFeedbackLogExporter(
             feedbackPackage = feedbackPackage,
             exception = exception,
+            createDelayMs = createDelayMs,
+            clearDelayMs = clearDelayMs,
         )
     }
 
     private class FakeFeedbackLogExporter(
         private val feedbackPackage: FeedbackPackage,
         private val exception: Throwable? = null,
+        private val createDelayMs: Long = 0,
+        private val clearDelayMs: Long = 0,
     ) : FeedbackLogExporterContract {
         var createCalls = 0
         var clearCalls = 0
+        var maxConcurrentCreateCalls = 0
+        var maxConcurrentClearCalls = 0
+
+        private val createConcurrent = AtomicInteger(0)
+        private val clearConcurrent = AtomicInteger(0)
+        private val concurrentLock = Any()
 
         override suspend fun createPackage(): FeedbackPackage {
-            createCalls++
-            if (exception != null) {
-                throw exception
+            val currentConcurrent = createConcurrent.incrementAndGet()
+            synchronized(concurrentLock) {
+                if (currentConcurrent > maxConcurrentCreateCalls) {
+                    maxConcurrentCreateCalls = currentConcurrent
+                }
             }
-            return feedbackPackage
+            try {
+                createCalls++
+                if (createDelayMs > 0) {
+                    delay(createDelayMs)
+                }
+                if (exception != null) {
+                    throw exception
+                }
+                return feedbackPackage
+            } finally {
+                createConcurrent.decrementAndGet()
+            }
         }
 
         override suspend fun clearLogs() {
-            clearCalls++
+            val currentConcurrent = clearConcurrent.incrementAndGet()
+            synchronized(concurrentLock) {
+                if (currentConcurrent > maxConcurrentClearCalls) {
+                    maxConcurrentClearCalls = currentConcurrent
+                }
+            }
+            try {
+                clearCalls++
+                if (clearDelayMs > 0) {
+                    delay(clearDelayMs)
+                }
+            } finally {
+                clearConcurrent.decrementAndGet()
+            }
         }
 
         override suspend fun pruneLogs() {

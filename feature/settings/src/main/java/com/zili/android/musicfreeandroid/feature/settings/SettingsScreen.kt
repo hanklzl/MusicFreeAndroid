@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid.feature.settings
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,7 +38,8 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
-import kotlinx.coroutines.flow.collectLatest
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
 
 @Composable
 fun SettingsScreen(
@@ -49,11 +52,13 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val storageAccessState by viewModel.storageAccessState.collectAsStateWithLifecycle()
+    val feedbackExportUiState by viewModel.feedbackExportUiState.collectAsStateWithLifecycle()
+    val isActionInProgress = feedbackExportUiState.isOperationInProgress
     val context = LocalContext.current
     var showFeedbackConfirm by remember { mutableStateOf(false) }
 
-    LaunchedEffect(viewModel) {
-        viewModel.feedbackPackage.collectLatest { packageItem ->
+    LaunchedEffect(viewModel, feedbackExportUiState.pendingPackage) {
+        feedbackExportUiState.pendingPackage?.let { packageItem ->
             val feedbackUri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.feedback-files",
@@ -66,7 +71,32 @@ fun SettingsScreen(
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
-            context.startActivity(Intent.createChooser(shareIntent, "分享日志包"))
+            try {
+                context.startActivity(Intent.createChooser(shareIntent, "分享日志包"))
+            } catch (error: ActivityNotFoundException) {
+                MfLog.error(
+                    LogCategory.FEEDBACK,
+                    "feedback_package_share_failed",
+                    error,
+                )
+                viewModel.onFeedbackExportError("未找到可用于分享日志包的应用")
+            } catch (error: RuntimeException) {
+                MfLog.error(
+                    LogCategory.FEEDBACK,
+                    "feedback_package_share_failed",
+                    error,
+                )
+                viewModel.onFeedbackExportError("分享日志包失败，请稍后重试")
+            } finally {
+                viewModel.onFeedbackPackageShared()
+            }
+        }
+    }
+
+    LaunchedEffect(viewModel, feedbackExportUiState.errorMessage) {
+        feedbackExportUiState.errorMessage?.let { errorMessage ->
+            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            viewModel.clearFeedbackError()
         }
     }
 
@@ -148,6 +178,7 @@ fun SettingsScreen(
                     title = "生成日志包并分享",
                     description = "创建包含日志与运行环境信息的压缩包，用于问题反馈。",
                     actionText = "生成",
+                    enabled = !isActionInProgress,
                     onClick = { showFeedbackConfirm = true },
                 )
             }
@@ -158,6 +189,7 @@ fun SettingsScreen(
                     title = "清空日志",
                     description = "清理本地日志缓存与历史日志导出文件。",
                     actionText = "清空",
+                    enabled = !isActionInProgress,
                     onClick = { viewModel.clearLogs() },
                 )
             }
