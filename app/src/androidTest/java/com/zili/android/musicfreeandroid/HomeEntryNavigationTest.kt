@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
+import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -35,6 +36,7 @@ class HomeEntryNavigationTest {
     @Before
     fun setUp() {
         hiltRule.inject()
+        grantNotificationPermission()
         grantAudioPermissions()
     }
 
@@ -178,6 +180,23 @@ class HomeEntryNavigationTest {
         val permission = requiredAudioPermission()
         instrumentation.uiAutomation.grantRuntimePermission(packageName, permission)
         assertAudioPermissionGranted()
+    }
+
+    private fun grantNotificationPermission() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val packageName = instrumentation.targetContext.packageName
+        val permission = requiredNotificationPermission()
+        if (permission == null) return
+        instrumentation.uiAutomation.grantRuntimePermission(packageName, permission)
+        assertNotificationPermissionGranted()
+    }
+
+    private fun assertNotificationPermissionGranted() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val permission = requiredNotificationPermission() ?: return
+        check(
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED,
+        ) { "Expected $permission to be granted before home entry navigation tests." }
     }
 
     private fun assertAudioPermissionGranted() {
