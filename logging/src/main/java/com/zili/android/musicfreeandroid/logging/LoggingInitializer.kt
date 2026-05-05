@@ -49,8 +49,21 @@ object LoggingInitializer {
     }
 
     private fun installUncaughtExceptionHandler() {
-        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+        val existingHandler = Thread.getDefaultUncaughtExceptionHandler()
+        if (existingHandler is LoggingUncaughtExceptionHandler) {
+            return
+        }
+        Thread.setDefaultUncaughtExceptionHandler(
+            LoggingUncaughtExceptionHandler(
+                previousHandler = existingHandler,
+            ),
+        )
+    }
+
+    private class LoggingUncaughtExceptionHandler(
+        private val previousHandler: Thread.UncaughtExceptionHandler?,
+    ) : Thread.UncaughtExceptionHandler {
+        override fun uncaughtException(thread: Thread, throwable: Throwable) {
             try {
                 MfLog.error(
                     LogCategory.APP,
