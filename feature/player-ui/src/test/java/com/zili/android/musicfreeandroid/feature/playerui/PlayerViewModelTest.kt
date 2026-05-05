@@ -234,6 +234,79 @@ class PlayerViewModelTest {
     }
 
     @Test
+    fun `lyrics ui state keeps ready during same track loading refresh`() = runTest {
+        val item = MusicItem(id = "stable-ready", platform = "demo", title = "Song", artist = "A", album = null, duration = 10_000L, url = null, artwork = null, qualities = null)
+        val lyricFlow = MutableStateFlow<LyricLoadState>(
+            readyLyricState(item, listOf(ParsedLyricLine(0, 1_000L, "A"))),
+        )
+        whenever(playerLyricLoader.observeLyrics(item)).thenReturn(lyricFlow)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item, position = 1_500L)
+
+        val viewModel = createViewModel()
+        val job = backgroundScope.launch { viewModel.lyricsUiState.collect {} }
+        advanceUntilIdle()
+        assertTrue(viewModel.lyricsUiState.value.loadState is LyricLoadState.Ready)
+
+        lyricFlow.value = LyricLoadState.Loading(item)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.lyricsUiState.value.loadState is LyricLoadState.Ready)
+        assertEquals("A", viewModel.lyricsUiState.value.document?.lines?.first()?.text)
+        job.cancel()
+    }
+
+    @Test
+    fun `lyrics ui state allows final same track no lyric after loading refresh`() = runTest {
+        val item = MusicItem(id = "final-no-lyric", platform = "demo", title = "Song", artist = "A", album = null, duration = 10_000L, url = null, artwork = null, qualities = null)
+        val lyricFlow = MutableStateFlow<LyricLoadState>(
+            readyLyricState(item, listOf(ParsedLyricLine(0, 1_000L, "A"))),
+        )
+        whenever(playerLyricLoader.observeLyrics(item)).thenReturn(lyricFlow)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item, position = 1_500L)
+
+        val viewModel = createViewModel()
+        val job = backgroundScope.launch { viewModel.lyricsUiState.collect {} }
+        advanceUntilIdle()
+
+        lyricFlow.value = LyricLoadState.Loading(item)
+        advanceUntilIdle()
+        assertTrue(viewModel.lyricsUiState.value.loadState is LyricLoadState.Ready)
+
+        lyricFlow.value = LyricLoadState.NoLyric(item)
+        advanceUntilIdle()
+
+        assertEquals(LyricLoadState.NoLyric(item), viewModel.lyricsUiState.value.loadState)
+        assertEquals(null, viewModel.lyricsUiState.value.document)
+        assertEquals(null, viewModel.lyricsUiState.value.currentLineIndex)
+        job.cancel()
+    }
+
+    @Test
+    fun `lyrics ui state switches to loading for a different track`() = runTest {
+        val first = MusicItem(id = "first", platform = "demo", title = "First", artist = "A", album = null, duration = 10_000L, url = null, artwork = null, qualities = null)
+        val second = MusicItem(id = "second", platform = "demo", title = "Second", artist = "B", album = null, duration = 10_000L, url = null, artwork = null, qualities = null)
+        whenever(playerLyricLoader.observeLyrics(first)).thenReturn(
+            flowOf(readyLyricState(first, listOf(ParsedLyricLine(0, 1_000L, "First line")))),
+        )
+        whenever(playerLyricLoader.observeLyrics(second)).thenReturn(
+            flowOf(LyricLoadState.Loading(second)),
+        )
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = first, position = 1_500L)
+
+        val viewModel = createViewModel()
+        val job = backgroundScope.launch { viewModel.lyricsUiState.collect {} }
+        advanceUntilIdle()
+        assertTrue(viewModel.lyricsUiState.value.loadState is LyricLoadState.Ready)
+
+        playerStateFlow.value = playerStateFlow.value.copy(currentItem = second, position = 0L)
+        advanceUntilIdle()
+
+        assertEquals(LyricLoadState.Loading(second), viewModel.lyricsUiState.value.loadState)
+        assertEquals(null, viewModel.lyricsUiState.value.document)
+        job.cancel()
+    }
+
+    @Test
     fun `seekTo calls controller`() {
         val viewModel = createViewModel()
         viewModel.seekTo(5000L)
