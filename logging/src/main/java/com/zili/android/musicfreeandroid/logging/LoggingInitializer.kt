@@ -7,9 +7,13 @@ import java.util.UUID
 
 object LoggingInitializer {
     private const val TAG = "LoggingInitializer"
+    @Volatile
+    var currentSessionId: String = "unknown"
+        private set
 
     fun initialize(config: LoggingConfig): String {
         val sessionId = UUID.randomUUID().toString()
+        currentSessionId = sessionId
         return try {
             config.cacheDir.mkdirs()
             config.logDir.mkdirs()

@@ -16,8 +16,8 @@ import java.util.zip.ZipOutputStream
 
 class FeedbackLogExporter(
     private val config: LoggingConfig,
-    private val sessionId: String,
-) {
+    private val sessionId: String = LoggingInitializer.currentSessionId,
+) : FeedbackLogExporterContract {
     init {
         val feedbackDirectory = config.feedbackDir.toPath().normalize().toAbsolutePath()
         val allowedFeedbackRoot = config.cacheDir.resolve("feedback").toPath().normalize().toAbsolutePath()
@@ -29,7 +29,7 @@ class FeedbackLogExporter(
         }
     }
 
-    fun createPackage(): FeedbackPackage {
+    override fun createPackage(): FeedbackPackage {
         MfLog.flush()
         pruneLogs()
 
@@ -57,13 +57,13 @@ class FeedbackLogExporter(
         return FeedbackPackage(target, target.name, target.length())
     }
 
-    fun clearLogs() {
+    override fun clearLogs() {
         clearAndRecreate(config.logDir)
         clearAndRecreate(config.feedbackDir)
         MfLog.trace(LogCategory.FEEDBACK, "feedback_logs_cleared")
     }
 
-    fun pruneLogs() {
+    override fun pruneLogs() {
         LogPruner.prune(
             config.logDir,
             config.retentionDays,

@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.settings
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,17 +11,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
@@ -28,6 +36,7 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun SettingsScreen(
@@ -40,6 +49,26 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val storageAccessState by viewModel.storageAccessState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var showFeedbackConfirm by remember { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel) {
+        viewModel.feedbackPackage.collectLatest { packageItem ->
+            val feedbackUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.feedback-files",
+                packageItem.file,
+            )
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/zip"
+                putExtra(Intent.EXTRA_STREAM, feedbackUri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            context.startActivity(Intent.createChooser(shareIntent, "分享日志包"))
+        }
+    }
 
     MusicFreeScreenScaffold(
         title = "设置",
@@ -112,7 +141,37 @@ fun SettingsScreen(
                     onClick = onNavigateToFileSelector,
                 )
             }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "生成日志包并分享",
+                    description = "创建包含日志与运行环境信息的压缩包，用于问题反馈。",
+                    actionText = "生成",
+                    onClick = { showFeedbackConfirm = true },
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(rpx(16)))
+                SettingsEntryCard(
+                    title = "清空日志",
+                    description = "清理本地日志缓存与历史日志导出文件。",
+                    actionText = "清空",
+                    onClick = { viewModel.clearLogs() },
+                )
+            }
         }
+    }
+
+    if (showFeedbackConfirm) {
+        FeedbackExportConfirmDialog(
+            onDismiss = { showFeedbackConfirm = false },
+            onConfirm = {
+                showFeedbackConfirm = false
+                viewModel.createFeedbackPackage()
+            },
+        )
     }
 }
 
@@ -123,6 +182,34 @@ private fun storageDirectoryDescription(state: StorageAccessState): String {
         "未配置目录"
     }
     return "$prefix，用于后续下载、备份和本地导入能力。"
+}
+
+@Composable
+private fun FeedbackExportConfirmDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "分享日志包")
+        },
+        text = {
+            Text(
+                text = "日志包可能包含搜索词、请求地址、插件返回内容以及设备信息。\\n\\n仅在需要排查问题时用于反馈。",
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = "继续")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "取消")
+            }
+        },
+    )
 }
 
 @Composable
