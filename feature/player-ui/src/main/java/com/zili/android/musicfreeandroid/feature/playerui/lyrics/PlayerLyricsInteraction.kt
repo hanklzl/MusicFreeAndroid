@@ -41,6 +41,8 @@ internal fun shouldAutoFollowLyricLine(
         !isUserScrolling &&
         !seekOverlayVisible
 
+// Temporary compatibility bridge for existing PlayerLyricsContent/tests until Task 4
+// migrates callsites to the 4-arg helper and removes this overload.
 internal fun shouldAutoFollowLyricLine(
     isScrollInProgress: Boolean,
     dragSeekOverlayVisible: Boolean,
