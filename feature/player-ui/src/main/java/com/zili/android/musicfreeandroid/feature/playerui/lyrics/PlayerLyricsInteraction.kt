@@ -41,6 +41,11 @@ internal fun shouldAutoFollowLyricLine(
         !isUserScrolling &&
         !seekOverlayVisible
 
+internal fun shouldAutoFollowLyricTarget(
+    currentLineIndex: Int,
+    lastAutoFollowLineIndex: Int?,
+): Boolean = currentLineIndex != lastAutoFollowLineIndex
+
 internal fun centerVisibleLyricLine(
     lines: List<ParsedLyricLine>,
     visibleItems: List<VisibleLyricListItem>,

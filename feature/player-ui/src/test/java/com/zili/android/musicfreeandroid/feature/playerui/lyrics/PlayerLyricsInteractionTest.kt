@@ -75,6 +75,28 @@ class PlayerLyricsInteractionTest {
     }
 
     @Test
+    fun autoFollowTargetSkipsAlreadyFollowedLine() {
+        assertFalse(
+            shouldAutoFollowLyricTarget(
+                currentLineIndex = 1,
+                lastAutoFollowLineIndex = 1,
+            ),
+        )
+        assertTrue(
+            shouldAutoFollowLyricTarget(
+                currentLineIndex = 1,
+                lastAutoFollowLineIndex = 0,
+            ),
+        )
+        assertTrue(
+            shouldAutoFollowLyricTarget(
+                currentLineIndex = 1,
+                lastAutoFollowLineIndex = null,
+            ),
+        )
+    }
+
+    @Test
     fun centerVisibleLineChoosesItemClosestToViewportCenter() {
         val visible = listOf(
             VisibleLyricListItem(index = 0, offset = 0, size = 80),

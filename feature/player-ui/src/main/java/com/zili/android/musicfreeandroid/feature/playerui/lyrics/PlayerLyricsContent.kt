@@ -86,6 +86,9 @@ fun PlayerLyricsContent(
     var hasInitialPositioned by remember(document, state.fontSizeLevel, state.userOffsetMs) {
         mutableStateOf(false)
     }
+    var lastAutoFollowLineIndex by remember(document, state.fontSizeLevel, state.userOffsetMs) {
+        mutableStateOf<Int?>(null)
+    }
 
     val centerVisibleLine by remember(
         document,
@@ -115,6 +118,7 @@ fun PlayerLyricsContent(
                 if (source != NestedScrollSource.UserInput || !isTimedDocument) {
                     return Offset.Zero
                 }
+                lastAutoFollowLineIndex = null
                 isUserScrollingLyrics = true
                 dragSeekLine = centerVisibleLine
                 showDragSeekOverlay = shouldShowSeekOverlay(
@@ -133,6 +137,7 @@ fun PlayerLyricsContent(
                 if (source != NestedScrollSource.UserInput || !isTimedDocument) {
                     return Offset.Zero
                 }
+                lastAutoFollowLineIndex = null
                 isUserScrollingLyrics = true
                 dragSeekLine = centerVisibleLine
                 showDragSeekOverlay = shouldShowSeekOverlay(
@@ -188,6 +193,7 @@ fun PlayerLyricsContent(
             },
         )
         hasInitialPositioned = true
+        lastAutoFollowLineIndex = targetIndex
     }
 
     LaunchedEffect(
@@ -196,7 +202,6 @@ fun PlayerLyricsContent(
         state.fontSizeLevel,
         state.userOffsetMs,
         isPlaying,
-        isProgrammaticScroll,
         isUserScrollingLyrics,
         showDragSeekOverlay,
         hasInitialPositioned,
@@ -216,7 +221,16 @@ fun PlayerLyricsContent(
 
         val currentLineIndexFinal = currentLineIndex ?: return@LaunchedEffect
         val doc = loadState as? LyricLoadState.Ready ?: return@LaunchedEffect
+        if (!doc.document.isTimed) return@LaunchedEffect
         if (currentLineIndexFinal !in doc.document.lines.indices) return@LaunchedEffect
+        if (
+            !shouldAutoFollowLyricTarget(
+                currentLineIndex = currentLineIndexFinal,
+                lastAutoFollowLineIndex = lastAutoFollowLineIndex,
+            )
+        ) {
+            return@LaunchedEffect
+        }
 
         scrollToLyricIndex(
             listState = listState,
@@ -229,6 +243,7 @@ fun PlayerLyricsContent(
                 programmaticScrollCount = max(0, programmaticScrollCount - 1)
             },
         )
+        lastAutoFollowLineIndex = currentLineIndexFinal
     }
 
     Box(
