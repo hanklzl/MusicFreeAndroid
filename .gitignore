@@ -12,3 +12,5 @@ local.properties
 .worktrees/
 .remember
 .superpowers
+tools/logan/out/
+tools/logan/*.class

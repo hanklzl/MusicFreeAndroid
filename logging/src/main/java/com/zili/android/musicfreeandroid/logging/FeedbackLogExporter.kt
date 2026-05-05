@@ -136,6 +136,7 @@ class FeedbackLogExporter(
 
     private fun decodeReadme(): String = """
         |Use tools/logan/decode-logan.sh with the matching Logan key and IV.
+        |Decoded text is written under tools/logan/out/decoded by default.
         |Debug logs use the repository development key in app/build.gradle.kts.
         |Release logs require LOGAN_AES_KEY and LOGAN_AES_IV environment variables.
         """.trimMargin()
