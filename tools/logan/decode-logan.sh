@@ -2,7 +2,9 @@
 set -euo pipefail
 
 INPUT="${1:-}"
-OUTPUT_DIR="${2:-tools/logan/out}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ALLOWED_OUTPUT_BASE="${SCRIPT_DIR}/out"
+OUTPUT_DIR="${2:-$ALLOWED_OUTPUT_BASE}"
 
 if [[ -z "${INPUT}" ]]; then
   echo "Usage: tools/logan/decode-logan.sh <feedback-zip-or-logan-dir> [output-dir]" >&2
@@ -20,12 +22,19 @@ if [[ -z "${OUTPUT_DIR}" ]]; then
   exit 1
 fi
 
-if [[ "${OUTPUT_DIR}" == "/" ]]; then
-  echo "Refusing to clear root output directory: ${OUTPUT_DIR}" >&2
+OUTPUT_DIR="$(realpath -m "${OUTPUT_DIR}")"
+ALLOWED_OUTPUT_BASE="$(realpath -m "${ALLOWED_OUTPUT_BASE}")"
+
+if [[ "${OUTPUT_DIR}" == "${ALLOWED_OUTPUT_BASE}" || "${OUTPUT_DIR}" == "${ALLOWED_OUTPUT_BASE}/"* ]]; then
+  :
+else
+  echo "Output directory must be under ${ALLOWED_OUTPUT_BASE}. Received: ${OUTPUT_DIR}" >&2
   exit 1
 fi
 
-rm -rf "${OUTPUT_DIR}"
+if [[ -d "${OUTPUT_DIR}" ]]; then
+  find "${OUTPUT_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+fi
 
 mkdir -p "${OUTPUT_DIR}"
 mkdir -p "${OUTPUT_DIR}/logan"

@@ -127,25 +127,7 @@ class FeedbackLogExporter(
         """.trimMargin()
 
     private fun nextAvailablePackageFile(): File {
-        val stamp = OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmssSSS"))
-        var suffix = 0
-        while (true) {
-            val filename = when (suffix) {
-                0 -> "musicfree-feedback-$stamp.zip"
-                else -> "musicfree-feedback-$stamp-$suffix.zip"
-            }
-
-            val candidate = File(config.feedbackDir, filename)
-            if (candidate.createNewFile()) {
-                candidate.delete()
-                return candidate
-            }
-
-            suffix++
-            if (suffix > 10000) {
-                throw IllegalStateException("Failed to allocate unique feedback package filename after 10000 attempts")
-            }
-        }
+        return File.createTempFile("musicfree-feedback-", ".zip", config.feedbackDir)
     }
 
     private fun clearAndRecreate(directory: File) {
