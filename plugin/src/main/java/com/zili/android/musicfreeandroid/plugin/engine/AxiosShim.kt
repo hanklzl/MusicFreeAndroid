@@ -268,7 +268,8 @@ object AxiosShim {
     }
 
     private fun readResponseBody(response: Response): String? {
-        val body = response.body
+        val body: okhttp3.ResponseBody? = response.body
+        if (body == null) return null
         val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
         val bytes = body.bytes()
         if (bytes.isEmpty()) return ""
