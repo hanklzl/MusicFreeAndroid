@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid
 
 import android.content.pm.PackageManager
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -12,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
+import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -33,14 +36,18 @@ class HomeEntryNavigationTest {
     @Before
     fun setUp() {
         hiltRule.inject()
+        grantNotificationPermission()
         grantAudioPermissions()
     }
 
     @Test
-    fun searchEntry_opensSearchRoot() {
+    fun searchEntry_opensSearchRootAndFocusesInput() {
         waitForHomeEntry(FidelityAnchors.Home.NavBarSearch)
         composeRule.onNodeWithTag(FidelityAnchors.Home.NavBarSearch).performClick()
         assertTagExists(FidelityAnchors.Screen.SearchRoot)
+        waitUntilFocused(FidelityAnchors.Search.Input)
+        composeRule.onNodeWithTag(FidelityAnchors.Search.Input, useUnmergedTree = true)
+            .assertIsFocused()
     }
 
     @Test
@@ -148,6 +155,16 @@ class HomeEntryNavigationTest {
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasTestTag(tag))
     }
 
+    private fun waitUntilFocused(tag: String) {
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag(tag, useUnmergedTree = true)
+                .fetchSemanticsNodes()
+                .any { node ->
+                    node.config.getOrElseNullable(SemanticsProperties.Focused) { null } == true
+                }
+        }
+    }
+
     private fun assertTagExists(tag: String) {
         composeRule.waitUntil(timeoutMillis = 5_000) {
             runCatching {
@@ -163,6 +180,23 @@ class HomeEntryNavigationTest {
         val permission = requiredAudioPermission()
         instrumentation.uiAutomation.grantRuntimePermission(packageName, permission)
         assertAudioPermissionGranted()
+    }
+
+    private fun grantNotificationPermission() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val packageName = instrumentation.targetContext.packageName
+        val permission = requiredNotificationPermission()
+        if (permission == null) return
+        instrumentation.uiAutomation.grantRuntimePermission(packageName, permission)
+        assertNotificationPermissionGranted()
+    }
+
+    private fun assertNotificationPermissionGranted() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val permission = requiredNotificationPermission() ?: return
+        check(
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED,
+        ) { "Expected $permission to be granted before home entry navigation tests." }
     }
 
     private fun assertAudioPermissionGranted() {

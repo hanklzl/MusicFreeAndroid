@@ -41,10 +41,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
@@ -88,6 +92,8 @@ fun SearchScreen(
     val allPlaylists by viewModel.allPlaylists.collectAsState()
 
     val context = LocalContext.current
+    val searchFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
     var query by remember { mutableStateOf(viewModel.currentQuery.value) }
     // 如果 ViewModel 已有查询（如从历史恢复），同步初始化本地状态
     LaunchedEffect(Unit) {
@@ -95,6 +101,11 @@ fun SearchScreen(
         if (initialQuery.isNotBlank() && query.isBlank()) {
             query = initialQuery
         }
+    }
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        searchFocusRequester.requestFocus()
+        keyboardController?.show()
     }
 
     // Observe play events from ViewModel (runs in ViewModel scope, survives navigation)
@@ -149,6 +160,8 @@ fun SearchScreen(
                     modifier = Modifier
                         .weight(1f)
                         .height(rpx(64))
+                        .focusRequester(searchFocusRequester)
+                        .testTag(FidelityAnchors.Search.Input)
                         .background(colors.pageBackground, RoundedCornerShape(rpx(64))),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
