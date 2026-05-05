@@ -34,16 +34,16 @@ class PlaylistRepository @Inject constructor(
 
     fun observeAllPlaylists(): Flow<List<Playlist>> =
         playlistDao.observeAllPlaylistsWithCount().map { rows ->
-            rows.map { it.playlist.toModel(worksNum = it.worksNum) }
+            rows.map { it.playlist.toModel(worksNum = it.worksNum, legacyCoverResolver = ::resolveLegacyCoverUri) }
         }
 
     fun observePlaylist(id: String): Flow<Playlist?> =
         playlistDao.observePlaylistWithCount(id).map { row ->
-            row?.playlist?.toModel(worksNum = row.worksNum)
+            row?.playlist?.toModel(worksNum = row.worksNum, legacyCoverResolver = ::resolveLegacyCoverUri)
         }
 
     suspend fun getPlaylistById(id: String): Playlist? =
-        playlistDao.getPlaylistById(id)?.toModel()
+        playlistDao.getPlaylistById(id)?.toModel(legacyCoverResolver = ::resolveLegacyCoverUri)
 
     fun observeFavorite(): Flow<Playlist?> = observePlaylist(Playlist.DEFAULT_FAVORITE_ID)
 
@@ -176,4 +176,13 @@ class PlaylistRepository @Inject constructor(
 
     suspend fun countMusicInPlaylist(playlistId: String): Int =
         playlistDao.countMusicInPlaylist(playlistId)
+
+    private fun resolveLegacyCoverUri(raw: String): String? =
+        if (raw.startsWith(LEGACY_COVER_PREFIX)) {
+            Uri.fromFile(coverStore.absoluteFile(raw)).toString()
+        } else {
+            null
+        }
+
+    companion object { private const val LEGACY_COVER_PREFIX = PlaylistCoverStore.BASE_DIR_NAME + "/" }
 }

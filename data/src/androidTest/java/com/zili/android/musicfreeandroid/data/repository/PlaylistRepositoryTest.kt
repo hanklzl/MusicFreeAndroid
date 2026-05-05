@@ -285,4 +285,37 @@ class PlaylistRepositoryTest {
         }
         assertNotNull(caught)
     }
+
+    @Test
+    fun addMusic_storesHttpsArtworkUrlVerbatimAsCoverUri() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Online", coverUri = null))
+        val artwork = "https://example.com/cover.jpg"
+        playlistRepo.addMusicToPlaylist(id, sampleMusic("m1", artwork = artwork))
+        val playlist = playlistRepo.observePlaylist(id).first()
+        assertEquals(artwork, playlist?.coverUri)
+    }
+
+    @Test
+    fun observePlaylist_translatesLegacyRelativeCoverUriToFileScheme() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        // Simulate a legacy DB row: write the entity directly with a relative-path coverUri,
+        // bypassing the new PlaylistCoverStore writers.
+        db.playlistDao().insertPlaylist(
+            com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity(
+                id = id,
+                name = "Legacy",
+                coverUri = "playlist_covers/$id.jpg",
+                description = null,
+                sortMode = "Manual",
+                createdAt = 0L,
+                updatedAt = 0L,
+            )
+        )
+        val playlist = playlistRepo.observePlaylist(id).first()
+        val coverUri = playlist?.coverUri
+        assertNotNull(coverUri)
+        assertTrue("expected file:// uri, got $coverUri", coverUri!!.startsWith("file://"))
+        assertTrue("expected playlist_covers/ in path, got $coverUri", coverUri.contains("playlist_covers/$id.jpg"))
+    }
 }
