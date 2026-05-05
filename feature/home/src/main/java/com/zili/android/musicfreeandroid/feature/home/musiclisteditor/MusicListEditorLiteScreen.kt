@@ -77,6 +77,7 @@ fun MusicListEditorLiteScreen(
                         onRemoveSelected = viewModel::removeSelectedFromPlaylist,
                         onAddToNextQueue = viewModel::addSelectedToNextQueue,
                         onAddToPlaylist = { showAddToPlaylistDialog = true },
+                        onDownloadSelected = viewModel::downloadSelected,
                     )
                 }
                 items(uiState.items, key = { "${it.platform}:${it.id}" }) { item ->
@@ -104,6 +105,7 @@ private fun MusicListEditorLiteActions(
     onRemoveSelected: () -> Unit,
     onAddToNextQueue: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    onDownloadSelected: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -160,6 +162,12 @@ private fun MusicListEditorLiteActions(
                 enabled = uiState.selectedCount > 0 && uiState.availableTargetPlaylists.isNotEmpty(),
             ) {
                 Text("添加到歌单")
+            }
+            TextButton(
+                onClick = onDownloadSelected,
+                enabled = uiState.selectedCount > 0,
+            ) {
+                Text("下载选中")
             }
         }
 

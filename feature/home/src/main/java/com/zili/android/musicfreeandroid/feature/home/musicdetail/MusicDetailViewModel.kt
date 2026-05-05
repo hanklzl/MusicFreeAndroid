@@ -5,7 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
 import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -13,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,6 +24,8 @@ import javax.inject.Inject
 class MusicDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val pluginManager: PluginManager,
+    private val downloader: Downloader,
+    private val appPreferences: AppPreferences,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<MusicDetailRoute>()
@@ -39,6 +45,13 @@ class MusicDetailViewModel @Inject constructor(
             load()
         }
     }
+
+    fun download(quality: PlayQuality) {
+        val item = _uiState.value.musicItem ?: return
+        downloader.enqueue(listOf(item), quality)
+    }
+
+    suspend fun preferredDownloadQuality(): PlayQuality = appPreferences.defaultDownloadQuality.first()
 
     private suspend fun load() {
         val base = MusicDetailSeedResolver.baseMusicItem(route)
