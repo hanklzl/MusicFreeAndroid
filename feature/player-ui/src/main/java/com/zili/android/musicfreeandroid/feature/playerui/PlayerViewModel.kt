@@ -26,8 +26,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
@@ -57,12 +57,12 @@ class PlayerViewModel @Inject constructor(
 
     private val lyricLoadState: StateFlow<LyricLoadState> = rawLyricLoadState
         .scan<LyricLoadState, LyricLoadState?>(null) { previous, next ->
-            when {
-                next is LyricLoadState.Loading &&
-                    previous is LyricLoadState.Ready &&
-                    next.music.platform == previous.music.platform &&
-                    next.music.id == previous.music.id -> previous
-                else -> next
+            val previousReady = previous as? LyricLoadState.Ready
+            val nextLoading = next as? LyricLoadState.Loading
+            if (previousReady != null && nextLoading != null && previousReady.music.sameMusicKey(nextLoading.music)) {
+                previousReady
+            } else {
+                next
             }
         }
         .filterNotNull()
@@ -243,3 +243,6 @@ class PlayerViewModel @Inject constructor(
         playerController.play()
     }
 }
+
+private fun MusicItem.sameMusicKey(other: MusicItem): Boolean =
+    platform == other.platform && id == other.id
