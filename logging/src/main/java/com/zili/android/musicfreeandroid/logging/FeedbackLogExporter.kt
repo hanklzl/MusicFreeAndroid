@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid.logging
 
+import android.os.Build
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
@@ -67,6 +69,24 @@ class FeedbackLogExporter(
         put("versionName", JsonPrimitive(config.appVersionName))
         put("versionCode", JsonPrimitive(config.appVersionCode))
         put("buildType", JsonPrimitive(config.buildType))
+        put("androidSdk", JsonPrimitive(Build.VERSION.SDK_INT))
+        put("androidRelease", JsonPrimitive(Build.VERSION.RELEASE.orEmpty()))
+        put("deviceManufacturer", JsonPrimitive(Build.MANUFACTURER.orEmpty()))
+        put("deviceModel", JsonPrimitive(Build.MODEL.orEmpty()))
+        put(
+            "supportedAbis",
+            buildJsonArray {
+                Build.SUPPORTED_ABIS.orEmpty().forEach { abi ->
+                    add(JsonPrimitive(abi))
+                }
+            },
+        )
+        val (logStartLastModified, logEndLastModified) = computeLogDateRange(logFiles)
+        put(
+            "logStartLastModified",
+            logStartLastModified?.let { JsonPrimitive(it) } ?: JsonNull,
+        )
+        put("logEndLastModified", logEndLastModified?.let { JsonPrimitive(it) } ?: JsonNull)
         put(
             "files",
             buildJsonArray {
@@ -82,6 +102,14 @@ class FeedbackLogExporter(
             },
         )
     }.toString()
+
+    private fun computeLogDateRange(logFiles: List<File>): Pair<Long?, Long?> {
+        if (logFiles.isEmpty()) {
+            return null to null
+        }
+        val sortedByDate = logFiles.map { it.lastModified() }.sorted()
+        return sortedByDate.first() to sortedByDate.last()
+    }
 
     private fun decodeReadme(): String = """
         |Use tools/logan/decode-logan.sh with the matching Logan key and IV.

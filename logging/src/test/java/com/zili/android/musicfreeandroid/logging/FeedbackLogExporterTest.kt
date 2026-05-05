@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.logging
 
+import android.os.Build
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -9,6 +10,7 @@ import org.junit.rules.TemporaryFolder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -73,6 +75,12 @@ class FeedbackLogExporterTest {
                 assertEquals(config.appVersionName, manifestJson.getString("versionName"))
                 assertEquals(config.appVersionCode, manifestJson.getLong("versionCode"))
                 assertEquals(config.buildType, manifestJson.getString("buildType"))
+                assertEquals(Build.VERSION.SDK_INT.toLong(), manifestJson.getLong("androidSdk"))
+                assertEquals(Build.VERSION.RELEASE.orEmpty(), manifestJson.getString("androidRelease"))
+                assertEquals((Build.MANUFACTURER ?: "").orEmpty(), manifestJson.getString("deviceManufacturer"))
+                assertEquals((Build.MODEL ?: "").orEmpty(), manifestJson.getString("deviceModel"))
+                assertEquals(now, manifestJson.getLongOrNull("logStartLastModified"))
+                assertEquals(newLog.lastModified(), manifestJson.getLongOrNull("logEndLastModified"))
 
                 assertTrue(manifestJson.containsKey("generatedAt"))
 
@@ -91,6 +99,12 @@ class FeedbackLogExporterTest {
                 val readme = readZipText(zip, readmeEntry!!)
                 assertTrue(readme.contains("LOGAN_AES_KEY"))
                 assertTrue(readme.contains("LOGAN_AES_IV"))
+
+                val supportedAbis = manifestJson.getJsonArray("supportedAbis")
+                    .map { value ->
+                        (value as JsonPrimitive).content
+                    }
+                assertEquals(Build.SUPPORTED_ABIS.orEmpty().toList(), supportedAbis)
             } finally {
                 zip.close()
             }
@@ -189,6 +203,7 @@ class FeedbackLogExporterTest {
 
     private fun JsonObject.getString(field: String): String = get(field)?.jsonPrimitive?.content.orEmpty()
     private fun JsonObject.getLong(field: String): Long = get(field)?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+    private fun JsonObject.getLongOrNull(field: String): Long? = get(field)?.jsonPrimitive?.content?.toLongOrNull()
     private fun JsonObject.getJsonArray(field: String): JsonArray = get(field)?.jsonArray ?: JsonArray(emptyList())
 
     private class RecordingLogger : MfLogger {
