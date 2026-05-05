@@ -3,6 +3,8 @@ package com.zili.android.musicfreeandroid.downloader.di
 import android.content.Context
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
+import com.zili.android.musicfreeandroid.downloader.Downloader
+import com.zili.android.musicfreeandroid.downloader.DownloaderImpl
 import com.zili.android.musicfreeandroid.downloader.engine.DownloadEngine
 import com.zili.android.musicfreeandroid.downloader.engine.MediaStoreMusicWriter
 import com.zili.android.musicfreeandroid.downloader.io.HttpDownloader
@@ -26,6 +28,9 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DownloaderBindingsModule {
+    @Binds @Singleton
+    abstract fun bindDownloader(impl: DownloaderImpl): Downloader
+
     @Binds @Singleton
     abstract fun bindHttp(impl: OkHttpDownloader): HttpDownloader
 }

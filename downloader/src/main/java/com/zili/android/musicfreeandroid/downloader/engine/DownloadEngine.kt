@@ -56,6 +56,7 @@ class DownloadEngine(
     private val inflight = ConcurrentHashMap<MediaKey, Job>()
     private val progressCache = ConcurrentHashMap<MediaKey, Pair<Long?, Long?>>()
     private var networkWatchJob: Job? = null
+    private val started = java.util.concurrent.atomic.AtomicBoolean(false)
 
     private val _events = MutableSharedFlow<DownloadEvent>(extraBufferCapacity = 16)
     val events: SharedFlow<DownloadEvent> = _events.asSharedFlow()
@@ -74,6 +75,7 @@ class DownloadEngine(
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
     fun start() {
+        if (!started.compareAndSet(false, true)) return
         scope.launch {
             // Restart recovery: any PREPARING/DOWNLOADING become PENDING (with resolvedUrl cleared)
             taskDao.resetInflightToPending()
