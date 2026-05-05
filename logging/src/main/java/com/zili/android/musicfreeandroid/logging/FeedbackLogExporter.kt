@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import java.io.File
+import java.io.IOException
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.zip.ZipEntry
@@ -17,13 +18,23 @@ class FeedbackLogExporter(
     private val config: LoggingConfig,
     private val sessionId: String,
 ) {
+    init {
+        val feedbackDirectory = config.feedbackDir.toPath().normalize().toAbsolutePath()
+        val allowedFeedbackRoot = config.cacheDir.resolve("feedback").toPath().normalize().toAbsolutePath()
+
+        require(
+            feedbackDirectory == allowedFeedbackRoot || feedbackDirectory.startsWith(allowedFeedbackRoot),
+        ) {
+            "feedbackDir must be within cacheDir/feedback for secure sharing"
+        }
+    }
+
     fun createPackage(): FeedbackPackage {
         MfLog.flush()
         pruneLogs()
 
         config.feedbackDir.mkdirs()
-        val stamp = OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
-        val target = File(config.feedbackDir, "musicfree-feedback-$stamp.zip")
+        val target = nextAvailablePackageFile()
         val logFiles = config.logDir.listFiles()?.filter { it.isFile }?.sortedBy { it.name } ?: emptyList()
 
         ZipOutputStream(target.outputStream().buffered()).use { zip ->
@@ -47,10 +58,8 @@ class FeedbackLogExporter(
     }
 
     fun clearLogs() {
-        config.logDir.deleteRecursively()
-        config.feedbackDir.deleteRecursively()
-        config.logDir.mkdirs()
-        config.feedbackDir.mkdirs()
+        clearAndRecreate(config.logDir)
+        clearAndRecreate(config.feedbackDir)
         MfLog.trace(LogCategory.FEEDBACK, "feedback_logs_cleared")
     }
 
@@ -116,6 +125,42 @@ class FeedbackLogExporter(
         |Debug logs use the repository development key in app/build.gradle.kts.
         |Release logs require LOGAN_AES_KEY and LOGAN_AES_IV environment variables.
         """.trimMargin()
+
+    private fun nextAvailablePackageFile(): File {
+        val stamp = OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmssSSS"))
+        var suffix = 0
+        while (true) {
+            val filename = when (suffix) {
+                0 -> "musicfree-feedback-$stamp.zip"
+                else -> "musicfree-feedback-$stamp-$suffix.zip"
+            }
+
+            val candidate = File(config.feedbackDir, filename)
+            if (candidate.createNewFile()) {
+                candidate.delete()
+                return candidate
+            }
+
+            suffix++
+            if (suffix > 10000) {
+                throw IllegalStateException("Failed to allocate unique feedback package filename after 10000 attempts")
+            }
+        }
+    }
+
+    private fun clearAndRecreate(directory: File) {
+        if (directory.exists() && !directory.deleteRecursively()) {
+            val error = IOException("Failed to clear directory: ${directory.absolutePath}")
+            MfLog.error(LogCategory.FEEDBACK, "feedback_logs_clear_failed", error)
+            throw error
+        }
+
+        if (!directory.mkdirs() && !directory.exists()) {
+            val error = IOException("Failed to recreate directory: ${directory.absolutePath}")
+            MfLog.error(LogCategory.FEEDBACK, "feedback_logs_clear_failed", error)
+            throw error
+        }
+    }
 
     private fun ZipOutputStream.putText(path: String, text: String) {
         val entry = ZipEntry(path)

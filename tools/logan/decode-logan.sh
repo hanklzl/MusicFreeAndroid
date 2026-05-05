@@ -15,6 +15,18 @@ echo "Release logs require LOGAN_AES_KEY and LOGAN_AES_IV in the environment."
 echo "Debug logs use the repository development key."
 echo "Use your Logan decode tooling with the extracted files in this directory."
 
+if [[ -z "${OUTPUT_DIR}" ]]; then
+  echo "Invalid output directory: ${OUTPUT_DIR}" >&2
+  exit 1
+fi
+
+if [[ "${OUTPUT_DIR}" == "/" ]]; then
+  echo "Refusing to clear root output directory: ${OUTPUT_DIR}" >&2
+  exit 1
+fi
+
+rm -rf "${OUTPUT_DIR}"
+
 mkdir -p "${OUTPUT_DIR}"
 mkdir -p "${OUTPUT_DIR}/logan"
 

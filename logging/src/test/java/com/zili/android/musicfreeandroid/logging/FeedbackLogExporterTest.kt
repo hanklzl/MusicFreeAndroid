@@ -2,7 +2,9 @@ package com.zili.android.musicfreeandroid.logging
 
 import android.os.Build
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -29,13 +31,14 @@ class FeedbackLogExporterTest {
         MfLog.install(logger)
         try {
             val logDir = tmp.newFolder("logan")
-            val feedbackDir = tmp.newFolder("feedback")
+            val cacheDir = tmp.newFolder("cache")
+            val feedbackDir = File(cacheDir, "feedback").apply { mkdirs() }
             val now = System.currentTimeMillis()
             val oldLog = createLogFile(logDir, "2026-05-01", "first", now)
             val newLog = createLogFile(logDir, "2026-05-02", "second", now + 1_000)
 
             val config = LoggingConfig(
-                cacheDir = tmp.newFolder("cache"),
+                cacheDir = cacheDir,
                 logDir = logDir,
                 feedbackDir = feedbackDir,
                 aesKey16 = "0123456789abcdef",
@@ -117,18 +120,88 @@ class FeedbackLogExporterTest {
     }
 
     @Test
+    fun `createPackage uses unique filenames for rapid exports`() {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        try {
+            val logDir = tmp.newFolder("logan")
+            val cacheDir = tmp.newFolder("cache")
+            val feedbackDir = File(cacheDir, "feedback").apply { mkdirs() }
+
+            createLogFile(logDir, "quick.log", "quick", System.currentTimeMillis())
+
+            val config = LoggingConfig(
+                cacheDir = cacheDir,
+                logDir = logDir,
+                feedbackDir = feedbackDir,
+                aesKey16 = "0123456789abcdef",
+                aesIv16 = "abcdef0123456789",
+                appVersionName = "1.0.0",
+                appVersionCode = 1L,
+                applicationId = "com.example.musicfree",
+                buildType = "debug",
+            )
+
+            val exporter = FeedbackLogExporter(config, sessionId = "session-1")
+
+            val first = exporter.createPackage()
+            val second = exporter.createPackage()
+
+            assertNotEquals(first.fileName, second.fileName)
+            assertTrue(first.file.exists())
+            assertTrue(second.file.exists())
+            assertTrue(first.fileName.startsWith("musicfree-feedback-"))
+            assertTrue(first.fileName.endsWith(".zip"))
+            assertTrue(second.fileName.startsWith("musicfree-feedback-"))
+            assertTrue(second.fileName.endsWith(".zip"))
+        } finally {
+            MfLog.resetForTest()
+        }
+    }
+
+    @Test
+    fun `createPackage rejects feedbackDir outside cache feedback path`() {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        try {
+            val logDir = tmp.newFolder("logan")
+            val cacheDir = tmp.newFolder("cache")
+            val feedbackDir = tmp.newFolder("feedback")
+
+            val config = LoggingConfig(
+                cacheDir = cacheDir,
+                logDir = logDir,
+                feedbackDir = feedbackDir,
+                aesKey16 = "0123456789abcdef",
+                aesIv16 = "abcdef0123456789",
+                appVersionName = "1.0.0",
+                appVersionCode = 1L,
+                applicationId = "com.example.musicfree",
+                buildType = "debug",
+            )
+
+            assertThrows(IllegalArgumentException::class.java) {
+                FeedbackLogExporter(config, sessionId = "session-1")
+            }
+        } finally {
+            MfLog.resetForTest()
+        }
+    }
+
+    @Test
     fun `clearLogs deletes feedback and log directories`() {
         val logger = RecordingLogger()
         MfLog.install(logger)
         try {
             val logDir = tmp.newFolder("logan")
-            val feedbackDir = tmp.newFolder("feedback")
+            val cacheDir = tmp.newFolder("cache")
+            val feedbackDir = File(cacheDir, "feedback").apply { mkdirs() }
 
             logDir.resolve("old.log").writeText("old")
             feedbackDir.resolve("old.zip").writeText("old")
 
             val config = LoggingConfig(
-                cacheDir = tmp.newFolder("cache"),
+                cacheDir = cacheDir,
                 logDir = logDir,
                 feedbackDir = feedbackDir,
                 aesKey16 = "0123456789abcdef",
@@ -153,6 +226,11 @@ class FeedbackLogExporterTest {
                     it.startsWith("trace:") && it.contains("feedback_logs_cleared")
                 },
             )
+            assertTrue(
+                logger.events.none {
+                    it.startsWith("error:") && it.contains("feedback_logs_clear_failed")
+                },
+            )
         } finally {
             MfLog.resetForTest()
         }
@@ -161,13 +239,14 @@ class FeedbackLogExporterTest {
     @Test
     fun `pruneLogs deletes old logs`() {
         val logDir = tmp.newFolder("logan")
-        val feedbackDir = tmp.newFolder("feedback")
+        val cacheDir = tmp.newFolder("cache")
+        val feedbackDir = File(cacheDir, "feedback").apply { mkdirs() }
 
         val oldLog = createLogFile(logDir, "old.log", "old", System.currentTimeMillis() - 2L * 24 * 60 * 60 * 1000)
         val newLog = createLogFile(logDir, "new.log", "new", System.currentTimeMillis())
 
         val config = LoggingConfig(
-            cacheDir = tmp.newFolder("cache"),
+            cacheDir = cacheDir,
             logDir = logDir,
             feedbackDir = feedbackDir,
             aesKey16 = "0123456789abcdef",
