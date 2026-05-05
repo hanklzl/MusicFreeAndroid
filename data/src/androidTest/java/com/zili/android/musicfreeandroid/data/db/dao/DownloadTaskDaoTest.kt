@@ -32,7 +32,7 @@ class DownloadTaskDaoTest {
     private fun task(id: String, status: String = "PENDING", platform: String = "qq") = DownloadTaskEntity(
         id = id, platform = platform, title = "t-$id", artist = "a", album = null,
         artwork = null, durationMs = 0L, targetQuality = "standard",
-        status = status, errorReason = null, resolvedUrl = null, resolvedHeadersJson = null,
+        status = status, errorReason = null, seedUrl = null, resolvedUrl = null, resolvedHeadersJson = null,
         fileSize = null, downloadedSize = null, createdAt = 1L, updatedAt = 1L,
     )
 

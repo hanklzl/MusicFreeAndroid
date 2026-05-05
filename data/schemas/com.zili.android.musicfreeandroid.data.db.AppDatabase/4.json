@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 4,
-    "identityHash": "4b71710cb9ca6b83aa557bf40731209b",
+    "identityHash": "e6a92b69902528d400f4cd808a869ada",
     "entities": [
       {
         "tableName": "music_items",
@@ -346,7 +346,7 @@
       },
       {
         "tableName": "download_tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `platform` TEXT NOT NULL, `title` TEXT NOT NULL, `artist` TEXT NOT NULL, `album` TEXT, `artwork` TEXT, `durationMs` INTEGER NOT NULL, `targetQuality` TEXT NOT NULL, `status` TEXT NOT NULL, `errorReason` TEXT, `resolvedUrl` TEXT, `resolvedHeadersJson` TEXT, `fileSize` INTEGER, `downloadedSize` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`, `platform`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `platform` TEXT NOT NULL, `title` TEXT NOT NULL, `artist` TEXT NOT NULL, `album` TEXT, `artwork` TEXT, `durationMs` INTEGER NOT NULL, `targetQuality` TEXT NOT NULL, `status` TEXT NOT NULL, `errorReason` TEXT, `seedUrl` TEXT, `resolvedUrl` TEXT, `resolvedHeadersJson` TEXT, `fileSize` INTEGER, `downloadedSize` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`, `platform`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -403,6 +403,11 @@
           {
             "fieldPath": "errorReason",
             "columnName": "errorReason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "seedUrl",
+            "columnName": "seedUrl",
             "affinity": "TEXT"
           },
           {
@@ -510,7 +515,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4b71710cb9ca6b83aa557bf40731209b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e6a92b69902528d400f4cd808a869ada')"
     ]
   }
 }

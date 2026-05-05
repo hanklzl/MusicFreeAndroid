@@ -14,6 +14,7 @@ data class DownloadTaskEntity(
     val targetQuality: String,            // "low"/"standard"/"high"/"super"
     val status: String,                   // PENDING / PREPARING / DOWNLOADING / FAILED
     val errorReason: String?,             // FailToFetchSource / NoWritePermission / Unknown / NotAllowToDownloadInCellular
+    val seedUrl: String?,                 // caller-provided url, used as fallback when no plugin matches
     val resolvedUrl: String?,
     val resolvedHeadersJson: String?,
     val fileSize: Long?,

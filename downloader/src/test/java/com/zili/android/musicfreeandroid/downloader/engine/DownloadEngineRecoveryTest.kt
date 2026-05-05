@@ -43,13 +43,13 @@ class DownloadEngineRecoveryTest {
         db.downloadTaskDao().upsert(DownloadTaskEntity(
             id = "p", platform = "qq", title = "t", artist = "a", album = null, artwork = null,
             durationMs = 0L, targetQuality = "standard", status = "PREPARING",
-            errorReason = null, resolvedUrl = "https://x/p.mp3", resolvedHeadersJson = null,
+            errorReason = null, seedUrl = null, resolvedUrl = "https://x/p.mp3", resolvedHeadersJson = null,
             fileSize = null, downloadedSize = null, createdAt = now, updatedAt = now,
         ))
         db.downloadTaskDao().upsert(DownloadTaskEntity(
             id = "d", platform = "qq", title = "t", artist = "a", album = null, artwork = null,
             durationMs = 0L, targetQuality = "standard", status = "DOWNLOADING",
-            errorReason = null, resolvedUrl = "https://x/d.mp3", resolvedHeadersJson = null,
+            errorReason = null, seedUrl = null, resolvedUrl = "https://x/d.mp3", resolvedHeadersJson = null,
             fileSize = 100, downloadedSize = 50, createdAt = now, updatedAt = now,
         ))
         val engine = DownloadEngine(

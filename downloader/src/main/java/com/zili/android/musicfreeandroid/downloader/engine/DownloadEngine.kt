@@ -122,6 +122,7 @@ class DownloadEngine(
                     album = item.album, artwork = item.artwork, durationMs = item.duration,
                     targetQuality = effectiveQuality.name.lowercase(),
                     status = DownloadStatus.PENDING.name, errorReason = null,
+                    seedUrl = item.url,
                     resolvedUrl = null, resolvedHeadersJson = null,
                     fileSize = null, downloadedSize = null,
                     createdAt = now, updatedAt = now,
@@ -153,13 +154,19 @@ class DownloadEngine(
         }.getOrDefault(PlayQuality.STANDARD)
 
         val resolved = QualityFallback.resolve(musicItem, targetQuality, resolver)
-        if (resolved == null) {
-            markFailed(key, DownloadFailReason.FailToFetchSource)
-            inflight.remove(key)
-            scheduleNext()
-            return
+        val source: MediaSourceResult = if (resolved != null) {
+            resolved.second
+        } else {
+            val seed = musicItem.url
+            if (!seed.isNullOrBlank()) {
+                MediaSourceResult(url = seed, headers = null, userAgent = null, quality = targetQuality)
+            } else {
+                markFailed(key, DownloadFailReason.FailToFetchSource)
+                inflight.remove(key)
+                scheduleNext()
+                return
+            }
         }
-        val (_, source) = resolved
         taskDao.setResolved(task.id, task.platform, source.url, null, System.currentTimeMillis())
         taskDao.updateStatus(task.id, task.platform, DownloadStatus.DOWNLOADING.name, System.currentTimeMillis())
 
@@ -271,7 +278,7 @@ private fun DownloadTaskEntity.toUi(progress: Pair<Long?, Long?>?): DownloadTask
 
 private fun DownloadTaskEntity.toMusicItemSeed(): MusicItem = MusicItem(
     id = id, platform = platform, title = title, artist = artist,
-    album = album, duration = durationMs, url = null, artwork = artwork, qualities = null,
+    album = album, duration = durationMs, url = seedUrl, artwork = artwork, qualities = null,
 )
 
 sealed interface DownloadEvent {
