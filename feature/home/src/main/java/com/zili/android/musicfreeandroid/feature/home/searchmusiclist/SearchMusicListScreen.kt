@@ -24,13 +24,20 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +45,7 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 
@@ -49,6 +57,14 @@ fun SearchMusicListScreen(
     viewModel: SearchMusicListViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val searchFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        searchFocusRequester.requestFocus()
+        keyboardController?.show()
+    }
 
     MusicFreeScreenScaffold(
         titleContent = {
@@ -93,7 +109,10 @@ fun SearchMusicListScreen(
                             fontSize = FontSizes.content,
                         ),
                         cursorBrush = SolidColor(MusicFreeTheme.colors.primary),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(searchFocusRequester)
+                            .testTag(FidelityAnchors.SearchMusicList.Input),
                     )
                 }
             }
