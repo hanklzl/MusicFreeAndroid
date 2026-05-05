@@ -7,8 +7,12 @@ import com.zili.android.musicfreeandroid.feature.home.local.LocalScreen
 
 fun NavGraphBuilder.localScreen(
     onNavigateToPlayer: () -> Unit,
+    onNavigateToDownloading: () -> Unit,
 ) {
     composable<LocalRoute> {
-        LocalScreen(onNavigateToPlayer = onNavigateToPlayer)
+        LocalScreen(
+            onNavigateToPlayer = onNavigateToPlayer,
+            onNavigateToDownloading = onNavigateToDownloading,
+        )
     }
 }

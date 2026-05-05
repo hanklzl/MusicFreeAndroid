@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import com.zili.android.musicfreeandroid.core.navigation.AlbumDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.DownloadingRoute
 import com.zili.android.musicfreeandroid.core.navigation.FileSelectorRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
@@ -37,6 +38,7 @@ import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScr
 import com.zili.android.musicfreeandroid.feature.home.recommendsheets.navigation.recommendSheetsScreen
 import com.zili.android.musicfreeandroid.feature.home.searchmusiclist.navigation.searchMusicListScreen
 import com.zili.android.musicfreeandroid.feature.home.history.navigation.historyScreen
+import com.zili.android.musicfreeandroid.feature.home.downloading.navigation.downloadingScreen
 import com.zili.android.musicfreeandroid.feature.home.local.navigation.localScreen
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListScreen
@@ -79,6 +81,10 @@ fun AppNavHost(
         )
         localScreen(
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+            onNavigateToDownloading = { navController.navigate(DownloadingRoute) },
+        )
+        downloadingScreen(
+            onBack = { navController.popBackStack() },
         )
         playerScreen(
             onBack = { navController.popBackStack() },
