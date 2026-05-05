@@ -224,7 +224,8 @@ class PlaylistRepositoryTest {
         playlistRepo.addMusicToPlaylist(id, sampleMusic("m1", artwork = "file://${tmp.absolutePath}"))
         val playlist = playlistRepo.observePlaylist(id).first()
         assertNotNull(playlist?.coverUri)
-        assertTrue(playlist!!.coverUri!!.startsWith("playlist_covers/"))
+        assertTrue(playlist!!.coverUri!!.startsWith("file://"))
+        assertTrue(playlist.coverUri!!.contains("playlist_covers/"))
     }
 
     @Test
@@ -245,7 +246,8 @@ class PlaylistRepositoryTest {
         val playlist = playlistRepo.getPlaylistById(id)
         assertEquals(2, added)
         assertNotNull(playlist?.coverUri)
-        assertTrue(playlist!!.coverUri!!.startsWith("playlist_covers/"))
+        assertTrue(playlist!!.coverUri!!.startsWith("file://"))
+        assertTrue(playlist.coverUri!!.contains("playlist_covers/"))
     }
 
     @Test
