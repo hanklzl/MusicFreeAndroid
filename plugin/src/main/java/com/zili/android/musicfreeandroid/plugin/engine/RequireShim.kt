@@ -1,7 +1,8 @@
 package com.zili.android.musicfreeandroid.plugin.engine
 
 import android.content.Context
-import android.util.Log
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.LogCategory
 
 /**
  * Registers CommonJS-like `require()` support in QuickJs for built-in plugin dependencies.
@@ -54,8 +55,24 @@ object RequireShim {
         for ((moduleName, source) in moduleSources) {
             try {
                 registerCommonJsModule(engine, moduleName, source)
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "require_module_register_success",
+                    fields = mapOf(
+                        "module" to moduleName,
+                        "status" to "success",
+                    ),
+                )
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to register module '$moduleName'", e)
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "require_module_register_failed",
+                    throwable = e,
+                    fields = mapOf(
+                        "module" to moduleName,
+                        "status" to "failed",
+                    ),
+                )
             }
         }
 
@@ -87,8 +104,26 @@ object RequireShim {
                 try {
                     val source = appContext.assets.open(assetPath).bufferedReader().use { it.readText() }
                     loaded[moduleName] = source
+                    MfLog.detail(
+                        category = LogCategory.PLUGIN,
+                        event = "require_module_asset_read_success",
+                        fields = mapOf(
+                            "module" to moduleName,
+                            "assetPath" to assetPath,
+                            "status" to "success",
+                        ),
+                    )
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to read module asset '$assetPath' for '$moduleName'", e)
+                    MfLog.error(
+                        category = LogCategory.PLUGIN,
+                        event = "require_module_asset_read_failed",
+                        throwable = e,
+                        fields = mapOf(
+                            "module" to moduleName,
+                            "assetPath" to assetPath,
+                            "status" to "failed",
+                        ),
+                    )
                 }
             }
 

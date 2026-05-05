@@ -1,12 +1,13 @@
 package com.zili.android.musicfreeandroid.feature.home.playlistimport
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -35,7 +36,6 @@ class PlaylistImportViewModel @Inject constructor(
 ) : ViewModel() {
 
     private companion object {
-        const val TAG = "PlaylistImportViewModel"
         const val PARSE_ERROR_TOAST = "链接有误或目标歌单为空"
         const val PARSE_EXCEPTION_TOAST = "歌单导入失败"
         const val IMPORT_ERROR_TOAST = "导入失败，请重试"
@@ -62,6 +62,11 @@ class PlaylistImportViewModel @Inject constructor(
 
     fun openImportSheet() {
         _importState.value = PlaylistImportState.LoadingPlugins
+        MfLog.detail(
+            category = LogCategory.PLAYLIST_IMPORT,
+            event = "playlist_import_opened",
+            fields = mapOf("status" to "start"),
+        )
 
         launchImportJob {
             try {
@@ -79,11 +84,26 @@ class PlaylistImportViewModel @Inject constructor(
                     }
                 currentCoroutineContext().ensureActive()
 
+                MfLog.detail(
+                    category = LogCategory.PLAYLIST_IMPORT,
+                    event = "playlist_import_plugins_loaded",
+                    fields = mapOf(
+                        "status" to "success",
+                        "itemCount" to plugins.size,
+                    ),
+                )
                 _importState.value = PlaylistImportState.ChoosePlugin(plugins)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                logError("Failed to load import-capable plugins", e)
+                MfLog.error(
+                    category = LogCategory.PLAYLIST_IMPORT,
+                    event = "playlist_import_opened",
+                    throwable = e,
+                    fields = mapOf(
+                        "status" to "failed",
+                    ),
+                )
                 postToast(PARSE_EXCEPTION_TOAST)
                 _importState.value = PlaylistImportState.Idle
             }
@@ -106,6 +126,14 @@ class PlaylistImportViewModel @Inject constructor(
         }
 
         _importState.value = PlaylistImportState.Parsing(state.plugin.name)
+        MfLog.detail(
+            category = LogCategory.PLAYLIST_IMPORT,
+            event = "playlist_import_url_submitted",
+            fields = mapOf(
+                "platform" to state.plugin.platform,
+                "status" to "start",
+            ),
+        )
         launchImportJob {
             val plugin = pluginManager.getPlugin(state.plugin.platform)
             if (plugin == null) {
@@ -118,16 +146,45 @@ class PlaylistImportViewModel @Inject constructor(
                 val parsedItems = plugin.importMusicSheet(trimmed)
                 currentCoroutineContext().ensureActive()
                 if (parsedItems == null || parsedItems.isEmpty()) {
+                    MfLog.detail(
+                        category = LogCategory.PLAYLIST_IMPORT,
+                        event = "playlist_import_parse_failed",
+                        fields = mapOf(
+                            "platform" to state.plugin.platform,
+                            "status" to "failed",
+                            "itemCount" to 0,
+                            "url" to trimmed,
+                        ),
+                    )
                     postToast(PARSE_ERROR_TOAST)
                     _importState.value = PlaylistImportState.Idle
                     return@launchImportJob
                 }
 
+                MfLog.detail(
+                    category = LogCategory.PLAYLIST_IMPORT,
+                    event = "playlist_import_parse_success",
+                    fields = mapOf(
+                        "platform" to state.plugin.platform,
+                        "status" to "success",
+                        "itemCount" to parsedItems.size,
+                        "url" to trimmed,
+                    ),
+                )
                 _importState.value = PlaylistImportState.ConfirmFound(state.plugin, parsedItems)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                logError("Failed to import playlist from ${state.plugin.platform}", e)
+                MfLog.error(
+                    category = LogCategory.PLAYLIST_IMPORT,
+                    event = "playlist_import_parse_failed",
+                    throwable = e,
+                    fields = mapOf(
+                        "platform" to state.plugin.platform,
+                        "status" to "failed",
+                        "url" to trimmed,
+                    ),
+                )
                 postToast(PARSE_EXCEPTION_TOAST)
                 _importState.value = PlaylistImportState.Idle
             }
@@ -163,12 +220,25 @@ class PlaylistImportViewModel @Inject constructor(
     fun addImportedItemsToPlaylist(targetPlaylistId: String) {
         val items = currentPendingItems()
         if (!beginTargetImport(items)) return
+        val sourcePlatform = currentImportSourcePlatform(items)
 
         launchImportJob {
             try {
                 val added = playlistRepository.addMusicsToPlaylist(targetPlaylistId, items)
                 currentCoroutineContext().ensureActive()
                 val skipped = items.size - added
+                MfLog.detail(
+                    category = LogCategory.PLAYLIST_IMPORT,
+                    event = "playlist_import_items_added",
+                    fields = mapOf(
+                        "platform" to sourcePlatform,
+                        "itemCount" to items.size,
+                        "added" to added,
+                        "skipped" to skipped,
+                        "status" to "success",
+                        "targetPlaylistId" to targetPlaylistId,
+                    ),
+                )
                 _sheetState.value = AddToPlaylistSheetState()
                 _importState.value = PlaylistImportState.Completed(
                     added = added,
@@ -178,7 +248,17 @@ class PlaylistImportViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                logError("Failed to add imported items to playlist $targetPlaylistId", e)
+                MfLog.error(
+                    category = LogCategory.PLAYLIST_IMPORT,
+                    event = "playlist_import_items_added",
+                    throwable = e,
+                    fields = mapOf(
+                        "platform" to sourcePlatform,
+                        "itemCount" to items.size,
+                        "status" to "failed",
+                        "targetPlaylistId" to targetPlaylistId,
+                    ),
+                )
                 postToast(IMPORT_ERROR_TOAST)
                 _sheetState.value = AddToPlaylistSheetState.batch(items)
                 _importState.value = PlaylistImportState.ChooseTarget(items)
@@ -194,6 +274,7 @@ class PlaylistImportViewModel @Inject constructor(
 
         val items = currentPendingItems()
         if (!beginTargetImport(items)) return
+        val sourcePlatform = currentImportSourcePlatform(items)
 
         launchImportJob {
             val playlistId = UUID.randomUUID().toString()
@@ -212,6 +293,18 @@ class PlaylistImportViewModel @Inject constructor(
                 val added = playlistRepository.addMusicsToPlaylist(playlistId, items)
                 currentCoroutineContext().ensureActive()
                 val skipped = items.size - added
+                MfLog.detail(
+                    category = LogCategory.PLAYLIST_IMPORT,
+                    event = "playlist_import_items_added",
+                    fields = mapOf(
+                        "platform" to sourcePlatform,
+                        "itemCount" to items.size,
+                        "added" to added,
+                        "skipped" to skipped,
+                        "status" to "success",
+                        "targetPlaylistId" to playlistId,
+                    ),
+                )
                 _sheetState.value = AddToPlaylistSheetState()
                 _importState.value = PlaylistImportState.Completed(
                     added = added,
@@ -220,12 +313,22 @@ class PlaylistImportViewModel @Inject constructor(
                 postToast(importResultMessage(added, skipped))
             } catch (e: CancellationException) {
                 createdPlaylist?.let { playlist ->
-                    withContext(NonCancellable) { cleanupCreatedPlaylist(playlist) }
+                    withContext(NonCancellable) { cleanupCreatedPlaylist(playlist, sourcePlatform) }
                 }
                 throw e
             } catch (e: Exception) {
-                logError("Failed to create playlist and import items", e)
-                createdPlaylist?.let { cleanupCreatedPlaylist(it) }
+                MfLog.error(
+                    category = LogCategory.PLAYLIST_IMPORT,
+                    event = "playlist_import_items_added",
+                    throwable = e,
+                    fields = mapOf(
+                        "platform" to sourcePlatform,
+                        "itemCount" to items.size,
+                        "status" to "failed",
+                        "targetPlaylistId" to playlistId,
+                    ),
+                )
+                createdPlaylist?.let { cleanupCreatedPlaylist(it, sourcePlatform) }
                 postToast(IMPORT_ERROR_TOAST)
                 _sheetState.value = AddToPlaylistSheetState.batch(items)
                 _importState.value = PlaylistImportState.ChooseTarget(items)
@@ -273,9 +376,20 @@ class PlaylistImportViewModel @Inject constructor(
             "已导入 $added 首"
         }
 
-    private suspend fun cleanupCreatedPlaylist(playlist: Playlist) {
+    private suspend fun cleanupCreatedPlaylist(playlist: Playlist, sourcePlatform: String) {
         runCatching { playlistRepository.deletePlaylist(playlist) }
-            .onFailure { e -> logError("Failed to clean up playlist ${playlist.id}", e) }
+            .onFailure { e ->
+                MfLog.error(
+                    category = LogCategory.PLAYLIST_IMPORT,
+                    event = "playlist_import_rollback_failed",
+                    throwable = e,
+                    fields = mapOf(
+                        "platform" to sourcePlatform,
+                        "status" to "rollback_failed",
+                        "targetPlaylistId" to playlist.id,
+                    ),
+                )
+            }
     }
 
     private fun postToast(message: String) {
@@ -283,11 +397,31 @@ class PlaylistImportViewModel @Inject constructor(
         if (result.isFailure) {
             val cause = result.exceptionOrNull()
                 ?: IllegalStateException("Playlist import event channel rejected toast")
-            logError("Failed to enqueue playlist import event", cause)
+            MfLog.error(
+                category = LogCategory.PLAYLIST_IMPORT,
+                event = "playlist_import_event_enqueue_failed",
+                throwable = cause,
+                fields = mapOf(
+                    "platform" to currentImportSourcePlatform(emptyList()),
+                    "status" to "failed",
+                    "message" to message,
+                ),
+            )
         }
     }
 
-    private fun logError(message: String, throwable: Throwable) {
-        runCatching { Log.e(TAG, message, throwable) }
+    private fun currentImportSourcePlatform(items: List<MusicItem>): String {
+        return when (val state = _importState.value) {
+            is PlaylistImportState.ConfirmFound -> state.plugin.platform
+            is PlaylistImportState.ChooseTarget -> state.items.firstOrNull()?.platform
+            is PlaylistImportState.Parsing -> null
+            is PlaylistImportState.ChoosePlugin -> null
+            is PlaylistImportState.InputUrl -> state.plugin.platform
+            is PlaylistImportState.Error -> null
+            is PlaylistImportState.Completed -> null
+            is PlaylistImportState.Idle -> null
+            is PlaylistImportState.LoadingPlugins -> null
+        } ?: items.firstOrNull()?.platform
+        ?: "unknown"
     }
 }

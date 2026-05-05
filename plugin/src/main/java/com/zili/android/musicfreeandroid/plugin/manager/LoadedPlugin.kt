@@ -1,6 +1,5 @@
 package com.zili.android.musicfreeandroid.plugin.manager
 
-import android.util.Log
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
@@ -19,6 +18,9 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.RecommendSheetTagsResult
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.api.TopListDetailResult
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.timedSuspend
 import com.zili.android.musicfreeandroid.plugin.engine.JsBridge
 import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
 import kotlinx.coroutines.CancellationException
@@ -52,128 +54,169 @@ class LoadedPlugin(
     private val engine: JsEngine,
     var filePath: String,
     val installSource: PluginInstallSource = PluginInstallSource(PluginInstallSourceType.LOCAL_FILE),
-) : PluginApi {
+    ) : PluginApi {
 
     companion object {
-        private const val TAG = "LoadedPlugin"
         private const val TIMEOUT_MS = 30_000L
     }
 
-    override suspend fun search(query: String, page: Int, type: String): SearchResult {
+    private suspend fun <T> executeApiCall(
+        method: String,
+        inputFields: Map<String, Any?> = emptyMap(),
+        onFailure: () -> T,
+        resultFields: (T) -> Map<String, Any?> = { emptyMap() },
+        block: suspend () -> T,
+    ): T {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_api_call_start",
+            fields = mapOf(
+                "platform" to info.platform,
+                "method" to method,
+            ) + inputFields,
+        )
+
         return withTimeout(TIMEOUT_MS) {
             try {
-                if (!hasMethod("search")) {
-                    return@withTimeout SearchResult(isEnd = true, data = emptyList())
-                }
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.search('${escapeJsString(query)}', $page, '${escapeJsString(type)}')"
+                val (result, durationMs) = timedSuspend { block() }
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_api_call_success",
+                    fields = mapOf(
+                        "platform" to info.platform,
+                        "method" to method,
+                        "status" to "success",
+                        "durationMs" to durationMs,
+                    ) + inputFields + resultFields(result),
                 )
-                val map = toMap(result) ?: return@withTimeout SearchResult(isEnd = true, data = emptyList())
-                JsBridge.parseSearchResult(map)
+                result
             } catch (e: Exception) {
                 rethrowIfExternalCancellation(e)
-                Log.e(TAG, "search failed for query='$query' on ${info.platform}", e)
-                try {
-                    val lastResp = engine.evaluate<Any?>(
-                        "JSON.stringify(globalThis.__lastAxiosResponse || null).slice(0, 2000)"
-                    )
-                    Log.e(TAG, "  last axios response on ${info.platform}: $lastResp")
-                } catch (dumpEx: Exception) {
-                    rethrowIfExternalCancellation(dumpEx)
-                    Log.w(TAG, "  failed to dump __lastAxiosResponse", dumpEx)
-                }
-                SearchResult(isEnd = true, data = emptyList())
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_api_call_failed",
+                    throwable = e,
+                    fields = mapOf(
+                        "platform" to info.platform,
+                        "method" to method,
+                        "status" to "failed",
+                        "errorClass" to e::class.java.name,
+                    ) + inputFields,
+                )
+                onFailure()
             }
         }
     }
 
-    override suspend fun getMediaSource(musicItem: MusicItem, quality: String): MediaSourceResult? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getMediaSource")) {
-                    return@withTimeout null
-                }
-                injectGlobalMap("__musicItem", JsBridge.musicItemToMap(musicItem))
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getMediaSource(__musicItem, '$quality')"
-                )
-                val map = toMap(result)
-                if (map != null) {
-                    JsBridge.parseMediaSourceResult(map)
+    override suspend fun search(query: String, page: Int, type: String): SearchResult {
+        if (!hasMethod("search")) {
+            return SearchResult(isEnd = true, data = emptyList())
+        }
+
+        return executeApiCall(
+            method = "search",
+            inputFields = mapOf(
+                "query" to query,
+                "page" to page,
+                "type" to type,
+            ),
+            onFailure = { SearchResult(isEnd = true, data = emptyList()) },
+            resultFields = { result ->
+                if (result == null) {
+                    mapOf("resultCount" to 0, "isEnd" to true)
                 } else {
-                    // Fallback: try qualities from musicItem (aligns with RN behavior)
-                    val qualityEnum = runCatching {
-                        PlayQuality.valueOf(quality.uppercase())
-                    }.getOrNull()
-                    val fallbackUrl = qualityEnum?.let { musicItem.qualities?.get(it)?.url }
-                    fallbackUrl?.let {
-                        MediaSourceResult(
-                            url = it,
-                            headers = null,
-                            userAgent = null,
-                            quality = qualityEnum,
-                        )
-                    }
+                    mapOf("resultCount" to result.data.size, "isEnd" to result.isEnd)
                 }
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getMediaSource failed for ${musicItem.id} on ${info.platform}", e)
-                null
+            },
+        ) {
+            val result = engine.evaluate<Any?>(
+                "await __plugin.search('${escapeJsString(query)}', $page, '${escapeJsString(type)}')"
+            )
+            val map = toMap(result) ?: return@executeApiCall SearchResult(isEnd = true, data = emptyList())
+            JsBridge.parseSearchResult(map)
+        }
+    }
+
+    override suspend fun getMediaSource(musicItem: MusicItem, quality: String): MediaSourceResult? {
+        if (!hasMethod("getMediaSource")) return null
+
+        return executeApiCall(
+            method = "getMediaSource",
+            inputFields = mapOf(
+                "musicItemId" to musicItem.id,
+                "quality" to quality,
+            ),
+            onFailure = { null },
+            resultFields = { result ->
+                mapOf(
+                    "hasUrl" to (result?.url?.isNotBlank() == true),
+                )
+            },
+        ) {
+            injectGlobalMap("__musicItem", JsBridge.musicItemToMap(musicItem))
+            val result = engine.evaluate<Any?>(
+                "await __plugin.getMediaSource(__musicItem, '$quality')"
+            )
+            val map = toMap(result)
+            if (map != null) {
+                JsBridge.parseMediaSourceResult(map)
+            } else {
+                val qualityEnum = runCatching { PlayQuality.valueOf(quality.uppercase()) }.getOrNull()
+                val fallbackUrl = qualityEnum?.let { musicItem.qualities?.get(it)?.url }
+                fallbackUrl?.let {
+                    MediaSourceResult(
+                        url = it,
+                        headers = null,
+                        userAgent = null,
+                        quality = qualityEnum,
+                    )
+                }
             }
         }
     }
 
     override suspend fun getMusicInfo(musicItem: MusicItem): MusicItem? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getMusicInfo")) return@withTimeout null
-                injectGlobalMap("__musicBase", JsBridge.musicItemToMap(musicItem))
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getMusicInfo(__musicBase)"
-                )
-                val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseMusicInfoResult(musicItem, map)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getMusicInfo failed for ${musicItem.id} on ${info.platform}", e)
-                null
-            }
+        if (!hasMethod("getMusicInfo")) return null
+        return executeApiCall(
+            method = "getMusicInfo",
+            inputFields = mapOf("musicItemId" to musicItem.id),
+            onFailure = { null },
+        ) {
+            injectGlobalMap("__musicBase", JsBridge.musicItemToMap(musicItem))
+            val result = engine.evaluate<Any?>("await __plugin.getMusicInfo(__musicBase)")
+            val map = toMap(result) ?: return@executeApiCall null
+            JsBridge.parseMusicInfoResult(musicItem, map)
         }
     }
 
     override suspend fun getLyric(musicItem: MusicItem): LyricResult? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getLyric")) return@withTimeout null
-                injectGlobalMap("__musicBase", JsBridge.musicItemToMap(musicItem))
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getLyric(__musicBase)"
-                )
-                val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseLyricResult(map)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getLyric failed for ${musicItem.id} on ${info.platform}", e)
-                null
-            }
+        if (!hasMethod("getLyric")) return null
+        return executeApiCall(
+            method = "getLyric",
+            inputFields = mapOf("musicItemId" to musicItem.id),
+            onFailure = { null },
+        ) {
+            injectGlobalMap("__musicBase", JsBridge.musicItemToMap(musicItem))
+            val result = engine.evaluate<Any?>("await __plugin.getLyric(__musicBase)")
+            val map = toMap(result) ?: return@executeApiCall null
+            JsBridge.parseLyricResult(map)
         }
     }
 
     override suspend fun getAlbumInfo(albumItem: AlbumItemBase, page: Int): AlbumInfoResult? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getAlbumInfo")) return@withTimeout null
-                injectGlobalMap("__albumItem", JsBridge.albumItemToMap(albumItem))
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getAlbumInfo(__albumItem, $page)"
-                )
-                val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseAlbumInfoResult(map)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getAlbumInfo failed for ${albumItem.id} on ${info.platform}", e)
-                null
-            }
+        if (!hasMethod("getAlbumInfo")) return null
+        return executeApiCall(
+            method = "getAlbumInfo",
+            inputFields = mapOf(
+                "albumItemId" to albumItem.id,
+                "page" to page,
+            ),
+            onFailure = { null },
+        ) {
+            injectGlobalMap("__albumItem", JsBridge.albumItemToMap(albumItem))
+            val result = engine.evaluate<Any?>("await __plugin.getAlbumInfo(__albumItem, $page)")
+            val map = toMap(result) ?: return@executeApiCall null
+            JsBridge.parseAlbumInfoResult(map)
         }
     }
 
@@ -182,70 +225,67 @@ class LoadedPlugin(
         page: Int,
         type: String,
     ): ArtistWorksResult? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getArtistWorks")) return@withTimeout null
-                injectGlobalMap("__artistItem", JsBridge.artistItemToMap(artistItem))
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getArtistWorks(__artistItem, $page, '${escapeJsString(type)}')"
-                )
-                val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseArtistWorksResult(map, type)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getArtistWorks failed for ${artistItem.id} on ${info.platform}", e)
-                null
-            }
+        if (!hasMethod("getArtistWorks")) return null
+        return executeApiCall(
+            method = "getArtistWorks",
+            inputFields = mapOf(
+                "artistItemId" to artistItem.id,
+                "page" to page,
+                "type" to type,
+            ),
+            onFailure = { null },
+        ) {
+            injectGlobalMap("__artistItem", JsBridge.artistItemToMap(artistItem))
+            val result = engine.evaluate<Any?>(
+                "await __plugin.getArtistWorks(__artistItem, $page, '${escapeJsString(type)}')"
+            )
+            val map = toMap(result) ?: return@executeApiCall null
+            JsBridge.parseArtistWorksResult(map, type)
         }
     }
 
     override suspend fun importMusicSheet(urlLike: String): List<MusicItem>? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("importMusicSheet")) return@withTimeout null
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.importMusicSheet('${escapeJsString(urlLike)}')"
-                )
-                JsBridge.parseImportMusicSheetResult(result, fallbackPlatform = info.platform)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "importMusicSheet failed on ${info.platform}", e)
-                null
-            }
+        if (!hasMethod("importMusicSheet")) return null
+        return executeApiCall(
+            method = "importMusicSheet",
+            inputFields = mapOf("urlLike" to urlLike),
+            onFailure = { null },
+            resultFields = { result ->
+                mapOf("resultCount" to (result?.size ?: 0))
+            },
+        ) {
+            val result = engine.evaluate<Any?>(
+                "await __plugin.importMusicSheet('${escapeJsString(urlLike)}')"
+            )
+            JsBridge.parseImportMusicSheetResult(result, fallbackPlatform = info.platform)
         }
     }
 
     override suspend fun importMusicItem(urlLike: String): MusicItem? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("importMusicItem")) return@withTimeout null
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.importMusicItem('${escapeJsString(urlLike)}')"
-                )
-                val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseImportMusicItemResult(map)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "importMusicItem failed on ${info.platform}", e)
-                null
-            }
+        if (!hasMethod("importMusicItem")) return null
+        return executeApiCall(
+            method = "importMusicItem",
+            inputFields = mapOf("urlLike" to urlLike),
+            onFailure = { null },
+        ) {
+            val result = engine.evaluate<Any?>(
+                "await __plugin.importMusicItem('${escapeJsString(urlLike)}')"
+            )
+            val map = toMap(result) ?: return@executeApiCall null
+            JsBridge.parseImportMusicItemResult(map)
         }
     }
 
     override suspend fun getTopLists(): List<MusicSheetGroupItem> {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getTopLists")) return@withTimeout emptyList()
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getTopLists()"
-                )
-                val list = result as? List<*> ?: return@withTimeout emptyList()
-                JsBridge.parseTopListGroups(list)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getTopLists failed on ${info.platform}", e)
-                emptyList()
-            }
+        if (!hasMethod("getTopLists")) return emptyList()
+        return executeApiCall(
+            method = "getTopLists",
+            onFailure = { emptyList() },
+            resultFields = { result -> mapOf("resultCount" to result.size) },
+        ) {
+            val result = engine.evaluate<Any?>("await __plugin.getTopLists()")
+            val list = result as? List<*> ?: return@executeApiCall emptyList()
+            JsBridge.parseTopListGroups(list)
         }
     }
 
@@ -253,20 +293,24 @@ class LoadedPlugin(
         topListItem: MusicSheetItemBase,
         page: Int,
     ): TopListDetailResult? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getTopListDetail")) return@withTimeout null
-                injectGlobalMap("__topListItem", JsBridge.musicSheetItemToMap(topListItem))
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getTopListDetail(__topListItem, $page)"
-                )
-                val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseTopListDetailResult(map, fallbackPlatform = info.platform)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getTopListDetail failed on ${info.platform}", e)
-                null
-            }
+        if (!hasMethod("getTopListDetail")) return null
+        return executeApiCall(
+            method = "getTopListDetail",
+            inputFields = mapOf(
+                "musicSheetId" to topListItem.id,
+                "page" to page,
+            ),
+            onFailure = { null },
+            resultFields = { result ->
+                mapOf("isEnd" to (result?.isEnd ?: true))
+            },
+        ) {
+            injectGlobalMap("__topListItem", JsBridge.musicSheetItemToMap(topListItem))
+            val result = engine.evaluate<Any?>(
+                "await __plugin.getTopListDetail(__topListItem, $page)"
+            )
+            val map = toMap(result) ?: return@executeApiCall null
+            JsBridge.parseTopListDetailResult(map, fallbackPlatform = info.platform)
         }
     }
 
@@ -274,37 +318,48 @@ class LoadedPlugin(
         sheetItem: MusicSheetItemBase,
         page: Int,
     ): MusicSheetInfoResult? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getMusicSheetInfo")) return@withTimeout null
-                injectGlobalMap("__sheetItem", JsBridge.musicSheetItemToMap(sheetItem))
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getMusicSheetInfo(__sheetItem, $page)"
+        if (!hasMethod("getMusicSheetInfo")) return null
+        return executeApiCall(
+            method = "getMusicSheetInfo",
+            inputFields = mapOf(
+                "musicSheetId" to sheetItem.id,
+                "page" to page,
+            ),
+            onFailure = { null },
+            resultFields = { result ->
+                mapOf(
+                    "resultCount" to (result?.musicList?.size ?: 0),
+                    "isEnd" to (result?.isEnd ?: true),
                 )
-                val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseMusicSheetInfoResult(map, fallbackPlatform = info.platform)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getMusicSheetInfo failed on ${info.platform}", e)
-                null
-            }
+            },
+        ) {
+            injectGlobalMap("__sheetItem", JsBridge.musicSheetItemToMap(sheetItem))
+            val result = engine.evaluate<Any?>(
+                "await __plugin.getMusicSheetInfo(__sheetItem, $page)"
+            )
+            val map = toMap(result) ?: return@executeApiCall null
+            JsBridge.parseMusicSheetInfoResult(map, fallbackPlatform = info.platform)
         }
     }
 
     override suspend fun getRecommendSheetTags(): RecommendSheetTagsResult? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getRecommendSheetTags")) return@withTimeout null
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getRecommendSheetTags()"
+        if (!hasMethod("getRecommendSheetTags")) return null
+        return executeApiCall(
+            method = "getRecommendSheetTags",
+            onFailure = { null },
+            resultFields = { result ->
+                mapOf(
+                    "pinnedCount" to (result?.pinned?.size ?: 0),
+                    "dataGroupCount" to (result?.data?.size ?: 0),
+                    "hasData" to (result != null),
                 )
-                val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseRecommendSheetTagsResult(map)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getRecommendSheetTags failed on ${info.platform}", e)
-                null
-            }
+            },
+        ) {
+            val result = engine.evaluate<Any?>(
+                "await __plugin.getRecommendSheetTags()"
+            )
+            val map = toMap(result) ?: return@executeApiCall null
+            JsBridge.parseRecommendSheetTagsResult(map)
         }
     }
 
@@ -312,20 +367,26 @@ class LoadedPlugin(
         tag: Map<String, Any?>,
         page: Int,
     ): PaginationResult<MusicSheetItemBase>? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getRecommendSheetsByTag")) return@withTimeout null
-                injectGlobalMap("__recommendTag", tag)
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getRecommendSheetsByTag(__recommendTag, $page)"
+        if (!hasMethod("getRecommendSheetsByTag")) return null
+        return executeApiCall(
+            method = "getRecommendSheetsByTag",
+            inputFields = mapOf(
+                "page" to page,
+            ),
+            onFailure = { null },
+            resultFields = { result ->
+                mapOf(
+                    "resultCount" to (result?.data?.size ?: 0),
+                    "isEnd" to (result?.isEnd ?: true),
                 )
-                val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseRecommendSheetsByTagResult(map)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getRecommendSheetsByTag failed on ${info.platform}", e)
-                null
-            }
+            },
+        ) {
+            injectGlobalMap("__recommendTag", tag)
+            val result = engine.evaluate<Any?>(
+                "await __plugin.getRecommendSheetsByTag(__recommendTag, $page)"
+            )
+            val map = toMap(result) ?: return@executeApiCall null
+            JsBridge.parseRecommendSheetsByTagResult(map)
         }
     }
 
@@ -333,20 +394,27 @@ class LoadedPlugin(
         musicItem: MusicItem,
         page: Int,
     ): PaginationResult<MusicComment>? {
-        return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getMusicComments")) return@withTimeout null
-                injectGlobalMap("__musicItem", JsBridge.musicItemToMap(musicItem))
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getMusicComments(__musicItem, $page)"
+        if (!hasMethod("getMusicComments")) return null
+        return executeApiCall(
+            method = "getMusicComments",
+            inputFields = mapOf(
+                "musicItemId" to musicItem.id,
+                "page" to page,
+            ),
+            onFailure = { null },
+            resultFields = { result ->
+                mapOf(
+                    "resultCount" to (result?.data?.size ?: 0),
+                    "isEnd" to (result?.isEnd ?: true),
                 )
-                val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseMusicCommentsResult(map)
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getMusicComments failed for ${musicItem.id} on ${info.platform}", e)
-                null
-            }
+            },
+        ) {
+            injectGlobalMap("__musicItem", JsBridge.musicItemToMap(musicItem))
+            val result = engine.evaluate<Any?>(
+                "await __plugin.getMusicComments(__musicItem, $page)"
+            )
+            val map = toMap(result) ?: return@executeApiCall null
+            JsBridge.parseMusicCommentsResult(map)
         }
     }
 

@@ -14,6 +14,8 @@ import com.zili.android.musicfreeandroid.player.ext.toMediaItem
 import com.zili.android.musicfreeandroid.player.model.PlaybackState
 import com.zili.android.musicfreeandroid.player.model.PlayerState
 import com.zili.android.musicfreeandroid.player.queue.PlayQueue
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueueControls
 import com.zili.android.musicfreeandroid.player.service.PlaybackService
@@ -69,35 +71,58 @@ class PlayerController @Inject constructor(
     }
 
     suspend fun connect() {
-        connectionMutex.withLock {
-            attachNotificationControls()
-            if (mediaController != null) return
-            withContext(Dispatchers.Main.immediate) {
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "player_connect_start",
+            fields = mapOf("status" to "start"),
+        )
+        try {
+            connectionMutex.withLock {
                 attachNotificationControls()
-                if (mediaController != null) return@withContext
-                val sessionToken = SessionToken(
-                    context,
-                    ComponentName(context, PlaybackService::class.java),
-                )
-                val controller = suspendCancellableCoroutine { cont ->
-                    val future = MediaController.Builder(context, sessionToken).buildAsync()
-                    future.addListener(
-                        {
-                            try {
-                                cont.resume(future.get())
-                            } catch (e: Exception) {
-                                cont.resumeWithException(e)
-                            }
-                        },
-                        MoreExecutors.directExecutor(),
+                if (mediaController != null) return
+                withContext(Dispatchers.Main.immediate) {
+                    attachNotificationControls()
+                    if (mediaController != null) return@withContext
+                    val sessionToken = SessionToken(
+                        context,
+                        ComponentName(context, PlaybackService::class.java),
                     )
-                    cont.invokeOnCancellation { MediaController.releaseFuture(future) }
+                    val controller = suspendCancellableCoroutine { cont ->
+                        val future = MediaController.Builder(context, sessionToken).buildAsync()
+                        future.addListener(
+                            {
+                                try {
+                                    cont.resume(future.get())
+                                } catch (e: Exception) {
+                                    cont.resumeWithException(e)
+                                }
+                            },
+                            MoreExecutors.directExecutor(),
+                        )
+                        cont.invokeOnCancellation { MediaController.releaseFuture(future) }
+                    }
+                    mediaController = controller
+                    controller.addListener(playerListener)
+                    attachNotificationControls()
+                    emitState()
                 }
-                mediaController = controller
-                controller.addListener(playerListener)
-                attachNotificationControls()
-                emitState()
             }
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "player_connect_success",
+                fields = mapOf("status" to "success"),
+            )
+        } catch (e: Exception) {
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "player_connect_failed",
+                throwable = e,
+                fields = mapOf(
+                    "status" to "failed",
+                    "errorClass" to e::class.java.name,
+                ),
+            )
+            throw e
         }
     }
 
@@ -263,6 +288,15 @@ class PlayerController @Inject constructor(
     }
 
     private fun setMediaItemAndPlay(item: MusicItem) {
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "playback_start",
+            fields = mapOf(
+                "status" to "start",
+                "platform" to item.platform,
+                "itemId" to item.id,
+            ),
+        )
         withConnectedController { controller ->
             try {
                 recordHistory(item)
@@ -271,6 +305,16 @@ class PlayerController @Inject constructor(
                 controller.prepare()
                 controller.play()
             } catch (e: RuntimeException) {
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "playback_failed",
+                    throwable = e,
+                    fields = mapOf(
+                        "platform" to item.platform,
+                        "itemId" to item.id,
+                        "status" to "failed",
+                    ),
+                )
                 _errorEvents.tryEmit("播放失败: ${e.message}")
             }
         }
@@ -304,6 +348,12 @@ class PlayerController @Inject constructor(
             runCatching {
                 connect()
             }.onFailure { e ->
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "playback_failed",
+                    throwable = e,
+                    fields = mapOf("status" to "failed"),
+                )
                 _errorEvents.emit("播放服务连接失败: ${e.message}")
                 return@launch
             }
