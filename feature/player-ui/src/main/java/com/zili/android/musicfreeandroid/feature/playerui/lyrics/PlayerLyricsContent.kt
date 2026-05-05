@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.playerui.lyrics
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,19 +27,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -50,13 +55,13 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.theme.rpxSp
 import kotlinx.coroutines.delay
-import kotlin.math.abs
 import kotlin.math.max
 
 @Composable
 fun PlayerLyricsContent(
     state: PlayerLyricsUiState,
     durationMs: Long,
+    isPlaying: Boolean,
     onBackToCover: () -> Unit,
     onSeekToLine: (Long) -> Unit,
     modifier: Modifier = Modifier,
@@ -65,37 +70,93 @@ fun PlayerLyricsContent(
     val document = state.document
     val loadState = state.loadState
     val currentLineIndex = state.currentLineIndex
+    val lines = document?.lines.orEmpty()
+    val isTimedDocument = document?.isTimed == true && lines.isNotEmpty()
+    var isUserScrollingLyrics by remember { mutableStateOf(false) }
+    var dragSeekLine by remember(document) { mutableStateOf(state.manualSeekPreviewLine) }
+    var showDragSeekOverlay by remember(document) {
+        mutableStateOf(state.manualSeekPreviewLine != null)
+    }
+    var programmaticScrollCount by remember { mutableIntStateOf(0) }
+    val isProgrammaticScroll by remember { derivedStateOf { programmaticScrollCount > 0 } }
+    var hasAutoFollowedInitial by remember(document) { mutableStateOf(false) }
 
-    val centerVisibleLine by remember(document) {
+    val centerVisibleLine by remember(
+        document,
+        listState.layoutInfo.visibleItemsInfo,
+        listState.layoutInfo.viewportStartOffset,
+        listState.layoutInfo.viewportSize.height,
+    ) {
         derivedStateOf {
-            if (document == null) return@derivedStateOf null
-
-            val items = listState.layoutInfo.visibleItemsInfo
-            if (items.isEmpty()) return@derivedStateOf null
-
-            val viewportStart = listState.layoutInfo.viewportStartOffset
-            val viewportHeight = listState.layoutInfo.viewportSize.height
-            if (viewportHeight <= 0) return@derivedStateOf null
-
-            val centerLineY = viewportStart + viewportHeight / 2f
-            val centerItemIndex = items.minByOrNull {
-                val itemCenterY = it.offset + (it.size / 2f)
-                abs(itemCenterY - centerLineY)
-            }?.index ?: return@derivedStateOf null
-
-            document.lines.getOrNull(centerItemIndex)
+            centerVisibleLyricLine(
+                lines = lines,
+                visibleItems = listState.layoutInfo.visibleItemsInfo.map {
+                    VisibleLyricListItem(
+                        index = it.index,
+                        offset = it.offset,
+                        size = it.size,
+                    )
+                },
+                viewportStartOffset = listState.layoutInfo.viewportStartOffset,
+                viewportHeight = listState.layoutInfo.viewportSize.height,
+            )
         }
     }
-    var dragSeekLine by remember(document) { mutableStateOf<ParsedLyricLine?>(null) }
-    var showDragSeekOverlay by remember(document) { mutableStateOf(false) }
 
-    LaunchedEffect(centerVisibleLine, listState.isScrollInProgress) {
-        if (listState.isScrollInProgress && centerVisibleLine != null) {
-            dragSeekLine = centerVisibleLine
-            showDragSeekOverlay = true
-        } else if (showDragSeekOverlay) {
+    val nestedScrollConnection = remember(document, isTimedDocument, lines.size) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source != NestedScrollSource.UserInput || !isTimedDocument) {
+                    return Offset.Zero
+                }
+                isUserScrollingLyrics = true
+                dragSeekLine = centerVisibleLine
+                showDragSeekOverlay = shouldShowSeekOverlay(
+                    isUserScrolling = true,
+                    isTimedDocument = isTimedDocument,
+                    targetLine = centerVisibleLine,
+                )
+                return Offset.Zero
+            }
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (source != NestedScrollSource.UserInput || !isTimedDocument) {
+                    return available
+                }
+                isUserScrollingLyrics = true
+                dragSeekLine = centerVisibleLine
+                showDragSeekOverlay = shouldShowSeekOverlay(
+                    isUserScrolling = true,
+                    isTimedDocument = isTimedDocument,
+                    targetLine = centerVisibleLine,
+                )
+                return available
+            }
+        }
+    }
+
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (!listState.isScrollInProgress) {
+            isUserScrollingLyrics = false
+        }
+    }
+
+    LaunchedEffect(state.manualSeekPreviewLine) {
+        dragSeekLine = state.manualSeekPreviewLine
+        showDragSeekOverlay = state.manualSeekPreviewLine != null
+    }
+
+    LaunchedEffect(showDragSeekOverlay, isUserScrollingLyrics, state.manualSeekPreviewLine) {
+        if (!isUserScrollingLyrics && showDragSeekOverlay && state.manualSeekPreviewLine == null) {
             delay(1_800L)
-            showDragSeekOverlay = false
+            if (!isUserScrollingLyrics && state.manualSeekPreviewLine == null) {
+                showDragSeekOverlay = false
+                dragSeekLine = null
+            }
         }
     }
 
@@ -104,15 +165,38 @@ fun PlayerLyricsContent(
         state.document,
         state.fontSizeLevel,
         state.userOffsetMs,
+        isPlaying,
+        isProgrammaticScroll,
+        isUserScrollingLyrics,
         showDragSeekOverlay,
+        hasAutoFollowedInitial,
     ) {
-        if (!shouldAutoFollowLyricLine(listState.isScrollInProgress, showDragSeekOverlay)) {
+        if (!shouldAutoFollowLyricLine(
+                isPlaying = isPlaying,
+                isProgrammaticScroll = isProgrammaticScroll,
+                isUserScrolling = isUserScrollingLyrics,
+                seekOverlayVisible = showDragSeekOverlay,
+            )
+        ) {
             return@LaunchedEffect
         }
+
         val currentLineIndexFinal = currentLineIndex ?: return@LaunchedEffect
         val doc = loadState as? LyricLoadState.Ready ?: return@LaunchedEffect
         if (currentLineIndexFinal !in doc.document.lines.indices) return@LaunchedEffect
-        listState.animateScrollToItem(currentLineIndexFinal)
+
+        scrollToLyricIndex(
+            listState = listState,
+            index = currentLineIndexFinal,
+            animated = hasAutoFollowedInitial,
+            onIncrementProgrammaticScroll = {
+                programmaticScrollCount++
+            },
+            onDecrementProgrammaticScroll = {
+                programmaticScrollCount = max(0, programmaticScrollCount - 1)
+            },
+        )
+        hasAutoFollowedInitial = true
     }
 
     Box(
@@ -166,7 +250,9 @@ fun PlayerLyricsContent(
                         currentLineIndex = currentLineIndex,
                         showTranslation = state.showTranslation,
                         fontSizeLevel = state.fontSizeLevel,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .nestedScroll(nestedScrollConnection),
                     )
 
                     if (dragSeekLine != null && showDragSeekOverlay) {
@@ -176,6 +262,8 @@ fun PlayerLyricsContent(
                             onSeekToLine = {
                                 onSeekToLine(it)
                                 showDragSeekOverlay = false
+                                dragSeekLine = null
+                                isUserScrollingLyrics = false
                             },
                             modifier = Modifier.align(Alignment.Center),
                         )
@@ -183,6 +271,32 @@ fun PlayerLyricsContent(
                 }
             }
         }
+    }
+}
+
+private suspend fun scrollToLyricIndex(
+    listState: LazyListState,
+    index: Int,
+    animated: Boolean,
+    onIncrementProgrammaticScroll: () -> Unit,
+    onDecrementProgrammaticScroll: () -> Unit,
+) {
+    val itemHeight = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.size ?: 0
+    val viewportHeight = listState.layoutInfo.viewportSize.height
+    val centeredOffset = centeredItemScrollOffset(
+        viewportHeight = viewportHeight,
+        itemHeight = itemHeight,
+    )
+
+    onIncrementProgrammaticScroll()
+    try {
+        if (animated) {
+            listState.animateScrollToItem(index, centeredOffset)
+        } else {
+            listState.scrollToItem(index, centeredOffset)
+        }
+    } finally {
+        onDecrementProgrammaticScroll()
     }
 }
 
@@ -207,11 +321,15 @@ private fun LyricsList(
         ) { line ->
             val isCurrentLine = line.index == currentLineIndex
             val primaryText = line.text.ifBlank { "..." }
-            val color = if (isCurrentLine) {
+            val targetColor = if (isCurrentLine) {
                 MusicFreeTheme.colors.primary
             } else {
                 Color.White.copy(alpha = 0.65f)
             }
+            val color by animateColorAsState(
+                targetValue = targetColor,
+                label = "LyricLineColor",
+            )
 
             Text(
                 text = buildString {
@@ -250,51 +368,44 @@ private fun DragSeekOverlay(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = rpx(24)),
+            .padding(horizontal = rpx(24))
+            .testTag(PlayerLyricsSeekOverlayTestTag),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            thickness = 1.dp,
-            color = lineColor,
-        )
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Text(
+            text = formatMsToMinuteSecond(line.timeMs, durationMs),
+            color = Color.White,
+            fontSize = FontSizes.description,
             modifier = Modifier
-                .padding(horizontal = rpx(16)),
-        ) {
-            Text(
-                text = formatMsToMinuteSecond(line.timeMs, durationMs),
-                color = Color.White,
-                fontSize = FontSizes.description,
-                modifier = Modifier
-                    .background(
-                        color = Color.Black.copy(alpha = 0.35f),
-                        shape = RoundedCornerShape(rpx(22)),
-                    )
-                    .padding(horizontal = rpx(14), vertical = rpx(8)),
-            )
-
-            IconButton(
-                onClick = { onSeekToLine(line.timeMs) },
-                modifier = Modifier.size(rpx(52)),
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_play),
-                    contentDescription = "播放该行",
-                    tint = Color.White,
-                    modifier = Modifier.size(rpx(32)),
+                .background(
+                    color = Color.Black.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(rpx(22)),
                 )
-            }
-        }
+                .padding(horizontal = rpx(14), vertical = rpx(8)),
+        )
 
         HorizontalDivider(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = rpx(10)),
             thickness = 1.dp,
             color = lineColor,
         )
+
+        IconButton(
+            onClick = { onSeekToLine(line.timeMs) },
+            modifier = Modifier
+                .size(rpx(52))
+                .testTag(PlayerLyricsSeekButtonTestTag),
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_play),
+                contentDescription = "播放该行",
+                tint = Color.White,
+                modifier = Modifier.size(rpx(32)),
+            )
+        }
     }
 }
 

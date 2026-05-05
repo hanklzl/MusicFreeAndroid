@@ -186,6 +186,7 @@ fun PlayerScreen(
                     PlayerLyricsContent(
                         state = lyricsUiState,
                         durationMs = state.duration,
+                        isPlaying = state.isPlaying,
                         onBackToCover = { contentPage = PlayerContentPage.Cover },
                         onSeekToLine = viewModel::seekToLyricLine,
                         modifier = Modifier

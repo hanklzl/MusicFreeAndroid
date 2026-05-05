@@ -36,13 +36,15 @@ class PlayerLyricsContentTest {
     @Test
     fun `tapping lyric text does not return to cover`() {
         var backToCoverClicks = 0
+        val state = readyState().copy(currentLineIndex = null)
 
         composeRule.setContent {
             MusicFreeTheme {
                 Box(Modifier.size(width = 360.dp, height = 640.dp)) {
                     PlayerLyricsContent(
-                        state = readyState(),
+                        state = state,
                         durationMs = 10_000L,
+                        isPlaying = true,
                         onBackToCover = { backToCoverClicks++ },
                         onSeekToLine = {},
                     )
@@ -63,13 +65,15 @@ class PlayerLyricsContentTest {
     @Test
     fun `tapping lyric blank area returns to cover`() {
         var backToCoverClicks = 0
+        val state = readyState().copy(currentLineIndex = null)
 
         composeRule.setContent {
             MusicFreeTheme {
                 Box(Modifier.size(width = 360.dp, height = 640.dp)) {
                     PlayerLyricsContent(
-                        state = readyState(),
+                        state = state,
                         durationMs = 10_000L,
+                        isPlaying = true,
                         onBackToCover = { backToCoverClicks++ },
                         onSeekToLine = {},
                     )
@@ -84,6 +88,57 @@ class PlayerLyricsContentTest {
 
         composeRule.runOnIdle {
             assertEquals(1, backToCoverClicks)
+        }
+    }
+
+    @Test
+    fun seekOverlayIsHiddenBeforeManualScroll() {
+        val state = readyState().copy(currentLineIndex = null)
+        composeRule.setContent {
+            MusicFreeTheme {
+                Box(Modifier.size(width = 360.dp, height = 640.dp)) {
+                    PlayerLyricsContent(
+                        state = state,
+                        durationMs = 10_000L,
+                        isPlaying = true,
+                        onBackToCover = {},
+                        onSeekToLine = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(PlayerLyricsSeekOverlayTestTag).assertDoesNotExist()
+    }
+
+    @Test
+    fun `seekButtonTriggersSeekAndDoesNotBackToCover`() {
+        var backToCoverClicks = 0
+        var seekTarget = -1L
+        val state = readyState().copy(currentLineIndex = null)
+
+        composeRule.setContent {
+            MusicFreeTheme {
+                Box(Modifier.size(width = 360.dp, height = 640.dp)) {
+                    PlayerLyricsContent(
+                        state = state.copy(manualSeekPreviewLine = state.document!!.lines[1]),
+                        durationMs = 10_000L,
+                        isPlaying = true,
+                        onBackToCover = { backToCoverClicks++ },
+                        onSeekToLine = { seekTarget = it },
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(PlayerLyricsSeekButtonTestTag)
+            .performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(0, backToCoverClicks)
+            assertEquals(2_000L, seekTarget)
         }
     }
 
@@ -103,30 +158,54 @@ class PlayerLyricsContentTest {
         assertEquals(
             true,
             shouldAutoFollowLyricLine(
-                isScrollInProgress = false,
-                dragSeekOverlayVisible = false,
+                isPlaying = true,
+                isProgrammaticScroll = false,
+                isUserScrolling = false,
+                seekOverlayVisible = false,
+            ),
+        )
+        assertEquals(
+            false,
+            shouldAutoFollowLyricLine(
+                isPlaying = false,
+                isProgrammaticScroll = false,
+                isUserScrolling = false,
+                seekOverlayVisible = false,
             ),
         )
         assertFalse(
             shouldAutoFollowLyricLine(
-                isScrollInProgress = true,
-                dragSeekOverlayVisible = false,
+                isPlaying = true,
+                isProgrammaticScroll = true,
+                isUserScrolling = false,
+                seekOverlayVisible = false,
             ),
         )
         assertFalse(
             shouldAutoFollowLyricLine(
-                isScrollInProgress = false,
-                dragSeekOverlayVisible = true,
+                isPlaying = true,
+                isProgrammaticScroll = false,
+                isUserScrolling = true,
+                seekOverlayVisible = false,
+            ),
+        )
+        assertFalse(
+            shouldAutoFollowLyricLine(
+                isPlaying = true,
+                isProgrammaticScroll = false,
+                isUserScrolling = false,
+                seekOverlayVisible = true,
             ),
         )
     }
 
     @Test
     fun `no lyric state shows separate status and search action`() {
+        val state = readyState()
         composeRule.setContent {
             MusicFreeTheme {
                 Box(Modifier.size(width = 360.dp, height = 640.dp)) {
-                    val music = readyState().music()
+                    val music = state.music()
                     PlayerLyricsContent(
                         state = PlayerLyricsUiState(
                             loadState = LyricLoadState.NoLyric(music),
@@ -134,6 +213,7 @@ class PlayerLyricsContentTest {
                             currentLineIndex = null,
                         ),
                         durationMs = 10_000L,
+                        isPlaying = true,
                         onBackToCover = {},
                         onSeekToLine = {},
                     )
@@ -154,11 +234,12 @@ class PlayerLyricsContentTest {
     @Test
     fun `search action does not trigger back to cover`() {
         var backToCoverClicks = 0
+        val state = readyState()
 
         composeRule.setContent {
             MusicFreeTheme {
                 Box(Modifier.size(width = 360.dp, height = 640.dp)) {
-                    val music = readyState().music()
+                    val music = state.music()
                     PlayerLyricsContent(
                         state = PlayerLyricsUiState(
                             loadState = LyricLoadState.NoLyric(music),
@@ -166,6 +247,7 @@ class PlayerLyricsContentTest {
                             currentLineIndex = null,
                         ),
                         durationMs = 10_000L,
+                        isPlaying = true,
                         onBackToCover = { backToCoverClicks++ },
                         onSeekToLine = {},
                     )

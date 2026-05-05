@@ -41,22 +41,6 @@ internal fun shouldAutoFollowLyricLine(
         !isUserScrolling &&
         !seekOverlayVisible
 
-// Temporary compatibility bridge for existing PlayerLyricsContent/tests until Task 4
-// migrates callsites to the 4-arg helper and removes this overload.
-@Deprecated(
-    message = "Temporary bridge for Task 1. Task 4 must migrate callsites to the 4-arg helper and delete this overload.",
-    level = DeprecationLevel.WARNING,
-)
-internal fun shouldAutoFollowLyricLine(
-    isScrollInProgress: Boolean,
-    dragSeekOverlayVisible: Boolean,
-): Boolean = shouldAutoFollowLyricLine(
-    isPlaying = true,
-    isProgrammaticScroll = false,
-    isUserScrolling = isScrollInProgress,
-    seekOverlayVisible = dragSeekOverlayVisible,
-)
-
 internal fun centerVisibleLyricLine(
     lines: List<ParsedLyricLine>,
     visibleItems: List<VisibleLyricListItem>,
