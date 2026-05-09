@@ -14,6 +14,7 @@ import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricSearchGrou
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.player.model.PlayerState
+import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -49,11 +50,13 @@ class PlayerViewModelTest {
     private val lyricShowTranslationFlow = MutableStateFlow(false)
     private val lyricDetailFontSizeFlow = MutableStateFlow(1)
     private val playerStateFlow = MutableStateFlow(PlayerState.EMPTY)
+    private val queueStateFlow = MutableStateFlow(PlayQueueSnapshot.EMPTY)
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         whenever(playerController.playerState).thenReturn(playerStateFlow)
+        whenever(playerController.queueState).thenReturn(queueStateFlow)
         whenever(playlistRepository.observeAllPlaylists()).thenReturn(flowOf(emptyList()))
         whenever(playerLyricLoader.observeLyrics(anyOrNull())).thenReturn(flowOf(LyricLoadState.NoTrack))
         whenever(appPreferences.lyricShowTranslation).thenReturn(lyricShowTranslationFlow)

@@ -57,7 +57,7 @@ class PlayerViewModel @Inject constructor(
             currentIndex = snapshot.currentIndex,
             repeatMode = player.repeatMode,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayQueueUiModel.EMPTY)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayQueueUiModel.EMPTY)
 
     private val rawLyricLoadState: StateFlow<LyricLoadState> = playerState
         .map { it.currentItem }
@@ -184,9 +184,7 @@ class PlayerViewModel @Inject constructor(
 
     fun playQueueIndex(index: Int) = playerController.skipTo(index)
 
-    fun removeFromQueue(index: Int) {
-        playerController.removeFromQueue(index)
-    }
+    fun removeFromQueue(index: Int) = playerController.removeFromQueue(index)
 
     fun clearQueue() = playerController.reset()
 
