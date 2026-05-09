@@ -9,6 +9,8 @@ import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.downloader.Downloader
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStore
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.fallbackTopListSeed
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -119,14 +121,8 @@ class TopListDetailViewModel @Inject constructor(
             return
         }
 
-        val seedTopList = findTopListById(route.topListId)
-        if (seedTopList == null) {
-            _uiState.value = TopListDetailUiState(
-                loading = false,
-                errorMessage = "未找到榜单：${route.topListId}",
-            )
-            return
-        }
+        val seedTopList = PluginSheetSeedStore.take(route.seedToken)
+            ?: route.fallbackTopListSeed()
 
         runCatching {
             plugin.getTopListDetail(seedTopList, page = 1)
@@ -154,14 +150,6 @@ class TopListDetailViewModel @Inject constructor(
                 errorMessage = e.message ?: "加载榜单失败",
             )
         }
-    }
-
-    private suspend fun findTopListById(topListId: String): MusicSheetItemBase? {
-        val plugin = pluginManager.getPlugin(route.pluginPlatform) ?: return null
-        val groups = plugin.getTopLists()
-        return groups.asSequence()
-            .flatMap { it.data.asSequence() }
-            .firstOrNull { it.id == topListId }
     }
 
     val defaultDownloadQuality = appPreferences.defaultDownloadQuality
