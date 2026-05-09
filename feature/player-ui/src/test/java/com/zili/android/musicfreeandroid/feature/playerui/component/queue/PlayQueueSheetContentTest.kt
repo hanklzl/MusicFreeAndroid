@@ -63,8 +63,10 @@ class PlayQueueSheetContentTest {
                 )
             }
         }
-        composeRule.onAllNodesWithTag(FidelityAnchors.Player.Queue.CurrentMarker)
-            .assertCountEquals(1)
+        composeRule.onAllNodesWithTag(
+            FidelityAnchors.Player.Queue.CurrentMarker,
+            useUnmergedTree = true,
+        ).assertCountEquals(1)
     }
 
     @Test

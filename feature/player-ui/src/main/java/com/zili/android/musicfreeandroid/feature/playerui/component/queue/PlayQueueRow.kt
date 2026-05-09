@@ -1,7 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.playerui.component.queue
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
@@ -49,18 +47,14 @@ internal fun PlayQueueRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (isCurrent) {
-            Box(
+            Icon(
+                imageVector = Icons.Filled.MusicNote,
+                contentDescription = "当前播放",
+                tint = highlightColor,
                 modifier = Modifier
-                    .semantics(mergeDescendants = true) {}
+                    .size(rpx(28))
                     .testTag(FidelityAnchors.Player.Queue.CurrentMarker),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.MusicNote,
-                    contentDescription = "当前播放",
-                    tint = highlightColor,
-                    modifier = Modifier.size(rpx(28)),
-                )
-            }
+            )
             Spacer(Modifier.width(rpx(6)))
         }
         Row(
