@@ -30,6 +30,8 @@ class TopListViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<TopListUiState>(TopListUiState.Idle)
     val uiState: StateFlow<TopListUiState> = _uiState.asStateFlow()
 
+    private var loadGeneration: Long = 0
+
     init {
         viewModelScope.launch {
             pluginManager.ensurePluginsLoaded()
@@ -38,6 +40,7 @@ class TopListViewModel @Inject constructor(
             availablePlugins.collect { plugins ->
                 when {
                     plugins.isEmpty() -> {
+                        invalidateLoads()
                         _selectedPlugin.value = null
                         _uiState.value = TopListUiState.Error("当前没有支持榜单的插件")
                     }
@@ -55,30 +58,48 @@ class TopListViewModel @Inject constructor(
             return
         }
         _selectedPlugin.value = platform
-        loadTopLists(platform)
+        loadTopLists(platform, nextLoadGeneration())
     }
 
     fun refresh() {
         val platform = _selectedPlugin.value ?: return
-        loadTopLists(platform)
+        loadTopLists(platform, nextLoadGeneration())
     }
 
-    private fun loadTopLists(platform: String) {
+    private fun loadTopLists(platform: String, generation: Long) {
+        if (!isCurrentLoad(platform, generation)) return
         val plugin = pluginManager.getPlugin(platform)
         if (plugin == null) {
+            if (!isCurrentLoad(platform, generation)) return
             _uiState.value = TopListUiState.Error("插件不存在：$platform")
             return
         }
 
         viewModelScope.launch {
+            if (!isCurrentLoad(platform, generation)) return@launch
             _uiState.value = TopListUiState.Loading
-            runCatching {
+            val result = runCatching {
                 plugin.getTopLists()
-            }.onSuccess { groups ->
+            }
+            if (!isCurrentLoad(platform, generation)) return@launch
+
+            result.onSuccess { groups ->
                 _uiState.value = TopListUiState.Success(groups)
             }.onFailure { e ->
                 _uiState.value = TopListUiState.Error(e.message ?: "加载榜单失败")
             }
         }
     }
+
+    private fun nextLoadGeneration(): Long {
+        loadGeneration += 1
+        return loadGeneration
+    }
+
+    private fun invalidateLoads() {
+        loadGeneration += 1
+    }
+
+    private fun isCurrentLoad(platform: String, generation: Long): Boolean =
+        loadGeneration == generation && _selectedPlugin.value == platform
 }
