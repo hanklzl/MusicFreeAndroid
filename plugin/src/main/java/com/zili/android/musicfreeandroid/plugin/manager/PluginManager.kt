@@ -211,6 +211,7 @@ class PluginManager @Inject constructor(
                 return@withContext updateSubscriptionEntriesLocked(
                     subscriptionUrl = trimmed,
                     entries = parsed.installableEntries,
+                    totalEntries = parsed.totalEntries,
                     startedAt = startedAt,
                     targets = targets,
                     operationType = PluginOperationType.ADD,
@@ -395,6 +396,7 @@ class PluginManager @Inject constructor(
             updateSubscriptionEntriesLocked(
                 subscriptionUrl = subscriptionUrl,
                 entries = parsed.installableEntries,
+                totalEntries = parsed.totalEntries,
                 startedAt = startedAt,
                 targets = targets,
             )
@@ -776,6 +778,7 @@ class PluginManager @Inject constructor(
     private suspend fun updateSubscriptionEntriesLocked(
         subscriptionUrl: String,
         entries: List<SubscriptionPluginEntry>,
+        totalEntries: Int,
         startedAt: Long,
         targets: List<String>,
         operationType: PluginOperationType = PluginOperationType.UPDATE_SUBSCRIPTION,
@@ -783,6 +786,15 @@ class PluginManager @Inject constructor(
     ): PluginOperationResult {
         val failures = mutableListOf<PluginOperationFailure>()
         var successCount = 0
+        val invalidEntryCount = (totalEntries - entries.size).coerceAtLeast(0)
+
+        repeat(invalidEntryCount) {
+            failures += PluginOperationFailure(
+                sourceRef = subscriptionUrl,
+                errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                message = "订阅条目缺少插件地址",
+            )
+        }
 
         entries.forEach { entry ->
             val fileName = SubscriptionFileNames.pluginFileName(entry)
