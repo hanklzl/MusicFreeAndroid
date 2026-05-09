@@ -13,7 +13,7 @@ import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
-import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStore
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedResolver
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.fallbackSheetSeed
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -38,6 +38,9 @@ class PluginSheetDetailViewModel @Inject constructor(
     private val downloader: Downloader,
 ) : ViewModel() {
     private val route = savedStateHandle.toRoute<PluginSheetDetailRoute>()
+    private val seedResolver = PluginSheetRouteSeedResolver(route.seedToken) {
+        route.fallbackSheetSeed()
+    }
 
     private val _uiState = MutableStateFlow(PluginSheetDetailUiState(loading = true))
     val uiState: StateFlow<PluginSheetDetailUiState> = _uiState.asStateFlow()
@@ -201,7 +204,7 @@ class PluginSheetDetailViewModel @Inject constructor(
     }
 
     private fun seedSheet(): MusicSheetItemBase =
-        PluginSheetSeedStore.take(route.seedToken) ?: route.fallbackSheetSeed()
+        seedResolver.resolve()
 
     val defaultDownloadQuality = appPreferences.defaultDownloadQuality
 

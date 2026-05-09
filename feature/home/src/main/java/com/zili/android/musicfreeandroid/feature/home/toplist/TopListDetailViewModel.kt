@@ -9,7 +9,7 @@ import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.downloader.Downloader
-import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStore
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedResolver
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.fallbackTopListSeed
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
@@ -30,6 +30,9 @@ class TopListDetailViewModel @Inject constructor(
     private val downloader: Downloader,
 ) : ViewModel() {
     private val route = savedStateHandle.toRoute<TopListDetailRoute>()
+    private val seedResolver = PluginSheetRouteSeedResolver(route.seedToken) {
+        route.fallbackTopListSeed()
+    }
 
     private val _uiState = MutableStateFlow(TopListDetailUiState(loading = true))
     val uiState: StateFlow<TopListDetailUiState> = _uiState.asStateFlow()
@@ -121,8 +124,7 @@ class TopListDetailViewModel @Inject constructor(
             return
         }
 
-        val seedTopList = PluginSheetSeedStore.take(route.seedToken)
-            ?: route.fallbackTopListSeed()
+        val seedTopList = seedResolver.resolve()
 
         runCatching {
             plugin.getTopListDetail(seedTopList, page = 1)
