@@ -153,6 +153,8 @@ private fun emitQueueState() {
 
 ### List body（对应 RN `body.tsx`）
 
+> 颜色 token 注：原版 RN 使用 `colors.textHighlight ?? colors.primary`；本仓库 `MusicFreeColors` 无 `textHighlight`，统一使用 `colors.primary`。
+
 - `LazyColumn(state = rememberLazyListState())` 包在 `Box(Modifier.weight(1f))` 中。
 - 初次定位逻辑（仅一次，对齐 RN `useMemo([])`，后续切歌不自动滚动）：
   ```kotlin
@@ -165,8 +167,8 @@ private fun emitQueueState() {
   }
   ```
 - 每行 `PlayQueueRow` 高 `rpx(108)`，`paddingHorizontal = rpx(24)`：
-  - 当 `isCurrent`：行首 `Icon(imageVector = Icons.Filled.MusicNote, tint = colors.textHighlight)`（M3 矢量，与既有 `MiniPlayerContent` 用法一致），size `FontSizes.content`，右侧 margin `rpx(6)`。
-  - 主文本：`Row(weight = 1f)` 内 `Text(title, fontSize = FontSizes.content, color = if (isCurrent) colors.textHighlight else colors.text, maxLines = 1, ellipsis)`，紧接 `Text(" - ${artist}", fontSize = FontSizes.description, 同色)`，artist 为空时省略。
+  - 当 `isCurrent`：行首 `Icon(imageVector = Icons.Filled.MusicNote, tint = colors.primary)`（M3 矢量，与既有 `MiniPlayerContent` 用法一致），size `FontSizes.content`，右侧 margin `rpx(6)`。
+  - 主文本：`Row(weight = 1f)` 内 `Text(title, fontSize = FontSizes.content, color = if (isCurrent) colors.primary else colors.text, maxLines = 1, ellipsis)`，紧接 `Text(" - ${artist}", fontSize = FontSizes.description, 同色)`，artist 为空时省略。
   - 平台 tag：`PlatformTag(text = item.platform)`，直接复用 `core/.../ui/PlatformTag.kt`，无需新增依赖路径或下移。`item.platform.isNullOrBlank()` 时不渲染。
   - 行尾：`IconButton(onClick = onRemove)` 加载 `Icons.Default.Close`（M3 矢量，对应 RN `x-mark`），icon size `rpx(36)`，左 margin `rpx(14)`。
   - 整行 `Modifier.clickable { onPlay(index) }`。**点击行不关闭 sheet**。

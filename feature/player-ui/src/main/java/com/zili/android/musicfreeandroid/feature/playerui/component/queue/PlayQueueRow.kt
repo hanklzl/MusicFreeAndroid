@@ -34,6 +34,7 @@ internal fun PlayQueueRow(
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // RN spec uses `textHighlight ?? primary`; this codebase has no textHighlight, so use primary directly.
     val highlightColor = MusicFreeTheme.colors.primary
     val titleColor = if (isCurrent) highlightColor else MusicFreeTheme.colors.text
     Row(
@@ -48,7 +49,7 @@ internal fun PlayQueueRow(
         if (isCurrent) {
             Icon(
                 imageVector = Icons.Filled.MusicNote,
-                contentDescription = null,
+                contentDescription = "当前播放",
                 tint = highlightColor,
                 modifier = Modifier
                     .size(rpx(28))
