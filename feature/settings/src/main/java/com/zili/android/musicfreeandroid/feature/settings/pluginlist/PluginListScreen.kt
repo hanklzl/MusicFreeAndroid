@@ -36,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -51,11 +52,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.R as CoreR
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -70,6 +74,9 @@ fun PluginListScreen(
 ) {
     val pluginItems by viewModel.pluginItems.collectAsStateWithLifecycle()
     val operationState by viewModel.operationState.collectAsStateWithLifecycle()
+    val userVariableSaveState by viewModel.userVariableSaveState.collectAsStateWithLifecycle()
+    val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
+    val playlists by viewModel.allPlaylists.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var showMenu by remember { mutableStateOf(false) }
@@ -82,24 +89,20 @@ fun PluginListScreen(
     var importMusicItemTarget by remember { mutableStateOf<PluginUiItem?>(null) }
     var importMusicSheetTarget by remember { mutableStateOf<PluginUiItem?>(null) }
     var userVariablesTarget by remember { mutableStateOf<PluginUiItem?>(null) }
-    var userVariableSaveInProgress by remember { mutableStateOf(false) }
-    var userVariableError by remember { mutableStateOf<String?>(null) }
+    var activeUserVariableSaveRequestId by remember { mutableStateOf<Long?>(null) }
     var uninstallTarget by remember { mutableStateOf<PluginUiItem?>(null) }
     var descriptionTarget by remember { mutableStateOf<PluginUiItem?>(null) }
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(operationState, userVariableSaveInProgress) {
-        if (!userVariableSaveInProgress) return@LaunchedEffect
-        when (val state = operationState) {
-            is PluginOperationUiState.Success -> {
-                if (state.message == "设置成功") {
+    LaunchedEffect(userVariableSaveState, activeUserVariableSaveRequestId) {
+        val requestId = activeUserVariableSaveRequestId ?: return@LaunchedEffect
+        when (val state = userVariableSaveState) {
+            is UserVariableSaveUiState.Success -> {
+                if (state.requestId == requestId) {
                     userVariablesTarget = null
-                    userVariableError = null
-                    userVariableSaveInProgress = false
+                    activeUserVariableSaveRequestId = null
+                    viewModel.resetUserVariableSaveState()
                 }
-            }
-            is PluginOperationUiState.Failure -> {
-                userVariableError = state.message
-                userVariableSaveInProgress = false
             }
             else -> Unit
         }
@@ -210,8 +213,8 @@ fun PluginListScreen(
                             onImportMusicItem = { importMusicItemTarget = item },
                             onImportMusicSheet = { importMusicSheetTarget = item },
                             onEditUserVariables = {
-                                userVariableSaveInProgress = false
-                                userVariableError = null
+                                activeUserVariableSaveRequestId = null
+                                viewModel.resetUserVariableSaveState()
                                 userVariablesTarget = item
                             },
                             onShowDescription = { descriptionTarget = item },
@@ -330,20 +333,24 @@ fun PluginListScreen(
             viewModel.userVariables(target.info.platform)
         }
         val savedVariables by variablesFlow.collectAsStateWithLifecycle(initialValue = emptyMap())
+        val requestId = activeUserVariableSaveRequestId
+        val saving = userVariableSaveState is UserVariableSaveUiState.Loading &&
+            (userVariableSaveState as UserVariableSaveUiState.Loading).requestId == requestId
+        val errorMessage = (userVariableSaveState as? UserVariableSaveUiState.Failure)
+            ?.takeIf { it.requestId == requestId }
+            ?.message
         UserVariablesDialog(
             item = target,
             initialValues = savedVariables,
-            saving = userVariableSaveInProgress,
-            errorMessage = userVariableError,
+            saving = saving,
+            errorMessage = errorMessage,
             onDismiss = {
                 userVariablesTarget = null
-                userVariableSaveInProgress = false
-                userVariableError = null
+                activeUserVariableSaveRequestId = null
+                viewModel.resetUserVariableSaveState()
             },
             onConfirm = { values ->
-                userVariableError = null
-                userVariableSaveInProgress = true
-                viewModel.saveUserVariables(target.info.platform, values)
+                activeUserVariableSaveRequestId = viewModel.saveUserVariables(target.info.platform, values)
             },
         )
     }
@@ -352,6 +359,33 @@ fun PluginListScreen(
         FailureDetailDialog(
             failures = failures,
             onDismiss = { failureDialog = null },
+        )
+    }
+
+    if (sheetState.visible) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showCreatePlaylistDialog = false
+                viewModel.hideAddToPlaylistSheet()
+            },
+        ) {
+            AddToPlaylistBottomSheetContent(
+                playlists = playlists,
+                onSelect = { playlist -> viewModel.addImportedItemsToPlaylist(playlist.id) },
+                onCreateNew = { showCreatePlaylistDialog = true },
+                folderPlusIcon = painterResource(id = CoreR.drawable.ic_folder_plus),
+                favoriteCoverIcon = painterResource(id = CoreR.drawable.ic_playlist_favorite_cover),
+            )
+        }
+    }
+
+    if (showCreatePlaylistDialog) {
+        CreatePlaylistDialog(
+            onDismiss = { showCreatePlaylistDialog = false },
+            onCreate = { name ->
+                showCreatePlaylistDialog = false
+                viewModel.createPlaylistAndImport(name)
+            },
         )
     }
 }
@@ -639,6 +673,41 @@ private fun ImportUrlDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("取消") }
+        },
+    )
+}
+
+@Composable
+private fun CreatePlaylistDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("新建歌单") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("歌单名称") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onCreate(name) },
+                enabled = name.isNotBlank(),
+            ) {
+                Text("创建")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
         },
     )
 }

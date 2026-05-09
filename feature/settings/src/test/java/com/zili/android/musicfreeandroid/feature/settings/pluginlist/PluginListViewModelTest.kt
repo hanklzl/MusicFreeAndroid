@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid.feature.settings.pluginlist
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.PluginUserVariable
@@ -17,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -37,6 +40,7 @@ class PluginListViewModelTest {
         pluginOrder: MutableStateFlow<List<String>> = MutableStateFlow(emptyList()),
         alternativePlugins: MutableStateFlow<Map<String, String>> = MutableStateFlow(emptyMap()),
         userVariables: MutableStateFlow<Map<String, String>> = MutableStateFlow(emptyMap()),
+        playlists: MutableStateFlow<List<Playlist>> = MutableStateFlow(emptyList()),
     ): Fixture {
         val metaStore = mock<PluginMetaStore> {
             on { this.disabledPlugins } doReturn disabledPlugins
@@ -53,15 +57,25 @@ class PluginListViewModelTest {
             val platform = invocation.getArgument<String>(0)
             plugins.value.find { it.info.platform == platform }
         }
+        val playlistRepository = mock<PlaylistRepository> {
+            on { observeAllPlaylists() } doReturn playlists
+        }
+        runBlocking {
+            whenever(playlistRepository.addMusicsToPlaylist(any(), any())).thenAnswer { invocation ->
+                invocation.getArgument<List<MusicItem>>(1).size
+            }
+        }
         return Fixture(
-            viewModel = PluginListViewModel(pluginManager),
+            viewModel = PluginListViewModel(pluginManager, playlistRepository),
             pluginManager = pluginManager,
             metaStore = metaStore,
+            playlistRepository = playlistRepository,
             plugins = plugins,
             disabledPlugins = disabledPlugins,
             pluginOrder = pluginOrder,
             alternativePlugins = alternativePlugins,
             userVariables = userVariables,
+            playlists = playlists,
         )
     }
 
@@ -79,6 +93,18 @@ class PluginListViewModelTest {
     fun `plugin items starts empty`() = runTest {
         val viewModel = createViewModel()
         assertEquals(emptyList<PluginUiItem>(), viewModel.pluginItems.value)
+    }
+
+    @Test
+    fun `allPlaylists exposes repository playlists`() = runTest {
+        val target = playlist("target")
+        val fixture = createFixture(playlists = MutableStateFlow(listOf(target)))
+        val collectJob = launch { fixture.viewModel.allPlaylists.collect() }
+
+        advanceUntilIdle()
+
+        assertEquals(listOf(target), fixture.viewModel.allPlaylists.value)
+        collectJob.cancel()
     }
 
     @Test
@@ -196,11 +222,37 @@ class PluginListViewModelTest {
         val fixture = createFixture()
         val values = mapOf("cookie" to "abc")
 
-        fixture.viewModel.saveUserVariables("source", values)
+        val requestId = fixture.viewModel.saveUserVariables("source", values)
         advanceUntilIdle()
 
         verify(fixture.pluginManager).setUserVariables("source", values)
         assertEquals(PluginOperationUiState.Success("设置成功"), fixture.viewModel.operationState.value)
+        assertEquals(
+            UserVariableSaveUiState.Success(requestId, "设置成功"),
+            fixture.viewModel.userVariableSaveState.value,
+        )
+    }
+
+    @Test
+    fun `saveUserVariables reports failure for matching request`() = runTest {
+        val fixture = createFixture()
+        val values = mapOf("cookie" to "abc")
+        runBlocking {
+            whenever(fixture.pluginManager.setUserVariables("source", values))
+                .thenThrow(IllegalStateException("变量刷新失败"))
+        }
+
+        val requestId = fixture.viewModel.saveUserVariables("source", values)
+        advanceUntilIdle()
+
+        assertEquals(
+            PluginOperationUiState.Failure("变量刷新失败"),
+            fixture.viewModel.operationState.value,
+        )
+        assertEquals(
+            UserVariableSaveUiState.Failure(requestId, "变量刷新失败"),
+            fixture.viewModel.userVariableSaveState.value,
+        )
     }
 
     @Test
@@ -440,15 +492,103 @@ class PluginListViewModelTest {
         assertFalse(fixture.viewModel.sheetState.value.visible)
     }
 
+    @Test
+    fun `addImportedItemsToPlaylist writes pending items to existing playlist`() = runTest {
+        val items = listOf(musicItem("song-1"), musicItem("song-2"))
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicSheet"),
+            importMusicSheetResult = items,
+        )
+        val fixture = createFixture(plugins = MutableStateFlow(listOf(plugin)))
+        runBlocking {
+            whenever(fixture.playlistRepository.addMusicsToPlaylist("target", items)).thenReturn(1)
+        }
+        fixture.viewModel.importMusicSheet("source", "https://example.com/sheet")
+        advanceUntilIdle()
+
+        fixture.viewModel.addImportedItemsToPlaylist("target")
+        advanceUntilIdle()
+
+        verify(fixture.playlistRepository).addMusicsToPlaylist("target", items)
+        assertFalse(fixture.viewModel.sheetState.value.visible)
+        assertTrue(fixture.viewModel.sheetState.value.pendingItems.isEmpty())
+        assertEquals(
+            PluginOperationUiState.Success("已导入 1 首，跳过 1 首重复歌曲"),
+            fixture.viewModel.operationState.value,
+        )
+    }
+
+    @Test
+    fun `createPlaylistAndImport creates playlist and imports pending items`() = runTest {
+        val items = listOf(musicItem("song-1"), musicItem("song-2"))
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicSheet"),
+            importMusicSheetResult = items,
+        )
+        val fixture = createFixture(plugins = MutableStateFlow(listOf(plugin)))
+        fixture.viewModel.importMusicSheet("source", "https://example.com/sheet")
+        advanceUntilIdle()
+
+        fixture.viewModel.createPlaylistAndImport("  新歌单  ")
+        advanceUntilIdle()
+
+        val playlistCaptor = argumentCaptor<Playlist>()
+        verify(fixture.playlistRepository).createPlaylist(playlistCaptor.capture())
+        val created = playlistCaptor.firstValue
+        assertEquals("新歌单", created.name)
+        assertNull(created.coverUri)
+        verify(fixture.playlistRepository).addMusicsToPlaylist(created.id, items)
+        assertFalse(fixture.viewModel.sheetState.value.visible)
+        assertTrue(fixture.viewModel.sheetState.value.pendingItems.isEmpty())
+        assertEquals(
+            PluginOperationUiState.Success("已导入 2 首"),
+            fixture.viewModel.operationState.value,
+        )
+    }
+
+    @Test
+    fun `createPlaylistAndImport deletes created playlist when import fails`() = runTest {
+        val items = listOf(musicItem("song-1"), musicItem("song-2"))
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicSheet"),
+            importMusicSheetResult = items,
+        )
+        val fixture = createFixture(plugins = MutableStateFlow(listOf(plugin)))
+        runBlocking {
+            whenever(fixture.playlistRepository.addMusicsToPlaylist(any(), any()))
+                .thenThrow(IllegalStateException("写入失败"))
+        }
+        fixture.viewModel.importMusicSheet("source", "https://example.com/sheet")
+        advanceUntilIdle()
+
+        fixture.viewModel.createPlaylistAndImport("新歌单")
+        advanceUntilIdle()
+
+        val playlistCaptor = argumentCaptor<Playlist>()
+        verify(fixture.playlistRepository).createPlaylist(playlistCaptor.capture())
+        verify(fixture.playlistRepository).deletePlaylist(playlistCaptor.firstValue)
+        assertTrue(fixture.viewModel.sheetState.value.visible)
+        assertEquals(items, fixture.viewModel.sheetState.value.pendingItems)
+        assertEquals(
+            PluginOperationUiState.Failure("写入失败"),
+            fixture.viewModel.operationState.value,
+        )
+    }
+
     private data class Fixture(
         val viewModel: PluginListViewModel,
         val pluginManager: PluginManager,
         val metaStore: PluginMetaStore,
+        val playlistRepository: PlaylistRepository,
         val plugins: MutableStateFlow<List<LoadedPlugin>>,
         val disabledPlugins: MutableStateFlow<Set<String>>,
         val pluginOrder: MutableStateFlow<List<String>>,
         val alternativePlugins: MutableStateFlow<Map<String, String>>,
         val userVariables: MutableStateFlow<Map<String, String>>,
+        val playlists: MutableStateFlow<List<Playlist>>,
     )
 
     private fun loadedPlugin(
@@ -495,5 +635,10 @@ class PluginListViewModelTest {
         url = null,
         artwork = null,
         qualities = null,
+    )
+
+    private fun playlist(id: String) = Playlist(
+        id = id,
+        name = "Playlist $id",
     )
 }

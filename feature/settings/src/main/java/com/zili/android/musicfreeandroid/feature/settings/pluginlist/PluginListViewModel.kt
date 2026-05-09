@@ -2,7 +2,9 @@ package com.zili.android.musicfreeandroid.feature.settings.pluginlist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
+import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationFailure
@@ -11,6 +13,7 @@ import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationType
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
+import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -83,12 +86,21 @@ sealed interface PluginOperationUiState {
     }
 }
 
+sealed interface UserVariableSaveUiState {
+    data object Idle : UserVariableSaveUiState
+    data class Loading(val requestId: Long) : UserVariableSaveUiState
+    data class Success(val requestId: Long, val message: String) : UserVariableSaveUiState
+    data class Failure(val requestId: Long, val message: String) : UserVariableSaveUiState
+}
+
 @HiltViewModel
 class PluginListViewModel @Inject constructor(
     private val pluginManager: PluginManager,
+    private val playlistRepository: PlaylistRepository,
 ) : ViewModel() {
 
     private val metaStore: PluginMetaStore = pluginManager.pluginMetaStore
+    private var userVariableSaveRequestId = 0L
 
     val pluginItems: StateFlow<List<PluginUiItem>> = combine(
         pluginManager.plugins.map { list -> list.map { it.info } },
@@ -131,6 +143,16 @@ class PluginListViewModel @Inject constructor(
     private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())
     val sheetState: StateFlow<AddToPlaylistSheetState> = _sheetState.asStateFlow()
 
+    private val _userVariableSaveState = MutableStateFlow<UserVariableSaveUiState>(UserVariableSaveUiState.Idle)
+    val userVariableSaveState: StateFlow<UserVariableSaveUiState> = _userVariableSaveState.asStateFlow()
+
+    val allPlaylists: StateFlow<List<Playlist>> = playlistRepository.observeAllPlaylists()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList(),
+        )
+
     init {
         viewModelScope.launch {
             pluginManager.ensurePluginsLoaded()
@@ -149,18 +171,75 @@ class PluginListViewModel @Inject constructor(
         }
     }
 
-    fun saveUserVariables(platform: String, values: Map<String, String>) {
-        performOperation(label = "保存用户变量中") {
-            pluginManager.setUserVariables(platform, values)
-            PluginOperationUiState.Success("设置成功")
+    fun saveUserVariables(platform: String, values: Map<String, String>): Long {
+        val requestId = ++userVariableSaveRequestId
+        if (_operationState.value is PluginOperationUiState.Loading) {
+            _userVariableSaveState.value = UserVariableSaveUiState.Failure(requestId, "当前操作尚未完成")
+            return requestId
         }
+        setOperationState(PluginOperationUiState.Loading("保存用户变量中"))
+        _userVariableSaveState.value = UserVariableSaveUiState.Loading(requestId)
+        viewModelScope.launch {
+            try {
+                pluginManager.setUserVariables(platform, values)
+                setOperationState(PluginOperationUiState.Success("设置成功"))
+                _userVariableSaveState.value = UserVariableSaveUiState.Success(requestId, "设置成功")
+            } catch (e: Exception) {
+                val message = e.message ?: "未知错误"
+                setOperationState(PluginOperationUiState.Failure(message))
+                _userVariableSaveState.value = UserVariableSaveUiState.Failure(requestId, message)
+            }
+        }
+        return requestId
     }
 
     fun userVariables(platform: String): Flow<Map<String, String>> =
         metaStore.getUserVariables(platform)
 
+    fun resetUserVariableSaveState() {
+        _userVariableSaveState.value = UserVariableSaveUiState.Idle
+    }
+
     fun hideAddToPlaylistSheet() {
         _sheetState.value = AddToPlaylistSheetState()
+    }
+
+    fun addImportedItemsToPlaylist(targetPlaylistId: String) {
+        val items = _sheetState.value.pendingItems
+        if (items.isEmpty()) return
+        performOperation(label = "添加到歌单中") {
+            val added = playlistRepository.addMusicsToPlaylist(targetPlaylistId, items)
+            val skipped = items.size - added
+            _sheetState.value = AddToPlaylistSheetState()
+            PluginOperationUiState.Success(importResultMessage(added, skipped))
+        }
+    }
+
+    fun createPlaylistAndImport(name: String) {
+        val playlistName = name.trim()
+        val items = _sheetState.value.pendingItems
+        if (playlistName.isBlank() || items.isEmpty()) return
+        performOperation(label = "创建歌单中") {
+            val playlist = Playlist(
+                id = UUID.randomUUID().toString(),
+                name = playlistName,
+                coverUri = null,
+            )
+            var created = false
+            try {
+                playlistRepository.createPlaylist(playlist)
+                created = true
+                val added = playlistRepository.addMusicsToPlaylist(playlist.id, items)
+                val skipped = items.size - added
+                _sheetState.value = AddToPlaylistSheetState()
+                PluginOperationUiState.Success(importResultMessage(added, skipped))
+            } catch (e: Exception) {
+                if (created) {
+                    runCatching { playlistRepository.deletePlaylist(playlist) }
+                }
+                PluginOperationUiState.Failure(e.message ?: "未知错误")
+            }
+        }
     }
 
     fun importMusicItem(platform: String, urlLike: String) {
@@ -331,6 +410,13 @@ class PluginListViewModel @Inject constructor(
         _operationState.value = state
         _installState.value = state.toInstallState()
     }
+
+    private fun importResultMessage(added: Int, skipped: Int): String =
+        if (skipped > 0) {
+            "已导入 $added 首，跳过 $skipped 首重复歌曲"
+        } else {
+            "已导入 $added 首"
+        }
 
     private fun PluginOperationUiState.toInstallState(): InstallState {
         return when (this) {
