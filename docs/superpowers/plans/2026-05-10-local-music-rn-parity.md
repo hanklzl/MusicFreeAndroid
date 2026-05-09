@@ -106,7 +106,7 @@ Run the same two commands. Expected: both pass.
 Cover these behaviors:
 
 - `items come from persisted local repository`: `musicRepository.observeByPlatform("local")` emits one item and `uiState` becomes `Success`.
-- `scanLocalMusic persists scanned items`: mock `scanner.scan(treeUri)` to emit two items, call `scanLocalMusic(treeUri)`, verify `musicRepository.insertAll(items)`.
+- `scanLocalMusic replaces scanned items`: mock `scanner.scan(treeUri)` to emit two items, call `scanLocalMusic(treeUri)`, verify `musicRepository.replaceByPlatform(LocalMusicScanner.PLATFORM_LOCAL, items)`.
 - `removeFromLocalLibrary deletes persisted item`: call `removeFromLocalLibrary(item)`, verify `musicRepository.delete(item)`.
 - `playItem plays selected item in current list`: call `playItem(item, list)`, verify `playerController.playQueue(list, index)`.
 - `download enqueues selected item with requested quality`: verify `downloader.enqueue(listOf(item), PlayQuality.HIGH)`.
@@ -136,7 +136,7 @@ fun removeFromLocalLibrary(item: MusicItem)
 fun download(item: MusicItem, quality: PlayQuality)
 ```
 
-`uiState` maps repository emissions to `LocalMusicUiState.Success(items)` and starts as `Loading`. `scanLocalMusic` sets `Loading`, collects scanner output, calls `musicRepository.insertAll(items)`, then lets repository Flow update the UI. Catch exceptions into `LocalMusicUiState.Error`.
+`uiState` maps repository emissions to `LocalMusicUiState.Success(items)` and starts as `Loading`. `scanLocalMusic` sets `Loading`, collects scanner output, calls `musicRepository.replaceByPlatform(LocalMusicScanner.PLATFORM_LOCAL, items)`, then lets repository Flow update the UI. Catch exceptions into `LocalMusicUiState.Error`.
 
 - [ ] **Step 4: Run green tests**
 

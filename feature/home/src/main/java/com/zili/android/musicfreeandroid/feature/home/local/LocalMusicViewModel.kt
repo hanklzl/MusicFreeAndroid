@@ -35,7 +35,7 @@ class LocalMusicViewModel @Inject constructor(
     val uiState: StateFlow<LocalMusicUiState> = _uiState
 
     private var latestRepositoryItems: List<MusicItem> = emptyList()
-    private var repositoryEmissionCount: Int = 0
+    private var scanInProgress: Boolean = false
 
     val downloadActiveCount: StateFlow<Int> = downloader.tasks
         .map { tasks -> tasks.count { it.status != DownloadStatus.FAILED } }
@@ -53,50 +53,52 @@ class LocalMusicViewModel @Inject constructor(
                 }
                 .collect { items ->
                     latestRepositoryItems = items
-                    repositoryEmissionCount += 1
-                    _uiState.value = LocalMusicUiState.Success(items)
+                    if (!scanInProgress && _uiState.value !is LocalMusicUiState.Error) {
+                        _uiState.value = LocalMusicUiState.Success(items)
+                    }
                 }
         }
     }
 
     fun scanLocalMusic(storageDirectoryUri: String? = null) {
-        _uiState.value = LocalMusicUiState.Loading
         viewModelScope.launch {
+            scanInProgress = true
+            _uiState.value = LocalMusicUiState.Loading
             try {
                 scanAndPersist(storageDirectoryUri ?: appPreferences.storageDirectoryUri.first())
+                scanInProgress = false
+                _uiState.value = LocalMusicUiState.Success(latestRepositoryItems)
             } catch (e: Exception) {
-                _uiState.value = LocalMusicUiState.Error(e.message ?: "扫描失败")
+                showError(e.message ?: "扫描失败")
             }
         }
     }
 
     fun persistStorageDirectoryAndScan(uri: String) {
-        _uiState.value = LocalMusicUiState.Loading
         viewModelScope.launch {
+            scanInProgress = true
+            _uiState.value = LocalMusicUiState.Loading
             try {
                 appPreferences.setStorageDirectoryUri(uri)
                 scanAndPersist(uri)
+                scanInProgress = false
+                _uiState.value = LocalMusicUiState.Success(latestRepositoryItems)
             } catch (e: Exception) {
-                _uiState.value = LocalMusicUiState.Error(e.message ?: "保存目录失败")
+                showError(e.message ?: "保存目录失败")
             }
         }
     }
 
     fun showError(message: String) {
+        scanInProgress = false
         _uiState.value = LocalMusicUiState.Error(message)
     }
 
     private suspend fun scanAndPersist(storageDirectoryUri: String?) {
-        val emissionCountBeforeScan = repositoryEmissionCount
         scanner.scan(storageDirectoryUri)
             .collect { items ->
-                musicRepository.insertAll(items)
+                musicRepository.replaceByPlatform(LocalMusicScanner.PLATFORM_LOCAL, items)
             }
-        if (_uiState.value == LocalMusicUiState.Loading &&
-            repositoryEmissionCount == emissionCountBeforeScan
-        ) {
-            _uiState.value = LocalMusicUiState.Success(latestRepositoryItems)
-        }
     }
 
     fun playItem(item: MusicItem, queue: List<MusicItem>) {

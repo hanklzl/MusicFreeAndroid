@@ -74,7 +74,7 @@ class LocalMusicViewModelTest {
     }
 
     @Test
-    fun `scanLocalMusic persists scanned items`() = runTest(testDispatcher) {
+    fun `scanLocalMusic replaces persisted local library with scanned items`() = runTest(testDispatcher) {
         val treeUri = "content://com.android.externalstorage.documents/tree/primary%3AMusic"
         val items = listOf(track("1"), track("2"))
         whenever(scanner.scan(treeUri)).thenReturn(flowOf(items))
@@ -84,7 +84,7 @@ class LocalMusicViewModelTest {
         advanceUntilIdle()
 
         verify(scanner).scan(treeUri)
-        verify(musicRepository).insertAll(items)
+        verify(musicRepository).replaceByPlatform(LocalMusicScanner.PLATFORM_LOCAL, items)
     }
 
     @Test
@@ -99,7 +99,28 @@ class LocalMusicViewModelTest {
         advanceUntilIdle()
 
         verify(scanner).scan(treeUri)
-        verify(musicRepository).insertAll(items)
+        verify(musicRepository).replaceByPlatform(LocalMusicScanner.PLATFORM_LOCAL, items)
+    }
+
+    @Test
+    fun `repository emissions do not clear scan errors`() = runTest(testDispatcher) {
+        val repositoryItems = MutableStateFlow(emptyList<MusicItem>())
+        val treeUri = "content://com.android.externalstorage.documents/tree/primary%3ABroken"
+        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+            .thenReturn(repositoryItems)
+        whenever(scanner.scan(treeUri)).thenThrow(IllegalStateException("扫描失败"))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.scanLocalMusic(treeUri)
+        advanceUntilIdle()
+        repositoryItems.value = listOf(track("old"))
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is LocalMusicUiState.Error)
+        assertEquals("扫描失败", (state as LocalMusicUiState.Error).message)
     }
 
     @Test

@@ -54,6 +54,7 @@
 | [docs/superpowers/specs/2026-05-09-plugin-management-parity-design.md](./superpowers/specs/2026-05-09-plugin-management-parity-design.md) | 当前规范（插件管理 RN 完整对齐） | 是（作为实现计划输入） | 插件卡片操作、音源重定向、用户变量、导入单曲/歌单、安装更新反馈与全局音源解析设计 |
 | [docs/superpowers/specs/2026-05-09-recommend-toplist-rn-align-design.md](./superpowers/specs/2026-05-09-recommend-toplist-rn-align-design.md) | 当前规范（推荐歌单与榜单 RN 对齐） | 是（作为实现计划输入） | 推荐歌单/榜单入口页主要 UI 对齐 RN、插件能力过滤与详情点击 seed 修复设计 |
 | [docs/superpowers/specs/2026-05-09-settings-basic-alignment-design.md](./superpowers/specs/2026-05-09-settings-basic-alignment-design.md) | 当前规范（基本设置对齐） | 是（作为实现计划输入） | typed settings route、基本设置 RN 分区可见、Android 卡片分组、已生效项可编辑与未接入项禁用展示设计 |
+| [docs/superpowers/specs/2026-05-10-local-music-rn-parity-design.md](./superpowers/specs/2026-05-10-local-music-rn-parity-design.md) | 当前规范（本地音乐 RN 对齐） | 是（作为实现计划输入） | 本地音乐 AppBar 主题色、搜索/扫描/批量编辑/下载列表入口与持久本地曲库链路设计 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |
 | [docs/superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md](./superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md) | 当前参考（首页 mock 专项） | 否 | 首页主界面与底部 mini player 的第一阶段 mock 对齐设计 |

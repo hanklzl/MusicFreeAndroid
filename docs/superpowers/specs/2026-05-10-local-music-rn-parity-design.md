@@ -63,7 +63,7 @@ RN 参考事实：
 新增 `LocalMusicViewModel` 作为本地音乐页面状态源：
 
 - 观察 `MusicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)` 作为展示列表。
-- 扫描动作调用 `LocalMusicScanner.scan(treeUriOrNull)`，将结果 `insertAll` 到 `MusicRepository`。
+- 扫描动作调用 `LocalMusicScanner.scan(treeUriOrNull)`，将结果替换写入 `MusicRepository` 的本地平台曲库。
 - 页面点击播放时调用 `PlayerController.playQueue(items, index)`。
 - 下载相关继续通过 `Downloader` 与 `AppPreferences.defaultDownloadQuality`。
 
@@ -94,7 +94,7 @@ LocalScreen scan action
   -> SAF directory permission and AppPreferences.storageDirectoryUri
   -> LocalMusicViewModel.scanLocalMusic(uri)
   -> LocalMusicScanner.scan(uri)
-  -> MusicRepository.insertAll(items)
+  -> MusicRepository.replaceByPlatform("local", items)
   -> Room music_items(platform="local")
   -> LocalScreen / SearchMusicList / MusicListEditor observe same Flow
 ```
@@ -106,13 +106,13 @@ LocalScreen scan action
 - 音频权限未授予：页面显示错误并提供重试，重试重新申请权限。
 - SAF 目录选择取消：不改变当前曲库，不显示失败状态。
 - 扫描或持久化失败：`LocalMusicUiState.Error(message)` 显示失败原因和重试入口。
-- 扫描成功但没有音频：持久曲库保持当前状态；页面若曲库为空显示空态。
+- 扫描成功但没有音频：本地曲库替换为空；页面显示空态。
 
 ## 测试策略
 
 单元测试：
 
-- `LocalMusicViewModelTest`：扫描成功后写入 `MusicRepository.insertAll`；页面列表来自持久 Flow；播放、下载、移除本地曲库分别委托正确依赖。
+- `LocalMusicViewModelTest`：扫描成功后替换写入本地平台曲库；页面列表来自持久 Flow；播放、下载、移除本地曲库分别委托正确依赖。
 - `SearchMusicListSourceLoaderTest`：local-library 来源返回 `MusicRepository.observeByPlatform("local")`。
 - `MusicListEditorLiteViewModelTest`：local-library 来源加载本地曲库，保存删除时调用 `MusicRepository.delete()`，playlist 来源行为不回退。
 - `RoutesTest`：`MusicListEditorLiteRoute.localLibrary()` 可序列化，旧 `MusicListEditorLiteRoute(playlistId)` 仍可用。

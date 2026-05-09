@@ -26,6 +26,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -252,6 +253,30 @@ class MusicListEditorLiteViewModelTest {
             verify(playlistRepository).addMusicToPlaylist("playlist-2", items[0])
             verify(playlistRepository).addMusicToPlaylist("playlist-2", items[1])
         }
+    }
+
+    @Test
+    fun `createPlaylistAndAddSelected trims name creates playlist and adds selected items`() = runTest {
+        val items = listOf(
+            track(id = "1"),
+            track(id = "2"),
+        )
+        whenever(playlistRepository.getPlaylistById("playlist-1"))
+            .thenReturn(Playlist(id = "playlist-1", name = "Favorites", coverUri = null))
+        whenever(playlistRepository.observeMusicInPlaylist("playlist-1"))
+            .thenReturn(MutableStateFlow(items))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.toggleSelection(items[1])
+        viewModel.createPlaylistAndAddSelected("  Road Trip  ")
+        advanceUntilIdle()
+
+        val playlistCaptor = argumentCaptor<Playlist>()
+        verify(playlistRepository).createPlaylist(playlistCaptor.capture())
+        assertEquals("Road Trip", playlistCaptor.firstValue.name)
+        verify(playlistRepository).addMusicsToPlaylist(playlistCaptor.firstValue.id, listOf(items[1]))
     }
 
     @Test

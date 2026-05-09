@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.navigation.MusicListEditorLiteRoute
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -161,6 +163,22 @@ class MusicListEditorLiteViewModel @Inject constructor(
             selectedItems.forEach { item ->
                 playlistRepository.addMusicToPlaylist(targetPlaylistId, item)
             }
+        }
+    }
+
+    fun createPlaylistAndAddSelected(name: String) {
+        val selectedItems = selectedItemsInDisplayOrder()
+        val trimmedName = name.trim()
+        if (selectedItems.isEmpty() || trimmedName.isBlank()) return
+
+        viewModelScope.launch {
+            val playlist = Playlist(
+                id = UUID.randomUUID().toString(),
+                name = trimmedName,
+                coverUri = null,
+            )
+            playlistRepository.createPlaylist(playlist)
+            playlistRepository.addMusicsToPlaylist(playlist.id, selectedItems)
         }
     }
 

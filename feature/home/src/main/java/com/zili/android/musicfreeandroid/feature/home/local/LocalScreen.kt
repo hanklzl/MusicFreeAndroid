@@ -1,8 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.home.local
 
 import android.content.pm.PackageManager
-import android.net.Uri
-import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,56 +60,36 @@ fun LocalScreen(
 
     var hasAudioPermission by remember { mutableStateOf<Boolean?>(null) }
     var menuExpanded by remember { mutableStateOf(false) }
-    var pendingDirectoryScanRequest by remember { mutableStateOf(false) }
-    var suppressNextPermissionGrantedScan by remember { mutableStateOf(false) }
 
     fun isAudioPermissionGranted(): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-
-    lateinit var openDocumentTreeLauncher: ManagedActivityResultLauncher<Uri?, Uri?>
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         hasAudioPermission = granted
         if (granted) {
-            when {
-                pendingDirectoryScanRequest -> {
-                    pendingDirectoryScanRequest = false
-                    openDocumentTreeLauncher.launch(null)
-                }
-                suppressNextPermissionGrantedScan -> {
-                    suppressNextPermissionGrantedScan = false
-                }
-                else -> viewModel.scanLocalMusic()
-            }
+            viewModel.scanLocalMusic()
         } else {
-            pendingDirectoryScanRequest = false
-            suppressNextPermissionGrantedScan = false
+            viewModel.showError("未授予音频读取权限，请授权后重试")
         }
     }
 
-    openDocumentTreeLauncher = rememberLauncherForActivityResult(
+    val openDocumentTreeLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
         if (uri != null) {
-            if (isAudioPermissionGranted()) {
-                hasAudioPermission = true
-                runCatching {
-                    DocumentTreeStorageAccess.persistReadWritePermission(
-                        contentResolver = context.contentResolver,
-                        treeUri = uri,
-                    )
-                }.onSuccess {
-                    val treeUri = uri.toString()
-                    viewModel.persistStorageDirectoryAndScan(treeUri)
-                }.onFailure { e ->
-                    viewModel.showError(e.message ?: "保存目录权限失败")
-                }
-            } else {
-                hasAudioPermission = false
-                suppressNextPermissionGrantedScan = true
-                permissionLauncher.launch(permission)
+            hasAudioPermission = isAudioPermissionGranted()
+            runCatching {
+                DocumentTreeStorageAccess.persistReadWritePermission(
+                    contentResolver = context.contentResolver,
+                    treeUri = uri,
+                )
+            }.onSuccess {
+                val treeUri = uri.toString()
+                viewModel.persistStorageDirectoryAndScan(treeUri)
+            }.onFailure { e ->
+                viewModel.showError(e.message ?: "保存目录权限失败")
             }
         }
     }
@@ -123,11 +101,6 @@ fun LocalScreen(
         } else {
             permissionLauncher.launch(permission)
         }
-    }
-
-    val localUiState = when (hasAudioPermission) {
-        false -> LocalMusicUiState.Error("未授予音频读取权限，请授权后重试")
-        else -> uiState
     }
 
     optionsItem?.let { item ->
@@ -184,14 +157,7 @@ fun LocalScreen(
                     text = { Text("扫描本地音乐") },
                     onClick = {
                         menuExpanded = false
-                        if (isAudioPermissionGranted()) {
-                            hasAudioPermission = true
-                            openDocumentTreeLauncher.launch(null)
-                        } else {
-                            hasAudioPermission = false
-                            pendingDirectoryScanRequest = true
-                            permissionLauncher.launch(permission)
-                        }
+                        openDocumentTreeLauncher.launch(null)
                     },
                 )
                 DropdownMenuItem(
@@ -212,7 +178,7 @@ fun LocalScreen(
         },
     ) { innerPadding ->
         LocalMusicContent(
-            uiState = localUiState,
+            uiState = uiState,
             downloadedKeys = downloadedKeys.map { it.value }.toSet(),
             onItemClick = { item, items ->
                 viewModel.playItem(item, items)

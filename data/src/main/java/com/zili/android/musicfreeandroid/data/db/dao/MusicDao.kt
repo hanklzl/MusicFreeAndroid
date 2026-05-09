@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
@@ -42,4 +43,10 @@ interface MusicDao {
 
     @Query("DELETE FROM music_items WHERE platform = :platform")
     suspend fun deleteByPlatform(platform: String)
+
+    @Transaction
+    suspend fun replaceByPlatform(platform: String, items: List<MusicItemEntity>) {
+        deleteByPlatform(platform)
+        insertAll(items)
+    }
 }
