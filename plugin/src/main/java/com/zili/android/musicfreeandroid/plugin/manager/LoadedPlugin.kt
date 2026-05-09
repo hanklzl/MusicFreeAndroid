@@ -69,7 +69,7 @@ class LoadedPlugin(
                     "await __plugin.search('${escapeJsString(query)}', $page, '${escapeJsString(type)}')"
                 )
                 val map = toMap(result) ?: return@withTimeout SearchResult(isEnd = true, data = emptyList())
-                JsBridge.parseSearchResult(map)
+                JsBridge.parseSearchResult(map, fallbackPlatform = info.platform)
             } catch (e: Exception) {
                 rethrowIfExternalCancellation(e)
                 Log.e(TAG, "search failed for query='$query' on ${info.platform}", e)
@@ -168,7 +168,7 @@ class LoadedPlugin(
                     "await __plugin.getAlbumInfo(__albumItem, $page)"
                 )
                 val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseAlbumInfoResult(map)
+                JsBridge.parseAlbumInfoResult(map, fallbackPlatform = info.platform)
             } catch (e: Exception) {
                 rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getAlbumInfo failed for ${albumItem.id} on ${info.platform}", e)
@@ -190,7 +190,7 @@ class LoadedPlugin(
                     "await __plugin.getArtistWorks(__artistItem, $page, '${escapeJsString(type)}')"
                 )
                 val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseArtistWorksResult(map, type)
+                JsBridge.parseArtistWorksResult(map, type, fallbackPlatform = info.platform)
             } catch (e: Exception) {
                 rethrowIfExternalCancellation(e)
                 Log.e(TAG, "getArtistWorks failed for ${artistItem.id} on ${info.platform}", e)
@@ -223,7 +223,7 @@ class LoadedPlugin(
                     "await __plugin.importMusicItem('${escapeJsString(urlLike)}')"
                 )
                 val map = toMap(result) ?: return@withTimeout null
-                JsBridge.parseImportMusicItemResult(map)
+                JsBridge.parseImportMusicItemResult(map, fallbackPlatform = info.platform)
             } catch (e: Exception) {
                 rethrowIfExternalCancellation(e)
                 Log.e(TAG, "importMusicItem failed on ${info.platform}", e)

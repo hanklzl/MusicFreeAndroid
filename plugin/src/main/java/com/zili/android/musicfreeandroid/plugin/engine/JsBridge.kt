@@ -94,11 +94,16 @@ object JsBridge {
         "artwork" to item.artwork,
     )
 
-    fun parseSearchResult(map: Map<String, Any?>): SearchResult {
+    fun parseSearchResult(
+        map: Map<String, Any?>,
+        fallbackPlatform: String? = null,
+    ): SearchResult {
         val isEnd = map["isEnd"] as? Boolean ?: false
         @Suppress("UNCHECKED_CAST")
         val dataList = (map["data"] as? List<*>)?.mapNotNull { entry ->
-            (entry as? Map<String, Any?>)?.let { toMusicItem(it) }
+            (entry as? Map<String, Any?>)?.let {
+                toMusicItem(it, fallbackPlatform = fallbackPlatform)
+            }
         } ?: emptyList()
         return SearchResult(isEnd = isEnd, data = dataList)
     }
@@ -141,8 +146,11 @@ object JsBridge {
         }
     }
 
-    fun parseImportMusicItemResult(map: Map<String, Any?>): MusicItem {
-        return toMusicItem(map)
+    fun parseImportMusicItemResult(
+        map: Map<String, Any?>,
+        fallbackPlatform: String? = null,
+    ): MusicItem {
+        return toMusicItem(map, fallbackPlatform = fallbackPlatform)
     }
 
     fun parseLyricResult(map: Map<String, Any?>): LyricResult {
@@ -207,10 +215,16 @@ object JsBridge {
         )
     }
 
-    fun toAlbumItemBase(map: Map<String, Any?>): AlbumItemBase {
+    fun toAlbumItemBase(
+        map: Map<String, Any?>,
+        fallbackPlatform: String? = null,
+    ): AlbumItemBase {
         return AlbumItemBase(
             id = map["id"]?.toString() ?: "",
-            platform = map["platform"]?.toString() ?: "",
+            platform = normalizedPlatform(
+                rawPlatform = map["platform"],
+                fallbackPlatform = fallbackPlatform,
+            ),
             title = map["title"]?.toString(),
             date = map["date"]?.toString(),
             artist = map["artist"]?.toString(),
@@ -330,14 +344,19 @@ object JsBridge {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun parseAlbumInfoResult(map: Map<String, Any?>): AlbumInfoResult {
+    fun parseAlbumInfoResult(
+        map: Map<String, Any?>,
+        fallbackPlatform: String? = null,
+    ): AlbumInfoResult {
         val isEnd = map["isEnd"] as? Boolean ?: true
         val albumMap =
             (map["albumItem"] as? Map<String, Any?>)
                 ?: (map["sheetItem"] as? Map<String, Any?>)
-        val albumItem = albumMap?.let(::toAlbumItemBase)
+        val albumItem = albumMap?.let { toAlbumItemBase(it, fallbackPlatform) }
         val musicList = (map["musicList"] as? List<*>)?.mapNotNull { entry ->
-            (entry as? Map<String, Any?>)?.let(::toMusicItem)
+            (entry as? Map<String, Any?>)?.let {
+                toMusicItem(it, fallbackPlatform = fallbackPlatform)
+            }
         } ?: emptyList()
         return AlbumInfoResult(
             isEnd = isEnd,
@@ -347,13 +366,17 @@ object JsBridge {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun parseArtistWorksResult(map: Map<String, Any?>, type: String): ArtistWorksResult {
+    fun parseArtistWorksResult(
+        map: Map<String, Any?>,
+        type: String,
+        fallbackPlatform: String? = null,
+    ): ArtistWorksResult {
         val isEnd = map["isEnd"] as? Boolean ?: false
         val rawData = (map["data"] as? List<*>)?.mapNotNull { entry ->
             entry as? Map<String, Any?>
         } ?: emptyList()
         val musicList = if (type == "music") {
-            rawData.map(::toMusicItem)
+            rawData.map { toMusicItem(it, fallbackPlatform = fallbackPlatform) }
         } else {
             emptyList()
         }
