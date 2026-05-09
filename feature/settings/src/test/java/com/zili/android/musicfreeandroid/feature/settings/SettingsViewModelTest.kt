@@ -66,6 +66,36 @@ class SettingsViewModelTest {
         assertEquals(treeUri, persisted)
     }
 
+    @Test
+    fun `basic settings state exposes default runtime-backed preferences`() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = createViewModel(createAppPreferences())
+
+        val state = viewModel.basicSettingsUiState.value
+
+        assertEquals(3, state.maxDownload)
+        assertEquals(com.zili.android.musicfreeandroid.core.model.PlayQuality.STANDARD, state.defaultDownloadQuality)
+        assertEquals(false, state.useCellularDownload)
+        assertEquals(true, state.lyricAutoSearchEnabled)
+        assertTrue(!state.storageAccessState.isConfigured)
+    }
+
+    @Test
+    fun `basic settings setters persist runtime-backed preferences`() = runTest(mainDispatcherRule.dispatcher) {
+        val appPreferences = createAppPreferences()
+        val viewModel = createViewModel(appPreferences)
+
+        viewModel.setMaxDownload(7)
+        viewModel.setDefaultDownloadQuality(com.zili.android.musicfreeandroid.core.model.PlayQuality.SUPER)
+        viewModel.setUseCellularDownload(true)
+        viewModel.setLyricAutoSearchEnabled(false)
+        advanceUntilIdle()
+
+        assertEquals(7, appPreferences.maxDownload.first())
+        assertEquals(com.zili.android.musicfreeandroid.core.model.PlayQuality.SUPER, appPreferences.defaultDownloadQuality.first())
+        assertEquals(true, appPreferences.useCellularDownload.first())
+        assertEquals(false, appPreferences.lyricAutoSearchEnabled.first())
+    }
+
     private fun createAppPreferences(): AppPreferences {
         val scope = CoroutineScope(SupervisorJob() + mainDispatcherRule.dispatcher)
         dataStoreScopes += scope
