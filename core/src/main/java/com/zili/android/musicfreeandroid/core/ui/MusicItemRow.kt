@@ -42,6 +42,7 @@ fun MusicItemRow(
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val tagText = platformTagText(item.platform)
                 Text(
                     text = item.title,
                     style = MaterialTheme.typography.bodyLarge,
@@ -49,10 +50,12 @@ fun MusicItemRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                PlatformTag(
-                    text = displayPlatform(item.platform),
-                    modifier = Modifier.padding(start = 8.dp),
-                )
+                if (tagText != null) {
+                    PlatformTag(
+                        text = tagText,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
             }
             Spacer(Modifier.height(2.dp))
             Text(
@@ -72,8 +75,11 @@ fun MusicItemRow(
     }
 }
 
-private fun displayPlatform(platform: String): String =
-    if (platform == "local") "本地" else platform
+internal fun platformTagText(platform: String): String? {
+    val normalized = platform.trim()
+    if (normalized.isBlank()) return null
+    return if (normalized == "local") "本地" else normalized
+}
 
 private fun descriptionText(item: MusicItem): String =
     item.artist + if (!item.album.isNullOrBlank()) " - ${item.album}" else ""
