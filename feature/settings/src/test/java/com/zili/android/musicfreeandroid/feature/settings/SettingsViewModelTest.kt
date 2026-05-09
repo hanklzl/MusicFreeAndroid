@@ -3,12 +3,14 @@ package com.zili.android.musicfreeandroid.feature.settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -73,27 +75,37 @@ class SettingsViewModelTest {
         val state = viewModel.basicSettingsUiState.value
 
         assertEquals(3, state.maxDownload)
-        assertEquals(com.zili.android.musicfreeandroid.core.model.PlayQuality.STANDARD, state.defaultDownloadQuality)
+        assertEquals(PlayQuality.STANDARD, state.defaultDownloadQuality)
         assertEquals(false, state.useCellularDownload)
         assertEquals(true, state.lyricAutoSearchEnabled)
         assertTrue(!state.storageAccessState.isConfigured)
     }
 
     @Test
-    fun `basic settings setters persist runtime-backed preferences`() = runTest(mainDispatcherRule.dispatcher) {
+    fun `basic settings setters update collected runtime-backed state and preferences`() =
+        runTest(mainDispatcherRule.dispatcher) {
         val appPreferences = createAppPreferences()
         val viewModel = createViewModel(appPreferences)
+        val job = backgroundScope.launch { viewModel.basicSettingsUiState.collect {} }
+        advanceUntilIdle()
 
         viewModel.setMaxDownload(7)
-        viewModel.setDefaultDownloadQuality(com.zili.android.musicfreeandroid.core.model.PlayQuality.SUPER)
+        viewModel.setDefaultDownloadQuality(PlayQuality.SUPER)
         viewModel.setUseCellularDownload(true)
         viewModel.setLyricAutoSearchEnabled(false)
         advanceUntilIdle()
 
+        val state = viewModel.basicSettingsUiState.value
+        assertEquals(7, state.maxDownload)
+        assertEquals(PlayQuality.SUPER, state.defaultDownloadQuality)
+        assertEquals(true, state.useCellularDownload)
+        assertEquals(false, state.lyricAutoSearchEnabled)
+        assertTrue(!state.storageAccessState.isConfigured)
         assertEquals(7, appPreferences.maxDownload.first())
-        assertEquals(com.zili.android.musicfreeandroid.core.model.PlayQuality.SUPER, appPreferences.defaultDownloadQuality.first())
+        assertEquals(PlayQuality.SUPER, appPreferences.defaultDownloadQuality.first())
         assertEquals(true, appPreferences.useCellularDownload.first())
         assertEquals(false, appPreferences.lyricAutoSearchEnabled.first())
+        job.cancel()
     }
 
     private fun createAppPreferences(): AppPreferences {
