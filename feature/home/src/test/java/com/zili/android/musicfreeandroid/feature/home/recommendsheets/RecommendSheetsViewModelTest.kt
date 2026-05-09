@@ -166,6 +166,95 @@ class RecommendSheetsViewModelTest {
         assertTrue(viewModel.uiState.value.sheets.isEmpty())
     }
 
+    @Test
+    fun `pending tag load does not overwrite unsupported empty state`() = runTest {
+        val tagsGate = CompletableDeferred<RecommendSheetTagsResult?>()
+        val capable = plugin(
+            platform = "capable",
+            methods = setOf("getRecommendSheetsByTag", "getRecommendSheetTags"),
+        )
+        runBlocking {
+            whenever(capable.getRecommendSheetTags()).doSuspendableAnswer {
+                tagsGate.await()
+            }
+        }
+        enabledPlugins.value = listOf(capable)
+
+        val viewModel = RecommendSheetsViewModel(pluginManager)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.loading)
+
+        enabledPlugins.value = emptyList()
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.selectedPlugin.value)
+        assertEquals("当前没有支持推荐歌单的插件", viewModel.uiState.value.emptyMessage)
+
+        tagsGate.complete(
+            RecommendSheetTagsResult(
+                pinned = listOf(musicSheet(id = "stale-tag", title = "旧标签")),
+                data = emptyList(),
+            ),
+        )
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.selectedPlugin.value)
+        assertEquals("当前没有支持推荐歌单的插件", viewModel.uiState.value.emptyMessage)
+        assertTrue(viewModel.uiState.value.tags.isEmpty())
+        assertTrue(viewModel.uiState.value.sheets.isEmpty())
+    }
+
+    @Test
+    fun `pending loadMore does not overwrite unsupported empty state`() = runTest {
+        val nextPageGate = CompletableDeferred<PaginationResult<MusicSheetItemBase>>()
+        val capable = plugin(
+            platform = "capable",
+            methods = setOf("getRecommendSheetsByTag"),
+        )
+        runBlocking {
+            whenever(capable.getRecommendSheetsByTag(any(), any())).doSuspendableAnswer { invocation ->
+                val page = invocation.getArgument<Int>(1)
+                if (page == 1) {
+                    PaginationResult(
+                        isEnd = false,
+                        data = listOf(musicSheet(id = "first", title = "第一页")),
+                    )
+                } else {
+                    nextPageGate.await()
+                }
+            }
+        }
+        enabledPlugins.value = listOf(capable)
+
+        val viewModel = RecommendSheetsViewModel(pluginManager)
+        advanceUntilIdle()
+        assertEquals(listOf("first"), viewModel.uiState.value.sheets.map { it.id })
+        assertFalse(viewModel.uiState.value.isEnd)
+
+        viewModel.loadMore()
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.loadingMore)
+
+        enabledPlugins.value = emptyList()
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.selectedPlugin.value)
+        assertEquals("当前没有支持推荐歌单的插件", viewModel.uiState.value.emptyMessage)
+
+        nextPageGate.complete(
+            PaginationResult(
+                isEnd = true,
+                data = listOf(musicSheet(id = "stale-next", title = "旧下一页")),
+            ),
+        )
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.selectedPlugin.value)
+        assertEquals("当前没有支持推荐歌单的插件", viewModel.uiState.value.emptyMessage)
+        assertTrue(viewModel.uiState.value.sheets.isEmpty())
+        assertFalse(viewModel.uiState.value.loadingMore)
+    }
+
     private fun plugin(
         platform: String,
         methods: Set<String>,
