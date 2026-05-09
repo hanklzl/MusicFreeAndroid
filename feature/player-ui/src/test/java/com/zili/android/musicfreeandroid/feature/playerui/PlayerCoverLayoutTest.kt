@@ -56,6 +56,7 @@ class PlayerCoverLayoutTest {
                             onSkipPrevious = {},
                             onSkipNext = {},
                             onCyclePlaybackMode = {},
+                            onOpenQueue = {},
                         )
                     }
                 }

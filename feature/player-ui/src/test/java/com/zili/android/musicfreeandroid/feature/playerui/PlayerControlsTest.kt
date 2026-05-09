@@ -89,6 +89,7 @@ class PlayerControlsTest {
                         onSkipPrevious = {},
                         onSkipNext = {},
                         onCyclePlaybackMode = onCyclePlaybackMode,
+                        onOpenQueue = {},
                     )
                 }
             }

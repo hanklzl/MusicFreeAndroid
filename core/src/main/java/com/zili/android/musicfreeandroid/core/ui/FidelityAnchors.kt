@@ -55,6 +55,16 @@ object FidelityAnchors {
         const val MiniRoot = "player.mini.root"
         const val MiniPlayPause = "player.mini.playPause"
         const val MiniQueue = "player.mini.queue"
+
+        object Queue {
+            const val SheetRoot = "player.queue.root"
+            const val RepeatModeButton = "player.queue.repeatMode"
+            const val ClearButton = "player.queue.clear"
+            const val EmptyState = "player.queue.empty"
+            const val Row = "player.queue.row"
+            const val CurrentMarker = "player.queue.currentMarker"
+            const val RemoveButton = "player.queue.removeButton"
+        }
     }
 
     object Panel {

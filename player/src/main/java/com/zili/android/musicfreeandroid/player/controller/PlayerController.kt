@@ -15,6 +15,7 @@ import com.zili.android.musicfreeandroid.player.ext.toMediaItem
 import com.zili.android.musicfreeandroid.player.model.PlaybackState
 import com.zili.android.musicfreeandroid.player.model.PlayerState
 import com.zili.android.musicfreeandroid.player.queue.PlayQueue
+import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueueControls
 import com.zili.android.musicfreeandroid.player.service.PlaybackService
@@ -59,6 +60,8 @@ class PlayerController @Inject constructor(
     val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
     private val _playHistory = MutableStateFlow<List<MusicItem>>(emptyList())
     val playHistory: StateFlow<List<MusicItem>> = _playHistory.asStateFlow()
+    private val _queueState = MutableStateFlow(PlayQueueSnapshot.EMPTY)
+    val queueState: StateFlow<PlayQueueSnapshot> = _queueState.asStateFlow()
     private val _errorEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val errorEvents: SharedFlow<String> = _errorEvents.asSharedFlow()
 
@@ -131,17 +134,20 @@ class PlayerController @Inject constructor(
             playQueue.skipTo(playQueue.size - 1)
         }
         setMediaItemAndPlay(item)
+        emitQueueState()
     }
 
     fun playQueue(items: List<MusicItem>, startIndex: Int = 0) {
         playQueue.setQueue(items, startIndex)
         if (shuffleEnabled) playQueue.shuffle()
         playQueue.currentItem?.let { setMediaItemAndPlay(it) }
+        emitQueueState()
     }
 
     fun skipToNext() {
         val next = playQueue.next(repeatMode) ?: return
         setMediaItemAndPlay(next)
+        emitQueueState()
     }
 
     fun skipToPrevious() {
@@ -157,6 +163,7 @@ class PlayerController @Inject constructor(
             controller.setMediaItem(mediaItem)
             controller.prepare()
             controller.play()
+            emitQueueState()
         }
     }
 
@@ -171,6 +178,7 @@ class PlayerController @Inject constructor(
     fun skipTo(index: Int) {
         val item = playQueue.skipTo(index) ?: return
         setMediaItemAndPlay(item)
+        emitQueueState()
     }
 
     fun setRepeatMode(mode: RepeatMode) {
@@ -215,6 +223,7 @@ class PlayerController @Inject constructor(
         }
         runOnControllerThread {
             emitState()
+            emitQueueState()
         }
     }
 
@@ -227,15 +236,18 @@ class PlayerController @Inject constructor(
         }
         runOnControllerThread {
             emitState()
+            emitQueueState()
         }
     }
 
     fun addToQueue(item: MusicItem) {
         playQueue.add(item)
+        emitQueueState()
     }
 
     fun addNextInQueue(item: MusicItem) {
         playQueue.addNext(item)
+        emitQueueState()
     }
 
     fun clearHistory() {
@@ -252,6 +264,7 @@ class PlayerController @Inject constructor(
             repeatMode = RepeatMode.OFF
             shuffleEnabled = false
             _playerState.value = PlayerState.EMPTY
+            emitQueueState()
         }
     }
 
@@ -268,12 +281,14 @@ class PlayerController @Inject constructor(
         }
         runOnControllerThread {
             emitState()
+            emitQueueState()
         }
         return newCurrent
     }
 
     fun moveInQueue(fromIndex: Int, toIndex: Int) {
         playQueue.move(fromIndex, toIndex)
+        emitQueueState()
     }
 
     fun release() {
@@ -407,6 +422,7 @@ class PlayerController @Inject constructor(
                 val next = playQueue.next(repeatMode)
                 if (next != null) {
                     setMediaItemAndPlay(next)
+                    emitQueueState()
                 }
             }
         }
@@ -441,6 +457,13 @@ class PlayerController @Inject constructor(
             position = controller?.currentPosition?.coerceAtLeast(0L) ?: 0L,
             repeatMode = repeatMode,
             shuffleEnabled = shuffleEnabled,
+        )
+    }
+
+    private fun emitQueueState() {
+        _queueState.value = PlayQueueSnapshot(
+            items = playQueue.items,
+            currentIndex = playQueue.currentIndex,
         )
     }
 
