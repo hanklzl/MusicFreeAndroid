@@ -14,6 +14,7 @@ import com.zili.android.musicfreeandroid.player.ext.toMediaItem
 import com.zili.android.musicfreeandroid.player.model.PlaybackState
 import com.zili.android.musicfreeandroid.player.model.PlayerState
 import com.zili.android.musicfreeandroid.player.queue.PlayQueue
+import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueueControls
 import com.zili.android.musicfreeandroid.player.service.PlaybackService
@@ -58,6 +59,8 @@ class PlayerController @Inject constructor(
     val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
     private val _playHistory = MutableStateFlow<List<MusicItem>>(emptyList())
     val playHistory: StateFlow<List<MusicItem>> = _playHistory.asStateFlow()
+    private val _queueState = MutableStateFlow(PlayQueueSnapshot.EMPTY)
+    val queueState: StateFlow<PlayQueueSnapshot> = _queueState.asStateFlow()
     private val _errorEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val errorEvents: SharedFlow<String> = _errorEvents.asSharedFlow()
 
@@ -413,6 +416,13 @@ class PlayerController @Inject constructor(
             position = controller?.currentPosition?.coerceAtLeast(0L) ?: 0L,
             repeatMode = repeatMode,
             shuffleEnabled = shuffleEnabled,
+        )
+    }
+
+    private fun emitQueueState() {
+        _queueState.value = PlayQueueSnapshot(
+            items = playQueue.items,
+            currentIndex = playQueue.currentIndex,
         )
     }
 
