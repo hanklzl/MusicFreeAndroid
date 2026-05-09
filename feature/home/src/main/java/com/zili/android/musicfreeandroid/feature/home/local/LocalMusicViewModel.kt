@@ -26,7 +26,7 @@ class LocalMusicViewModel @Inject constructor(
     private val scanner: LocalMusicScanner,
     private val playerController: PlayerController,
     private val musicRepository: MusicRepository,
-    appPreferences: AppPreferences,
+    private val appPreferences: AppPreferences,
     private val downloader: Downloader,
 ) : ViewModel() {
 
@@ -75,6 +75,12 @@ class LocalMusicViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = LocalMusicUiState.Error(e.message ?: "扫描失败")
             }
+        }
+    }
+
+    fun setStorageDirectoryUri(uri: String) {
+        viewModelScope.launch {
+            appPreferences.setStorageDirectoryUri(uri)
         }
     }
 
