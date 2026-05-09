@@ -62,11 +62,8 @@ instrumentation test 中静态文件名 + 多 `@Test` 方法 + 未关闭 dataSto
 - guard:
     type: grep
 - signature: |
-    awk -F= '/^org\.gradle\.jvmargs/ { line=$0 }
-             END { if (line == "") exit 1
-                   if (match(line, /-Xmx([0-9]+)m/, m) == 0) exit 1
-                   if (m[1] < 4096) { print "gradle.properties -Xmx="m[1]"m < 4096m"; exit 1 }
-                 }' gradle.properties
+    grep -E '^org\.gradle\.jvmargs' gradle.properties \
+      | awk -F'-Xmx' 'NF>1 { split($2,a,"m"); if (a[1]+0 < 4096) print "gradle.properties -Xmx=" a[1] "m < 4096m" }'
 - fix_ref: docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md#4-6-1-d8-oom-根因与修复
 
 ### 根因
