@@ -25,6 +25,7 @@ class HomeAnchorContractTest {
             FidelityAnchors.Home.SheetsCreate,
             FidelityAnchors.Home.SheetsImport,
             FidelityAnchors.Home.DrawerRoot,
+            FidelityAnchors.Home.DrawerTitle,
             FidelityAnchors.Home.DrawerSettings,
             FidelityAnchors.Home.DrawerPluginManagement,
             FidelityAnchors.Home.DrawerPermissions,
