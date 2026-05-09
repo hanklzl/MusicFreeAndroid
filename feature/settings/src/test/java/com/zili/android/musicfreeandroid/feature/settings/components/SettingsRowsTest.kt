@@ -84,6 +84,7 @@ class SettingsRowsTest {
         }
 
         composeRule.onNodeWithTag("section.download").assertIsDisplayed()
+        composeRule.onNodeWithText("下载").assertIsDisplayed()
         composeRule.onNodeWithText("默认下载音质").assertIsDisplayed()
         composeRule.onNodeWithText("不存在").assertDoesNotExist()
     }
