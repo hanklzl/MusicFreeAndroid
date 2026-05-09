@@ -48,6 +48,7 @@ class LocalMusicViewModelTest {
         whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
             .thenReturn(MutableStateFlow(emptyList()))
         whenever(appPreferences.defaultDownloadQuality).thenReturn(flowOf(PlayQuality.STANDARD))
+        whenever(appPreferences.storageDirectoryUri).thenReturn(flowOf(null))
         whenever(downloader.tasks).thenReturn(MutableStateFlow(emptyList()))
         whenever(downloader.downloadedKeys).thenReturn(MutableStateFlow(emptySet()))
     }
@@ -84,6 +85,38 @@ class LocalMusicViewModelTest {
 
         verify(scanner).scan(treeUri)
         verify(musicRepository).insertAll(items)
+    }
+
+    @Test
+    fun `scanLocalMusic without uri reuses configured storage directory`() = runTest(testDispatcher) {
+        val treeUri = "content://com.android.externalstorage.documents/tree/primary%3AMusicFree"
+        val items = listOf(track("1"))
+        whenever(appPreferences.storageDirectoryUri).thenReturn(flowOf(treeUri))
+        whenever(scanner.scan(treeUri)).thenReturn(flowOf(items))
+
+        val viewModel = createViewModel()
+        viewModel.scanLocalMusic()
+        advanceUntilIdle()
+
+        verify(scanner).scan(treeUri)
+        verify(musicRepository).insertAll(items)
+    }
+
+    @Test
+    fun `persistStorageDirectoryAndScan surfaces preference persistence failure`() = runTest(testDispatcher) {
+        val treeUri = "content://com.android.externalstorage.documents/tree/primary%3ABlocked"
+        whenever(appPreferences.setStorageDirectoryUri(treeUri))
+            .thenThrow(IllegalStateException("无法保存目录"))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.persistStorageDirectoryAndScan(treeUri)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is LocalMusicUiState.Error)
+        assertEquals("无法保存目录", (state as LocalMusicUiState.Error).message)
     }
 
     @Test

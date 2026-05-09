@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -61,26 +62,40 @@ class LocalMusicViewModel @Inject constructor(
     fun scanLocalMusic(storageDirectoryUri: String? = null) {
         _uiState.value = LocalMusicUiState.Loading
         viewModelScope.launch {
-            val emissionCountBeforeScan = repositoryEmissionCount
             try {
-                scanner.scan(storageDirectoryUri)
-                    .collect { items ->
-                        musicRepository.insertAll(items)
-                    }
-                if (_uiState.value == LocalMusicUiState.Loading &&
-                    repositoryEmissionCount == emissionCountBeforeScan
-                ) {
-                    _uiState.value = LocalMusicUiState.Success(latestRepositoryItems)
-                }
+                scanAndPersist(storageDirectoryUri ?: appPreferences.storageDirectoryUri.first())
             } catch (e: Exception) {
                 _uiState.value = LocalMusicUiState.Error(e.message ?: "扫描失败")
             }
         }
     }
 
-    fun setStorageDirectoryUri(uri: String) {
+    fun persistStorageDirectoryAndScan(uri: String) {
+        _uiState.value = LocalMusicUiState.Loading
         viewModelScope.launch {
-            appPreferences.setStorageDirectoryUri(uri)
+            try {
+                appPreferences.setStorageDirectoryUri(uri)
+                scanAndPersist(uri)
+            } catch (e: Exception) {
+                _uiState.value = LocalMusicUiState.Error(e.message ?: "保存目录失败")
+            }
+        }
+    }
+
+    fun showError(message: String) {
+        _uiState.value = LocalMusicUiState.Error(message)
+    }
+
+    private suspend fun scanAndPersist(storageDirectoryUri: String?) {
+        val emissionCountBeforeScan = repositoryEmissionCount
+        scanner.scan(storageDirectoryUri)
+            .collect { items ->
+                musicRepository.insertAll(items)
+            }
+        if (_uiState.value == LocalMusicUiState.Loading &&
+            repositoryEmissionCount == emissionCountBeforeScan
+        ) {
+            _uiState.value = LocalMusicUiState.Success(latestRepositoryItems)
         }
     }
 

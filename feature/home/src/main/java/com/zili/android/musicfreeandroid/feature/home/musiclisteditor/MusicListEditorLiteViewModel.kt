@@ -7,8 +7,10 @@ import androidx.navigation.toRoute
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.navigation.MusicListEditorLiteRoute
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
+import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,13 +27,16 @@ import javax.inject.Inject
 class MusicListEditorLiteViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val playlistRepository: PlaylistRepository,
+    private val musicRepository: MusicRepository,
     private val playerController: PlayerController,
     private val downloader: Downloader,
     private val appPreferences: AppPreferences,
 ) : ViewModel() {
-    private val playlistId: String =
-        savedStateHandle.get<String>("playlistId")
-            ?: savedStateHandle.toRoute<MusicListEditorLiteRoute>().playlistId
+    private val route: MusicListEditorLiteRoute = savedStateHandle.toMusicListEditorLiteRoute()
+    private val sourceId: String = route.sourceId
+    private val isLocalLibrary: Boolean =
+        route.sourceType == MusicListEditorLiteRoute.SOURCE_TYPE_LOCAL_LIBRARY
+    private val playlistId: String = sourceId
 
     private val playlistName = MutableStateFlow("")
     private val editableItems = MutableStateFlow<List<MusicItem>>(emptyList())
@@ -53,7 +58,11 @@ class MusicListEditorLiteViewModel @Inject constructor(
             selectedItemKeys = selectedKeys,
             selectedCount = items.count { itemKey(it) in selectedKeys },
             hasPendingChanges = pendingChanges,
-            availableTargetPlaylists = playlists.filterNot { it.id == playlistId },
+            availableTargetPlaylists = if (isLocalLibrary) {
+                playlists
+            } else {
+                playlists.filterNot { it.id == playlistId }
+            },
         )
     }.stateIn(
         scope = viewModelScope,
@@ -63,10 +72,19 @@ class MusicListEditorLiteViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            playlistName.value = playlistRepository.getPlaylistById(playlistId)?.name.orEmpty()
+            playlistName.value = if (isLocalLibrary) {
+                "本地音乐"
+            } else {
+                playlistRepository.getPlaylistById(playlistId)?.name.orEmpty()
+            }
         }
         viewModelScope.launch {
-            playlistRepository.observeMusicInPlaylist(playlistId).collect { items ->
+            val sourceItems = if (isLocalLibrary) {
+                musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)
+            } else {
+                playlistRepository.observeMusicInPlaylist(playlistId)
+            }
+            sourceItems.collect { items ->
                 val stagedRemovedKeys = if (hasPendingChanges.value) {
                     stagedRemovedKeys()
                 } else {
@@ -120,7 +138,11 @@ class MusicListEditorLiteViewModel @Inject constructor(
 
         viewModelScope.launch {
             removedItems.forEach { item ->
-                playlistRepository.removeMusicFromPlaylist(playlistId, item)
+                if (isLocalLibrary) {
+                    musicRepository.delete(item)
+                } else {
+                    playlistRepository.removeMusicFromPlaylist(playlistId, item)
+                }
             }
             baselineItems = currentItems
             hasPendingChanges.value = false
@@ -168,4 +190,22 @@ class MusicListEditorLiteViewModel @Inject constructor(
     }
 
     private fun itemKey(item: MusicItem): String = "${item.platform}:${item.id}"
+}
+
+private fun SavedStateHandle.toMusicListEditorLiteRoute(): MusicListEditorLiteRoute {
+    val sourceType = get<String>("sourceType")
+    val sourceId = get<String>("sourceId")
+    if (sourceType != null && sourceId != null) {
+        return MusicListEditorLiteRoute(
+            sourceId = sourceId,
+            sourceType = sourceType,
+        )
+    }
+
+    val playlistId = get<String>("playlistId")
+    if (playlistId != null) {
+        return MusicListEditorLiteRoute(playlistId)
+    }
+
+    return toRoute()
 }

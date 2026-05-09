@@ -104,8 +104,9 @@ fun LocalScreen(
                     )
                 }.onSuccess {
                     val treeUri = uri.toString()
-                    viewModel.setStorageDirectoryUri(treeUri)
-                    viewModel.scanLocalMusic(treeUri)
+                    viewModel.persistStorageDirectoryAndScan(treeUri)
+                }.onFailure { e ->
+                    viewModel.showError(e.message ?: "保存目录权限失败")
                 }
             } else {
                 hasAudioPermission = false

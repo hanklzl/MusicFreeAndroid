@@ -4,9 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.core.navigation.MusicListEditorLiteRoute
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
+import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,6 +37,7 @@ class MusicListEditorLiteViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val playlistRepository: PlaylistRepository = mock()
+    private val musicRepository: MusicRepository = mock()
     private val playerController: PlayerController = mock()
     private val downloader: Downloader = mock()
     private val appPreferences: AppPreferences = mock()
@@ -42,6 +46,9 @@ class MusicListEditorLiteViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         whenever(appPreferences.defaultDownloadQuality).thenReturn(flowOf(PlayQuality.HIGH))
+        whenever(playlistRepository.observeAllPlaylists()).thenReturn(MutableStateFlow(emptyList()))
+        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+            .thenReturn(MutableStateFlow(emptyList()))
     }
 
     @After
@@ -276,12 +283,74 @@ class MusicListEditorLiteViewModelTest {
         verify(downloader).enqueue(listOf(items[0], items[2]), PlayQuality.HIGH)
     }
 
-    private fun createViewModel(): MusicListEditorLiteViewModel = MusicListEditorLiteViewModel(
-        savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
+    @Test
+    fun `local library route loads persisted local music with local title`() = runTest {
+        val items = listOf(
+            track(id = "1", platform = LocalMusicScanner.PLATFORM_LOCAL),
+            track(id = "2", platform = LocalMusicScanner.PLATFORM_LOCAL),
+        )
+        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+            .thenReturn(MutableStateFlow(items))
+        whenever(playlistRepository.observeAllPlaylists()).thenReturn(
+            MutableStateFlow(
+                listOf(Playlist(id = "playlist-2", name = "Road Trip", coverUri = null))
+            )
+        )
+
+        val viewModel = createLocalLibraryViewModel()
+        advanceUntilIdle()
+
+        assertEquals("本地音乐", viewModel.uiState.value.playlistName)
+        assertEquals(items, viewModel.uiState.value.items)
+        assertEquals(
+            listOf("playlist-2"),
+            viewModel.uiState.value.availableTargetPlaylists.map { it.id },
+        )
+        verify(musicRepository).observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)
+        verify(playlistRepository, never()).observeMusicInPlaylist("local")
+    }
+
+    @Test
+    fun `local library save deletes removed items from music repository`() = runTest {
+        val items = listOf(
+            track(id = "1", platform = LocalMusicScanner.PLATFORM_LOCAL),
+            track(id = "2", platform = LocalMusicScanner.PLATFORM_LOCAL),
+        )
+        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+            .thenReturn(MutableStateFlow(items))
+
+        val viewModel = createLocalLibraryViewModel()
+        advanceUntilIdle()
+
+        viewModel.toggleSelection(items[0])
+        viewModel.removeSelectedFromPlaylist()
+        viewModel.saveChanges()
+        advanceUntilIdle()
+
+        verify(musicRepository).delete(items[0])
+        verify(playlistRepository, never()).removeMusicFromPlaylist("local", items[0])
+        assertEquals(listOf(items[1]), viewModel.uiState.value.items)
+        assertFalse(viewModel.uiState.value.hasPendingChanges)
+    }
+
+    private fun createViewModel(
+        savedStateHandle: SavedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
+    ): MusicListEditorLiteViewModel = MusicListEditorLiteViewModel(
+        savedStateHandle = savedStateHandle,
         playlistRepository = playlistRepository,
+        musicRepository = musicRepository,
         playerController = playerController,
         downloader = downloader,
         appPreferences = appPreferences,
+    )
+
+    private fun createLocalLibraryViewModel(): MusicListEditorLiteViewModel = createViewModel(
+        SavedStateHandle(
+            mapOf(
+                "sourceType" to MusicListEditorLiteRoute.SOURCE_TYPE_LOCAL_LIBRARY,
+                "sourceId" to MusicListEditorLiteRoute.LOCAL_LIBRARY_SOURCE_ID,
+            )
+        )
     )
 
     private fun track(
