@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.settings.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
 import com.zili.android.musicfreeandroid.feature.settings.SettingsScreen
 
@@ -12,8 +13,10 @@ fun NavGraphBuilder.settingsScreen(
     onNavigateToLocalFileSelector: () -> Unit = onNavigateToFileSelector,
     onNavigateToPluginList: () -> Unit,
 ) {
-    composable<SettingsRoute> {
+    composable<SettingsRoute> { backStackEntry ->
+        val route = backStackEntry.toRoute<SettingsRoute>()
         SettingsScreen(
+            type = route.type,
             onBack = onBack,
             onNavigateToPermissions = onNavigateToPermissions,
             onNavigateToFileSelector = onNavigateToFileSelector,
