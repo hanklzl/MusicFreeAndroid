@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.plugin.manager
 import android.content.Context
 import android.util.Log
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.plugin.api.PluginUserVariable
 import com.zili.android.musicfreeandroid.plugin.engine.AxiosShim
 import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
 import com.zili.android.musicfreeandroid.plugin.engine.RequireShim
@@ -23,6 +24,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -333,6 +335,11 @@ class PluginManager @Inject constructor(
 
     suspend fun setPluginOrder(order: List<String>) {
         pluginMetaStore.setPluginOrder(order)
+    }
+
+    suspend fun setUserVariables(platform: String, variables: Map<String, String>) {
+        pluginMetaStore.setUserVariables(platform, variables)
+        _plugins.value.firstOrNull { it.info.platform == platform }?.updateUserVariables(variables)
     }
 
     suspend fun uninstallAllPlugins() {
@@ -881,6 +888,11 @@ class PluginManager @Inject constructor(
             }.toSet()
         }
 
+        suspend fun userVariables(): List<PluginUserVariable> {
+            val raw = engine.evaluate<Any?>("JSON.stringify(__plugin.userVariables)")?.toString()
+            return parsePluginUserVariables(raw)
+        }
+
         val platform = prop("platform")
             ?: throw IllegalStateException("Plugin missing required 'platform' property")
 
@@ -925,9 +937,31 @@ class PluginManager @Inject constructor(
             cacheControl = prop("cacheControl"),
             hints = hintsJson,
             supportedMethods = supportedMethods(),
+            userVariables = userVariables(),
         )
     }
 }
 
 private fun PluginInfo.supportsSearchType(type: String): Boolean =
     type in supportedSearchType || !supportedSearchTypeDeclared
+
+internal fun parsePluginUserVariables(raw: String?): List<PluginUserVariable> {
+    if (raw == null || raw == "undefined" || raw == "null" || !raw.startsWith("[")) {
+        return emptyList()
+    }
+    val array = JSONArray(raw)
+    return buildList {
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val key = item.optString("key").trim()
+            if (key.isBlank()) continue
+            add(
+                PluginUserVariable(
+                    key = key,
+                    name = item.optString("name").trim().takeIf { it.isNotBlank() },
+                    hint = item.optString("hint").trim().takeIf { it.isNotBlank() },
+                ),
+            )
+        }
+    }
+}
