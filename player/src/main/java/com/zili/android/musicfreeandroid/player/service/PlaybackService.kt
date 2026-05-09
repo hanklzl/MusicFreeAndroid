@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -14,8 +15,14 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.zili.android.musicfreeandroid.core.R as CoreR
 import com.zili.android.musicfreeandroid.player.R
+import com.zili.android.musicfreeandroid.player.source.HeaderInjectingDataSourceFactory
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class PlaybackService : MediaSessionService() {
+
+    @Inject lateinit var headerInjectingFactory: HeaderInjectingDataSourceFactory
 
     private var mediaSession: MediaSession? = null
 
@@ -79,6 +86,9 @@ class PlaybackService : MediaSessionService() {
                 /* handleAudioFocus = */ true,
             )
             .setHandleAudioBecomingNoisy(true)
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(this).setDataSourceFactory(headerInjectingFactory)
+            )
             .build()
 
         mediaSession = MediaSession.Builder(this, player)
