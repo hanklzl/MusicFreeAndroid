@@ -133,17 +133,20 @@ class PlayerController @Inject constructor(
             playQueue.skipTo(playQueue.size - 1)
         }
         setMediaItemAndPlay(item)
+        emitQueueState()
     }
 
     fun playQueue(items: List<MusicItem>, startIndex: Int = 0) {
         playQueue.setQueue(items, startIndex)
         if (shuffleEnabled) playQueue.shuffle()
         playQueue.currentItem?.let { setMediaItemAndPlay(it) }
+        emitQueueState()
     }
 
     fun skipToNext() {
         val next = playQueue.next(repeatMode) ?: return
         setMediaItemAndPlay(next)
+        emitQueueState()
     }
 
     fun skipToPrevious() {
@@ -159,6 +162,7 @@ class PlayerController @Inject constructor(
             controller.setMediaItem(mediaItem)
             controller.prepare()
             controller.play()
+            emitQueueState()
         }
     }
 
@@ -173,6 +177,7 @@ class PlayerController @Inject constructor(
     fun skipTo(index: Int) {
         val item = playQueue.skipTo(index) ?: return
         setMediaItemAndPlay(item)
+        emitQueueState()
     }
 
     fun setRepeatMode(mode: RepeatMode) {
@@ -202,15 +207,18 @@ class PlayerController @Inject constructor(
         }
         runOnControllerThread {
             emitState()
+            emitQueueState()
         }
     }
 
     fun addToQueue(item: MusicItem) {
         playQueue.add(item)
+        emitQueueState()
     }
 
     fun addNextInQueue(item: MusicItem) {
         playQueue.addNext(item)
+        emitQueueState()
     }
 
     fun clearHistory() {
@@ -227,6 +235,7 @@ class PlayerController @Inject constructor(
             repeatMode = RepeatMode.OFF
             shuffleEnabled = false
             _playerState.value = PlayerState.EMPTY
+            emitQueueState()
         }
     }
 
@@ -243,12 +252,14 @@ class PlayerController @Inject constructor(
         }
         runOnControllerThread {
             emitState()
+            emitQueueState()
         }
         return newCurrent
     }
 
     fun moveInQueue(fromIndex: Int, toIndex: Int) {
         playQueue.move(fromIndex, toIndex)
+        emitQueueState()
     }
 
     fun release() {
@@ -382,6 +393,7 @@ class PlayerController @Inject constructor(
                 val next = playQueue.next(repeatMode)
                 if (next != null) {
                     setMediaItemAndPlay(next)
+                    emitQueueState()
                 }
             }
         }
