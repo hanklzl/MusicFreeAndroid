@@ -69,19 +69,32 @@ fun LocalScreen(
             viewModel.scanLocalMusic()
         }
     }
+
+    fun withAudioPermission(onGranted: () -> Unit) {
+        if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+            hasAudioPermission = true
+            onGranted()
+        } else {
+            hasAudioPermission = false
+            permissionLauncher.launch(permission)
+        }
+    }
+
     val openDocumentTreeLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
         if (uri != null) {
-            runCatching {
-                DocumentTreeStorageAccess.persistReadWritePermission(
-                    contentResolver = context.contentResolver,
-                    treeUri = uri,
-                )
-            }.onSuccess {
-                val treeUri = uri.toString()
-                viewModel.setStorageDirectoryUri(treeUri)
-                viewModel.scanLocalMusic(treeUri)
+            withAudioPermission {
+                runCatching {
+                    DocumentTreeStorageAccess.persistReadWritePermission(
+                        contentResolver = context.contentResolver,
+                        treeUri = uri,
+                    )
+                }.onSuccess {
+                    val treeUri = uri.toString()
+                    viewModel.setStorageDirectoryUri(treeUri)
+                    viewModel.scanLocalMusic(treeUri)
+                }
             }
         }
     }
@@ -150,7 +163,9 @@ fun LocalScreen(
                     text = { Text("扫描本地音乐") },
                     onClick = {
                         menuExpanded = false
-                        openDocumentTreeLauncher.launch(null)
+                        withAudioPermission {
+                            openDocumentTreeLauncher.launch(null)
+                        }
                     },
                 )
                 DropdownMenuItem(
