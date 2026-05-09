@@ -339,7 +339,15 @@ class PluginManager @Inject constructor(
 
     suspend fun setUserVariables(platform: String, variables: Map<String, String>) {
         pluginMetaStore.setUserVariables(platform, variables)
-        _plugins.value.firstOrNull { it.info.platform == platform }?.updateUserVariables(variables)
+        mutex.withLock {
+            _plugins.value.firstOrNull { it.info.platform == platform }
+                ?.let { plugin ->
+                    runCatching { plugin.updateUserVariables(variables) }
+                        .onFailure {
+                            Log.w(TAG, "Failed to refresh user variables for $platform", it)
+                        }
+                }
+        }
     }
 
     suspend fun uninstallAllPlugins() {
@@ -889,7 +897,11 @@ class PluginManager @Inject constructor(
         }
 
         suspend fun userVariables(): List<PluginUserVariable> {
-            val raw = engine.evaluate<Any?>("JSON.stringify(__plugin.userVariables)")?.toString()
+            val raw = runCatching {
+                engine.evaluate<Any?>("JSON.stringify(__plugin.userVariables)")?.toString()
+            }.onFailure {
+                Log.w(TAG, "Failed to stringify userVariables, ignoring", it)
+            }.getOrNull()
             return parsePluginUserVariables(raw)
         }
 
@@ -949,19 +961,23 @@ internal fun parsePluginUserVariables(raw: String?): List<PluginUserVariable> {
     if (raw == null || raw == "undefined" || raw == "null" || !raw.startsWith("[")) {
         return emptyList()
     }
-    val array = JSONArray(raw)
-    return buildList {
-        for (index in 0 until array.length()) {
-            val item = array.optJSONObject(index) ?: continue
-            val key = item.optString("key").trim()
-            if (key.isBlank()) continue
-            add(
-                PluginUserVariable(
-                    key = key,
-                    name = item.optString("name").trim().takeIf { it.isNotBlank() },
-                    hint = item.optString("hint").trim().takeIf { it.isNotBlank() },
-                ),
-            )
+    return runCatching {
+        val array = JSONArray(raw)
+        buildList {
+            for (index in 0 until array.length()) {
+                val item = array.optJSONObject(index) ?: continue
+                val key = item.optString("key").trim()
+                if (key.isBlank()) continue
+                add(
+                    PluginUserVariable(
+                        key = key,
+                        name = item.optString("name").trim().takeIf { it.isNotBlank() },
+                        hint = item.optString("hint").trim().takeIf { it.isNotBlank() },
+                    ),
+                )
+            }
         }
-    }
+    }.onFailure {
+        Log.w("PluginManager", "Failed to parse userVariables, ignoring", it)
+    }.getOrDefault(emptyList())
 }

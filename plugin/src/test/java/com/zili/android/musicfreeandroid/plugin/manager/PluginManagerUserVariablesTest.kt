@@ -42,6 +42,11 @@ class PluginManagerUserVariablesTest {
     }
 
     @Test
+    fun `malformed user variable declarations are ignored`() = runTest {
+        assertEquals(emptyList<Any>(), parsePluginUserVariables("[not-json"))
+    }
+
+    @Test
     fun `setUserVariables persists and refreshes loaded runtime`() = runTest {
         val metaStore = mock<PluginMetaStore>()
         whenever(metaStore.disabledPlugins).thenReturn(flowOf(emptySet()))
