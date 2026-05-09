@@ -18,8 +18,14 @@ data class CachedSource(
 @Singleton
 class MediaCacheRepository @Inject constructor(
     private val dao: MediaCacheDao,
-    private val now: () -> Long = System::currentTimeMillis,
 ) {
+    // Secondary constructor for tests to inject a fake clock
+    internal constructor(dao: MediaCacheDao, now: () -> Long) : this(dao) {
+        this.nowFn = now
+    }
+
+    private var nowFn: () -> Long = System::currentTimeMillis
+    private fun now() = nowFn()
     suspend fun get(item: MusicItem, quality: PlayQuality): CachedSource? {
         val row = dao.get(item.platform, item.id) ?: return null
         return runCatching {
