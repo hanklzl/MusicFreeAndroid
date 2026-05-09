@@ -105,6 +105,8 @@ data class PlaylistDetailRoute(val playlistId: String)
 
 @Serializable
 data class MusicListEditorLiteRoute(
+    @OptIn(ExperimentalSerializationApi::class)
+    @JsonNames("playlistId")
     val sourceId: String,
     val sourceType: String = SOURCE_TYPE_PLAYLIST,
 ) {
