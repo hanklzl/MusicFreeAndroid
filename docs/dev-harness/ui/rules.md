@@ -62,7 +62,6 @@ TopAppBar(
 - `HomeRoute` / `HomeScreen`：首页使用自定义 `HomeNavBar`，状态栏区域保持首页背景，不依赖 `MainActivity` 顶部 safe inset。
 - `SearchRoute` / `SearchScreen`：搜索页使用自定义搜索栏，`appBar` 色延伸到状态栏后方。
 - `PlayerRoute` / `PlayerScreen`：播放器是全屏沉浸式页面，顶部内容可以绘制到系统栏区域。
-- `LocalRoute` / `LocalScreen`：当前 Android 实现没有普通 AppBar，必须显式添加顶部 status bar spacer，避免内容进入状态栏。
 
 新增特殊 Chrome 页面时，必须在本节登记 route、Screen、原因和状态栏策略。
 
