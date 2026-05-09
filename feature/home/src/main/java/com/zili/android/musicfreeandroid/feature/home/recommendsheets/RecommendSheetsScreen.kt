@@ -1,23 +1,22 @@
 package com.zili.android.musicfreeandroid.feature.home.recommendsheets
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as lazyGridItems
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,9 +36,10 @@ import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityTabs
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecommendSheetsScreen(
     onBack: () -> Unit,
@@ -67,29 +67,11 @@ fun RecommendSheetsScreen(
             if (plugins.isEmpty()) {
                 EmptyState("暂无已安装插件，请先在设置中安装插件")
             } else {
-                SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                ) {
-                    plugins.forEachIndexed { index, plugin ->
-                        SegmentedButton(
-                            selected = selectedPlugin == plugin.platform,
-                            onClick = { viewModel.selectPlugin(plugin.platform) },
-                            shape = SegmentedButtonDefaults.itemShape(
-                                index = index,
-                                count = plugins.size,
-                            ),
-                        ) {
-                            Text(
-                                text = plugin.platform,
-                                fontSize = FontSizes.subTitle,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
+                PluginCapabilityTabs(
+                    plugins = plugins,
+                    selectedPlatform = selectedPlugin,
+                    onSelectPlugin = viewModel::selectPlugin,
+                )
 
                 if (uiState.tags.isNotEmpty()) {
                     LazyRow(
@@ -138,59 +120,40 @@ fun RecommendSheetsScreen(
                         }
                     }
 
+                    uiState.sheets.isEmpty() && !uiState.emptyMessage.isNullOrBlank() -> {
+                        EmptyState(uiState.emptyMessage ?: "当前没有支持推荐歌单的插件")
+                    }
+
                     else -> {
-                        LazyColumn(
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
                             modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.spacedBy(rpx(16)),
+                            verticalArrangement = Arrangement.spacedBy(rpx(18)),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                horizontal = rpx(24),
+                                vertical = rpx(18),
+                            ),
                         ) {
-                            items(
+                            lazyGridItems(
                                 items = uiState.sheets,
                                 key = { item -> "${item.platform}:${item.id}" },
                             ) { item ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            val platform = selectedPlugin
-                                            if (!platform.isNullOrBlank()) {
-                                                onOpenSheetDetail(platform, item)
-                                            }
+                                RecommendSheetGridItem(
+                                    item = item,
+                                    onClick = {
+                                        val platform = selectedPlugin
+                                        if (!platform.isNullOrBlank()) {
+                                            onOpenSheetDetail(platform, item)
                                         }
-                                        .padding(horizontal = rpx(24), vertical = rpx(14)),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    CoverImage(
-                                        uri = item.coverImg ?: item.artwork,
-                                        size = rpx(96),
-                                        cornerRadius = rpx(10),
-                                    )
-                                    Column(
-                                        modifier = Modifier
-                                            .padding(start = rpx(18))
-                                            .weight(1f),
-                                    ) {
-                                        Text(
-                                            text = item.title ?: "未命名歌单",
-                                            color = MusicFreeTheme.colors.text,
-                                            fontSize = FontSizes.content,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                        val artist = item.artist
-                                        if (!artist.isNullOrBlank()) {
-                                            Text(
-                                                text = artist,
-                                                color = MusicFreeTheme.colors.textSecondary,
-                                                fontSize = FontSizes.description,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        }
-                                    }
-                                }
+                                    },
+                                )
                             }
 
                             if (!uiState.isEnd) {
-                                item {
+                                item(
+                                    span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) },
+                                ) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -212,6 +175,36 @@ fun RecommendSheetsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RecommendSheetGridItem(
+    item: MusicSheetItemBase,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.clickable(onClick = onClick),
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f),
+        ) {
+            CoverImage(
+                uri = item.artwork ?: item.coverImg,
+                size = maxWidth,
+                cornerRadius = rpx(12),
+            )
+        }
+        Text(
+            text = item.title ?: "未命名歌单",
+            color = MusicFreeTheme.colors.text,
+            fontSize = FontSizes.subTitle,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = rpx(12)),
+        )
     }
 }
 
