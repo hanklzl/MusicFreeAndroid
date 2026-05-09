@@ -161,26 +161,15 @@ fun PlayerScreen(
 
             when (contentPage) {
                 PlayerContentPage.Cover -> {
-                    Spacer(Modifier.weight(1f))
-
-                    PlayerCoverArt(
+                    PlayerCoverPageContent(
                         artworkUrl = artworkUrl,
-                        modifier = Modifier
-                            .size(rpx(500))
-                            .clickable { contentPage = PlayerContentPage.Lyrics },
-                    )
-
-                    Spacer(Modifier.weight(1f))
-
-                    PlayerOperationsBar(
                         isFav = isFav,
                         hasCurrentItem = currentItem != null,
                         onToggleFav = { viewModel.toggleCurrentFavorite() },
                         onAddToPlaylist = { viewModel.showAddToPlaylistSheet() },
                         onToggleLyrics = { contentPage = PlayerContentPage.Lyrics },
+                        modifier = Modifier.weight(1f),
                     )
-
-                    Spacer(Modifier.weight(1f))
                 }
 
                 PlayerContentPage.Lyrics -> {
@@ -220,7 +209,9 @@ fun PlayerScreen(
                 position = state.position,
                 duration = state.duration,
                 onSeek = { viewModel.seekTo(it) },
-                modifier = Modifier.padding(horizontal = rpx(48)),
+                modifier = Modifier
+                    .padding(horizontal = rpx(48))
+                    .testTag(PlayerSeekBarTestTag),
             )
 
             PlayerControls(
@@ -421,6 +412,52 @@ private fun PlayerNavBar(
 }
 
 @Composable
+internal fun PlayerCoverPageContent(
+    artworkUrl: String?,
+    isFav: Boolean,
+    hasCurrentItem: Boolean,
+    onToggleFav: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onToggleLyrics: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            PlayerCoverArt(
+                artworkUrl = artworkUrl,
+                modifier = Modifier
+                    .size(rpx(500))
+                    .clickable { onToggleLyrics() },
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(PlayerCoverBottomClusterTestTag),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            PlayerOperationsBar(
+                isFav = isFav,
+                hasCurrentItem = hasCurrentItem,
+                onToggleFav = onToggleFav,
+                onAddToPlaylist = onAddToPlaylist,
+                onToggleLyrics = onToggleLyrics,
+            )
+            Spacer(Modifier.height(rpx(24)))
+        }
+    }
+}
+
+@Composable
 private fun PlayerCoverArt(
     artworkUrl: String?,
     modifier: Modifier = Modifier,
@@ -451,7 +488,7 @@ private fun PlayerCoverArt(
 }
 
 @Composable
-private fun PlayerOperationsBar(
+internal fun PlayerOperationsBar(
     isFav: Boolean,
     hasCurrentItem: Boolean,
     onToggleFav: () -> Unit,
@@ -463,7 +500,8 @@ private fun PlayerOperationsBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(rpx(80))
-            .padding(horizontal = rpx(48)),
+            .padding(horizontal = rpx(48))
+            .testTag(PlayerOperationsBarTestTag),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -535,7 +573,7 @@ private fun PlayerOperationsBar(
 }
 
 @Composable
-private fun PlayerSeekBar(
+internal fun PlayerSeekBar(
     position: Long,
     duration: Long,
     onSeek: (Long) -> Unit,
