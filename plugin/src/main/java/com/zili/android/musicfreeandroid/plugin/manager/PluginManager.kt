@@ -142,6 +142,142 @@ class PluginManager @Inject constructor(
     }
 
     /**
+     * Install from a network URL and return structured operation feedback.
+     *
+     * A `.json` URL is treated as a MusicFree subscription payload and each
+     * `plugins[].url` entry is installed. Other URLs are treated as plugin JS.
+     */
+    suspend fun installFromNetworkUrl(url: String): PluginOperationResult = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            val startedAt = System.currentTimeMillis()
+            val trimmed = url.trim()
+            if (trimmed.isBlank()) {
+                return@withContext PluginOperationResult(
+                    operationType = PluginOperationType.ADD,
+                    targetPlugins = emptyList(),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            sourceRef = url,
+                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                            message = "URL 不能为空",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = startedAt,
+                )
+            }
+
+            val normalizedPath = trimmed.substringBefore("#").substringBefore("?")
+            if (normalizedPath.endsWith(".json", ignoreCase = true)) {
+                val rawJson = downloadUrlBytes(trimmed)
+                    ?: return@withContext PluginOperationResult(
+                        operationType = PluginOperationType.ADD,
+                        targetPlugins = listOf(trimmed),
+                        successCount = 0,
+                        failureCount = 1,
+                        failures = listOf(
+                            PluginOperationFailure(
+                                sourceRef = trimmed,
+                                errorCode = PluginOperationErrorCode.SOURCE_UNREACHABLE,
+                                message = "订阅下载失败",
+                            ),
+                        ),
+                        startedAtEpochMs = startedAt,
+                        finishedAtEpochMs = System.currentTimeMillis(),
+                    )
+
+                val parsed = SubscriptionParser.parse(rawJson.toString(StandardCharsets.UTF_8))
+                if (parsed.isMalformed) {
+                    return@withContext PluginOperationResult(
+                        operationType = PluginOperationType.ADD,
+                        targetPlugins = listOf(trimmed),
+                        successCount = 0,
+                        failureCount = 1,
+                        failures = listOf(
+                            PluginOperationFailure(
+                                sourceRef = trimmed,
+                                errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                                message = "订阅格式无效",
+                            ),
+                        ),
+                        startedAtEpochMs = startedAt,
+                        finishedAtEpochMs = System.currentTimeMillis(),
+                    )
+                }
+
+                val targets = parsed.installableEntries.map { it.url }
+                return@withContext updateSubscriptionEntriesLocked(
+                    subscriptionUrl = trimmed,
+                    entries = parsed.installableEntries,
+                    startedAt = startedAt,
+                    targets = targets,
+                    operationType = PluginOperationType.ADD,
+                    installSourceType = PluginInstallSourceType.SUBSCRIPTION_URL,
+                )
+            }
+
+            val fileName = normalizedPath.substringAfterLast("/").ifBlank { "plugin.js" }
+            val bytes = downloadUrlBytes(trimmed)
+            if (bytes == null) {
+                return@withContext PluginOperationResult(
+                    operationType = PluginOperationType.ADD,
+                    targetPlugins = listOf(trimmed),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            sourceRef = trimmed,
+                            errorCode = PluginOperationErrorCode.SOURCE_UNREACHABLE,
+                            message = "下载失败",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = System.currentTimeMillis(),
+                )
+            }
+
+            val installed = installFromBytesLocked(
+                bytes = bytes,
+                fileName = fileName,
+                installSource = PluginInstallSource(
+                    type = PluginInstallSourceType.PLUGIN_URL,
+                    value = trimmed,
+                ),
+            )
+
+            if (installed != null) {
+                PluginOperationResult(
+                    operationType = PluginOperationType.ADD,
+                    targetPlugins = listOf(installed.info.platform),
+                    successCount = 1,
+                    failureCount = 0,
+                    failures = emptyList(),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = System.currentTimeMillis(),
+                )
+            } else {
+                PluginOperationResult(
+                    operationType = PluginOperationType.ADD,
+                    targetPlugins = listOf(trimmed),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            sourceRef = trimmed,
+                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                            message = "插件格式无效",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = System.currentTimeMillis(),
+                )
+            }
+        }
+    }
+
+    /**
      * Install plugins listed in a subscription JSON URL.
      */
     suspend fun installFromSubscriptionUrl(subscriptionUrl: String): SubscriptionInstallResult = mutex.withLock {
@@ -642,6 +778,8 @@ class PluginManager @Inject constructor(
         entries: List<SubscriptionPluginEntry>,
         startedAt: Long,
         targets: List<String>,
+        operationType: PluginOperationType = PluginOperationType.UPDATE_SUBSCRIPTION,
+        installSourceType: PluginInstallSourceType = PluginInstallSourceType.UPDATE_SUBSCRIPTION,
     ): PluginOperationResult {
         val failures = mutableListOf<PluginOperationFailure>()
         var successCount = 0
@@ -654,7 +792,7 @@ class PluginManager @Inject constructor(
                     bytes = bytes,
                     fileName = fileName,
                     installSource = PluginInstallSource(
-                        type = PluginInstallSourceType.UPDATE_SUBSCRIPTION,
+                        type = installSourceType,
                         value = subscriptionUrl,
                     ),
                 )
@@ -679,7 +817,7 @@ class PluginManager @Inject constructor(
         }
 
         return PluginOperationResult(
-            operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
+            operationType = operationType,
             targetPlugins = targets,
             successCount = successCount,
             failureCount = failures.size,

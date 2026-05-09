@@ -23,6 +23,7 @@ class PluginListViewModelTest {
         val metaStore = mock<PluginMetaStore> {
             on { disabledPlugins } doReturn MutableStateFlow(emptySet())
             on { pluginOrder } doReturn MutableStateFlow(emptyList())
+            on { alternativePlugins } doReturn MutableStateFlow(emptyMap())
             on { subscriptions } doReturn MutableStateFlow(emptyList())
         }
         val pluginManager = mock<PluginManager> {
@@ -35,7 +36,7 @@ class PluginListViewModelTest {
     @Test
     fun `install state starts as Idle`() {
         val viewModel = createViewModel()
-        assertEquals(InstallState.Idle, viewModel.installState.value)
+        assertEquals(PluginOperationUiState.Idle, viewModel.operationState.value)
     }
 
     @Test
@@ -48,6 +49,6 @@ class PluginListViewModelTest {
     fun `reset install state sets to Idle`() = runTest {
         val viewModel = createViewModel()
         viewModel.resetInstallState()
-        assertEquals(InstallState.Idle, viewModel.installState.value)
+        assertEquals(PluginOperationUiState.Idle, viewModel.operationState.value)
     }
 }

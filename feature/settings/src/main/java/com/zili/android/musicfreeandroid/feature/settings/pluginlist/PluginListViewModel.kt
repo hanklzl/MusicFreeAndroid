@@ -4,8 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationFailure
+import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationResult
+import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationType
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +31,48 @@ sealed interface InstallState {
     data object Loading : InstallState
     data class Success(val message: String) : InstallState
     data class Error(val message: String) : InstallState
+}
+
+data class FailureDetail(
+    val source: String?,
+    val pluginName: String?,
+    val message: String,
+)
+
+sealed interface PluginOperationUiState {
+    data object Idle : PluginOperationUiState
+    data class Loading(val label: String) : PluginOperationUiState
+    data class Success(val message: String) : PluginOperationUiState
+    data class PartialFailure(
+        val message: String,
+        val failures: List<FailureDetail>,
+    ) : PluginOperationUiState
+    data class Failure(
+        val message: String,
+        val failures: List<FailureDetail> = emptyList(),
+    ) : PluginOperationUiState
+
+    companion object {
+        fun fromResult(
+            successMessage: String,
+            partialMessage: String,
+            failureMessage: String,
+            result: PluginOperationResult,
+        ): PluginOperationUiState {
+            val details = result.failures.map {
+                FailureDetail(
+                    source = it.sourceRef,
+                    pluginName = it.targetPlugin,
+                    message = it.message,
+                )
+            }
+            return when {
+                result.failureCount == 0 -> Success(successMessage)
+                result.successCount > 0 -> PartialFailure(partialMessage, details)
+                else -> Failure(failureMessage, details)
+            }
+        }
+    }
 }
 
 @HiltViewModel
@@ -53,6 +99,9 @@ class PluginListViewModel @Inject constructor(
         initialValue = emptyList(),
     )
 
+    private val _operationState = MutableStateFlow<PluginOperationUiState>(PluginOperationUiState.Idle)
+    val operationState: StateFlow<PluginOperationUiState> = _operationState.asStateFlow()
+
     private val _installState = MutableStateFlow<InstallState>(InstallState.Idle)
     val installState: StateFlow<InstallState> = _installState.asStateFlow()
 
@@ -69,79 +118,104 @@ class PluginListViewModel @Inject constructor(
     }
 
     fun installFromUrl(url: String) {
-        performOperation {
-            val trimmed = url.trim()
-            if (trimmed.isBlank()) {
-                return@performOperation InstallState.Error("URL 不能为空")
-            }
-            val plugin = pluginManager.installFromUrl(trimmed, trimmed.substringAfterLast('/'))
-            if (plugin != null) {
-                InstallState.Success("安装成功：${plugin.info.platform}")
-            } else {
-                InstallState.Error("安装失败")
-            }
+        performOperation(label = "正在安装") {
+            val result = pluginManager.installFromNetworkUrl(url)
+            PluginOperationUiState.fromResult(
+                successMessage = "安装成功",
+                partialMessage = "部分插件安装失败",
+                failureMessage = "安装失败",
+                result = result,
+            )
         }
     }
 
     fun installFromFile(path: String) {
-        performOperation {
-            val file = java.io.File(path.trim())
+        performOperation(label = "正在安装") {
+            val file = File(path.trim())
             if (!file.exists()) {
-                return@performOperation InstallState.Error("文件不存在：$path")
+                return@performOperation PluginOperationUiState.Failure(
+                    message = "文件不存在：$path",
+                    failures = listOf(
+                        FailureDetail(
+                            source = path,
+                            pluginName = null,
+                            message = "文件不存在",
+                        ),
+                    ),
+                )
             }
             val plugin = pluginManager.installFromFile(file)
             if (plugin != null) {
-                InstallState.Success("安装成功：${plugin.info.platform}")
+                PluginOperationUiState.Success("安装成功：${plugin.info.platform}")
             } else {
-                InstallState.Error("安装失败")
+                PluginOperationUiState.Failure(
+                    message = "安装失败",
+                    failures = listOf(
+                        FailureDetail(
+                            source = file.absolutePath,
+                            pluginName = null,
+                            message = "插件格式无效",
+                        ),
+                    ),
+                )
             }
         }
     }
 
     fun updatePlugin(platform: String) {
-        performOperation {
+        performOperation(label = "正在更新") {
             val result = pluginManager.updatePlugin(platform)
-            if (result.failures.isEmpty()) {
-                InstallState.Success("更新成功")
-            } else {
-                InstallState.Error("更新失败：${result.failures.first().message}")
-            }
+            PluginOperationUiState.fromResult(
+                successMessage = "更新成功",
+                partialMessage = "部分插件更新失败",
+                failureMessage = "更新失败",
+                result = result,
+            )
         }
     }
 
     fun updateAllPlugins() {
-        performOperation {
+        performOperation(label = "正在更新全部插件") {
             val result = pluginManager.updateAllPlugins()
-            if (result.failures.isEmpty()) {
-                InstallState.Success("全部更新成功")
-            } else {
-                val msg = "成功 ${result.successCount} 个，失败 ${result.failureCount} 个"
-                if (result.successCount > 0) InstallState.Success(msg) else InstallState.Error(msg)
-            }
+            PluginOperationUiState.fromResult(
+                successMessage = "全部更新成功",
+                partialMessage = "部分插件更新失败",
+                failureMessage = "全部插件更新失败",
+                result = result,
+            )
         }
     }
 
     fun updateSubscriptions() {
-        performOperation {
+        performOperation(label = "正在更新订阅") {
             val subs = metaStore.subscriptions.first()
             if (subs.isEmpty()) {
-                return@performOperation InstallState.Error("暂无订阅源")
+                return@performOperation PluginOperationUiState.Failure("暂无订阅源")
             }
             var totalSuccess = 0
-            var totalFail = 0
-            var totalEntries = 0
+            val failures = mutableListOf<PluginOperationFailure>()
+            val targetPlugins = mutableListOf<String>()
+            val startedAt = System.currentTimeMillis()
             for (sub in subs) {
-                val result = pluginManager.installFromSubscriptionUrl(sub.url)
-                totalSuccess += result.successfulInstalls
-                totalFail += result.failedInstalls
-                totalEntries += result.totalEntries
+                val result = pluginManager.updateFromSubscriptionUrl(sub.url)
+                totalSuccess += result.successCount
+                failures += result.failures
+                targetPlugins += result.targetPlugins
             }
-            if (totalFail == 0) {
-                InstallState.Success("订阅更新完成：共 $totalEntries 项，全部成功")
-            } else {
-                val msg = "订阅更新：共 $totalEntries 项，成功 $totalSuccess，失败 $totalFail"
-                if (totalSuccess > 0) InstallState.Success(msg) else InstallState.Error(msg)
-            }
+            PluginOperationUiState.fromResult(
+                successMessage = "订阅更新完成",
+                partialMessage = "部分订阅更新失败",
+                failureMessage = "订阅更新失败",
+                result = PluginOperationResult(
+                    operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
+                    targetPlugins = targetPlugins,
+                    successCount = totalSuccess,
+                    failureCount = failures.size,
+                    failures = failures,
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = System.currentTimeMillis(),
+                ),
+            )
         }
     }
 
@@ -152,25 +226,43 @@ class PluginListViewModel @Inject constructor(
     }
 
     fun uninstallAllPlugins() {
-        performOperation {
+        performOperation(label = "正在卸载") {
             pluginManager.uninstallAllPlugins()
-            InstallState.Success("已卸载全部插件")
+            PluginOperationUiState.Success("已卸载全部插件")
         }
     }
 
     fun resetInstallState() {
-        _installState.value = InstallState.Idle
+        setOperationState(PluginOperationUiState.Idle)
     }
 
-    private fun performOperation(operation: suspend () -> InstallState) {
-        if (_installState.value is InstallState.Loading) return
-        _installState.value = InstallState.Loading
+    private fun performOperation(
+        label: String,
+        operation: suspend () -> PluginOperationUiState,
+    ) {
+        if (_operationState.value is PluginOperationUiState.Loading) return
+        setOperationState(PluginOperationUiState.Loading(label))
         viewModelScope.launch {
             try {
-                _installState.value = operation()
+                setOperationState(operation())
             } catch (e: Exception) {
-                _installState.value = InstallState.Error(e.message ?: "未知错误")
+                setOperationState(PluginOperationUiState.Failure(e.message ?: "未知错误"))
             }
+        }
+    }
+
+    private fun setOperationState(state: PluginOperationUiState) {
+        _operationState.value = state
+        _installState.value = state.toInstallState()
+    }
+
+    private fun PluginOperationUiState.toInstallState(): InstallState {
+        return when (this) {
+            PluginOperationUiState.Idle -> InstallState.Idle
+            is PluginOperationUiState.Loading -> InstallState.Loading
+            is PluginOperationUiState.Success -> InstallState.Success(message)
+            is PluginOperationUiState.PartialFailure -> InstallState.Error(message)
+            is PluginOperationUiState.Failure -> InstallState.Error(message)
         }
     }
 }
