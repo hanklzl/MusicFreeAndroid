@@ -479,12 +479,7 @@ class PluginManager @Inject constructor(
         pluginMetaStore.setUserVariables(platform, variables)
         mutex.withLock {
             _plugins.value.firstOrNull { it.info.platform == platform }
-                ?.let { plugin ->
-                    runCatching { plugin.updateUserVariables(variables) }
-                        .onFailure {
-                            Log.w(TAG, "Failed to refresh user variables for $platform", it)
-                        }
-                }
+                ?.updateUserVariables(variables)
         }
     }
 

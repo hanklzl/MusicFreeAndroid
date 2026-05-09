@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -15,6 +16,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.mockito.kotlin.doThrow
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -60,6 +62,25 @@ class PluginManagerUserVariablesTest {
 
         verify(metaStore).setUserVariables("vars", mapOf("cookie" to "abc"))
         verify(plugin).updateUserVariables(mapOf("cookie" to "abc"))
+    }
+
+    @Test
+    fun `setUserVariables fails when runtime refresh fails`() = runTest {
+        val metaStore = mock<PluginMetaStore>()
+        whenever(metaStore.disabledPlugins).thenReturn(flowOf(emptySet()))
+        whenever(metaStore.pluginOrder).thenReturn(flowOf(emptyList()))
+        whenever(metaStore.getUserVariables(any())).thenReturn(flowOf(emptyMap()))
+        val manager = manager(metaStore)
+        val plugin = plugin("vars")
+        whenever(plugin.updateUserVariables(any())).doThrow(IllegalStateException("refresh failed"))
+        manager.setLoadedPluginsForTest(listOf(plugin))
+
+        try {
+            manager.setUserVariables("vars", mapOf("cookie" to "abc"))
+            fail("setUserVariables should fail when runtime refresh fails")
+        } catch (e: IllegalStateException) {
+            assertEquals("refresh failed", e.message)
+        }
     }
 
     private fun manager(metaStore: PluginMetaStore): PluginManager {
