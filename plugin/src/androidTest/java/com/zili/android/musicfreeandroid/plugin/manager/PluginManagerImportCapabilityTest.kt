@@ -13,6 +13,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class PluginManagerImportCapabilityTest {
@@ -24,7 +25,7 @@ class PluginManagerImportCapabilityTest {
     fun setUp() {
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(appContext.cacheDir, "plugin-import-capability.preferences_pb") },
+            produceFile = { File(appContext.cacheDir, "plugin-import-capability-${UUID.randomUUID()}.preferences_pb") },
         )
         pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
         clearPluginStorage()

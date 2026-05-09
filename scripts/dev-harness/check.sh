@@ -34,9 +34,8 @@ if [[ "$SKIP_CONTRACT" -eq 1 ]]; then
 fi
 
 echo "==> Contract tests (JVM)"
+# Only invoke modules that currently host harness/contracts/ tests.
+# Adding tests in other modules requires extending this list AND the CI workflow.
 ./gradlew \
-  :app:testDebugUnitTest :core:testDebugUnitTest :data:testDebugUnitTest \
-  :downloader:testDebugUnitTest :plugin:testDebugUnitTest :player:testDebugUnitTest \
-  :feature:home:testDebugUnitTest :feature:player-ui:testDebugUnitTest \
-  :feature:search:testDebugUnitTest :feature:settings:testDebugUnitTest \
+  :app:testDebugUnitTest :plugin:testDebugUnitTest :feature:player-ui:testDebugUnitTest \
   --tests '*harness.contracts.*' --no-daemon

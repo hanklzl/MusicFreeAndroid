@@ -23,7 +23,12 @@ jobs:
         run: bash scripts/dev-harness/symlinks-check.sh
       - name: Grep guards
         run: python3 scripts/dev-harness/grep-check.py
-      - name: Contract tests (JVM) — PR 1 placeholder
+      - name: Contract tests (JVM)
+        # Only invoke modules that currently host harness/contracts/ tests; gradle
+        # treats --tests with zero matches as failure, so listing modules without
+        # contract tests would fail the gate. Extend this list when contract
+        # tests land in other modules.
         run: |
-          echo "Contract-test step is staged; activates in PR 3 once contract tests land."
-          echo "See docs/superpowers/plans/2026-05-09-dev-harness-foundation.md Phase 3."
+          ./gradlew \
+            :app:testDebugUnitTest :plugin:testDebugUnitTest :feature:player-ui:testDebugUnitTest \
+            --tests '*harness.contracts.*' --no-daemon
