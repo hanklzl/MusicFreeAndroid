@@ -12,3 +12,5 @@ local.properties
 .worktrees/
 .remember
 .superpowers
+**/__pycache__/
+*.pyc
