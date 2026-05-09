@@ -7,6 +7,8 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
+import com.zili.android.musicfreeandroid.core.media.EmptyMediaSourceResolver
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.player.ext.defaultAlbumArtworkUri
@@ -19,6 +21,7 @@ import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueu
 import com.zili.android.musicfreeandroid.player.service.PlaybackService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -44,6 +47,7 @@ import kotlin.coroutines.resumeWithException
 @Singleton
 class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val mediaSourceResolver: MediaSourceResolver = EmptyMediaSourceResolver,
 ) : PlaybackNotificationQueueControls {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val connectionMutex = Mutex()
@@ -151,11 +155,7 @@ class PlayerController @Inject constructor(
                 return@withConnectedController
             }
             val prev = playQueue.previous(repeatMode) ?: return@withConnectedController
-            val mediaItem = prev.toMediaItem(defaultArtworkUri)
-            recordHistory(prev)
-            controller.setMediaItem(mediaItem)
-            controller.prepare()
-            controller.play()
+            setMediaItemAndPlay(prev)
         }
     }
 
@@ -263,17 +263,45 @@ class PlayerController @Inject constructor(
     }
 
     private fun setMediaItemAndPlay(item: MusicItem) {
-        withConnectedController { controller ->
-            try {
-                recordHistory(item)
-                val mediaItem = item.toMediaItem(defaultArtworkUri)
-                controller.setMediaItem(mediaItem)
-                controller.prepare()
-                controller.play()
-            } catch (e: RuntimeException) {
-                _errorEvents.tryEmit("播放失败: ${e.message}")
+        attachNotificationControls()
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val playable = resolvePlayableItem(item) ?: return@launch
+            if (!playQueue.isCurrentItem(item)) return@launch
+            if (playable !== item) {
+                playQueue.replaceCurrent(playable)
+            }
+            withConnectedController { controller ->
+                try {
+                    recordHistory(playable)
+                    val mediaItem = playable.toMediaItem(defaultArtworkUri)
+                    controller.setMediaItem(mediaItem)
+                    controller.prepare()
+                    controller.play()
+                } catch (e: RuntimeException) {
+                    _errorEvents.tryEmit("播放失败: ${e.message}")
+                }
             }
         }
+    }
+
+    private suspend fun resolvePlayableItem(item: MusicItem): MusicItem? {
+        if (!item.url.isNullOrBlank()) return item
+
+        val resolution = runCatching {
+            mediaSourceResolver.resolve(item)
+        }.getOrNull()
+        val playable = resolution?.item
+        return if (!playable?.url.isNullOrBlank()) {
+            playable
+        } else {
+            _errorEvents.emit("播放失败: 无法解析音源")
+            null
+        }
+    }
+
+    private fun PlayQueue.isCurrentItem(item: MusicItem): Boolean {
+        val current = currentItem ?: return false
+        return current.id == item.id && current.platform == item.platform
     }
 
     private fun withConnectedController(action: (MediaController) -> Unit) {

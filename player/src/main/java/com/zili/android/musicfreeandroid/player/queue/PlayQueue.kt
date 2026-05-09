@@ -63,6 +63,21 @@ class PlayQueue {
         }
     }
 
+    fun replaceCurrent(item: MusicItem) {
+        val index = currentIndex
+        if (index in _items.indices) {
+            val previous = _items[index]
+            _items[index] = item
+            originalOrder = originalOrder?.map { existing ->
+                if (existing.id == previous.id && existing.platform == previous.platform) {
+                    item
+                } else {
+                    existing
+                }
+            }
+        }
+    }
+
     fun next(repeatMode: RepeatMode): MusicItem? {
         if (isEmpty) return null
         val nextIndex = when (repeatMode) {
