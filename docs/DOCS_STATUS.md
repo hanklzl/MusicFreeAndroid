@@ -5,9 +5,9 @@
 > 直接执行：是
 > 当前入口：[AGENTS](../AGENTS.md)
 > 备注：执行任务前先看本文件，再进入具体文档。
-> 最后校验：2026-05-05
+> 最后校验：2026-05-09
 >
-> 最后校验日期：2026-05-05
+> 最后校验日期：2026-05-09
 > 
 > 该文档是本仓库文档治理的单一入口。执行任务前，先看这里再看具体文档。
 
@@ -30,7 +30,7 @@
 |---|---|---|---|
 | [AGENTS.md](../AGENTS.md) | 当前规范 | 是 | 仓库工作总规则 |
 | [docs/DOCS_STATUS.md](./DOCS_STATUS.md) | 当前规范 | 是 | 文档状态与治理入口 |
-| [docs/ui-harness/screen-chrome-rules.md](./ui-harness/screen-chrome-rules.md) | 当前规范（UI Harness Rules） | 是 | Screen 切换动画、普通 AppBar 与沉浸式状态栏强制规则 |
+| [docs/ui-harness/screen-chrome-rules.md](./ui-harness/screen-chrome-rules.md) | 已迁移 | 否 | 已并入 [docs/dev-harness/ui/rules.md](./dev-harness/ui/rules.md)；本路径仅保留 redirect stub |
 | [docs/superpowers/specs/2026-05-04-playlist-import-design.md](./superpowers/specs/2026-05-04-playlist-import-design.md) | 当前规范（歌单导入功能） | 是（作为实现计划输入） | 首页导入歌单入口、插件 importMusicSheet 能力识别与批量导入到用户歌单的设计 |
 | [docs/superpowers/specs/2026-05-04-playlist-feature-design.md](./superpowers/specs/2026-05-04-playlist-feature-design.md) | 当前规范（歌单功能） | 是（作为实现计划输入） | 用户歌单 CRUD + 默认 我喜欢 + 排序 + 封面 + ⭐ surface roll-out 的设计 |
 | [docs/superpowers/specs/2026-05-04-player-statusbar-inset-design.md](./superpowers/specs/2026-05-04-player-statusbar-inset-design.md) | 当前规范（播放器状态栏避让专项） | 是（作为实现计划输入） | 播放器页背景沉浸但内容层避让状态栏的设计 |
@@ -39,6 +39,13 @@
 | [docs/superpowers/specs/2026-05-09-player-detail-controls-design.md](./superpowers/specs/2026-05-09-player-detail-controls-design.md) | 当前规范（播放详情页控制区对齐） | 是（作为实现计划输入） | 播放详情页封面页功能栏贴近进度条、播放模式随机/单曲/列表三态循环与歌词页返回封面验收设计 |
 | [docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md](./superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md) | 当前规范（UI Harness 设计） | 是（作为实现计划输入） | Screen 切换动画、普通 AppBar、沉浸式状态栏和 AI Coding 规则入口设计 |
 | [docs/superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md](./superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md) | 当前规范（启动视觉专项） | 是（仅 SplashScreen 与 launcher icon 专项） | AndroidX SplashScreen 接入与 RN 启动图标资源对齐设计 |
+| [docs/dev-harness/INDEX.md](./dev-harness/INDEX.md) | 当前规范（Dev Harness 总入口） | 是 | UI / 插件 / 播放器 / 测试 四域规则、错误库、AI skills 关联入口 |
+| [docs/dev-harness/ui/rules.md](./dev-harness/ui/rules.md) | 当前规范（Dev Harness — UI） | 是 | Screen 切换动画、普通 AppBar、沉浸式状态栏、UI 设计原则 |
+| [docs/dev-harness/plugin/rules.md](./dev-harness/plugin/rules.md) | 当前规范（Dev Harness — Plugin） | 是 | QuickJS 线程模型、网络通道门控、PluginManager 编排 |
+| [docs/dev-harness/player/rules.md](./dev-harness/player/rules.md) | 当前规范（Dev Harness — Player） | 是 | PlayerController 连接、沉浸式 chrome、歌词跟随防抖 |
+| [docs/dev-harness/test/rules.md](./dev-harness/test/rules.md) | 当前规范（Dev Harness — Test） | 是 | runTest 范式、instrumentation 主线程模型、DataStore 隔离、runner 基线、JVM 内存基线 |
+| [docs/dev-harness/incidents/index.md](./dev-harness/incidents/index.md) | 当前规范（Dev Harness — Incidents 索引） | 是 | INC-YYYY-NNNN 全仓索引；guard 类型反查 |
+| [docs/superpowers/specs/2026-05-09-dev-harness-foundation-design.md](./superpowers/specs/2026-05-09-dev-harness-foundation-design.md) | 当前规范（Dev Harness 基础设施专项） | 是（作为实现计划输入） | 总入口 + 错误库 + 5 skills + 测试守门 + 3 PR 编排设计 |
 | [docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md](./superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md) | 当前规范（Android 测试稳定性专项） | 是（作为实现计划输入） | feature androidTest runner 基线、Gradle full androidTest D8 OOM、Player instrumentation setUp 死锁、`@Ignore` 反应化、Settings VM `runTest` 迁移、HomeFidelity 断言改写、`:plugin` 集成测试拆分、MockWebServer 介入与 instrumentation DataStore 隔离 |
 | [docs/superpowers/specs/2026-05-04-github-actions-debug-apk-design.md](./superpowers/specs/2026-05-04-github-actions-debug-apk-design.md) | 当前规范（CI Debug APK） | 是（仅 GitHub Actions Debug APK 打包专项） | 提交触发 Debug APK 构建、artifact 上传与 Debug 独立包名设计 |
 | [docs/superpowers/specs/2026-05-05-release-apk-signing-design.md](./superpowers/specs/2026-05-05-release-apk-signing-design.md) | 当前规范（Release APK 签名） | 是（作为实现计划输入） | 侧载 Release APK 签名、GitHub `release` Environment secrets、tag 发布与手动验包 artifact 设计 |
