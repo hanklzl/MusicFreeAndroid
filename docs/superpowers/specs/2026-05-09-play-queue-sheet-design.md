@@ -143,10 +143,12 @@ private fun emitQueueState() {
 - `Row` 高 `rpx(80)`，`paddingHorizontal = rpx(24)`，外部 margin `top = rpx(18) / bottom = rpx(12)`。
 - 左侧：weight=1
   - `Text("播放列表 ", fontSize = FontSizes.title, fontWeight = SemiBold, color = colors.text)` 后接 `Text("(${count}首)", color = colors.textSecondary, fontSize = FontSizes.title, fontWeight = SemiBold)`。两段之间没有额外 margin（RN 用 `<ThemeText>` 内嵌实现）。
-- 中：循环模式按钮（内联 `IconTextButton`：垂直 Column，icon 上、文字下，整体 `clickable`）。
-  - 三档与 RN `repeatModeConst` 一致：`OFF → 列表循环` / `ALL → 单曲循环` / `ONE → 随机播放`（实际枚举与 i18n 文案以 `core.theme` 与本仓库现有翻译为准；本次直接硬编码三段中文，与既有 PlayerControls 风格一致）。
-  - 图标沿用现有 `R.drawable.ic_repeat_song / ic_repeat_song_1 / ic_shuffle`，与 `PlayerControls` 中的映射保持一致。
-- 右：清空按钮（同样内联 `IconTextButton`，icon = `R.drawable.ic_trash`，label = "清空"）。
+- 中：循环模式按钮（内联 `IconTextButton`：垂直 Column，icon 上、文字下，整体 `clickable`）。点击调用 `viewModel.cycleRepeatMode()`，按 `OFF → ALL → ONE → OFF` 循环。三档语义化映射（与 RN 三档一一对齐之意，但忠于本仓库 `RepeatMode` 枚举语义）：
+  - `RepeatMode.OFF` → label "顺序播放"，icon `R.drawable.ic_repeat_song`（与 ALL 同图但文案区分；与现有 `PlayerControls` 保持一致）。
+  - `RepeatMode.ALL` → label "列表循环"，icon `R.drawable.ic_repeat_song`。
+  - `RepeatMode.ONE` → label "单曲循环"，icon `R.drawable.ic_repeat_song_1`。
+  - `shuffle` 状态在本面板不展示，由播放控制条专属（避免双入口冲突）。
+- 右：清空按钮（同样内联 `IconTextButton`，icon = `Icons.Outlined.DeleteOutline`（M3 矢量），label = "清空"）。
 - `IconTextButton` 内部规格：`Column(horizontalAlignment = Center) { Icon(size = rpx(36)) ; Spacer(rpx(4)) ; Text(fontSize = FontSizes.description) }`，整体 `clickable` + `padding(horizontal = rpx(8), vertical = rpx(4))`。
 
 ### List body（对应 RN `body.tsx`）
@@ -163,10 +165,10 @@ private fun emitQueueState() {
   }
   ```
 - 每行 `PlayQueueRow` 高 `rpx(108)`，`paddingHorizontal = rpx(24)`：
-  - 当 `isCurrent`：行首 `Icon(painter = R.drawable.ic_music_note, tint = colors.textHighlight)`，size `FontSizes.content`，右侧 margin `rpx(6)`。
+  - 当 `isCurrent`：行首 `Icon(imageVector = Icons.Filled.MusicNote, tint = colors.textHighlight)`（M3 矢量，与既有 `MiniPlayerContent` 用法一致），size `FontSizes.content`，右侧 margin `rpx(6)`。
   - 主文本：`Row(weight = 1f)` 内 `Text(title, fontSize = FontSizes.content, color = if (isCurrent) colors.textHighlight else colors.text, maxLines = 1, ellipsis)`，紧接 `Text(" - ${artist}", fontSize = FontSizes.description, 同色)`，artist 为空时省略。
   - 平台 tag：`PlatformTag(text = item.platform)`，直接复用 `core/.../ui/PlatformTag.kt`，无需新增依赖路径或下移。`item.platform.isNullOrBlank()` 时不渲染。
-  - 行尾：`IconButton(onClick = onRemove, modifier.size(...))` 加载 `R.drawable.ic_xmark`，左 margin `rpx(14)`。
+  - 行尾：`IconButton(onClick = onRemove)` 加载 `Icons.Default.Close`（M3 矢量，对应 RN `x-mark`），icon size `rpx(36)`，左 margin `rpx(14)`。
   - 整行 `Modifier.clickable { onPlay(index) }`。**点击行不关闭 sheet**。
 - 空态（`items.isEmpty()`）：替换 LazyColumn，渲染 `Box(fillMaxWidth().padding(vertical = rpx(120)), contentAlignment = Center) { Text("暂无歌曲", color = colors.textSecondary) }`。
 
