@@ -397,3 +397,14 @@ sealed interface PluginOperationUiState {
 - spec、plan 和后续实现均在该 worktree 中进行。
 - 文档互引必须使用相对路径，不写入绝对路径。
 - `docs/superpowers/plans/*.md` 只作为执行计划产物，不从历史计划反向推导当前规范。
+
+## 实现记忆（2026-05-09）
+
+- 已新增 `:core` 共享 `MediaSourceResolver` 合约，`:plugin` 提供插件实现并处理音源重定向、目标失效、目标失败后的源插件回退。
+- 播放器队列、通知切歌、搜索播放、插件歌单/榜单/专辑/歌手详情播放，以及下载解析均已接入共享音源解析入口，避免继续分散直调 `plugin.getMediaSource()`。
+- 插件元数据已支持音源重定向持久化、插件声明 `userVariables` 解析、用户变量运行时刷新；保存失败时不写入持久化值，避免 UI 显示已生效但插件运行时仍读旧值。
+- 插件管理页卡片已补齐 RN 对齐操作：更新、分享、单插件卸载确认、音源重定向、导入单曲、导入歌单、用户变量、说明；批量安装/更新失败通过结构化详情展示。
+- 用户变量保存 UI 使用 request-scoped `UserVariableSaveUiState`，只响应当前保存请求；失败时保留弹窗和已编辑草稿，成功后才关闭。
+- 插件卡片导入单曲/歌单解析成功后复用 `AddToPlaylistBottomSheetContent`，可选择已有歌单或新建歌单写入；新建歌单后导入失败会删除刚创建的空歌单并保留待导入项。
+- 收尾静态验证已通过：
+  `./gradlew :core:test :plugin:test :feature:settings:testDebugUnitTest :feature:search:testDebugUnitTest :feature:home:testDebugUnitTest :downloader:test :player:testDebugUnitTest :app:assembleDebug`
