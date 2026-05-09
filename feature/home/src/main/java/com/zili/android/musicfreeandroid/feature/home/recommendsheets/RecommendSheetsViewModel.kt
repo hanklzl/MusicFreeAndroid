@@ -3,7 +3,8 @@ package com.zili.android.musicfreeandroid.feature.home.recommendsheets
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiModel
+import com.zili.android.musicfreeandroid.feature.home.pluginfeature.pluginsSupporting
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,8 +25,8 @@ class RecommendSheetsViewModel @Inject constructor(
         private const val DEFAULT_TAG_ID = "__default__"
     }
 
-    val availablePlugins: StateFlow<List<PluginInfo>> = pluginManager.plugins
-        .map { list -> list.map { it.info } }
+    val availablePlugins: StateFlow<List<PluginCapabilityUiModel>> = pluginManager.getSortedEnabledPlugins()
+        .map { plugins -> plugins.pluginsSupporting("getRecommendSheetsByTag") }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _selectedPlugin = MutableStateFlow<String?>(null)
@@ -42,8 +43,19 @@ class RecommendSheetsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             availablePlugins.collect { plugins ->
-                if (_selectedPlugin.value == null && plugins.isNotEmpty()) {
-                    selectPlugin(plugins.first().platform)
+                when {
+                    plugins.isEmpty() -> {
+                        _selectedPlugin.value = null
+                        _uiState.value = RecommendSheetsUiState(
+                            loading = false,
+                            isEnd = true,
+                            emptyMessage = "当前没有支持推荐歌单的插件",
+                        )
+                    }
+                    _selectedPlugin.value == null ||
+                        plugins.none { it.platform == _selectedPlugin.value } -> {
+                        selectPlugin(plugins.first().platform)
+                    }
                 }
             }
         }
@@ -110,6 +122,7 @@ class RecommendSheetsViewModel @Inject constructor(
         if (plugin == null) {
             _uiState.value = RecommendSheetsUiState(
                 loading = false,
+                isEnd = true,
                 errorMessage = "插件不存在：$platform",
             )
             return
@@ -150,6 +163,7 @@ class RecommendSheetsViewModel @Inject constructor(
             loading = reset,
             loadingMore = !reset,
             errorMessage = null,
+            emptyMessage = null,
         )
 
         runCatching {
