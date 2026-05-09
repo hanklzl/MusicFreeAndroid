@@ -3,7 +3,9 @@ package com.zili.android.musicfreeandroid.feature.home.musiclisteditor
 import androidx.lifecycle.SavedStateHandle
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,6 +33,8 @@ class MusicListEditorLiteViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val playlistRepository: PlaylistRepository = mock()
     private val playerController: PlayerController = mock()
+    private val downloader: Downloader = mock()
+    private val appPreferences: AppPreferences = mock()
 
     @Before
     fun setup() {
@@ -66,6 +70,8 @@ class MusicListEditorLiteViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
             playlistRepository = playlistRepository,
             playerController = playerController,
+            downloader = downloader,
+            appPreferences = appPreferences,
         )
         advanceUntilIdle()
 
@@ -113,6 +119,8 @@ class MusicListEditorLiteViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
             playlistRepository = playlistRepository,
             playerController = playerController,
+            downloader = downloader,
+            appPreferences = appPreferences,
         )
         advanceUntilIdle()
 
@@ -172,6 +180,8 @@ class MusicListEditorLiteViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
             playlistRepository = playlistRepository,
             playerController = playerController,
+            downloader = downloader,
+            appPreferences = appPreferences,
         )
         advanceUntilIdle()
 
@@ -206,6 +216,8 @@ class MusicListEditorLiteViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
             playlistRepository = playlistRepository,
             playerController = playerController,
+            downloader = downloader,
+            appPreferences = appPreferences,
         )
         advanceUntilIdle()
 
@@ -242,6 +254,8 @@ class MusicListEditorLiteViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
             playlistRepository = playlistRepository,
             playerController = playerController,
+            downloader = downloader,
+            appPreferences = appPreferences,
         )
         advanceUntilIdle()
 
