@@ -71,7 +71,7 @@ fun AppNavHost(
             onNavigateToRecommendSheets = { navController.navigate(RecommendSheetsRoute) },
             onNavigateToHistory = { navController.navigate(HistoryRoute) },
             onNavigateToLocal = { navController.navigate(LocalRoute) },
-            onNavigateToSettings = { navController.navigate(SettingsRoute) },
+            onNavigateToSettings = { navController.navigate(SettingsRoute()) },
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
             onNavigateToTopList = { navController.navigate(TopListRoute) },
             onNavigateToPlaylistDetail = { playlistId ->
