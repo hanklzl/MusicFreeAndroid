@@ -234,6 +234,26 @@ class PluginListViewModelTest {
     }
 
     @Test
+    fun `hideAddToPlaylistSheet clears pending import items`() = runTest {
+        val item = musicItem("song-1")
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicItem"),
+            importMusicItemResult = item,
+        )
+        val fixture = createFixture(
+            plugins = MutableStateFlow(listOf(plugin)),
+        )
+        fixture.viewModel.importMusicItem("source", "https://example.com/song")
+        advanceUntilIdle()
+
+        fixture.viewModel.hideAddToPlaylistSheet()
+
+        assertFalse(fixture.viewModel.sheetState.value.visible)
+        assertTrue(fixture.viewModel.sheetState.value.pendingItems.isEmpty())
+    }
+
+    @Test
     fun `importMusicItem rejects blank url without calling plugin`() = runTest {
         val plugin = loadedPlugin(
             platform = "source",
@@ -256,12 +276,84 @@ class PluginListViewModelTest {
     }
 
     @Test
-    fun `importMusicItem reports failure when plugin is missing or returns null`() = runTest {
+    fun `importMusicItem failure clears previous pending import items`() = runTest {
+        val item = musicItem("song-1")
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicItem"),
+            importMusicItemResult = item,
+        )
+        val fixture = createFixture(
+            plugins = MutableStateFlow(listOf(plugin)),
+        )
+        fixture.viewModel.importMusicItem("source", "https://example.com/song")
+        advanceUntilIdle()
+
+        fixture.viewModel.importMusicItem("source", "   ")
+        advanceUntilIdle()
+
+        assertEquals(
+            PluginOperationUiState.Failure("链接有误或目标为空"),
+            fixture.viewModel.operationState.value,
+        )
+        assertFalse(fixture.viewModel.sheetState.value.visible)
+        assertTrue(fixture.viewModel.sheetState.value.pendingItems.isEmpty())
+    }
+
+    @Test
+    fun `importMusicItem reports failure when plugin is missing`() = runTest {
         val fixture = createFixture()
 
         fixture.viewModel.importMusicItem("missing", "https://example.com/song")
         advanceUntilIdle()
 
+        assertEquals(
+            PluginOperationUiState.Failure("导入单曲失败"),
+            fixture.viewModel.operationState.value,
+        )
+        assertFalse(fixture.viewModel.sheetState.value.visible)
+    }
+
+    @Test
+    fun `importMusicSheet failure clears previous pending import items`() = runTest {
+        val items = listOf(musicItem("song-1"), musicItem("song-2"))
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicSheet"),
+            importMusicSheetResult = items,
+        )
+        val fixture = createFixture(
+            plugins = MutableStateFlow(listOf(plugin)),
+        )
+        fixture.viewModel.importMusicSheet("source", "https://example.com/sheet")
+        advanceUntilIdle()
+
+        fixture.viewModel.importMusicSheet("source", "   ")
+        advanceUntilIdle()
+
+        assertEquals(
+            PluginOperationUiState.Failure("链接有误或目标为空"),
+            fixture.viewModel.operationState.value,
+        )
+        assertFalse(fixture.viewModel.sheetState.value.visible)
+        assertTrue(fixture.viewModel.sheetState.value.pendingItems.isEmpty())
+    }
+
+    @Test
+    fun `importMusicItem reports failure when plugin returns null`() = runTest {
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicItem"),
+            importMusicItemResult = null,
+        )
+        val fixture = createFixture(
+            plugins = MutableStateFlow(listOf(plugin)),
+        )
+
+        fixture.viewModel.importMusicItem("source", "https://example.com/song")
+        advanceUntilIdle()
+
+        verify(plugin).importMusicItem("https://example.com/song")
         assertEquals(
             PluginOperationUiState.Failure("导入单曲失败"),
             fixture.viewModel.operationState.value,
@@ -281,13 +373,35 @@ class PluginListViewModelTest {
             plugins = MutableStateFlow(listOf(plugin)),
         )
 
-        fixture.viewModel.importMusicSheet("source", "https://example.com/sheet")
+        fixture.viewModel.importMusicSheet("source", "  https://example.com/sheet  ")
         advanceUntilIdle()
 
         verify(plugin).importMusicSheet("https://example.com/sheet")
         assertEquals(PluginOperationUiState.Success("发现 2 首歌曲"), fixture.viewModel.operationState.value)
         assertTrue(fixture.viewModel.sheetState.value.visible)
         assertEquals(items, fixture.viewModel.sheetState.value.pendingItems)
+    }
+
+    @Test
+    fun `importMusicSheet rejects blank url without calling plugin`() = runTest {
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicSheet"),
+            importMusicSheetResult = listOf(musicItem("song-1")),
+        )
+        val fixture = createFixture(
+            plugins = MutableStateFlow(listOf(plugin)),
+        )
+
+        fixture.viewModel.importMusicSheet("source", "   ")
+        advanceUntilIdle()
+
+        verify(plugin, never()).importMusicSheet(any())
+        assertEquals(
+            PluginOperationUiState.Failure("链接有误或目标为空"),
+            fixture.viewModel.operationState.value,
+        )
+        assertFalse(fixture.viewModel.sheetState.value.visible)
     }
 
     @Test

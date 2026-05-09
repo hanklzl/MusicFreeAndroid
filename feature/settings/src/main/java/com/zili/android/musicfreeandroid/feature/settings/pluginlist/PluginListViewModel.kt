@@ -159,8 +159,13 @@ class PluginListViewModel @Inject constructor(
     fun userVariables(platform: String): Flow<Map<String, String>> =
         metaStore.getUserVariables(platform)
 
+    fun hideAddToPlaylistSheet() {
+        _sheetState.value = AddToPlaylistSheetState()
+    }
+
     fun importMusicItem(platform: String, urlLike: String) {
         performOperation(label = "导入单曲中") {
+            _sheetState.value = AddToPlaylistSheetState()
             val trimmed = urlLike.trim()
             if (trimmed.isBlank()) {
                 return@performOperation PluginOperationUiState.Failure("链接有误或目标为空")
@@ -174,6 +179,7 @@ class PluginListViewModel @Inject constructor(
 
     fun importMusicSheet(platform: String, urlLike: String) {
         performOperation(label = "导入歌单中") {
+            _sheetState.value = AddToPlaylistSheetState()
             val trimmed = urlLike.trim()
             if (trimmed.isBlank()) {
                 return@performOperation PluginOperationUiState.Failure("链接有误或目标为空")
