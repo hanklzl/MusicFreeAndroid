@@ -101,6 +101,7 @@ class PluginListViewModel @Inject constructor(
 
     private val metaStore: PluginMetaStore = pluginManager.pluginMetaStore
     private var userVariableSaveRequestId = 0L
+    private var targetImportInProgress = false
 
     val pluginItems: StateFlow<List<PluginUiItem>> = combine(
         pluginManager.plugins.map { list -> list.map { it.info } },
@@ -201,24 +202,45 @@ class PluginListViewModel @Inject constructor(
     }
 
     fun hideAddToPlaylistSheet() {
+        if (targetImportInProgress) return
         _sheetState.value = AddToPlaylistSheetState()
     }
 
     fun addImportedItemsToPlaylist(targetPlaylistId: String) {
         val items = _sheetState.value.pendingItems
-        if (items.isEmpty()) return
+        if (items.isEmpty() ||
+            targetImportInProgress ||
+            _operationState.value is PluginOperationUiState.Loading
+        ) {
+            return
+        }
+        targetImportInProgress = true
         performOperation(label = "添加到歌单中") {
-            val added = playlistRepository.addMusicsToPlaylist(targetPlaylistId, items)
-            val skipped = items.size - added
-            _sheetState.value = AddToPlaylistSheetState()
-            PluginOperationUiState.Success(importResultMessage(added, skipped))
+            try {
+                val added = playlistRepository.addMusicsToPlaylist(targetPlaylistId, items)
+                val skipped = items.size - added
+                _sheetState.value = AddToPlaylistSheetState()
+                PluginOperationUiState.Success(importResultMessage(added, skipped))
+            } catch (e: Exception) {
+                _sheetState.value = AddToPlaylistSheetState.batch(items)
+                PluginOperationUiState.Failure(e.message ?: "未知错误")
+            } finally {
+                targetImportInProgress = false
+            }
         }
     }
 
     fun createPlaylistAndImport(name: String) {
         val playlistName = name.trim()
         val items = _sheetState.value.pendingItems
-        if (playlistName.isBlank() || items.isEmpty()) return
+        if (playlistName.isBlank() ||
+            items.isEmpty() ||
+            targetImportInProgress ||
+            _operationState.value is PluginOperationUiState.Loading
+        ) {
+            return
+        }
+        targetImportInProgress = true
         performOperation(label = "创建歌单中") {
             val playlist = Playlist(
                 id = UUID.randomUUID().toString(),
@@ -237,7 +259,10 @@ class PluginListViewModel @Inject constructor(
                 if (created) {
                     runCatching { playlistRepository.deletePlaylist(playlist) }
                 }
+                _sheetState.value = AddToPlaylistSheetState.batch(items)
                 PluginOperationUiState.Failure(e.message ?: "未知错误")
+            } finally {
+                targetImportInProgress = false
             }
         }
     }

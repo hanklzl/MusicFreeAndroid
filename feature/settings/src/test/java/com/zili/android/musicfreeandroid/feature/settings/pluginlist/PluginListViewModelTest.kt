@@ -8,6 +8,7 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.PluginUserVariable
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -22,6 +23,7 @@ import org.junit.Test
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -515,6 +517,37 @@ class PluginListViewModelTest {
         assertTrue(fixture.viewModel.sheetState.value.pendingItems.isEmpty())
         assertEquals(
             PluginOperationUiState.Success("已导入 1 首，跳过 1 首重复歌曲"),
+            fixture.viewModel.operationState.value,
+        )
+    }
+
+    @Test
+    fun `addImportedItemsToPlaylist preserves pending items when dismissed before failure returns`() = runTest {
+        val items = listOf(musicItem("song-1"), musicItem("song-2"))
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicSheet"),
+            importMusicSheetResult = items,
+        )
+        val fixture = createFixture(plugins = MutableStateFlow(listOf(plugin)))
+        val addGate = CompletableDeferred<Int>()
+        runBlocking {
+            whenever(fixture.playlistRepository.addMusicsToPlaylist("target", items))
+                .doSuspendableAnswer { addGate.await() }
+        }
+        fixture.viewModel.importMusicSheet("source", "https://example.com/sheet")
+        advanceUntilIdle()
+
+        fixture.viewModel.addImportedItemsToPlaylist("target")
+        advanceUntilIdle()
+        fixture.viewModel.hideAddToPlaylistSheet()
+        addGate.completeExceptionally(IllegalStateException("写入失败"))
+        advanceUntilIdle()
+
+        assertTrue(fixture.viewModel.sheetState.value.visible)
+        assertEquals(items, fixture.viewModel.sheetState.value.pendingItems)
+        assertEquals(
+            PluginOperationUiState.Failure("写入失败"),
             fixture.viewModel.operationState.value,
         )
     }
