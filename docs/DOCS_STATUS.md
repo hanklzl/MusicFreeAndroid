@@ -44,6 +44,7 @@
 | [docs/superpowers/specs/2026-05-05-release-apk-signing-design.md](./superpowers/specs/2026-05-05-release-apk-signing-design.md) | 当前规范（Release APK 签名） | 是（作为实现计划输入） | 侧载 Release APK 签名、GitHub `release` Environment secrets、tag 发布与手动验包 artifact 设计 |
 | [docs/superpowers/specs/2026-05-05-playlist-cover-and-row-display-design.md](./superpowers/specs/2026-05-05-playlist-cover-and-row-display-design.md) | 当前规范（歌单封面与详情行展示对齐 RN） | 是（作为实现计划输入） | 歌单封面 http(s) 透传、相册选图 file:// 形态、抽 `MusicItemRow` 接入歌单详情展示 platform tag 与 album 的设计 |
 | [docs/superpowers/specs/2026-05-05-search-autofocus-design.md](./superpowers/specs/2026-05-05-search-autofocus-design.md) | 当前规范（搜索输入自动聚焦） | 是（作为实现计划输入） | 主搜索页与歌单内搜索页进入后自动聚焦输入框并拉起输入法的 RN 对齐设计 |
+| [docs/superpowers/specs/2026-05-09-settings-basic-alignment-design.md](./superpowers/specs/2026-05-09-settings-basic-alignment-design.md) | 当前规范（基本设置对齐） | 是（作为实现计划输入） | typed settings route、基本设置 RN 分区可见、Android 卡片分组、已生效项可编辑与未接入项禁用展示设计 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |
 | [docs/superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md](./superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md) | 当前参考（首页 mock 专项） | 否 | 首页主界面与底部 mini player 的第一阶段 mock 对齐设计 |
