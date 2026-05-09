@@ -89,38 +89,28 @@ class LoadedPlugin(
 
     override suspend fun getMediaSource(musicItem: MusicItem, quality: String): MediaSourceResult? {
         return withTimeout(TIMEOUT_MS) {
-            try {
-                if (!hasMethod("getMediaSource")) {
-                    return@withTimeout null
-                }
-                injectGlobalMap("__musicItem", JsBridge.musicItemToMap(musicItem))
-                val result = engine.evaluate<Any?>(
-                    "await __plugin.getMediaSource(__musicItem, '$quality')"
-                )
-                val map = toMap(result)
-                if (map != null) {
-                    JsBridge.parseMediaSourceResult(map)
-                } else {
-                    // Fallback: try qualities from musicItem (aligns with RN behavior)
-                    val qualityEnum = runCatching {
-                        PlayQuality.valueOf(quality.uppercase())
-                    }.getOrNull()
-                    val fallbackUrl = qualityEnum?.let { musicItem.qualities?.get(it)?.url }
-                    fallbackUrl?.let {
-                        MediaSourceResult(
-                            url = it,
-                            headers = null,
-                            userAgent = null,
-                            quality = qualityEnum,
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                Log.e(TAG, "getMediaSource failed for ${musicItem.id} on ${info.platform}", e)
-                null
+            val resolved = retryOnceOnException(delayMs = 150L) {
+                doGetMediaSource(musicItem, quality)
             }
+            resolved ?: fallbackQuality(musicItem, quality)
         }
+    }
+
+    private suspend fun doGetMediaSource(musicItem: MusicItem, quality: String): MediaSourceResult? {
+        if (!hasMethod("getMediaSource")) return null
+        injectGlobalMap("__musicItem", JsBridge.musicItemToMap(musicItem))
+        val result = engine.evaluate<Any?>(
+            "await __plugin.getMediaSource(__musicItem, '$quality')"
+        )
+        val map = toMap(result) ?: return null
+        val parsed = JsBridge.parseMediaSourceResult(map) ?: return null
+        return parsed.takeIf { it.url.isNotBlank() }
+    }
+
+    private fun fallbackQuality(musicItem: MusicItem, quality: String): MediaSourceResult? {
+        val q = runCatching { PlayQuality.valueOf(quality.uppercase()) }.getOrNull() ?: return null
+        val url = musicItem.qualities?.get(q)?.url ?: return null
+        return MediaSourceResult(url = url, headers = null, userAgent = null, quality = q)
     }
 
     override suspend fun getMusicInfo(musicItem: MusicItem): MusicItem? {
