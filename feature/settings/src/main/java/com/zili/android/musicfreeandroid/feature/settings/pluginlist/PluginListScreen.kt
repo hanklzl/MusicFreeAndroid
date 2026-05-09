@@ -82,6 +82,28 @@ fun PluginListScreen(
     var importMusicItemTarget by remember { mutableStateOf<PluginUiItem?>(null) }
     var importMusicSheetTarget by remember { mutableStateOf<PluginUiItem?>(null) }
     var userVariablesTarget by remember { mutableStateOf<PluginUiItem?>(null) }
+    var userVariableSaveInProgress by remember { mutableStateOf(false) }
+    var userVariableError by remember { mutableStateOf<String?>(null) }
+    var uninstallTarget by remember { mutableStateOf<PluginUiItem?>(null) }
+    var descriptionTarget by remember { mutableStateOf<PluginUiItem?>(null) }
+
+    LaunchedEffect(operationState, userVariableSaveInProgress) {
+        if (!userVariableSaveInProgress) return@LaunchedEffect
+        when (val state = operationState) {
+            is PluginOperationUiState.Success -> {
+                if (state.message == "设置成功") {
+                    userVariablesTarget = null
+                    userVariableError = null
+                    userVariableSaveInProgress = false
+                }
+            }
+            is PluginOperationUiState.Failure -> {
+                userVariableError = state.message
+                userVariableSaveInProgress = false
+            }
+            else -> Unit
+        }
+    }
 
     MusicFreeScreenScaffold(
         title = "插件管理",
@@ -183,11 +205,16 @@ fun PluginListScreen(
                                     Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
                                 }
                             },
-                            onUninstall = { viewModel.uninstallPlugin(item.info.platform) },
+                            onUninstall = { uninstallTarget = item },
                             onSetAlternative = { alternativeTarget = item },
                             onImportMusicItem = { importMusicItemTarget = item },
                             onImportMusicSheet = { importMusicSheetTarget = item },
-                            onEditUserVariables = { userVariablesTarget = item },
+                            onEditUserVariables = {
+                                userVariableSaveInProgress = false
+                                userVariableError = null
+                                userVariablesTarget = item
+                            },
+                            onShowDescription = { descriptionTarget = item },
                         )
                     }
                 }
@@ -233,6 +260,30 @@ fun PluginListScreen(
             dismissButton = {
                 TextButton(onClick = { showUninstallAllConfirm = false }) { Text("取消") }
             },
+        )
+    }
+
+    uninstallTarget?.let { target ->
+        AlertDialog(
+            onDismissRequest = { uninstallTarget = null },
+            title = { Text("确认") },
+            text = { Text("确定要卸载「${target.info.platform}」插件吗？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    uninstallTarget = null
+                    viewModel.uninstallPlugin(target.info.platform)
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { uninstallTarget = null }) { Text("取消") }
+            },
+        )
+    }
+
+    descriptionTarget?.let { target ->
+        PluginDescriptionDialog(
+            item = target,
+            onDismiss = { descriptionTarget = null },
         )
     }
 
@@ -282,9 +333,16 @@ fun PluginListScreen(
         UserVariablesDialog(
             item = target,
             initialValues = savedVariables,
-            onDismiss = { userVariablesTarget = null },
-            onConfirm = { values ->
+            saving = userVariableSaveInProgress,
+            errorMessage = userVariableError,
+            onDismiss = {
                 userVariablesTarget = null
+                userVariableSaveInProgress = false
+                userVariableError = null
+            },
+            onConfirm = { values ->
+                userVariableError = null
+                userVariableSaveInProgress = true
                 viewModel.saveUserVariables(target.info.platform, values)
             },
         )
@@ -378,6 +436,7 @@ private fun PluginCard(
     onImportMusicItem: () -> Unit,
     onImportMusicSheet: () -> Unit,
     onEditUserVariables: () -> Unit,
+    onShowDescription: () -> Unit,
 ) {
     val alpha = if (item.enabled) 1f else 0.5f
 
@@ -460,9 +519,34 @@ private fun PluginCard(
                 if (item.canEditUserVariables) {
                     AssistChip(onClick = onEditUserVariables, label = { Text("用户变量") })
                 }
+                if (!item.info.description.isNullOrBlank()) {
+                    AssistChip(onClick = onShowDescription, label = { Text("说明") })
+                }
             }
         }
     }
+}
+
+@Composable
+private fun PluginDescriptionDialog(
+    item: PluginUiItem,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("插件说明") },
+        text = {
+            Text(
+                text = item.info.description.orEmpty(),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("关闭")
+            }
+        },
+    )
 }
 
 @Composable
@@ -563,6 +647,8 @@ private fun ImportUrlDialog(
 private fun UserVariablesDialog(
     item: PluginUiItem,
     initialValues: Map<String, String>,
+    saving: Boolean,
+    errorMessage: String?,
     onDismiss: () -> Unit,
     onConfirm: (Map<String, String>) -> Unit,
 ) {
@@ -582,7 +668,7 @@ private fun UserVariablesDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("用户变量") },
+        title = { Text("设置用户变量") },
         text = {
             Column(
                 modifier = Modifier
@@ -590,6 +676,16 @@ private fun UserVariablesDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(rpx(12)),
             ) {
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (saving) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
                 variables.forEach { variable ->
                     OutlinedTextField(
                         value = values[variable.key].orEmpty(),
@@ -606,7 +702,10 @@ private fun UserVariablesDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(values) }) {
+            TextButton(
+                onClick = { onConfirm(values) },
+                enabled = !saving,
+            ) {
                 Text("保存")
             }
         },
