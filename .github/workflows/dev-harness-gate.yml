@@ -1,0 +1,29 @@
+name: Dev Harness Gate
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches:
+      - main
+      - 'feat/**'
+      - 'fix/**'
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - uses: gradle/actions/setup-gradle@v3
+      - name: Symlinks check (allow-empty during PR 1)
+        run: bash scripts/dev-harness/symlinks-check.sh --allow-empty
+      - name: Grep guards
+        run: python3 scripts/dev-harness/grep-check.py
+      - name: Contract tests (JVM) — PR 1 placeholder
+        run: |
+          echo "Contract-test step is staged; activates in PR 3 once contract tests land."
+          echo "See docs/superpowers/plans/2026-05-09-dev-harness-foundation.md Phase 3."
