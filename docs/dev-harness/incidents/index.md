@@ -4,7 +4,7 @@
 > 适用范围：跨域 incident ID 唯一性、状态汇总、guard 类型反查
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
-> 最后校验：2026-05-09
+> 最后校验：2026-05-10
 
 ## 编号规则
 
@@ -18,7 +18,7 @@
 - `superseded by INC-XXXX`：被另一条更准确的 incident 取代。
 - `stale`：根因已不存在 / 不可复现，但保留作为历史记录。
 
-## v1 索引
+## 索引
 
 | ID | area | 标题 | rule | guard |
 |---|---|---|---|---|
@@ -34,3 +34,7 @@
 | INC-2026-0010 | plugin | 集成测试默认依赖 kstore.vip 真网络 | [plugin/rules.md#rule-network-test-gated](../plugin/rules.md#rule-network-test-gated) | contract-test |
 | INC-2026-0011 | player | 全屏播放器内容贴到状态栏后方 | [player/rules.md#rule-immersive-content-respects-statusbar](../player/rules.md#rule-immersive-content-respects-statusbar) | manual |
 | INC-2026-0012 | player | 歌词自动跟随重复触发 / seek overlay 错位 | [player/rules.md#rule-lyric-follow-debounce](../player/rules.md#rule-lyric-follow-debounce) | contract-test |
+| INC-2026-0013 | test | ViewModel 异步加载 stale 结果未丢弃 | [test/rules.md#rule-async-load-generation](../test/rules.md#rule-async-load-generation) | manual |
+| INC-2026-0014 | plugin | userVariables 写入并发竞态 | [plugin/rules.md#rule-user-variable-serialization](../plugin/rules.md#rule-user-variable-serialization) | manual |
+| INC-2026-0015 | ui | Drawer / 浮层未让 status bar | [ui/rules.md#rule-overlay-respects-statusbar](../ui/rules.md#rule-overlay-respects-statusbar) | manual |
+| INC-2026-0016 | test | 测试 fixture 没跟生产 VM 构造器更新 | [test/rules.md#rule-test-fixture-must-track-vm-ctor](../test/rules.md#rule-test-fixture-must-track-vm-ctor) | ci-step |

@@ -33,6 +33,17 @@ if [[ "$SKIP_CONTRACT" -eq 1 ]]; then
   exit 0
 fi
 
+echo "==> Compile-only test sources (all modules) — guards INC-2026-0016"
+# Catch test fixture lag behind production VM constructors. assembleDebug skips
+# test source compile; this step explicitly compiles every module's debug unit
+# test sources so fixture drift fails the gate. Add new modules here.
+./gradlew \
+  :app:compileDebugUnitTestKotlin :core:compileDebugUnitTestKotlin :data:compileDebugUnitTestKotlin \
+  :downloader:compileDebugUnitTestKotlin :plugin:compileDebugUnitTestKotlin :player:compileDebugUnitTestKotlin \
+  :feature:home:compileDebugUnitTestKotlin :feature:player-ui:compileDebugUnitTestKotlin \
+  :feature:search:compileDebugUnitTestKotlin :feature:settings:compileDebugUnitTestKotlin \
+  --no-daemon
+
 echo "==> Contract tests (JVM)"
 # Only invoke modules that currently host harness/contracts/ tests.
 # Adding tests in other modules requires extending this list AND the CI workflow.

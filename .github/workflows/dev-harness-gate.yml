@@ -23,6 +23,18 @@ jobs:
         run: bash scripts/dev-harness/symlinks-check.sh
       - name: Grep guards
         run: python3 scripts/dev-harness/grep-check.py
+      - name: Compile-only test sources (all modules)
+        # Guards INC-2026-0016: catch test fixture lag behind production VM
+        # constructors. assembleDebug skips test source compile; we explicitly
+        # compile every module's debug unit test sources so fixture drift fails
+        # the gate at PR time. New modules MUST be added here.
+        run: |
+          ./gradlew \
+            :app:compileDebugUnitTestKotlin :core:compileDebugUnitTestKotlin :data:compileDebugUnitTestKotlin \
+            :downloader:compileDebugUnitTestKotlin :plugin:compileDebugUnitTestKotlin :player:compileDebugUnitTestKotlin \
+            :feature:home:compileDebugUnitTestKotlin :feature:player-ui:compileDebugUnitTestKotlin \
+            :feature:search:compileDebugUnitTestKotlin :feature:settings:compileDebugUnitTestKotlin \
+            --no-daemon
       - name: Contract tests (JVM)
         # Only invoke modules that currently host harness/contracts/ tests; gradle
         # treats --tests with zero matches as failure, so listing modules without
