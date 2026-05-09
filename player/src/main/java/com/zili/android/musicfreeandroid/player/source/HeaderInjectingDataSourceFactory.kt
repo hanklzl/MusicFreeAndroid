@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid.player.source
 
 import android.content.Context
+import androidx.annotation.OptIn as AndroidXOptIn
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -24,6 +26,7 @@ class HeaderInjectingDataSourceFactory @Inject constructor(
     private val registry: TrackHeaderRegistry,
 ) : DataSource.Factory {
 
+    @AndroidXOptIn(markerClass = [UnstableApi::class])
     override fun createDataSource(): DataSource {
         val httpFactory = DefaultHttpDataSource.Factory()
         val baseFactory = DefaultDataSource.Factory(context, httpFactory)
