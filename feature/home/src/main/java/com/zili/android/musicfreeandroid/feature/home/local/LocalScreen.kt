@@ -60,6 +60,7 @@ fun LocalScreen(
 
     var hasAudioPermission by remember { mutableStateOf<Boolean?>(null) }
     var menuExpanded by remember { mutableStateOf(false) }
+    var configuredStorageDirectoryUri by remember { mutableStateOf<String?>(null) }
 
     fun isAudioPermissionGranted(): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
@@ -69,7 +70,7 @@ fun LocalScreen(
     ) { granted ->
         hasAudioPermission = granted
         if (granted) {
-            viewModel.scanLocalMusic()
+            viewModel.scanLocalMusic(configuredStorageDirectoryUri)
         } else {
             viewModel.showError("未授予音频读取权限，请授权后重试")
         }
@@ -87,6 +88,7 @@ fun LocalScreen(
                 )
             }.onSuccess {
                 val treeUri = uri.toString()
+                configuredStorageDirectoryUri = treeUri
                 viewModel.persistStorageDirectoryAndScan(treeUri)
             }.onFailure { e ->
                 viewModel.showError(e.message ?: "保存目录权限失败")
@@ -94,13 +96,22 @@ fun LocalScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        if (isAudioPermissionGranted()) {
+    fun startConfiguredOrMediaStoreScan() {
+        val configuredUri = configuredStorageDirectoryUri
+        if (!configuredUri.isNullOrBlank()) {
+            hasAudioPermission = isAudioPermissionGranted()
+            viewModel.scanLocalMusic(configuredUri)
+        } else if (isAudioPermissionGranted()) {
             hasAudioPermission = true
             viewModel.scanLocalMusic()
         } else {
             permissionLauncher.launch(permission)
         }
+    }
+
+    LaunchedEffect(Unit) {
+        configuredStorageDirectoryUri = viewModel.currentStorageDirectoryUri()
+        startConfiguredOrMediaStoreScan()
     }
 
     optionsItem?.let { item ->
@@ -186,11 +197,7 @@ fun LocalScreen(
             },
             onItemLongClick = { item -> optionsItem = item },
             onRetry = {
-                if (hasAudioPermission == false) {
-                    permissionLauncher.launch(permission)
-                } else {
-                    viewModel.scanLocalMusic()
-                }
+                startConfiguredOrMediaStoreScan()
             },
             modifier = Modifier
                 .fillMaxSize()

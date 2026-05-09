@@ -12,6 +12,8 @@ import com.zili.android.musicfreeandroid.downloader.model.MediaKey
 import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +38,8 @@ class LocalMusicViewModel @Inject constructor(
 
     private var latestRepositoryItems: List<MusicItem> = emptyList()
     private var scanInProgress: Boolean = false
+    private var scanGeneration: Long = 0L
+    private var scanJob: Job? = null
 
     val downloadActiveCount: StateFlow<Int> = downloader.tasks
         .map { tasks -> tasks.count { it.status != DownloadStatus.FAILED } }
@@ -60,33 +64,15 @@ class LocalMusicViewModel @Inject constructor(
         }
     }
 
-    fun scanLocalMusic(storageDirectoryUri: String? = null) {
-        viewModelScope.launch {
-            scanInProgress = true
-            _uiState.value = LocalMusicUiState.Loading
-            try {
-                scanAndPersist(storageDirectoryUri ?: appPreferences.storageDirectoryUri.first())
-                scanInProgress = false
-                _uiState.value = LocalMusicUiState.Success(latestRepositoryItems)
-            } catch (e: Exception) {
-                showError(e.message ?: "扫描失败")
-            }
-        }
+    suspend fun currentStorageDirectoryUri(): String? = appPreferences.storageDirectoryUri.first()
+
+    fun scanLocalMusic(storageDirectoryUri: String? = null) = startScan("扫描失败") {
+        scanAndPersist(storageDirectoryUri ?: appPreferences.storageDirectoryUri.first())
     }
 
-    fun persistStorageDirectoryAndScan(uri: String) {
-        viewModelScope.launch {
-            scanInProgress = true
-            _uiState.value = LocalMusicUiState.Loading
-            try {
-                appPreferences.setStorageDirectoryUri(uri)
-                scanAndPersist(uri)
-                scanInProgress = false
-                _uiState.value = LocalMusicUiState.Success(latestRepositoryItems)
-            } catch (e: Exception) {
-                showError(e.message ?: "保存目录失败")
-            }
-        }
+    fun persistStorageDirectoryAndScan(uri: String) = startScan("保存目录失败") {
+        appPreferences.setStorageDirectoryUri(uri)
+        scanAndPersist(uri)
     }
 
     fun showError(message: String) {
@@ -99,6 +85,31 @@ class LocalMusicViewModel @Inject constructor(
             .collect { items ->
                 musicRepository.replaceByPlatform(LocalMusicScanner.PLATFORM_LOCAL, items)
             }
+    }
+
+    private fun startScan(
+        fallbackErrorMessage: String,
+        block: suspend () -> Unit,
+    ) {
+        scanJob?.cancel()
+        val generation = ++scanGeneration
+        scanJob = viewModelScope.launch {
+            scanInProgress = true
+            _uiState.value = LocalMusicUiState.Loading
+            try {
+                block()
+                if (generation == scanGeneration) {
+                    scanInProgress = false
+                    _uiState.value = LocalMusicUiState.Success(latestRepositoryItems)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (generation == scanGeneration) {
+                    showError(e.message ?: fallbackErrorMessage)
+                }
+            }
+        }
     }
 
     fun playItem(item: MusicItem, queue: List<MusicItem>) {

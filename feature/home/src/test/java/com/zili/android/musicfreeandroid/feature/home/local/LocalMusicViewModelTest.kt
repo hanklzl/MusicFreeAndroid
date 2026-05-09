@@ -11,11 +11,14 @@ import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
 import com.zili.android.musicfreeandroid.downloader.model.MediaKey
 import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -100,6 +103,35 @@ class LocalMusicViewModelTest {
 
         verify(scanner).scan(treeUri)
         verify(musicRepository).replaceByPlatform(LocalMusicScanner.PLATFORM_LOCAL, items)
+    }
+
+    @Test
+    fun `new scan cancels in-flight scan before persisting newer results`() = runTest(testDispatcher) {
+        val firstStarted = CompletableDeferred<Unit>()
+        val firstCancelled = CompletableDeferred<Unit>()
+        val secondItems = listOf(track("2"))
+        whenever(scanner.scan("content://first")).thenReturn(
+            flow {
+                firstStarted.complete(Unit)
+                try {
+                    awaitCancellation()
+                } finally {
+                    firstCancelled.complete(Unit)
+                }
+            }
+        )
+        whenever(scanner.scan("content://second")).thenReturn(flowOf(secondItems))
+
+        val viewModel = createViewModel()
+        viewModel.scanLocalMusic("content://first")
+        advanceUntilIdle()
+        firstStarted.await()
+
+        viewModel.scanLocalMusic("content://second")
+        advanceUntilIdle()
+
+        assertTrue(firstCancelled.isCompleted)
+        verify(musicRepository).replaceByPlatform(LocalMusicScanner.PLATFORM_LOCAL, secondItems)
     }
 
     @Test

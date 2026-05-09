@@ -17,6 +17,9 @@ interface MusicDao {
     @Upsert
     suspend fun upsert(item: MusicItemEntity)
 
+    @Upsert
+    suspend fun upsertAll(items: List<MusicItemEntity>)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: MusicItemEntity)
 
@@ -44,9 +47,16 @@ interface MusicDao {
     @Query("DELETE FROM music_items WHERE platform = :platform")
     suspend fun deleteByPlatform(platform: String)
 
+    @Query("DELETE FROM music_items WHERE platform = :platform AND id NOT IN (:ids)")
+    suspend fun deleteByPlatformExceptIds(platform: String, ids: List<String>)
+
     @Transaction
     suspend fun replaceByPlatform(platform: String, items: List<MusicItemEntity>) {
-        deleteByPlatform(platform)
-        insertAll(items)
+        if (items.isEmpty()) {
+            deleteByPlatform(platform)
+        } else {
+            upsertAll(items)
+            deleteByPlatformExceptIds(platform, items.map { it.id })
+        }
     }
 }

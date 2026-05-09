@@ -194,7 +194,7 @@ private fun MusicListEditorLiteActions(
             }
             TextButton(
                 onClick = onAddToPlaylist,
-                enabled = uiState.selectedCount > 0 && uiState.availableTargetPlaylists.isNotEmpty(),
+                enabled = uiState.selectedCount > 0,
             ) {
                 Text("添加到歌单")
             }
