@@ -14,6 +14,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.doThrow
@@ -81,6 +82,7 @@ class PluginManagerUserVariablesTest {
         } catch (e: IllegalStateException) {
             assertEquals("refresh failed", e.message)
         }
+        verify(metaStore, never()).setUserVariables("vars", mapOf("cookie" to "abc"))
     }
 
     private fun manager(metaStore: PluginMetaStore): PluginManager {

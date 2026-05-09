@@ -476,11 +476,11 @@ class PluginManager @Inject constructor(
     }
 
     suspend fun setUserVariables(platform: String, variables: Map<String, String>) {
-        pluginMetaStore.setUserVariables(platform, variables)
         mutex.withLock {
             _plugins.value.firstOrNull { it.info.platform == platform }
                 ?.updateUserVariables(variables)
         }
+        pluginMetaStore.setUserVariables(platform, variables)
     }
 
     suspend fun uninstallAllPlugins() {
