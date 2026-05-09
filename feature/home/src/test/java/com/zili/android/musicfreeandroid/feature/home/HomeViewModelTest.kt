@@ -40,7 +40,7 @@ class HomeViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        whenever(playlistRepository.observeAllPlaylists()).thenReturn(flowOf(emptyList()))
+        whenever(playlistRepository.observeAllPlaylists()).thenReturn(MutableStateFlow(emptyList()))
         whenever(appPreferences.defaultDownloadQuality).thenReturn(flowOf(PlayQuality.STANDARD))
         whenever(downloader.tasks).thenReturn(MutableStateFlow(emptyList()))
         whenever(downloader.downloadedKeys).thenReturn(MutableStateFlow(emptySet()))

@@ -354,6 +354,11 @@ class LoadedPlugin(
         engine.close()
     }
 
+    suspend fun updateUserVariables(values: Map<String, String>) {
+        val jsonStr = kotlinx.serialization.json.Json.encodeToString(values)
+        engine.evaluate<Any?>("globalThis.__userVariables = JSON.parse('${escapeJsString(jsonStr)}')")
+    }
+
     // -- Internal helpers --
 
     private suspend fun hasMethod(name: String): Boolean {

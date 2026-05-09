@@ -7,6 +7,8 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
+import com.zili.android.musicfreeandroid.core.media.EmptyMediaSourceResolver
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
@@ -21,6 +23,7 @@ import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueu
 import com.zili.android.musicfreeandroid.player.service.PlaybackService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -46,6 +49,7 @@ import kotlin.coroutines.resumeWithException
 @Singleton
 class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val mediaSourceResolver: MediaSourceResolver = EmptyMediaSourceResolver,
 ) : PlaybackNotificationQueueControls {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val connectionMutex = Mutex()
@@ -124,16 +128,23 @@ class PlayerController @Inject constructor(
     }
 
     fun playItem(item: MusicItem) {
+        val previousIndex = playQueue.currentIndex
         val index = playQueue.items.indexOfFirst {
             it.id == item.id && it.platform == item.platform
         }
-        if (index >= 0) {
+        val queuedItem = if (index >= 0) {
             playQueue.skipTo(index)
         } else {
             playQueue.add(item)
             playQueue.skipTo(playQueue.size - 1)
         }
-        setMediaItemAndPlay(item)
+        queuedItem?.let {
+            setMediaItemAndPlay(
+                item = it,
+                expectedIndex = playQueue.currentIndex,
+                rollbackIndex = previousIndex.takeIf { previousIndex >= 0 },
+            )
+        }
         emitQueueState()
     }
 
@@ -145,8 +156,13 @@ class PlayerController @Inject constructor(
     }
 
     fun skipToNext() {
+        val previousIndex = playQueue.currentIndex
         val next = playQueue.next(repeatMode) ?: return
-        setMediaItemAndPlay(next)
+        setMediaItemAndPlay(
+            item = next,
+            expectedIndex = playQueue.currentIndex,
+            rollbackIndex = previousIndex,
+        )
         emitQueueState()
     }
 
@@ -157,12 +173,13 @@ class PlayerController @Inject constructor(
                 controller.seekTo(0L)
                 return@withConnectedController
             }
+            val previousIndex = playQueue.currentIndex
             val prev = playQueue.previous(repeatMode) ?: return@withConnectedController
-            val mediaItem = prev.toMediaItem(defaultArtworkUri)
-            recordHistory(prev)
-            controller.setMediaItem(mediaItem)
-            controller.prepare()
-            controller.play()
+            setMediaItemAndPlay(
+                item = prev,
+                expectedIndex = playQueue.currentIndex,
+                rollbackIndex = previousIndex,
+            )
             emitQueueState()
         }
     }
@@ -176,8 +193,13 @@ class PlayerController @Inject constructor(
     }
 
     fun skipTo(index: Int) {
+        val previousIndex = playQueue.currentIndex
         val item = playQueue.skipTo(index) ?: return
-        setMediaItemAndPlay(item)
+        setMediaItemAndPlay(
+            item = item,
+            expectedIndex = playQueue.currentIndex,
+            rollbackIndex = previousIndex.takeIf { previousIndex >= 0 },
+        )
         emitQueueState()
     }
 
@@ -305,18 +327,74 @@ class PlayerController @Inject constructor(
         }
     }
 
-    private fun setMediaItemAndPlay(item: MusicItem) {
-        withConnectedController { controller ->
-            try {
-                recordHistory(item)
-                val mediaItem = item.toMediaItem(defaultArtworkUri)
-                controller.setMediaItem(mediaItem)
-                controller.prepare()
-                controller.play()
-            } catch (e: RuntimeException) {
-                _errorEvents.tryEmit("播放失败: ${e.message}")
+    private fun setMediaItemAndPlay(
+        item: MusicItem,
+        expectedIndex: Int = playQueue.currentIndex,
+        rollbackIndex: Int? = null,
+    ) {
+        attachNotificationControls()
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val playable = resolvePlayableItem(item)
+            if (playable == null) {
+                rollbackPlaybackSelection(expectedIndex, item, rollbackIndex)
+                return@launch
+            }
+            if (!playQueue.isCurrentItem(expectedIndex, item)) return@launch
+            if (playable != item) {
+                playQueue.replaceCurrent(expectedIndex, item, playable)
+                emitQueueState()
+            }
+            withConnectedController { controller ->
+                try {
+                    recordHistory(playable)
+                    val mediaItem = playable.toMediaItem(defaultArtworkUri)
+                    controller.setMediaItem(mediaItem)
+                    controller.prepare()
+                    controller.play()
+                } catch (e: RuntimeException) {
+                    _errorEvents.tryEmit("播放失败: ${e.message}")
+                }
             }
         }
+    }
+
+    private fun rollbackPlaybackSelection(
+        expectedIndex: Int,
+        expectedItem: MusicItem,
+        rollbackIndex: Int?,
+    ) {
+        if (
+            rollbackIndex != null &&
+            rollbackIndex >= 0 &&
+            rollbackIndex < playQueue.size &&
+            playQueue.isCurrentItem(expectedIndex, expectedItem)
+        ) {
+            playQueue.skipTo(rollbackIndex)
+            runOnControllerThread {
+                emitState()
+                emitQueueState()
+            }
+        }
+    }
+
+    private suspend fun resolvePlayableItem(item: MusicItem): MusicItem? {
+        if (!item.url.isNullOrBlank()) return item
+
+        val resolution = runCatching {
+            mediaSourceResolver.resolve(item)
+        }.getOrNull()
+        val playable = resolution?.item
+        return if (!playable?.url.isNullOrBlank()) {
+            playable
+        } else {
+            _errorEvents.emit("播放失败: 无法解析音源")
+            null
+        }
+    }
+
+    private fun PlayQueue.isCurrentItem(index: Int, item: MusicItem): Boolean {
+        val current = currentItem ?: return false
+        return currentIndex == index && current == item
     }
 
     private fun withConnectedController(action: (MediaController) -> Unit) {
@@ -419,9 +497,14 @@ class PlayerController @Inject constructor(
             }
             RepeatMode.ALL -> skipToNext()
             RepeatMode.OFF -> {
+                val previousIndex = playQueue.currentIndex
                 val next = playQueue.next(repeatMode)
                 if (next != null) {
-                    setMediaItemAndPlay(next)
+                    setMediaItemAndPlay(
+                        item = next,
+                        expectedIndex = playQueue.currentIndex,
+                        rollbackIndex = previousIndex,
+                    )
                     emitQueueState()
                 }
             }

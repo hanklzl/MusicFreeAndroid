@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.search
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.Playlist
@@ -36,11 +37,11 @@ class SearchViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
     private val playlistRepository: PlaylistRepository,
     private val downloader: Downloader,
+    private val mediaSourceResolver: MediaSourceResolver,
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "SearchViewModel"
-        private const val WY_FALLBACK_PLATFORM = "元力WY"
     }
 
     // ── 插件状态 ──
@@ -318,16 +319,13 @@ class SearchViewModel @Inject constructor(
     }
 
     fun resolveAndPlay(item: MusicItem, queue: List<MusicItem>) {
-        val platform = _selectedPlatform.value ?: return
-        val plugin = pluginManager.getPlugin(platform) ?: return
-
         viewModelScope.launch {
             try {
-                val resolvedItem = resolveMediaSourceWithFallback(
-                    primaryPlugin = plugin,
-                    selectedPlatform = platform,
-                    targetItem = item,
-                )
+                val resolvedItem = if (item.url.isNullOrBlank()) {
+                    mediaSourceResolver.resolve(item)?.item
+                } else {
+                    item
+                }
                 if (resolvedItem != null) {
                     val index = queue.indexOfFirst {
                         it.id == item.id && it.platform == item.platform
@@ -351,49 +349,6 @@ class SearchViewModel @Inject constructor(
                 _playEvent.emit(PlayEvent.Failed("播放失败，请重试"))
             }
         }
-    }
-
-    private suspend fun resolveMediaSourceWithFallback(
-        primaryPlugin: com.zili.android.musicfreeandroid.plugin.api.PluginApi,
-        selectedPlatform: String,
-        targetItem: MusicItem,
-    ): MusicItem? {
-        val directSource = primaryPlugin.getMediaSource(targetItem)
-        if (directSource?.url?.isNotBlank() == true) {
-            return targetItem.copy(url = directSource.url)
-        }
-
-        if (selectedPlatform == WY_FALLBACK_PLATFORM) {
-            return null
-        }
-
-        val wyPlugin = pluginManager.getPlugin(WY_FALLBACK_PLATFORM)
-        if (wyPlugin == null) {
-            Log.w(TAG, "Fallback plugin not installed: $WY_FALLBACK_PLATFORM")
-            return null
-        }
-
-        val fallbackQuery = MusicMatch.buildFallbackQuery(targetItem)
-        if (fallbackQuery.isBlank()) {
-            return null
-        }
-
-        val fallbackSearch = wyPlugin.search(fallbackQuery, page = 1)
-        val fallbackMatch = MusicMatch.pickBestCandidate(targetItem, fallbackSearch.data)
-        if (fallbackMatch == null) {
-            Log.w(TAG, "No WY fallback match for ${targetItem.title}")
-            return null
-        }
-
-        val fallbackSource = wyPlugin.getMediaSource(fallbackMatch)
-        val fallbackUrl = fallbackSource?.url
-        if (fallbackUrl.isNullOrBlank()) {
-            Log.w(TAG, "WY fallback getMediaSource failed for ${targetItem.title}")
-            return null
-        }
-
-        Log.i(TAG, "Fallback playback resolved by $WY_FALLBACK_PLATFORM for ${targetItem.title}")
-        return fallbackMatch.copy(url = fallbackUrl)
     }
 
     // ── 搜索历史 ──

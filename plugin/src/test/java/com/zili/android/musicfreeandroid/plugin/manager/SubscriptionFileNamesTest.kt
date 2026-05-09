@@ -45,4 +45,14 @@ class SubscriptionFileNamesTest {
         assertTrue(firstName.startsWith("001-"))
         assertTrue(secondName.startsWith("002-"))
     }
+
+    @Test
+    fun `network plugin file name is reloadable when url has no js suffix`() {
+        val fileName = SubscriptionFileNames.networkPluginFileName(
+            "https://example.com/download?id=source",
+        )
+
+        assertTrue(fileName.startsWith("download-"))
+        assertTrue(fileName.endsWith(".js"))
+    }
 }

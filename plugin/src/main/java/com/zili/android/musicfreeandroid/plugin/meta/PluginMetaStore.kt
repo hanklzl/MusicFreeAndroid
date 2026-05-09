@@ -60,6 +60,45 @@ class PluginMetaStore @Inject constructor(
         }
     }
 
+    // ── 音源重定向 ──
+
+    val alternativePlugins: Flow<Map<String, String>> = dataStore.data.map { prefs ->
+        prefs[KEY_ALTERNATIVE_PLUGINS]?.let { jsonStr ->
+            runCatching { json.decodeFromString<Map<String, String>>(jsonStr) }
+                .onFailure { Log.w(TAG, "Failed to decode alternative_plugins, resetting", it) }
+                .getOrDefault(emptyMap())
+                .filterValues { it.isNotBlank() }
+        } ?: emptyMap()
+    }
+
+    fun getAlternativePlugin(platform: String): Flow<String?> =
+        alternativePlugins.map { alternatives -> alternatives[platform] }
+
+    suspend fun setAlternativePlugin(sourcePlatform: String, targetPlatform: String?) {
+        dataStore.edit { prefs ->
+            val current = currentAlternativePlugins(prefs).toMutableMap()
+            val normalizedTarget = targetPlatform?.trim().orEmpty()
+            if (normalizedTarget.isBlank() || normalizedTarget == sourcePlatform) {
+                current.remove(sourcePlatform)
+            } else {
+                current[sourcePlatform] = normalizedTarget
+            }
+            if (current.isEmpty()) {
+                prefs.remove(KEY_ALTERNATIVE_PLUGINS)
+            } else {
+                prefs[KEY_ALTERNATIVE_PLUGINS] = json.encodeToString(current)
+            }
+        }
+    }
+
+    private fun currentAlternativePlugins(prefs: Preferences): Map<String, String> =
+        prefs[KEY_ALTERNATIVE_PLUGINS]?.let { jsonStr ->
+            runCatching { json.decodeFromString<Map<String, String>>(jsonStr) }
+                .onFailure { Log.w(TAG, "Failed to decode alternative_plugins, resetting", it) }
+                .getOrDefault(emptyMap())
+                .filterValues { it.isNotBlank() }
+        } ?: emptyMap()
+
     // ── 用户变量 ──
 
     fun getUserVariables(platform: String): Flow<Map<String, String>> = dataStore.data.map { prefs ->
@@ -129,6 +168,7 @@ class PluginMetaStore @Inject constructor(
         const val TAG = "PluginMetaStore"
         val KEY_DISABLED_PLUGINS = stringSetPreferencesKey("disabled_plugins")
         val KEY_PLUGIN_ORDER = stringPreferencesKey("plugin_order")
+        val KEY_ALTERNATIVE_PLUGINS = stringPreferencesKey("alternative_plugins")
         val KEY_SUBSCRIPTIONS = stringPreferencesKey("subscriptions")
     }
 }
