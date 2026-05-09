@@ -72,6 +72,31 @@ class PlayerControllerNotificationControlsTest {
     }
 
     @Test
+    fun `notification next rolls queue back when media source cannot resolve`() {
+        val resolver = UnresolvedResolver()
+        val controller = PlayerController(context, resolver)
+
+        try {
+            controller.playQueue(
+                listOf(
+                    testItem("1"),
+                    testItem("2").copy(url = null),
+                ),
+                startIndex = 0,
+            )
+
+            PlaybackNotificationCommandHandler.skipToNext()
+
+            waitUntil("queue rolls back to previous item") {
+                controller.playQueue.currentItem?.id == "1"
+            }
+            assertEquals(listOf("2"), resolver.requestedIds)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
     fun `playItem reuses queued item when matching item is already resolved`() {
         val resolver = RecordingResolver(
             resolvedUrl = "https://cdn.example.test/1.mp3",
@@ -139,6 +164,18 @@ class PlayerControllerNotificationControlsTest {
                 resolverPlatform = item.platform,
                 redirected = false,
             )
+        }
+    }
+
+    private class UnresolvedResolver : MediaSourceResolver {
+        val requestedIds = mutableListOf<String>()
+
+        override suspend fun resolve(
+            item: MusicItem,
+            quality: String,
+        ): MediaSourceResolution? {
+            requestedIds += item.id
+            return null
         }
     }
 }

@@ -63,19 +63,19 @@ class PlayQueue {
         }
     }
 
-    fun replaceCurrent(item: MusicItem) {
-        val index = currentIndex
-        if (index in _items.indices) {
-            val previous = _items[index]
-            _items[index] = item
-            originalOrder = originalOrder?.map { existing ->
-                if (existing.id == previous.id && existing.platform == previous.platform) {
-                    item
-                } else {
-                    existing
-                }
+    fun replaceCurrent(expectedIndex: Int, expectedItem: MusicItem, item: MusicItem): Boolean {
+        if (expectedIndex != currentIndex || expectedIndex !in _items.indices) return false
+        if (_items[expectedIndex] != expectedItem) return false
+        _items[expectedIndex] = item
+        originalOrder = originalOrder?.let { saved ->
+            val updated = saved.toMutableList()
+            val originalIndex = updated.indexOfFirst { it == expectedItem }
+            if (originalIndex >= 0) {
+                updated[originalIndex] = item
             }
+            updated
         }
+        return true
     }
 
     fun next(repeatMode: RepeatMode): MusicItem? {
