@@ -87,6 +87,25 @@ class LocalMusicViewModelTest {
     }
 
     @Test
+    fun `scanLocalMusic exits Loading when scanner emits empty list without repository update`() = runTest(testDispatcher) {
+        val treeUri = "content://com.android.externalstorage.documents/tree/primary%3AEmpty"
+        val repositoryItems = MutableStateFlow(emptyList<MusicItem>())
+        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+            .thenReturn(repositoryItems)
+        whenever(scanner.scan(treeUri)).thenReturn(flowOf(emptyList()))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.scanLocalMusic(treeUri)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is LocalMusicUiState.Success)
+        assertEquals(emptyList<MusicItem>(), (state as LocalMusicUiState.Success).musicItems)
+    }
+
+    @Test
     fun `removeFromLocalLibrary deletes persisted item`() = runTest(testDispatcher) {
         val item = track("1")
 

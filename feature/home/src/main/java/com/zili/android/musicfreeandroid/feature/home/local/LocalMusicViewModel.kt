@@ -33,6 +33,9 @@ class LocalMusicViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<LocalMusicUiState>(LocalMusicUiState.Loading)
     val uiState: StateFlow<LocalMusicUiState> = _uiState
 
+    private var latestRepositoryItems: List<MusicItem> = emptyList()
+    private var repositoryEmissionCount: Int = 0
+
     val downloadActiveCount: StateFlow<Int> = downloader.tasks
         .map { tasks -> tasks.count { it.status != DownloadStatus.FAILED } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
@@ -48,6 +51,8 @@ class LocalMusicViewModel @Inject constructor(
                     _uiState.value = LocalMusicUiState.Error(e.message ?: "加载失败")
                 }
                 .collect { items ->
+                    latestRepositoryItems = items
+                    repositoryEmissionCount += 1
                     _uiState.value = LocalMusicUiState.Success(items)
                 }
         }
@@ -56,11 +61,17 @@ class LocalMusicViewModel @Inject constructor(
     fun scanLocalMusic(storageDirectoryUri: String? = null) {
         _uiState.value = LocalMusicUiState.Loading
         viewModelScope.launch {
+            val emissionCountBeforeScan = repositoryEmissionCount
             try {
                 scanner.scan(storageDirectoryUri)
                     .collect { items ->
                         musicRepository.insertAll(items)
                     }
+                if (_uiState.value == LocalMusicUiState.Loading &&
+                    repositoryEmissionCount == emissionCountBeforeScan
+                ) {
+                    _uiState.value = LocalMusicUiState.Success(latestRepositoryItems)
+                }
             } catch (e: Exception) {
                 _uiState.value = LocalMusicUiState.Error(e.message ?: "扫描失败")
             }
