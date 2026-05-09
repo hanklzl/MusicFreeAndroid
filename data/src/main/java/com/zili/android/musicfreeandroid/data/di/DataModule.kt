@@ -10,6 +10,7 @@ import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.dao.LyricCacheDao
+import com.zili.android.musicfreeandroid.data.db.dao.MediaCacheDao
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
@@ -51,6 +52,9 @@ object DataModule {
 
     @Provides
     fun provideLyricCacheDao(db: AppDatabase): LyricCacheDao = db.lyricCacheDao()
+
+    @Provides
+    fun provideMediaCacheDao(db: AppDatabase): MediaCacheDao = db.mediaCacheDao()
 
     @Provides
     fun provideDownloadTaskDao(db: AppDatabase): DownloadTaskDao = db.downloadTaskDao()
