@@ -67,12 +67,18 @@ class TopListViewModel @Inject constructor(
 
     fun selectPlugin(platform: String) {
         val plugin = capablePlugins.value.firstOrNull { it.info.platform.trim() == platform }
-            ?: pluginManager.getPlugin(platform)
+            ?: pluginManager.getPlugin(platform)?.takeIf { it.supportsTopLists() }
         if (plugin == null) {
             invalidateLoads()
             selectedPluginInstance = null
-            _selectedPlugin.value = platform
-            _uiState.value = TopListUiState.Error("插件不存在：$platform")
+            _selectedPlugin.value = null
+            _uiState.value = TopListUiState.Error(
+                if (capablePlugins.value.isEmpty()) {
+                    "当前没有支持榜单的插件"
+                } else {
+                    "插件不存在：$platform"
+                },
+            )
             return
         }
         selectPlugin(plugin)

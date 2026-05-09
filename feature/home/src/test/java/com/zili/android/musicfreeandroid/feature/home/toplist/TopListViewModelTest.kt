@@ -236,6 +236,62 @@ class TopListViewModelTest {
         )
     }
 
+    @Test
+    fun `refresh result wins over stale previous request`() = runTest {
+        val firstGate = CompletableDeferred<List<MusicSheetGroupItem>>()
+        var callCount = 0
+        val capable = plugin("capable", setOf("getTopLists"))
+        runBlocking {
+            whenever(capable.getTopLists()).doSuspendableAnswer {
+                callCount += 1
+                if (callCount == 1) {
+                    firstGate.await()
+                } else {
+                    listOf(musicGroup("refresh"))
+                }
+            }
+        }
+        enabledPlugins.value = listOf(capable)
+
+        val viewModel = TopListViewModel(pluginManager)
+        advanceUntilIdle()
+        assertEquals(TopListUiState.Loading, viewModel.uiState.value)
+
+        viewModel.refresh()
+        advanceUntilIdle()
+        assertEquals(
+            listOf("refresh"),
+            (viewModel.uiState.value as TopListUiState.Success).groups.map { it.title },
+        )
+
+        firstGate.complete(listOf(musicGroup("stale-initial")))
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("refresh"),
+            (viewModel.uiState.value as TopListUiState.Success).groups.map { it.title },
+        )
+    }
+
+    @Test
+    fun `selectPlugin ignores plugins without getTopLists support`() = runTest {
+        val searchOnly = plugin("search-only", setOf("search"))
+        enabledPlugins.value = listOf(searchOnly)
+
+        val viewModel = TopListViewModel(pluginManager)
+        advanceUntilIdle()
+
+        viewModel.selectPlugin("search-only")
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.selectedPlugin.value)
+        assertEquals(
+            "当前没有支持榜单的插件",
+            (viewModel.uiState.value as TopListUiState.Error).message,
+        )
+        verify(searchOnly, never()).getTopLists()
+    }
+
     private fun plugin(
         platform: String,
         methods: Set<String>,
