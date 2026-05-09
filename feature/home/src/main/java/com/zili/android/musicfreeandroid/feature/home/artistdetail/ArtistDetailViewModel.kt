@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
@@ -20,6 +21,7 @@ class ArtistDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val pluginManager: PluginManager,
     private val playerController: PlayerController,
+    private val mediaSourceResolver: MediaSourceResolver,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<ArtistDetailRoute>()
@@ -84,11 +86,9 @@ class ArtistDetailViewModel @Inject constructor(
             return false
         }
 
-        val plugin = pluginManager.getPlugin(route.pluginPlatform) ?: return false
         val clicked = list[index]
         val resolved = if (clicked.url.isNullOrBlank()) {
-            val source = plugin.getMediaSource(clicked) ?: return false
-            clicked.copy(url = source.url)
+            mediaSourceResolver.resolve(clicked)?.item ?: return false
         } else {
             clicked
         }
