@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.core.navigation
 
+import androidx.annotation.Keep
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
@@ -79,6 +80,7 @@ data class SearchMusicListRoute(
 }
 
 @Serializable
+@Keep
 enum class SettingsType {
     Basic,
     Plugin,

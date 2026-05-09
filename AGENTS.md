@@ -126,6 +126,19 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - `docs/superpowers/plans/*.md` 中旧动画或 AppBar 写法不作为当前 UI Harness 规范来源。
 - 旧入口 `docs/ui-harness/screen-chrome-rules.md` 已迁移；保留只读 redirect stub 以兼容历史引用。
 
+### R8 与反射保留规则
+
+Release 构建启用 R8 和资源压缩；新增或修改会被运行时按类名、成员名或序列化类型名解析的类型时，必须审查是否需要 `@Keep` 或等价 ProGuard 规则，并补充 release 运行态验收。
+
+需要保留 class 名称的典型场景：
+
+- 类型的全限定类名会在运行时作为字符串被解析，例如 `Class.forName(...)`、框架反射、外部协议或持久化数据引用。
+- Navigation Compose typed route 的 enum 参数、custom `NavType` 参数，或其他依赖默认全限定 `serialName` 查找类型的导航参数。
+- `kotlinx.serialization` 多态、默认 `serialName`、跨版本持久化 payload 或外部接口把类名当作稳定协议的一部分。
+- Android framework、第三方 SDK、JS bridge 或插件桥按约定反射调用的类、构造函数、方法或字段；若只需要保留成员名，优先使用精确 `-keepclassmembers`，不要扩大到整包。
+
+不应为了省事 blanket keep 整个模块。普通 `@Serializable` route/data class 如果只通过生成 serializer 读写字段，且类名不是运行时协议的一部分，通常不需要 `@Keep`。一旦新增此类保留规则，必须至少验证 `:app:assembleRelease`，并在可用设备/模拟器上安装 release 包冷启动检查 `AndroidRuntime` 崩溃日志。
+
 ### 主题系统
 
 在 Material3 基础上扩展语义色（`MusicFreeColors` + `CompositionLocal`），并支持亮色/暗色模式。原版主题可参考 `../MusicFree/src/core/theme.ts`。
