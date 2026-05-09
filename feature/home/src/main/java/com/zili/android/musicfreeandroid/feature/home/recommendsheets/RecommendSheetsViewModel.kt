@@ -2,8 +2,9 @@ package com.zili.android.musicfreeandroid.feature.home.recommendsheets
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiModel
+import com.zili.android.musicfreeandroid.feature.home.pluginfeature.pluginsSupporting
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,8 +25,8 @@ class RecommendSheetsViewModel @Inject constructor(
         private const val DEFAULT_TAG_ID = "__default__"
     }
 
-    val availablePlugins: StateFlow<List<PluginInfo>> = pluginManager.plugins
-        .map { list -> list.map { it.info } }
+    val availablePlugins: StateFlow<List<PluginCapabilityUiModel>> = pluginManager.getSortedEnabledPlugins()
+        .map { plugins -> plugins.pluginsSupporting("getRecommendSheetsByTag") }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _selectedPlugin = MutableStateFlow<String?>(null)
@@ -35,6 +36,7 @@ class RecommendSheetsViewModel @Inject constructor(
     val uiState: StateFlow<RecommendSheetsUiState> = _uiState.asStateFlow()
 
     private var page: Int = 0
+    private var loadGeneration: Long = 0
 
     init {
         viewModelScope.launch {
@@ -42,8 +44,21 @@ class RecommendSheetsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             availablePlugins.collect { plugins ->
-                if (_selectedPlugin.value == null && plugins.isNotEmpty()) {
-                    selectPlugin(plugins.first().platform)
+                when {
+                    plugins.isEmpty() -> {
+                        invalidateLoads()
+                        page = 0
+                        _selectedPlugin.value = null
+                        _uiState.value = RecommendSheetsUiState(
+                            loading = false,
+                            isEnd = true,
+                            emptyMessage = "当前没有支持推荐歌单的插件",
+                        )
+                    }
+                    _selectedPlugin.value == null ||
+                        plugins.none { it.platform == _selectedPlugin.value } -> {
+                        selectPlugin(plugins.first().platform)
+                    }
                 }
             }
         }
@@ -51,8 +66,9 @@ class RecommendSheetsViewModel @Inject constructor(
 
     fun selectPlugin(platform: String) {
         _selectedPlugin.value = platform
+        val generation = nextLoadGeneration()
         viewModelScope.launch {
-            loadTagsAndFirstPage(platform)
+            loadTagsAndFirstPage(platform, generation)
         }
     }
 
@@ -62,7 +78,9 @@ class RecommendSheetsViewModel @Inject constructor(
         if (_uiState.value.selectedTagId == tag.id && _uiState.value.sheets.isNotEmpty()) {
             return
         }
+        val generation = nextLoadGeneration()
         viewModelScope.launch {
+            if (!isCurrentLoad(platform, generation)) return@launch
             page = 0
             _uiState.value = _uiState.value.copy(
                 selectedTagId = tag.id,
@@ -71,15 +89,18 @@ class RecommendSheetsViewModel @Inject constructor(
                 loadingMore = false,
                 isEnd = false,
                 errorMessage = null,
+                emptyMessage = null,
             )
-            loadSheets(platform = platform, tag = tag, reset = true)
+            loadSheets(platform = platform, tag = tag, reset = true, generation = generation)
         }
     }
 
     fun refresh() {
         val platform = _selectedPlugin.value ?: return
         val tag = currentTag() ?: defaultTag()
+        val generation = nextLoadGeneration()
         viewModelScope.launch {
+            if (!isCurrentLoad(platform, generation)) return@launch
             page = 0
             _uiState.value = _uiState.value.copy(
                 selectedTagId = tag.id,
@@ -88,8 +109,9 @@ class RecommendSheetsViewModel @Inject constructor(
                 loadingMore = false,
                 isEnd = false,
                 errorMessage = null,
+                emptyMessage = null,
             )
-            loadSheets(platform = platform, tag = tag, reset = true)
+            loadSheets(platform = platform, tag = tag, reset = true, generation = generation)
         }
     }
 
@@ -100,23 +122,29 @@ class RecommendSheetsViewModel @Inject constructor(
         if (state.loading || state.loadingMore || state.isEnd) {
             return
         }
+        val generation = nextLoadGeneration()
         viewModelScope.launch {
-            loadSheets(platform = platform, tag = tag, reset = false)
+            loadSheets(platform = platform, tag = tag, reset = false, generation = generation)
         }
     }
 
-    private suspend fun loadTagsAndFirstPage(platform: String) {
+    private suspend fun loadTagsAndFirstPage(platform: String, generation: Long) {
+        if (!isCurrentLoad(platform, generation)) return
         val plugin = pluginManager.getPlugin(platform)
         if (plugin == null) {
+            if (!isCurrentLoad(platform, generation)) return
             _uiState.value = RecommendSheetsUiState(
                 loading = false,
+                isEnd = true,
                 errorMessage = "插件不存在：$platform",
             )
             return
         }
 
+        if (!isCurrentLoad(platform, generation)) return
         _uiState.value = RecommendSheetsUiState(loading = true)
         val tagsResult = runCatching { plugin.getRecommendSheetTags() }.getOrNull()
+        if (!isCurrentLoad(platform, generation)) return
 
         val tags = buildTags(tagsResult?.pinned.orEmpty(), tagsResult?.data.orEmpty())
         val selected = tags.firstOrNull() ?: defaultTag()
@@ -127,16 +155,19 @@ class RecommendSheetsViewModel @Inject constructor(
             selectedTagId = selected.id,
             loading = true,
         )
-        loadSheets(platform = platform, tag = selected, reset = true)
+        loadSheets(platform = platform, tag = selected, reset = true, generation = generation)
     }
 
     private suspend fun loadSheets(
         platform: String,
         tag: RecommendTag,
         reset: Boolean,
+        generation: Long,
     ) {
+        if (!isCurrentLoad(platform, generation)) return
         val plugin = pluginManager.getPlugin(platform)
         if (plugin == null) {
+            if (!isCurrentLoad(platform, generation)) return
             _uiState.value = _uiState.value.copy(
                 loading = false,
                 loadingMore = false,
@@ -146,16 +177,21 @@ class RecommendSheetsViewModel @Inject constructor(
         }
 
         val nextPage = if (reset) 1 else page + 1
+        if (!isCurrentLoad(platform, generation)) return
         _uiState.value = _uiState.value.copy(
             loading = reset,
             loadingMore = !reset,
             errorMessage = null,
+            emptyMessage = null,
         )
 
-        runCatching {
+        val result = runCatching {
             plugin.getRecommendSheetsByTag(tag.payload, nextPage)
-        }.onSuccess { result ->
-            if (result == null) {
+        }
+        if (!isCurrentLoad(platform, generation)) return
+
+        result.onSuccess { sheetsResult ->
+            if (sheetsResult == null) {
                 _uiState.value = _uiState.value.copy(
                     loading = false,
                     loadingMore = false,
@@ -164,7 +200,7 @@ class RecommendSheetsViewModel @Inject constructor(
                 return@onSuccess
             }
             page = nextPage
-            val incoming = result.data.map { item ->
+            val incoming = sheetsResult.data.map { item ->
                 if (item.platform.isBlank()) item.copy(platform = platform) else item
             }
             val merged = if (reset) incoming else _uiState.value.sheets + incoming
@@ -172,7 +208,7 @@ class RecommendSheetsViewModel @Inject constructor(
                 sheets = merged,
                 loading = false,
                 loadingMore = false,
-                isEnd = result.isEnd,
+                isEnd = sheetsResult.isEnd,
                 errorMessage = null,
             )
         }.onFailure { e ->
@@ -183,6 +219,18 @@ class RecommendSheetsViewModel @Inject constructor(
             )
         }
     }
+
+    private fun nextLoadGeneration(): Long {
+        loadGeneration += 1
+        return loadGeneration
+    }
+
+    private fun invalidateLoads() {
+        loadGeneration += 1
+    }
+
+    private fun isCurrentLoad(platform: String, generation: Long): Boolean =
+        loadGeneration == generation && _selectedPlugin.value == platform
 
     private fun buildTags(
         pinned: List<MusicSheetItemBase>,

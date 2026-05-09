@@ -33,6 +33,7 @@ import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.ar
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.musicDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.MusicDetailSeedStore
 import com.zili.android.musicfreeandroid.feature.home.musiclisteditor.navigation.musicListEditorLiteScreen
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStore
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.pluginSheetDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.recommendsheets.navigation.recommendSheetsScreen
@@ -143,11 +144,19 @@ fun AppNavHost(
         )
         topListScreen(
             onBack = { navController.popBackStack() },
-            onOpenTopListDetail = { pluginPlatform, topListId ->
+            onOpenTopListDetail = { pluginPlatform, topList ->
+                val seedToken = PluginSheetSeedStore.put(topList)
                 navController.navigate(
                     TopListDetailRoute(
                         pluginPlatform = pluginPlatform,
-                        topListId = topListId,
+                        topListId = topList.id,
+                        title = topList.title,
+                        artist = topList.artist,
+                        description = topList.description,
+                        coverImg = topList.coverImg,
+                        artwork = topList.artwork,
+                        worksNum = topList.worksNum,
+                        seedToken = seedToken,
                     ),
                 )
             },
@@ -174,14 +183,18 @@ fun AppNavHost(
         recommendSheetsScreen(
             onBack = { navController.popBackStack() },
             onOpenSheetDetail = { pluginPlatform, sheet ->
+                val seedToken = PluginSheetSeedStore.put(sheet)
                 navController.navigate(
                     PluginSheetDetailRoute(
                         pluginPlatform = pluginPlatform,
                         sheetId = sheet.id,
                         title = sheet.title,
                         artist = sheet.artist,
+                        description = sheet.description,
                         coverImg = sheet.coverImg,
                         artwork = sheet.artwork,
+                        worksNum = sheet.worksNum,
+                        seedToken = seedToken,
                     ),
                 )
             },

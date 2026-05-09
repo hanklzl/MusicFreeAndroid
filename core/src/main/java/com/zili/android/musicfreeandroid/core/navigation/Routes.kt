@@ -103,6 +103,13 @@ data object TopListRoute
 data class TopListDetailRoute(
     val pluginPlatform: String,
     val topListId: String,
+    val title: String? = null,
+    val artist: String? = null,
+    val description: String? = null,
+    val coverImg: String? = null,
+    val artwork: String? = null,
+    val worksNum: Int? = null,
+    val seedToken: String? = null,
 )
 
 @Serializable
@@ -114,8 +121,11 @@ data class PluginSheetDetailRoute(
     val sheetId: String,
     val title: String? = null,
     val artist: String? = null,
+    val description: String? = null,
     val coverImg: String? = null,
     val artwork: String? = null,
+    val worksNum: Int? = null,
+    val seedToken: String? = null,
 )
 
 @Serializable

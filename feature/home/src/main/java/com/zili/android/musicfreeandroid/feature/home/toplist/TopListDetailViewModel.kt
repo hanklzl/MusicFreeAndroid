@@ -10,6 +10,8 @@ import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.downloader.Downloader
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedResolver
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.fallbackTopListSeed
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -30,6 +32,9 @@ class TopListDetailViewModel @Inject constructor(
     private val mediaSourceResolver: MediaSourceResolver,
 ) : ViewModel() {
     private val route = savedStateHandle.toRoute<TopListDetailRoute>()
+    private val seedResolver = PluginSheetRouteSeedResolver(route.seedToken) {
+        route.fallbackTopListSeed()
+    }
 
     private val _uiState = MutableStateFlow(TopListDetailUiState(loading = true))
     val uiState: StateFlow<TopListDetailUiState> = _uiState.asStateFlow()
@@ -119,14 +124,7 @@ class TopListDetailViewModel @Inject constructor(
             return
         }
 
-        val seedTopList = findTopListById(route.topListId)
-        if (seedTopList == null) {
-            _uiState.value = TopListDetailUiState(
-                loading = false,
-                errorMessage = "未找到榜单：${route.topListId}",
-            )
-            return
-        }
+        val seedTopList = seedResolver.resolve()
 
         runCatching {
             plugin.getTopListDetail(seedTopList, page = 1)
@@ -154,14 +152,6 @@ class TopListDetailViewModel @Inject constructor(
                 errorMessage = e.message ?: "加载榜单失败",
             )
         }
-    }
-
-    private suspend fun findTopListById(topListId: String): MusicSheetItemBase? {
-        val plugin = pluginManager.getPlugin(route.pluginPlatform) ?: return null
-        val groups = plugin.getTopLists()
-        return groups.asSequence()
-            .flatMap { it.data.asSequence() }
-            .firstOrNull { it.id == topListId }
     }
 
     val defaultDownloadQuality = appPreferences.defaultDownloadQuality

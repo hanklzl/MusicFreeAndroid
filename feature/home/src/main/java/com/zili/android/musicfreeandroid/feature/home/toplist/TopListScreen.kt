@@ -12,9 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,7 +22,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
@@ -34,13 +30,15 @@ import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityTabs
+import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopListScreen(
     onBack: () -> Unit,
-    onOpenTopListDetail: (pluginPlatform: String, topListId: String) -> Unit,
+    onOpenTopListDetail: (pluginPlatform: String, topList: MusicSheetItemBase) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TopListViewModel = hiltViewModel(),
 ) {
@@ -64,29 +62,11 @@ fun TopListScreen(
             if (plugins.isEmpty()) {
                 EmptyState("暂无已安装插件，请先在设置中安装插件")
             } else {
-                SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                ) {
-                    plugins.forEachIndexed { index, plugin ->
-                        SegmentedButton(
-                            selected = selectedPlugin == plugin.platform,
-                            onClick = { viewModel.selectPlugin(plugin.platform) },
-                            shape = SegmentedButtonDefaults.itemShape(
-                                index = index,
-                                count = plugins.size,
-                            ),
-                        ) {
-                            Text(
-                                text = plugin.platform,
-                                fontSize = FontSizes.subTitle,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
+                PluginCapabilityTabs(
+                    plugins = plugins,
+                    selectedPlatform = selectedPlugin,
+                    onSelectPlugin = viewModel::selectPlugin,
+                )
 
                 when (val state = uiState) {
                     is TopListUiState.Idle,
@@ -139,8 +119,8 @@ fun TopListScreen(
 @Composable
 private fun TopListGroups(
     pluginPlatform: String?,
-    groups: List<com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem>,
-    onOpenTopListDetail: (pluginPlatform: String, topListId: String) -> Unit,
+    groups: List<MusicSheetGroupItem>,
+    onOpenTopListDetail: (pluginPlatform: String, topList: MusicSheetItemBase) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -165,7 +145,7 @@ private fun TopListGroups(
                     item = item,
                     onClick = {
                         if (!pluginPlatform.isNullOrBlank()) {
-                            onOpenTopListDetail(pluginPlatform, item.id)
+                            onOpenTopListDetail(pluginPlatform, item)
                         }
                     },
                 )
@@ -203,10 +183,10 @@ private fun TopListItemRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            val artist = item.artist
-            if (!artist.isNullOrBlank()) {
+            val subtitle = topListSubtitle(item)
+            if (subtitle != null) {
                 Text(
-                    text = artist,
+                    text = subtitle,
                     color = MusicFreeTheme.colors.textSecondary,
                     fontSize = FontSizes.description,
                     maxLines = 1,
@@ -216,6 +196,10 @@ private fun TopListItemRow(
         }
     }
 }
+
+internal fun topListSubtitle(item: MusicSheetItemBase): String? =
+    item.description?.trim()?.takeIf { it.isNotBlank() }
+        ?: item.artist?.trim()?.takeIf { it.isNotBlank() }
 
 @Composable
 private fun EmptyState(text: String) {

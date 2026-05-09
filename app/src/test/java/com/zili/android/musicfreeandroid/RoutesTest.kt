@@ -171,11 +171,20 @@ class RoutesTest {
 
     @Test
     fun `TopListDetailRoute is serializable`() {
-        val route = TopListDetailRoute(pluginPlatform = "demo", topListId = "sheet-1")
+        val route = TopListDetailRoute(
+            pluginPlatform = "demo",
+            topListId = "sheet-1",
+            title = "飙升榜",
+            artist = "官方",
+            description = "每日更新",
+            coverImg = "https://example.com/top.jpg",
+            artwork = "https://example.com/top-art.jpg",
+            worksNum = 100,
+            seedToken = "seed-1",
+        )
         val json = Json.encodeToString(serializer(), route)
-        assertNotNull(json)
         val decoded = Json.decodeFromString<TopListDetailRoute>(json)
-        assertNotNull(decoded)
+        assertEquals(route, decoded)
     }
 
     @Test
@@ -192,11 +201,16 @@ class RoutesTest {
             pluginPlatform = "demo",
             sheetId = "sheet-9",
             title = "热门推荐",
+            artist = "编辑精选",
+            description = "适合通勤",
+            coverImg = "https://example.com/sheet.jpg",
+            artwork = "https://example.com/sheet-art.jpg",
+            worksNum = 42,
+            seedToken = "seed-9",
         )
         val json = Json.encodeToString(serializer(), route)
-        assertNotNull(json)
         val decoded = Json.decodeFromString<PluginSheetDetailRoute>(json)
-        assertNotNull(decoded)
+        assertEquals(route, decoded)
     }
 
     @Test

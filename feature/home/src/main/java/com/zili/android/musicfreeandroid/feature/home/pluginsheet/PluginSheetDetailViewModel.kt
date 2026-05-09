@@ -14,6 +14,8 @@ import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedResolver
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.fallbackSheetSeed
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,6 +40,9 @@ class PluginSheetDetailViewModel @Inject constructor(
     private val mediaSourceResolver: MediaSourceResolver,
 ) : ViewModel() {
     private val route = savedStateHandle.toRoute<PluginSheetDetailRoute>()
+    private val seedResolver = PluginSheetRouteSeedResolver(route.seedToken) {
+        route.fallbackSheetSeed()
+    }
 
     private val _uiState = MutableStateFlow(PluginSheetDetailUiState(loading = true))
     val uiState: StateFlow<PluginSheetDetailUiState> = _uiState.asStateFlow()
@@ -198,28 +203,8 @@ class PluginSheetDetailViewModel @Inject constructor(
         }
     }
 
-    private fun seedSheet(): MusicSheetItemBase {
-        val raw = mutableMapOf<String, Any?>(
-            "id" to route.sheetId,
-            "platform" to route.pluginPlatform,
-        )
-        route.title?.let { raw["title"] = it }
-        route.artist?.let { raw["artist"] = it }
-        route.coverImg?.let { raw["coverImg"] = it }
-        route.artwork?.let { raw["artwork"] = it }
-
-        return MusicSheetItemBase(
-            id = route.sheetId,
-            platform = route.pluginPlatform,
-            title = route.title,
-            artist = route.artist,
-            description = null,
-            coverImg = route.coverImg,
-            artwork = route.artwork,
-            worksNum = null,
-            raw = raw,
-        )
-    }
+    private fun seedSheet(): MusicSheetItemBase =
+        seedResolver.resolve()
 
     val defaultDownloadQuality = appPreferences.defaultDownloadQuality
 
