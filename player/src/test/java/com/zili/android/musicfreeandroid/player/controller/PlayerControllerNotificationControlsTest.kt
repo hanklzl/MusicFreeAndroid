@@ -71,6 +71,26 @@ class PlayerControllerNotificationControlsTest {
         }
     }
 
+    @Test
+    fun `playItem reuses queued item when matching item is already resolved`() {
+        val resolver = RecordingResolver(
+            resolvedUrl = "https://cdn.example.test/1.mp3",
+        )
+        val controller = PlayerController(context, resolver)
+        val queued = testItem("1").copy(url = "https://queue.example.test/1.mp3")
+
+        try {
+            controller.playQueue(listOf(queued), startIndex = 0)
+
+            controller.playItem(testItem("1").copy(url = null))
+
+            assertEquals("https://queue.example.test/1.mp3", controller.playQueue.currentItem?.url)
+            assertEquals(emptyList<String>(), resolver.requestedIds)
+        } finally {
+            controller.release()
+        }
+    }
+
     private fun testItem(id: String) = MusicItem(
         id = id,
         platform = "test",

@@ -127,13 +127,13 @@ class PlayerController @Inject constructor(
         val index = playQueue.items.indexOfFirst {
             it.id == item.id && it.platform == item.platform
         }
-        if (index >= 0) {
+        val queuedItem = if (index >= 0) {
             playQueue.skipTo(index)
         } else {
             playQueue.add(item)
             playQueue.skipTo(playQueue.size - 1)
         }
-        setMediaItemAndPlay(item)
+        queuedItem?.let { setMediaItemAndPlay(it) }
     }
 
     fun playQueue(items: List<MusicItem>, startIndex: Int = 0) {
