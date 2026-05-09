@@ -60,3 +60,21 @@ implemented_by: INC-2026-0005
 ## 网络通道门控
 
 参见 [plugin/rules.md#rule-network-test-gated](../plugin/rules.md#rule-network-test-gated)。
+
+## ViewModel 异步加载 stale 结果丢弃 {#rule-async-load-generation}
+
+implemented_by: INC-2026-0013
+
+- ViewModel 在 `viewModelScope.launch { ... }` 内异步获取数据并 mutate state 时 MUST 携带 generation / instance counter（`AtomicLong` / `MutableStateFlow<Long>`），响应 apply 前校验 `currentGen == responseGen`；不匹配则丢弃。
+- 或者：触发新一轮加载前 MUST `cancelAndJoin()` 上一次 job。
+- MUST NOT 让 stale 响应静默 mutate state，造成 UI 串味或跨用户操作泄漏。
+- 适用范围：`feature/*/src/main/.../*ViewModel.kt` 中所有发起远端 / 插件 / 异步加载的 launch block。
+
+## 测试 fixture 必须跟随生产构造器 {#rule-test-fixture-must-track-vm-ctor}
+
+implemented_by: INC-2026-0016
+
+- 修改 ViewModel / Repository / 注入入口的构造器参数 MUST 同步更新所有 `*Test.kt` 中的 fixture / fake / factory。
+- PR MUST 跑该模块完整 `testDebugUnitTest` 通过后再合入；不能仅靠 `assembleDebug` 验证（gradle 测试源编译被 build cache 掩盖）。
+- `dev-harness-gate.yml` MUST 含一个 "Compile-only test sources (all modules)" 步骤跑 `:<each-module>:compileDebugUnitTestKotlin`，作为 fixture lag 的 PR 守门。新加模块时 MUST 同步加入这步。
+- 本地等价命令：`bash scripts/dev-harness/check.sh`（默认含编译全模块测试源步骤）。
