@@ -15,6 +15,7 @@ import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
+import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import kotlinx.serialization.json.Json
@@ -136,11 +137,27 @@ class RoutesTest {
     }
 
     @Test
-    fun `SettingsRoute is serializable`() {
-        val json = Json.encodeToString(serializer(), SettingsRoute)
+    fun `SettingsRoute defaults to basic type`() {
+        val route = SettingsRoute()
+        val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
+
         val decoded = Json.decodeFromString<SettingsRoute>(json)
-        assertNotNull(decoded)
+
+        assertEquals(SettingsType.Basic, decoded.type)
+    }
+
+    @Test
+    fun `SettingsRoute serializes every supported type`() {
+        SettingsType.entries.forEach { type ->
+            val route = SettingsRoute(type = type)
+            val json = Json.encodeToString(serializer(), route)
+            assertNotNull(json)
+
+            val decoded = Json.decodeFromString<SettingsRoute>(json)
+
+            assertEquals(route, decoded)
+        }
     }
 
     @Test
