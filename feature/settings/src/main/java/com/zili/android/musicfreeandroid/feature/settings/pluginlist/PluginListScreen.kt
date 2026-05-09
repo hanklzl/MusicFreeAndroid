@@ -42,6 +42,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -566,12 +567,17 @@ private fun UserVariablesDialog(
     onConfirm: (Map<String, String>) -> Unit,
 ) {
     val variables = item.info.userVariables.filter { it.key.isNotBlank() }
-    var values by remember(item.info.platform, variables, initialValues) {
-        mutableStateOf(
-            variables.associate { variable ->
+    var edited by remember(item.info.platform, variables) { mutableStateOf(false) }
+    var values by remember(item.info.platform, variables) {
+        mutableStateOf(emptyMap<String, String>())
+    }
+
+    LaunchedEffect(item.info.platform, variables, initialValues) {
+        if (!edited) {
+            values = variables.associate { variable ->
                 variable.key to initialValues[variable.key].orEmpty()
-            },
-        )
+            }
+        }
     }
 
     AlertDialog(
@@ -588,6 +594,7 @@ private fun UserVariablesDialog(
                     OutlinedTextField(
                         value = values[variable.key].orEmpty(),
                         onValueChange = { value ->
+                            edited = true
                             values = values + (variable.key to value)
                         },
                         label = { Text(variable.name ?: variable.key) },
