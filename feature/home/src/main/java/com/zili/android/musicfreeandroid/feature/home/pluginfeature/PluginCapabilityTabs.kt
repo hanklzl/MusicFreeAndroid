@@ -18,14 +18,17 @@ fun PluginCapabilityTabs(
     if (plugins.isEmpty()) {
         return
     }
+    val selectedTabIndex = plugins.indexOfFirst { it.platform == selectedPlatform }
+        .takeIf { it >= 0 }
+        ?: 0
     ScrollableTabRow(
-        selectedTabIndex = plugins.indexOfFirst { it.platform == selectedPlatform }.coerceAtLeast(0),
+        selectedTabIndex = selectedTabIndex,
         containerColor = MusicFreeTheme.colors.background,
         contentColor = MusicFreeTheme.colors.primary,
         edgePadding = 12.dp,
     ) {
-        plugins.forEach { plugin ->
-            val selected = plugin.platform == selectedPlatform
+        plugins.forEachIndexed { index, plugin ->
+            val selected = index == selectedTabIndex
             Tab(
                 selected = selected,
                 onClick = { onSelectPlugin(plugin.platform) },
