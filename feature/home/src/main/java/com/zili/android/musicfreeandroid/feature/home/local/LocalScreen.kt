@@ -135,6 +135,10 @@ fun LocalScreen(
             item = item,
             onDismiss = { optionsItem = null },
             onDownload = { qualityFor = it; optionsItem = null },
+            onRemoveFromLocalLibrary = {
+                viewModel.removeFromLocalLibrary(it)
+                optionsItem = null
+            },
         )
     }
     qualityFor?.let { item ->
