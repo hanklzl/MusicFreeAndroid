@@ -1,0 +1,1 @@
+../../../../docs/dev-harness/player/rules.md
