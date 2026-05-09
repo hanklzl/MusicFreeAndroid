@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.feature.home.playlist.CreatePlaylistDialog
 import com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportRoute
 import com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportViewModel
@@ -27,7 +28,7 @@ fun HomeScreen(
     onNavigateToRecommendSheets: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToLocal: () -> Unit,
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: (SettingsType) -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
@@ -81,12 +82,11 @@ fun HomeScreen(
         scheduleCloseSummary = scheduleCloseSummary,
         onDrawerEntryClick = { action ->
             when (action) {
-                HomeDrawerAction.OpenSettingsRoot,
-                HomeDrawerAction.OpenPluginManagement,
-                HomeDrawerAction.OpenThemeSettings,
-                HomeDrawerAction.OpenBackup,
-                HomeDrawerAction.OpenAbout -> onNavigateToSettings()
-
+                HomeDrawerAction.OpenSettingsRoot -> onNavigateToSettings(SettingsType.Basic)
+                HomeDrawerAction.OpenPluginManagement -> onNavigateToSettings(SettingsType.Plugin)
+                HomeDrawerAction.OpenThemeSettings -> onNavigateToSettings(SettingsType.Theme)
+                HomeDrawerAction.OpenBackup -> onNavigateToSettings(SettingsType.Backup)
+                HomeDrawerAction.OpenAbout -> onNavigateToSettings(SettingsType.About)
                 HomeDrawerAction.OpenPermissions -> onNavigateToPermissions()
                 HomeDrawerAction.BackToDesktop -> homeSystemActionHandler.backToDesktop()
                 HomeDrawerAction.ExitApp -> {

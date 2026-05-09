@@ -80,20 +80,25 @@ class HomeEntryNavigationTest {
     }
 
     @Test
-    fun settingsBasicEntry_opensSettingsRoot() {
+    fun settingsBasicEntry_opensBasicSettingsRoot() {
         openDrawerDestination(FidelityAnchors.Home.DrawerSettingsBasic)
         assertTagExists(FidelityAnchors.Screen.SettingsRoot)
+        assertTagExists(FidelityAnchors.Settings.BasicRoot)
     }
 
     @Test
     fun settingsPluginEntry_exposesSettingsPluginAnchor() {
         openDrawerDestination(FidelityAnchors.Home.DrawerSettingsPlugin)
+        assertTagExists(FidelityAnchors.Screen.SettingsRoot)
+        assertTagExists(FidelityAnchors.Settings.PluginRoot)
         assertSettingsFallbackEntry(FidelityAnchors.Settings.PluginManagementEntry)
     }
 
     @Test
     fun settingsThemeEntry_exposesSettingsThemeAnchor() {
         openDrawerDestination(FidelityAnchors.Home.DrawerSettingsTheme)
+        assertTagExists(FidelityAnchors.Screen.SettingsRoot)
+        assertTagExists(FidelityAnchors.Settings.ThemeRoot)
         assertSettingsFallbackEntry(FidelityAnchors.Settings.ThemeEntry)
     }
 
@@ -106,6 +111,8 @@ class HomeEntryNavigationTest {
     @Test
     fun backupEntry_exposesSettingsBackupAnchor() {
         openDrawerDestination(FidelityAnchors.Home.DrawerOtherBackup)
+        assertTagExists(FidelityAnchors.Screen.SettingsRoot)
+        assertTagExists(FidelityAnchors.Settings.BackupRoot)
         assertSettingsFallbackEntry(FidelityAnchors.Settings.BackupEntry)
     }
 
@@ -130,6 +137,8 @@ class HomeEntryNavigationTest {
     @Test
     fun aboutEntry_exposesSettingsAboutAnchor() {
         openDrawerDestination(FidelityAnchors.Home.DrawerSoftwareAbout)
+        assertTagExists(FidelityAnchors.Screen.SettingsRoot)
+        assertTagExists(FidelityAnchors.Settings.AboutRoot)
         assertSettingsFallbackEntry(FidelityAnchors.Settings.AboutEntry)
     }
 

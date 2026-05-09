@@ -8,10 +8,19 @@ import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class BasicSettingsUiState(
+    val maxDownload: Int = 3,
+    val defaultDownloadQuality: PlayQuality = PlayQuality.STANDARD,
+    val useCellularDownload: Boolean = false,
+    val lyricAutoSearchEnabled: Boolean = true,
+    val storageAccessState: StorageAccessState = StorageAccessState(),
+)
 
 data class StorageAccessState(
     val selectedDirectory: DocumentTreeDirectory? = null,
@@ -46,7 +55,29 @@ class SettingsViewModel @Inject constructor(
     val defaultDownloadQuality: StateFlow<PlayQuality> = appPreferences.defaultDownloadQuality
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayQuality.STANDARD)
 
+    val lyricAutoSearchEnabled: StateFlow<Boolean> = appPreferences.lyricAutoSearchEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val basicSettingsUiState: StateFlow<BasicSettingsUiState> = combine(
+        maxDownload,
+        defaultDownloadQuality,
+        useCellularDownload,
+        lyricAutoSearchEnabled,
+        storageAccessState,
+    ) { maxDownload, defaultDownloadQuality, useCellularDownload, lyricAutoSearchEnabled, storageAccessState ->
+        BasicSettingsUiState(
+            maxDownload = maxDownload,
+            defaultDownloadQuality = defaultDownloadQuality,
+            useCellularDownload = useCellularDownload,
+            lyricAutoSearchEnabled = lyricAutoSearchEnabled,
+            storageAccessState = storageAccessState,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BasicSettingsUiState())
+
     fun setMaxDownload(value: Int) = viewModelScope.launch { appPreferences.setMaxDownload(value) }
     fun setUseCellularDownload(v: Boolean) = viewModelScope.launch { appPreferences.setUseCellularDownload(v) }
     fun setDefaultDownloadQuality(q: PlayQuality) = viewModelScope.launch { appPreferences.setDefaultDownloadQuality(q) }
+    fun setLyricAutoSearchEnabled(value: Boolean) = viewModelScope.launch {
+        appPreferences.setLyricAutoSearchEnabled(value)
+    }
 }

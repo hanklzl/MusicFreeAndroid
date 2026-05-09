@@ -79,7 +79,18 @@ data class SearchMusicListRoute(
 }
 
 @Serializable
-data object SettingsRoute
+enum class SettingsType {
+    Basic,
+    Plugin,
+    Theme,
+    Backup,
+    About,
+}
+
+@Serializable
+data class SettingsRoute(
+    val type: SettingsType = SettingsType.Basic,
+)
 
 @Serializable
 data object PermissionsRoute
