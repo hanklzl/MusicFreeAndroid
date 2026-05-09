@@ -15,15 +15,14 @@ import javax.inject.Inject
 class SearchMusicListSourceLoader @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val playerController: PlayerController,
-    private val musicRepository: MusicRepository? = null,
+    private val musicRepository: MusicRepository,
 ) {
     fun observe(route: SearchMusicListRoute): Flow<List<MusicItem>> = observe(route.toCollectionSource())
 
     fun observe(source: CollectionSource): Flow<List<MusicItem>> =
         when (source) {
             CollectionSource.History -> playerController.playHistory
-            CollectionSource.LocalLibrary ->
-                musicRepository?.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL) ?: flowOf(emptyList())
+            CollectionSource.LocalLibrary -> musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)
             is CollectionSource.Playlist -> playlistRepository.observeMusicInPlaylist(source.playlistId)
             is CollectionSource.Transient -> flowOf(emptyList())
         }
