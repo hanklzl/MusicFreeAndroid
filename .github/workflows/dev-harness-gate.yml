@@ -23,7 +23,11 @@ jobs:
         run: bash scripts/dev-harness/symlinks-check.sh
       - name: Grep guards
         run: python3 scripts/dev-harness/grep-check.py
-      - name: Contract tests (JVM) — PR 1 placeholder
+      - name: Contract tests (JVM)
         run: |
-          echo "Contract-test step is staged; activates in PR 3 once contract tests land."
-          echo "See docs/superpowers/plans/2026-05-09-dev-harness-foundation.md Phase 3."
+          ./gradlew \
+            :app:testDebugUnitTest :core:testDebugUnitTest :data:testDebugUnitTest \
+            :downloader:testDebugUnitTest :plugin:testDebugUnitTest :player:testDebugUnitTest \
+            :feature:home:testDebugUnitTest :feature:player-ui:testDebugUnitTest \
+            :feature:search:testDebugUnitTest :feature:settings:testDebugUnitTest \
+            --tests '*harness.contracts.*' --no-daemon
