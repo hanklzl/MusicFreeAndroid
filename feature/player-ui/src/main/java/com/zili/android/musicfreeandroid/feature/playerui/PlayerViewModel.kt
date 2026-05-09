@@ -12,6 +12,7 @@ import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricSearchGroup
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
+import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueUiModel
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsUiState
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.player.model.PlayerState
@@ -46,6 +47,17 @@ class PlayerViewModel @Inject constructor(
 
     val playerState: StateFlow<PlayerState> = playerController.playerState
     val errorEvents: SharedFlow<String> = playerController.errorEvents
+
+    val queueUiModel: StateFlow<PlayQueueUiModel> = combine(
+        playerController.queueState,
+        playerState,
+    ) { snapshot, player ->
+        PlayQueueUiModel(
+            items = snapshot.items,
+            currentIndex = snapshot.currentIndex,
+            repeatMode = player.repeatMode,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayQueueUiModel.EMPTY)
 
     private val rawLyricLoadState: StateFlow<LyricLoadState> = playerState
         .map { it.currentItem }
@@ -169,6 +181,14 @@ class PlayerViewModel @Inject constructor(
     fun cycleRepeatMode() = playerController.cycleRepeatMode()
 
     fun toggleShuffle() = playerController.toggleShuffle()
+
+    fun playQueueIndex(index: Int) = playerController.skipTo(index)
+
+    fun removeFromQueue(index: Int) {
+        playerController.removeFromQueue(index)
+    }
+
+    fun clearQueue() = playerController.reset()
 
     fun setLyricShowTranslation(enabled: Boolean) {
         viewModelScope.launch { appPreferences.setLyricShowTranslation(enabled) }
