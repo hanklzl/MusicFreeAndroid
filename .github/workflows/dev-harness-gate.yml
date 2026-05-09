@@ -24,10 +24,11 @@ jobs:
       - name: Grep guards
         run: python3 scripts/dev-harness/grep-check.py
       - name: Contract tests (JVM)
+        # Only invoke modules that currently host harness/contracts/ tests; gradle
+        # treats --tests with zero matches as failure, so listing modules without
+        # contract tests would fail the gate. Extend this list when contract
+        # tests land in other modules.
         run: |
           ./gradlew \
-            :app:testDebugUnitTest :core:testDebugUnitTest :data:testDebugUnitTest \
-            :downloader:testDebugUnitTest :plugin:testDebugUnitTest :player:testDebugUnitTest \
-            :feature:home:testDebugUnitTest :feature:player-ui:testDebugUnitTest \
-            :feature:search:testDebugUnitTest :feature:settings:testDebugUnitTest \
+            :app:testDebugUnitTest :plugin:testDebugUnitTest :feature:player-ui:testDebugUnitTest \
             --tests '*harness.contracts.*' --no-daemon
