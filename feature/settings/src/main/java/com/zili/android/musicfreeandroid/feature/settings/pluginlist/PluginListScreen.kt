@@ -4,9 +4,12 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,8 +17,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
@@ -32,6 +37,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,7 +57,7 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PluginListScreen(
     onBack: () -> Unit,
@@ -71,6 +77,10 @@ fun PluginListScreen(
     var showFabMenu by remember { mutableStateOf(false) }
     var showUninstallAllConfirm by remember { mutableStateOf(false) }
     var failureDialog by remember { mutableStateOf<List<FailureDetail>?>(null) }
+    var alternativeTarget by remember { mutableStateOf<PluginUiItem?>(null) }
+    var importMusicItemTarget by remember { mutableStateOf<PluginUiItem?>(null) }
+    var importMusicSheetTarget by remember { mutableStateOf<PluginUiItem?>(null) }
+    var userVariablesTarget by remember { mutableStateOf<PluginUiItem?>(null) }
 
     MusicFreeScreenScaffold(
         title = "插件管理",
@@ -173,6 +183,10 @@ fun PluginListScreen(
                                 }
                             },
                             onUninstall = { viewModel.uninstallPlugin(item.info.platform) },
+                            onSetAlternative = { alternativeTarget = item },
+                            onImportMusicItem = { importMusicItemTarget = item },
+                            onImportMusicSheet = { importMusicSheetTarget = item },
+                            onEditUserVariables = { userVariablesTarget = item },
                         )
                     }
                 }
@@ -217,6 +231,60 @@ fun PluginListScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showUninstallAllConfirm = false }) { Text("取消") }
+            },
+        )
+    }
+
+    alternativeTarget?.let { source ->
+        AlternativePluginDialog(
+            source = source,
+            candidates = pluginItems.filter {
+                it.enabled &&
+                    it.info.platform != source.info.platform &&
+                    "getMediaSource" in it.info.supportedMethods
+            },
+            onDismiss = { alternativeTarget = null },
+            onConfirm = { targetPlatform ->
+                alternativeTarget = null
+                viewModel.setAlternativePlugin(source.info.platform, targetPlatform)
+            },
+        )
+    }
+
+    importMusicItemTarget?.let { target ->
+        ImportUrlDialog(
+            title = "导入单曲",
+            onDismiss = { importMusicItemTarget = null },
+            onConfirm = { url ->
+                importMusicItemTarget = null
+                viewModel.importMusicItem(target.info.platform, url)
+            },
+        )
+    }
+
+    importMusicSheetTarget?.let { target ->
+        ImportUrlDialog(
+            title = "导入歌单",
+            onDismiss = { importMusicSheetTarget = null },
+            onConfirm = { url ->
+                importMusicSheetTarget = null
+                viewModel.importMusicSheet(target.info.platform, url)
+            },
+        )
+    }
+
+    userVariablesTarget?.let { target ->
+        val variablesFlow = remember(target.info.platform) {
+            viewModel.userVariables(target.info.platform)
+        }
+        val savedVariables by variablesFlow.collectAsStateWithLifecycle(initialValue = emptyMap())
+        UserVariablesDialog(
+            item = target,
+            initialValues = savedVariables,
+            onDismiss = { userVariablesTarget = null },
+            onConfirm = { values ->
+                userVariablesTarget = null
+                viewModel.saveUserVariables(target.info.platform, values)
             },
         )
     }
@@ -305,6 +373,10 @@ private fun PluginCard(
     onUpdate: () -> Unit,
     onShare: () -> Unit,
     onUninstall: () -> Unit,
+    onSetAlternative: () -> Unit,
+    onImportMusicItem: () -> Unit,
+    onImportMusicSheet: () -> Unit,
+    onEditUserVariables: () -> Unit,
 ) {
     val alpha = if (item.enabled) 1f else 0.5f
 
@@ -342,11 +414,31 @@ private fun PluginCard(
                 modifier = Modifier.padding(top = rpx(4)),
             )
 
-            Row(
-                modifier = Modifier.padding(top = rpx(12)),
+            item.alternativePlatform?.let { target ->
+                Text(
+                    text = if (item.alternativeInvalid) {
+                        "音源重定向目标不可用：$target"
+                    } else {
+                        "该插件实际使用「$target」插件解析音乐的音源"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (item.alternativeInvalid) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.padding(top = rpx(6)),
+                )
+            }
+
+            FlowRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = rpx(12)),
                 horizontalArrangement = Arrangement.spacedBy(rpx(12)),
+                verticalArrangement = Arrangement.spacedBy(rpx(8)),
             ) {
-                if (item.info.srcUrl != null) {
+                if (item.canUpdate) {
                     AssistChip(onClick = onUpdate, label = { Text("更新") })
                     AssistChip(onClick = onShare, label = { Text("分享") })
                 }
@@ -357,9 +449,164 @@ private fun PluginCard(
                         labelColor = MaterialTheme.colorScheme.error,
                     ),
                 )
+                AssistChip(onClick = onSetAlternative, label = { Text("音源重定向") })
+                if (item.canImportMusicItem) {
+                    AssistChip(onClick = onImportMusicItem, label = { Text("导入单曲") })
+                }
+                if (item.canImportMusicSheet) {
+                    AssistChip(onClick = onImportMusicSheet, label = { Text("导入歌单") })
+                }
+                if (item.canEditUserVariables) {
+                    AssistChip(onClick = onEditUserVariables, label = { Text("用户变量") })
+                }
             }
         }
     }
+}
+
+@Composable
+private fun AlternativePluginDialog(
+    source: PluginUiItem,
+    candidates: List<PluginUiItem>,
+    onDismiss: () -> Unit,
+    onConfirm: (String?) -> Unit,
+) {
+    var selectedPlatform by remember(
+        source.info.platform,
+        source.alternativePlatform,
+        source.alternativeInvalid,
+    ) {
+        mutableStateOf(source.alternativePlatform.takeUnless { source.alternativeInvalid })
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("音源重定向") },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                AlternativeOptionRow(
+                    selected = selectedPlatform == null,
+                    label = "无音源重定向",
+                    onClick = { selectedPlatform = null },
+                )
+                candidates.forEach { candidate ->
+                    AlternativeOptionRow(
+                        selected = selectedPlatform == candidate.info.platform,
+                        label = candidate.info.platform,
+                        onClick = { selectedPlatform = candidate.info.platform },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(selectedPlatform) }) {
+                Text("保存")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        },
+    )
+}
+
+@Composable
+private fun AlternativeOptionRow(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = rpx(4)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun ImportUrlDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var url by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = url,
+                onValueChange = { url = it },
+                label = { Text("链接") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(url) }, enabled = url.isNotBlank()) {
+                Text("导入")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        },
+    )
+}
+
+@Composable
+private fun UserVariablesDialog(
+    item: PluginUiItem,
+    initialValues: Map<String, String>,
+    onDismiss: () -> Unit,
+    onConfirm: (Map<String, String>) -> Unit,
+) {
+    val variables = item.info.userVariables.filter { it.key.isNotBlank() }
+    var values by remember(item.info.platform, variables, initialValues) {
+        mutableStateOf(
+            variables.associate { variable ->
+                variable.key to initialValues[variable.key].orEmpty()
+            },
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("用户变量") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(rpx(12)),
+            ) {
+                variables.forEach { variable ->
+                    OutlinedTextField(
+                        value = values[variable.key].orEmpty(),
+                        onValueChange = { value ->
+                            values = values + (variable.key to value)
+                        },
+                        label = { Text(variable.name ?: variable.key) },
+                        placeholder = variable.hint?.let { hint -> { Text(hint) } },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(values) }) {
+                Text("保存")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        },
+    )
 }
 
 @Composable
