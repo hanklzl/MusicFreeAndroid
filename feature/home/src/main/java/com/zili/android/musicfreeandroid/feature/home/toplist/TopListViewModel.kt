@@ -2,7 +2,8 @@ package com.zili.android.musicfreeandroid.feature.home.toplist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiModel
+import com.zili.android.musicfreeandroid.feature.home.pluginfeature.pluginsSupporting
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,8 +20,8 @@ class TopListViewModel @Inject constructor(
     private val pluginManager: PluginManager,
 ) : ViewModel() {
 
-    val availablePlugins: StateFlow<List<PluginInfo>> = pluginManager.plugins
-        .map { list -> list.map { it.info } }
+    val availablePlugins: StateFlow<List<PluginCapabilityUiModel>> = pluginManager.getSortedEnabledPlugins()
+        .map { plugins -> plugins.pluginsSupporting("getTopLists") }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _selectedPlugin = MutableStateFlow<String?>(null)
@@ -35,8 +36,15 @@ class TopListViewModel @Inject constructor(
         }
         viewModelScope.launch {
             availablePlugins.collect { plugins ->
-                if (_selectedPlugin.value == null && plugins.isNotEmpty()) {
-                    selectPlugin(plugins.first().platform)
+                when {
+                    plugins.isEmpty() -> {
+                        _selectedPlugin.value = null
+                        _uiState.value = TopListUiState.Error("当前没有支持榜单的插件")
+                    }
+                    _selectedPlugin.value == null ||
+                        plugins.none { it.platform == _selectedPlugin.value } -> {
+                        selectPlugin(plugins.first().platform)
+                    }
                 }
             }
         }
