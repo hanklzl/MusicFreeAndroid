@@ -4,6 +4,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -312,6 +313,19 @@ internal const val PlayerModeButtonTestTag = "player.controls.mode"
 internal const val PlayerCoverBottomClusterTestTag = "player.cover.bottomCluster"
 internal const val PlayerOperationsBarTestTag = "player.operations.bar"
 internal const val PlayerSeekBarTestTag = "player.seekBar"
+
+@DrawableRes
+internal fun playerModeIcon(playbackMode: PlaybackMode): Int = when (playbackMode) {
+    PlaybackMode.Shuffle -> R.drawable.ic_shuffle
+    PlaybackMode.Single -> R.drawable.ic_repeat_song
+    PlaybackMode.Queue -> R.drawable.ic_repeat_song_1
+}
+
+internal fun playerModeDescription(playbackMode: PlaybackMode): String = when (playbackMode) {
+    PlaybackMode.Shuffle -> "随机播放"
+    PlaybackMode.Single -> "单曲循环"
+    PlaybackMode.Queue -> "列表循环"
+}
 
 @Composable
 internal fun PlayerContentLayer(
@@ -646,16 +660,8 @@ internal fun PlayerControls(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // 随机/循环模式图标
-        val modeIcon = when (playbackMode) {
-            PlaybackMode.Shuffle -> R.drawable.ic_shuffle
-            PlaybackMode.Single -> R.drawable.ic_repeat_song_1
-            PlaybackMode.Queue -> R.drawable.ic_repeat_song
-        }
-        val modeDescription = when (playbackMode) {
-            PlaybackMode.Shuffle -> "随机播放"
-            PlaybackMode.Single -> "单曲循环"
-            PlaybackMode.Queue -> "列表循环"
-        }
+        val modeIcon = playerModeIcon(playbackMode)
+        val modeDescription = playerModeDescription(playbackMode)
         IconButton(
             onClick = onCyclePlaybackMode,
             modifier = Modifier.testTag(PlayerModeButtonTestTag),

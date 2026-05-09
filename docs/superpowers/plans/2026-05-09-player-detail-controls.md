@@ -624,8 +624,8 @@ Replace the mode icon block inside `PlayerControls`:
 ```kotlin
         val modeIcon = when (playbackMode) {
             PlaybackMode.Shuffle -> R.drawable.ic_shuffle
-            PlaybackMode.Single -> R.drawable.ic_repeat_song_1
-            PlaybackMode.Queue -> R.drawable.ic_repeat_song
+            PlaybackMode.Single -> R.drawable.ic_repeat_song
+            PlaybackMode.Queue -> R.drawable.ic_repeat_song_1
         }
         val modeDescription = when (playbackMode) {
             PlaybackMode.Shuffle -> "随机播放"
