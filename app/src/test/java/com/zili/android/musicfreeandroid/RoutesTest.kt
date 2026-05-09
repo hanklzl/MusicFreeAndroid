@@ -258,6 +258,15 @@ class RoutesTest {
     }
 
     @Test
+    fun `local library MusicListEditorLiteRoute is serializable`() {
+        val route = MusicListEditorLiteRoute.localLibrary()
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<MusicListEditorLiteRoute>(json)
+        assertEquals(route, decoded)
+    }
+
+    @Test
     fun `AlbumDetailRoute is serializable`() {
         val route = AlbumDetailRoute(
             pluginPlatform = "demo",
