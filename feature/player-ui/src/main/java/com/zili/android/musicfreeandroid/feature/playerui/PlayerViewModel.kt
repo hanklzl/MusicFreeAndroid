@@ -168,6 +168,8 @@ class PlayerViewModel @Inject constructor(
 
     fun cycleRepeatMode() = playerController.cycleRepeatMode()
 
+    fun cyclePlaybackMode() = playerController.cyclePlaybackMode()
+
     fun toggleShuffle() = playerController.toggleShuffle()
 
     fun setLyricShowTranslation(enabled: Boolean) {

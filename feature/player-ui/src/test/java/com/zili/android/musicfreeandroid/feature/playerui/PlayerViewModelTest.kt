@@ -466,6 +466,13 @@ class PlayerViewModelTest {
     }
 
     @Test
+    fun `cyclePlaybackMode calls controller`() {
+        val viewModel = createViewModel()
+        viewModel.cyclePlaybackMode()
+        verify(playerController).cyclePlaybackMode()
+    }
+
+    @Test
     fun `toggleShuffle calls controller`() {
         val viewModel = createViewModel()
         viewModel.toggleShuffle()

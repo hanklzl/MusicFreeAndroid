@@ -4,6 +4,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,7 +60,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.zili.android.musicfreeandroid.core.R
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
@@ -160,26 +162,15 @@ fun PlayerScreen(
 
             when (contentPage) {
                 PlayerContentPage.Cover -> {
-                    Spacer(Modifier.weight(1f))
-
-                    PlayerCoverArt(
+                    PlayerCoverPageContent(
                         artworkUrl = artworkUrl,
-                        modifier = Modifier
-                            .size(rpx(500))
-                            .clickable { contentPage = PlayerContentPage.Lyrics },
-                    )
-
-                    Spacer(Modifier.weight(1f))
-
-                    PlayerOperationsBar(
                         isFav = isFav,
                         hasCurrentItem = currentItem != null,
                         onToggleFav = { viewModel.toggleCurrentFavorite() },
                         onAddToPlaylist = { viewModel.showAddToPlaylistSheet() },
                         onToggleLyrics = { contentPage = PlayerContentPage.Lyrics },
+                        modifier = Modifier.weight(1f),
                     )
-
-                    Spacer(Modifier.weight(1f))
                 }
 
                 PlayerContentPage.Lyrics -> {
@@ -219,18 +210,21 @@ fun PlayerScreen(
                 position = state.position,
                 duration = state.duration,
                 onSeek = { viewModel.seekTo(it) },
-                modifier = Modifier.padding(horizontal = rpx(48)),
+                modifier = Modifier
+                    .padding(horizontal = rpx(48))
+                    .testTag(PlayerSeekBarTestTag),
             )
 
             PlayerControls(
                 isPlaying = state.isPlaying,
-                repeatMode = state.repeatMode,
-                shuffleEnabled = state.shuffleEnabled,
+                playbackMode = PlaybackMode.from(
+                    shuffleEnabled = state.shuffleEnabled,
+                    repeatMode = state.repeatMode,
+                ),
                 onTogglePlayPause = { viewModel.togglePlayPause() },
                 onSkipPrevious = { viewModel.skipToPrevious() },
                 onSkipNext = { viewModel.skipToNext() },
-                onCycleRepeatMode = { viewModel.cycleRepeatMode() },
-                onToggleShuffle = { viewModel.toggleShuffle() },
+                onCyclePlaybackMode = { viewModel.cyclePlaybackMode() },
             )
 
             Spacer(Modifier.height(rpx(48)))
@@ -313,6 +307,24 @@ fun PlayerScreen(
 private enum class PlayerContentPage {
     Cover,
     Lyrics,
+}
+
+internal const val PlayerModeButtonTestTag = "player.controls.mode"
+internal const val PlayerCoverBottomClusterTestTag = "player.cover.bottomCluster"
+internal const val PlayerOperationsBarTestTag = "player.operations.bar"
+internal const val PlayerSeekBarTestTag = "player.seekBar"
+
+@DrawableRes
+internal fun playerModeIcon(playbackMode: PlaybackMode): Int = when (playbackMode) {
+    PlaybackMode.Shuffle -> R.drawable.ic_shuffle
+    PlaybackMode.Single -> R.drawable.ic_repeat_song
+    PlaybackMode.Queue -> R.drawable.ic_repeat_song_1
+}
+
+internal fun playerModeDescription(playbackMode: PlaybackMode): String = when (playbackMode) {
+    PlaybackMode.Shuffle -> "随机播放"
+    PlaybackMode.Single -> "单曲循环"
+    PlaybackMode.Queue -> "列表循环"
 }
 
 @Composable
@@ -414,6 +426,52 @@ private fun PlayerNavBar(
 }
 
 @Composable
+internal fun PlayerCoverPageContent(
+    artworkUrl: String?,
+    isFav: Boolean,
+    hasCurrentItem: Boolean,
+    onToggleFav: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onToggleLyrics: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            PlayerCoverArt(
+                artworkUrl = artworkUrl,
+                modifier = Modifier
+                    .size(rpx(500))
+                    .clickable { onToggleLyrics() },
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(PlayerCoverBottomClusterTestTag),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            PlayerOperationsBar(
+                isFav = isFav,
+                hasCurrentItem = hasCurrentItem,
+                onToggleFav = onToggleFav,
+                onAddToPlaylist = onAddToPlaylist,
+                onToggleLyrics = onToggleLyrics,
+            )
+            Spacer(Modifier.height(rpx(24)))
+        }
+    }
+}
+
+@Composable
 private fun PlayerCoverArt(
     artworkUrl: String?,
     modifier: Modifier = Modifier,
@@ -444,7 +502,7 @@ private fun PlayerCoverArt(
 }
 
 @Composable
-private fun PlayerOperationsBar(
+internal fun PlayerOperationsBar(
     isFav: Boolean,
     hasCurrentItem: Boolean,
     onToggleFav: () -> Unit,
@@ -456,7 +514,8 @@ private fun PlayerOperationsBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(rpx(80))
-            .padding(horizontal = rpx(48)),
+            .padding(horizontal = rpx(48))
+            .testTag(PlayerOperationsBarTestTag),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -528,7 +587,7 @@ private fun PlayerOperationsBar(
 }
 
 @Composable
-private fun PlayerSeekBar(
+internal fun PlayerSeekBar(
     position: Long,
     duration: Long,
     onSeek: (Long) -> Unit,
@@ -584,15 +643,13 @@ private fun PlayerSeekBar(
 }
 
 @Composable
-private fun PlayerControls(
+internal fun PlayerControls(
     isPlaying: Boolean,
-    repeatMode: RepeatMode,
-    shuffleEnabled: Boolean,
+    playbackMode: PlaybackMode,
     onTogglePlayPause: () -> Unit,
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
-    onCycleRepeatMode: () -> Unit,
-    onToggleShuffle: () -> Unit,
+    onCyclePlaybackMode: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -603,17 +660,15 @@ private fun PlayerControls(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // 随机/循环模式图标
-        val modeIcon = when {
-            shuffleEnabled -> R.drawable.ic_shuffle
-            repeatMode == RepeatMode.ONE -> R.drawable.ic_repeat_song_1
-            else -> R.drawable.ic_repeat_song
-        }
+        val modeIcon = playerModeIcon(playbackMode)
+        val modeDescription = playerModeDescription(playbackMode)
         IconButton(
-            onClick = if (shuffleEnabled) onToggleShuffle else onCycleRepeatMode,
+            onClick = onCyclePlaybackMode,
+            modifier = Modifier.testTag(PlayerModeButtonTestTag),
         ) {
             Icon(
                 painter = painterResource(modeIcon),
-                contentDescription = "播放模式",
+                contentDescription = modeDescription,
                 tint = Color.White,
                 modifier = Modifier.size(rpx(56)),
             )

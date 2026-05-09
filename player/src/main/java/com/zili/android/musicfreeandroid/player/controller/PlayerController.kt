@@ -8,6 +8,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.player.ext.defaultAlbumArtworkUri
 import com.zili.android.musicfreeandroid.player.ext.toMediaItem
@@ -184,6 +185,33 @@ class PlayerController @Inject constructor(
             RepeatMode.OFF -> RepeatMode.ALL
             RepeatMode.ALL -> RepeatMode.ONE
             RepeatMode.ONE -> RepeatMode.OFF
+        }
+        runOnControllerThread {
+            emitState()
+        }
+    }
+
+    fun cyclePlaybackMode() {
+        when (PlaybackMode.from(shuffleEnabled, repeatMode)) {
+            PlaybackMode.Shuffle -> {
+                shuffleEnabled = false
+                playQueue.unshuffle()
+                repeatMode = RepeatMode.ONE
+            }
+            PlaybackMode.Single -> {
+                if (shuffleEnabled) {
+                    shuffleEnabled = false
+                    playQueue.unshuffle()
+                }
+                repeatMode = RepeatMode.ALL
+            }
+            PlaybackMode.Queue -> {
+                repeatMode = RepeatMode.ALL
+                if (!shuffleEnabled) {
+                    shuffleEnabled = true
+                    playQueue.shuffle()
+                }
+            }
         }
         runOnControllerThread {
             emitState()
