@@ -168,6 +168,74 @@ class TopListViewModelTest {
         )
     }
 
+    @Test
+    fun `pending old plugin failure does not overwrite newly selected plugin result`() = runTest {
+        val firstGate = CompletableDeferred<List<MusicSheetGroupItem>>()
+        val firstCapable = plugin("capable-first", setOf("getTopLists"))
+        runBlocking {
+            whenever(firstCapable.getTopLists()).doSuspendableAnswer {
+                firstGate.await()
+            }
+        }
+        val secondCapable = plugin("capable-second", setOf("getTopLists"), topLists = listOf(musicGroup("second")))
+        enabledPlugins.value = listOf(firstCapable, secondCapable)
+
+        val viewModel = TopListViewModel(pluginManager)
+        advanceUntilIdle()
+
+        viewModel.selectPlugin("capable-second")
+        advanceUntilIdle()
+        assertEquals(
+            listOf("second"),
+            (viewModel.uiState.value as TopListUiState.Success).groups.map { it.title },
+        )
+
+        firstGate.completeExceptionally(IllegalStateException("old failure"))
+        advanceUntilIdle()
+
+        assertEquals("capable-second", viewModel.selectedPlugin.value)
+        assertEquals(
+            listOf("second"),
+            (viewModel.uiState.value as TopListUiState.Success).groups.map { it.title },
+        )
+    }
+
+    @Test
+    fun `same platform plugin replacement reloads and ignores old plugin result`() = runTest {
+        val oldGate = CompletableDeferred<List<MusicSheetGroupItem>>()
+        val oldPlugin = plugin("capable", setOf("getTopLists"))
+        runBlocking {
+            whenever(oldPlugin.getTopLists()).doSuspendableAnswer {
+                oldGate.await()
+            }
+        }
+        val replacementPlugin = plugin("capable", setOf("getTopLists"), topLists = listOf(musicGroup("replacement")))
+        enabledPlugins.value = listOf(oldPlugin)
+
+        val viewModel = TopListViewModel(pluginManager)
+        advanceUntilIdle()
+        assertEquals("capable", viewModel.selectedPlugin.value)
+        assertEquals(TopListUiState.Loading, viewModel.uiState.value)
+
+        enabledPlugins.value = listOf(replacementPlugin)
+        advanceUntilIdle()
+
+        assertEquals("capable", viewModel.selectedPlugin.value)
+        assertEquals(
+            listOf("replacement"),
+            (viewModel.uiState.value as TopListUiState.Success).groups.map { it.title },
+        )
+
+        oldGate.complete(listOf(musicGroup("stale-old")))
+        advanceUntilIdle()
+
+        assertEquals("capable", viewModel.selectedPlugin.value)
+        assertEquals(
+            listOf("replacement"),
+            (viewModel.uiState.value as TopListUiState.Success).groups.map { it.title },
+        )
+    }
+
     private fun plugin(
         platform: String,
         methods: Set<String>,
