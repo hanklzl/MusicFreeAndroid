@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.settings.pluginlist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationFailure
@@ -24,6 +25,12 @@ import javax.inject.Inject
 data class PluginUiItem(
     val info: PluginInfo,
     val enabled: Boolean,
+    val alternativePlatform: String?,
+    val alternativeInvalid: Boolean,
+    val canUpdate: Boolean,
+    val canImportMusicItem: Boolean,
+    val canImportMusicSheet: Boolean,
+    val canEditUserVariables: Boolean,
 )
 
 sealed interface InstallState {
@@ -86,9 +93,21 @@ class PluginListViewModel @Inject constructor(
         pluginManager.plugins.map { list -> list.map { it.info } },
         metaStore.disabledPlugins,
         metaStore.pluginOrder,
-    ) { allInfos, disabled, order ->
+        metaStore.alternativePlugins,
+    ) { allInfos, disabled, order, alternatives ->
+        val installedPlatforms = allInfos.map { it.platform }.toSet()
         val items = allInfos.map { info ->
-            PluginUiItem(info = info, enabled = info.platform !in disabled)
+            val alternative = alternatives[info.platform]
+            PluginUiItem(
+                info = info,
+                enabled = info.platform !in disabled,
+                alternativePlatform = alternative,
+                alternativeInvalid = alternative != null && alternative !in installedPlatforms,
+                canUpdate = !info.srcUrl.isNullOrBlank(),
+                canImportMusicItem = "importMusicItem" in info.supportedMethods,
+                canImportMusicSheet = "importMusicSheet" in info.supportedMethods,
+                canEditUserVariables = info.userVariables.isNotEmpty(),
+            )
         }
         if (order.isEmpty()) return@combine items
         val orderMap = order.withIndex().associate { (i, p) -> p to i }
@@ -105,6 +124,9 @@ class PluginListViewModel @Inject constructor(
     private val _installState = MutableStateFlow<InstallState>(InstallState.Idle)
     val installState: StateFlow<InstallState> = _installState.asStateFlow()
 
+    private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())
+    val sheetState: StateFlow<AddToPlaylistSheetState> = _sheetState.asStateFlow()
+
     init {
         viewModelScope.launch {
             pluginManager.ensurePluginsLoaded()
@@ -114,6 +136,47 @@ class PluginListViewModel @Inject constructor(
     fun togglePluginEnabled(platform: String, enabled: Boolean) {
         viewModelScope.launch {
             pluginManager.setPluginEnabled(platform, enabled)
+        }
+    }
+
+    fun setAlternativePlugin(sourcePlatform: String, targetPlatform: String?) {
+        viewModelScope.launch {
+            metaStore.setAlternativePlugin(sourcePlatform, targetPlatform)
+        }
+    }
+
+    fun saveUserVariables(platform: String, values: Map<String, String>) {
+        performOperation(label = "保存用户变量中") {
+            pluginManager.setUserVariables(platform, values)
+            PluginOperationUiState.Success("设置成功")
+        }
+    }
+
+    fun importMusicItem(platform: String, urlLike: String) {
+        performOperation(label = "导入单曲中") {
+            val trimmed = urlLike.trim()
+            if (trimmed.isBlank()) {
+                return@performOperation PluginOperationUiState.Failure("链接有误或目标为空")
+            }
+            val item = pluginManager.getPlugin(platform)?.importMusicItem(trimmed)
+                ?: return@performOperation PluginOperationUiState.Failure("导入单曲失败")
+            _sheetState.value = AddToPlaylistSheetState.single(item)
+            PluginOperationUiState.Success("解析成功")
+        }
+    }
+
+    fun importMusicSheet(platform: String, urlLike: String) {
+        performOperation(label = "导入歌单中") {
+            val trimmed = urlLike.trim()
+            if (trimmed.isBlank()) {
+                return@performOperation PluginOperationUiState.Failure("链接有误或目标为空")
+            }
+            val items = pluginManager.getPlugin(platform)?.importMusicSheet(trimmed).orEmpty()
+            if (items.isEmpty()) {
+                return@performOperation PluginOperationUiState.Failure("链接有误或目标歌单为空")
+            }
+            _sheetState.value = AddToPlaylistSheetState.batch(items)
+            PluginOperationUiState.Success("发现 ${items.size} 首歌曲")
         }
     }
 
