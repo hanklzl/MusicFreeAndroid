@@ -64,6 +64,7 @@ import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
+import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueSheet
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricMoreDialog
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricSearchSheet
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsContent
@@ -89,6 +90,7 @@ fun PlayerScreen(
     var showLyricSearchSheet by remember { mutableStateOf(false) }
     var showLyricOffsetDialog by remember { mutableStateOf(false) }
     var showLyricMoreDialog by remember { mutableStateOf(false) }
+    var showQueueSheet by remember { mutableStateOf(false) }
     var pendingImportKind by remember { mutableStateOf<LocalLyricKind?>(null) }
     val openLyricDocument = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -231,6 +233,7 @@ fun PlayerScreen(
                 onSkipNext = { viewModel.skipToNext() },
                 onCycleRepeatMode = { viewModel.cycleRepeatMode() },
                 onToggleShuffle = { viewModel.toggleShuffle() },
+                onOpenQueue = { showQueueSheet = true },
             )
 
             Spacer(Modifier.height(rpx(48)))
@@ -305,6 +308,13 @@ fun PlayerScreen(
                     showLyricMoreDialog = false
                     Toast.makeText(context, "已解除关联歌词", Toast.LENGTH_SHORT).show()
                 },
+            )
+        }
+
+        if (showQueueSheet) {
+            PlayQueueSheet(
+                viewModel = viewModel,
+                onDismiss = { showQueueSheet = false },
             )
         }
     }
@@ -593,6 +603,7 @@ private fun PlayerControls(
     onSkipNext: () -> Unit,
     onCycleRepeatMode: () -> Unit,
     onToggleShuffle: () -> Unit,
+    onOpenQueue: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -649,7 +660,7 @@ private fun PlayerControls(
             )
         }
 
-        IconButton(onClick = { /* TODO: 弹出队列 */ }) {
+        IconButton(onClick = onOpenQueue) {
             Icon(
                 painter = painterResource(R.drawable.ic_playlist),
                 contentDescription = "播放列表",
