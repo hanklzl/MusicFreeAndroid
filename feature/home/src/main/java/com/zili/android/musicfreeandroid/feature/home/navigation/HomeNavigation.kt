@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.home.navigation
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
+import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.feature.home.HomeScreen
 import com.zili.android.musicfreeandroid.feature.home.HomeSystemActionHandler
 
@@ -11,7 +12,7 @@ fun NavGraphBuilder.homeScreen(
     onNavigateToRecommendSheets: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToLocal: () -> Unit,
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: (SettingsType) -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,

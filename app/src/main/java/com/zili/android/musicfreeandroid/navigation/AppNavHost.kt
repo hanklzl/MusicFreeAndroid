@@ -24,6 +24,7 @@ import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
+import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
@@ -71,7 +72,7 @@ fun AppNavHost(
             onNavigateToRecommendSheets = { navController.navigate(RecommendSheetsRoute) },
             onNavigateToHistory = { navController.navigate(HistoryRoute) },
             onNavigateToLocal = { navController.navigate(LocalRoute) },
-            onNavigateToSettings = { navController.navigate(SettingsRoute()) },
+            onNavigateToSettings = { type: SettingsType -> navController.navigate(SettingsRoute(type)) },
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
             onNavigateToTopList = { navController.navigate(TopListRoute) },
             onNavigateToPlaylistDetail = { playlistId ->

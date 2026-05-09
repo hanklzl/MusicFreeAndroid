@@ -12,21 +12,25 @@ class AppNavHostRouteContractTest {
     private val projectRoot: Path = locateProjectRoot()
 
     @Test
-    fun `default settings entry navigates with SettingsRoute instance`() {
+    fun `settings entries navigate with typed SettingsRoute instance`() {
         val source = Files.readString(
             projectRoot.resolve("app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt"),
         )
 
         assertTrue(
-            "Default settings entry must navigate to SettingsRoute() so the typed route instance is used.",
+            "Settings entries must navigate with the drawer-selected SettingsType.",
             Regex(
-                """onNavigateToSettings\s*=\s*\{\s*navController\.navigate\(\s*SettingsRoute\(\)\s*\)\s*\}""",
+                """onNavigateToSettings\s*=\s*\{\s*type(?:\s*:\s*SettingsType)?\s*->\s*navController\.navigate\(\s*SettingsRoute\(\s*type\s*\)\s*\)\s*\}""",
                 setOf(RegexOption.DOT_MATCHES_ALL),
             ).containsMatchIn(source),
         )
         assertFalse(
             "Default settings entry must not navigate with bare SettingsRoute, which resolves to the companion.",
             Regex("""navController\.navigate\(\s*SettingsRoute\s*\)""").containsMatchIn(source),
+        )
+        assertFalse(
+            "Settings drawer entries must not all collapse to the default Basic route.",
+            Regex("""onNavigateToSettings\s*=\s*\{\s*navController\.navigate\(\s*SettingsRoute\(\)\s*\)\s*\}""").containsMatchIn(source),
         )
     }
 
