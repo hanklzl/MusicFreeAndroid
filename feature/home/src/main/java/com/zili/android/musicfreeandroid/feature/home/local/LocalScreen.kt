@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid.feature.home.local
 
 import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
@@ -60,31 +62,41 @@ fun LocalScreen(
 
     var hasAudioPermission by remember { mutableStateOf<Boolean?>(null) }
     var menuExpanded by remember { mutableStateOf(false) }
+    var pendingDirectoryScanRequest by remember { mutableStateOf(false) }
+    var suppressNextPermissionGrantedScan by remember { mutableStateOf(false) }
+
+    fun isAudioPermissionGranted(): Boolean =
+        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+    lateinit var openDocumentTreeLauncher: ManagedActivityResultLauncher<Uri?, Uri?>
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         hasAudioPermission = granted
         if (granted) {
-            viewModel.scanLocalMusic()
-        }
-    }
-
-    fun withAudioPermission(onGranted: () -> Unit) {
-        if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
-            hasAudioPermission = true
-            onGranted()
+            when {
+                pendingDirectoryScanRequest -> {
+                    pendingDirectoryScanRequest = false
+                    openDocumentTreeLauncher.launch(null)
+                }
+                suppressNextPermissionGrantedScan -> {
+                    suppressNextPermissionGrantedScan = false
+                }
+                else -> viewModel.scanLocalMusic()
+            }
         } else {
-            hasAudioPermission = false
-            permissionLauncher.launch(permission)
+            pendingDirectoryScanRequest = false
+            suppressNextPermissionGrantedScan = false
         }
     }
 
-    val openDocumentTreeLauncher = rememberLauncherForActivityResult(
+    openDocumentTreeLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
         if (uri != null) {
-            withAudioPermission {
+            if (isAudioPermissionGranted()) {
+                hasAudioPermission = true
                 runCatching {
                     DocumentTreeStorageAccess.persistReadWritePermission(
                         contentResolver = context.contentResolver,
@@ -95,12 +107,16 @@ fun LocalScreen(
                     viewModel.setStorageDirectoryUri(treeUri)
                     viewModel.scanLocalMusic(treeUri)
                 }
+            } else {
+                hasAudioPermission = false
+                suppressNextPermissionGrantedScan = true
+                permissionLauncher.launch(permission)
             }
         }
     }
 
     LaunchedEffect(Unit) {
-        if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+        if (isAudioPermissionGranted()) {
             hasAudioPermission = true
             viewModel.scanLocalMusic()
         } else {
@@ -163,8 +179,13 @@ fun LocalScreen(
                     text = { Text("扫描本地音乐") },
                     onClick = {
                         menuExpanded = false
-                        withAudioPermission {
+                        if (isAudioPermissionGranted()) {
+                            hasAudioPermission = true
                             openDocumentTreeLauncher.launch(null)
+                        } else {
+                            hasAudioPermission = false
+                            pendingDirectoryScanRequest = true
+                            permissionLauncher.launch(permission)
                         }
                     },
                 )
