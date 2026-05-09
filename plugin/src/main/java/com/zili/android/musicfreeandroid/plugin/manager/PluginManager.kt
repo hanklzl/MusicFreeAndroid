@@ -219,7 +219,7 @@ class PluginManager @Inject constructor(
                 )
             }
 
-            val fileName = normalizedPath.substringAfterLast("/").ifBlank { "plugin.js" }
+            val fileName = SubscriptionFileNames.networkPluginFileName(trimmed)
             val bytes = downloadUrlBytes(trimmed)
             if (bytes == null) {
                 return@withContext PluginOperationResult(

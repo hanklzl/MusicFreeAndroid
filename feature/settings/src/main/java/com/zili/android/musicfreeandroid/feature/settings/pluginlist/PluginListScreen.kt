@@ -62,7 +62,7 @@ fun PluginListScreen(
     viewModel: PluginListViewModel = hiltViewModel(),
 ) {
     val pluginItems by viewModel.pluginItems.collectAsStateWithLifecycle()
-    val installState by viewModel.installState.collectAsStateWithLifecycle()
+    val operationState by viewModel.operationState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var showMenu by remember { mutableStateOf(false) }
@@ -70,6 +70,7 @@ fun PluginListScreen(
     var showInstallLocalDialog by remember { mutableStateOf(false) }
     var showFabMenu by remember { mutableStateOf(false) }
     var showUninstallAllConfirm by remember { mutableStateOf(false) }
+    var failureDialog by remember { mutableStateOf<List<FailureDetail>?>(null) }
 
     MusicFreeScreenScaffold(
         title = "插件管理",
@@ -127,25 +128,22 @@ fun PluginListScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            when (val state = installState) {
-                is InstallState.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                is InstallState.Success -> {
-                    Text(
-                        text = state.message,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = rpx(24), vertical = rpx(8)),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                is InstallState.Error -> {
-                    Text(
-                        text = state.message,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(horizontal = rpx(24), vertical = rpx(8)),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                InstallState.Idle -> {}
+            when (val state = operationState) {
+                is PluginOperationUiState.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                is PluginOperationUiState.Success -> OperationMessage(message = state.message)
+                is PluginOperationUiState.PartialFailure -> OperationMessage(
+                    message = state.message,
+                    isError = true,
+                    onViewDetail = { failureDialog = state.failures },
+                )
+                is PluginOperationUiState.Failure -> OperationMessage(
+                    message = state.message,
+                    isError = true,
+                    onViewDetail = state.failures.takeIf { it.isNotEmpty() }?.let { failures ->
+                        { failureDialog = failures }
+                    },
+                )
+                PluginOperationUiState.Idle -> {}
             }
 
             if (pluginItems.isEmpty()) {
@@ -222,6 +220,82 @@ fun PluginListScreen(
             },
         )
     }
+
+    failureDialog?.let { failures ->
+        FailureDetailDialog(
+            failures = failures,
+            onDismiss = { failureDialog = null },
+        )
+    }
+}
+
+@Composable
+private fun OperationMessage(
+    message: String,
+    isError: Boolean = false,
+    onViewDetail: (() -> Unit)? = null,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = rpx(24), vertical = rpx(8)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = message,
+            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+        )
+        if (onViewDetail != null) {
+            TextButton(onClick = onViewDetail) {
+                Text("查看详情")
+            }
+        }
+    }
+}
+
+@Composable
+private fun FailureDetailDialog(
+    failures: List<FailureDetail>,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("失败详情") },
+        text = {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(rpx(12)),
+            ) {
+                items(failures) { failure ->
+                    Column {
+                        failure.pluginName?.let { pluginName ->
+                            Text(
+                                text = pluginName,
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+                        Text(
+                            text = failure.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        failure.source?.let { source ->
+                            Text(
+                                text = source,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("关闭")
+            }
+        },
+    )
 }
 
 @Composable
