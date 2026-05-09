@@ -479,8 +479,8 @@ class PluginManager @Inject constructor(
         mutex.withLock {
             _plugins.value.firstOrNull { it.info.platform == platform }
                 ?.updateUserVariables(variables)
+            pluginMetaStore.setUserVariables(platform, variables)
         }
-        pluginMetaStore.setUserVariables(platform, variables)
     }
 
     suspend fun uninstallAllPlugins() {
