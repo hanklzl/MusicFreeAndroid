@@ -1,16 +1,19 @@
 package com.zili.android.musicfreeandroid.plugin.di
 
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
+import com.zili.android.musicfreeandroid.plugin.media.PluginMediaSourceService
+import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
-/**
- * Hilt module for the plugin subsystem.
- *
- * [PluginManager] is provided automatically via its @Singleton @Inject constructor.
- * This module exists as a placeholder for future @Provides/@Binds if needed
- * (e.g., providing OkHttpClient or other dependencies to the plugin layer).
- */
 @Module
 @InstallIn(SingletonComponent::class)
-object PluginModule
+abstract class PluginModule {
+    @Binds
+    @Singleton
+    abstract fun bindMediaSourceResolver(
+        impl: PluginMediaSourceService,
+    ): MediaSourceResolver
+}
