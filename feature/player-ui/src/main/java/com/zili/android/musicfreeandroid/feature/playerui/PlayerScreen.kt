@@ -50,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,7 +59,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.zili.android.musicfreeandroid.core.R
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
@@ -224,13 +225,14 @@ fun PlayerScreen(
 
             PlayerControls(
                 isPlaying = state.isPlaying,
-                repeatMode = state.repeatMode,
-                shuffleEnabled = state.shuffleEnabled,
+                playbackMode = PlaybackMode.from(
+                    shuffleEnabled = state.shuffleEnabled,
+                    repeatMode = state.repeatMode,
+                ),
                 onTogglePlayPause = { viewModel.togglePlayPause() },
                 onSkipPrevious = { viewModel.skipToPrevious() },
                 onSkipNext = { viewModel.skipToNext() },
-                onCycleRepeatMode = { viewModel.cycleRepeatMode() },
-                onToggleShuffle = { viewModel.toggleShuffle() },
+                onCyclePlaybackMode = { viewModel.cyclePlaybackMode() },
             )
 
             Spacer(Modifier.height(rpx(48)))
@@ -314,6 +316,11 @@ private enum class PlayerContentPage {
     Cover,
     Lyrics,
 }
+
+internal const val PlayerModeButtonTestTag = "player.controls.mode"
+internal const val PlayerCoverBottomClusterTestTag = "player.cover.bottomCluster"
+internal const val PlayerOperationsBarTestTag = "player.operations.bar"
+internal const val PlayerSeekBarTestTag = "player.seekBar"
 
 @Composable
 internal fun PlayerContentLayer(
@@ -584,15 +591,13 @@ private fun PlayerSeekBar(
 }
 
 @Composable
-private fun PlayerControls(
+internal fun PlayerControls(
     isPlaying: Boolean,
-    repeatMode: RepeatMode,
-    shuffleEnabled: Boolean,
+    playbackMode: PlaybackMode,
     onTogglePlayPause: () -> Unit,
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
-    onCycleRepeatMode: () -> Unit,
-    onToggleShuffle: () -> Unit,
+    onCyclePlaybackMode: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -603,17 +608,23 @@ private fun PlayerControls(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // 随机/循环模式图标
-        val modeIcon = when {
-            shuffleEnabled -> R.drawable.ic_shuffle
-            repeatMode == RepeatMode.ONE -> R.drawable.ic_repeat_song_1
-            else -> R.drawable.ic_repeat_song
+        val modeIcon = when (playbackMode) {
+            PlaybackMode.Shuffle -> R.drawable.ic_shuffle
+            PlaybackMode.Single -> R.drawable.ic_repeat_song_1
+            PlaybackMode.Queue -> R.drawable.ic_repeat_song
+        }
+        val modeDescription = when (playbackMode) {
+            PlaybackMode.Shuffle -> "随机播放"
+            PlaybackMode.Single -> "单曲循环"
+            PlaybackMode.Queue -> "列表循环"
         }
         IconButton(
-            onClick = if (shuffleEnabled) onToggleShuffle else onCycleRepeatMode,
+            onClick = onCyclePlaybackMode,
+            modifier = Modifier.testTag(PlayerModeButtonTestTag),
         ) {
             Icon(
                 painter = painterResource(modeIcon),
-                contentDescription = "播放模式",
+                contentDescription = modeDescription,
                 tint = Color.White,
                 modifier = Modifier.size(rpx(56)),
             )
