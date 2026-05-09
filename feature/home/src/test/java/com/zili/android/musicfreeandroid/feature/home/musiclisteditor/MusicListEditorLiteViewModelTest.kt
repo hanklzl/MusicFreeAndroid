@@ -2,12 +2,16 @@ package com.zili.android.musicfreeandroid.feature.home.musiclisteditor
 
 import androidx.lifecycle.SavedStateHandle
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -31,10 +35,13 @@ class MusicListEditorLiteViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val playlistRepository: PlaylistRepository = mock()
     private val playerController: PlayerController = mock()
+    private val downloader: Downloader = mock()
+    private val appPreferences: AppPreferences = mock()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        whenever(appPreferences.defaultDownloadQuality).thenReturn(flowOf(PlayQuality.HIGH))
     }
 
     @After
@@ -62,11 +69,7 @@ class MusicListEditorLiteViewModelTest {
                 )
             )
 
-        val viewModel = MusicListEditorLiteViewModel(
-            savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
-            playlistRepository = playlistRepository,
-            playerController = playerController,
-        )
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.toggleSelection(playlistItems.value[0])
@@ -109,11 +112,7 @@ class MusicListEditorLiteViewModelTest {
                 )
             )
 
-        val viewModel = MusicListEditorLiteViewModel(
-            savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
-            playlistRepository = playlistRepository,
-            playerController = playerController,
-        )
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.toggleSelection(playlistItems.value[0])
@@ -168,11 +167,7 @@ class MusicListEditorLiteViewModelTest {
                 )
             )
 
-        val viewModel = MusicListEditorLiteViewModel(
-            savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
-            playlistRepository = playlistRepository,
-            playerController = playerController,
-        )
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.toggleSelection(items[0])
@@ -202,11 +197,7 @@ class MusicListEditorLiteViewModelTest {
                 )
             )
 
-        val viewModel = MusicListEditorLiteViewModel(
-            savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
-            playlistRepository = playlistRepository,
-            playerController = playerController,
-        )
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.selectAll()
@@ -238,11 +229,7 @@ class MusicListEditorLiteViewModelTest {
             )
         )
 
-        val viewModel = MusicListEditorLiteViewModel(
-            savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
-            playlistRepository = playlistRepository,
-            playerController = playerController,
-        )
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         assertEquals(
@@ -259,6 +246,43 @@ class MusicListEditorLiteViewModelTest {
             verify(playlistRepository).addMusicToPlaylist("playlist-2", items[1])
         }
     }
+
+    @Test
+    fun `downloadSelected enqueues selected items in display order with default quality`() = runTest {
+        val items = listOf(
+            track(id = "1"),
+            track(id = "2"),
+            track(id = "3"),
+        )
+        whenever(playlistRepository.getPlaylistById("playlist-1"))
+            .thenReturn(Playlist(id = "playlist-1", name = "Favorites", coverUri = null))
+        whenever(playlistRepository.observeMusicInPlaylist("playlist-1"))
+            .thenReturn(MutableStateFlow(items))
+        whenever(playlistRepository.observeAllPlaylists())
+            .thenReturn(
+                MutableStateFlow(
+                    listOf(Playlist(id = "playlist-1", name = "Favorites", coverUri = null))
+                )
+            )
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.toggleSelection(items[2])
+        viewModel.toggleSelection(items[0])
+        viewModel.downloadSelected()
+        advanceUntilIdle()
+
+        verify(downloader).enqueue(listOf(items[0], items[2]), PlayQuality.HIGH)
+    }
+
+    private fun createViewModel(): MusicListEditorLiteViewModel = MusicListEditorLiteViewModel(
+        savedStateHandle = SavedStateHandle(mapOf("playlistId" to "playlist-1")),
+        playlistRepository = playlistRepository,
+        playerController = playerController,
+        downloader = downloader,
+        appPreferences = appPreferences,
+    )
 
     private fun track(
         id: String,

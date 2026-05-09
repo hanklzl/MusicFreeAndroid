@@ -1,8 +1,10 @@
 package com.zili.android.musicfreeandroid.feature.search
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
@@ -22,6 +24,7 @@ import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -34,6 +37,7 @@ class SearchViewModelTest {
     private val playerController: PlayerController = mock()
     private val appPreferences: AppPreferences = mock()
     private val playlistRepository: PlaylistRepository = mock()
+    private val downloader: Downloader = mock()
     private val pluginFlow = MutableStateFlow<List<LoadedPlugin>>(emptyList())
     private val searchablePluginFlow = MutableStateFlow<List<LoadedPlugin>>(emptyList())
 
@@ -45,10 +49,17 @@ class SearchViewModelTest {
             pluginFlow.value.find { it.info.platform == platform }
         }
         whenever(appPreferences.searchHistory).thenReturn(flowOf(emptyList()))
+        whenever(appPreferences.defaultDownloadQuality).thenReturn(flowOf(PlayQuality.STANDARD))
         whenever(playlistRepository.observeAllPlaylists()).thenReturn(flowOf(emptyList()))
     }
 
-    private fun createViewModel() = SearchViewModel(pluginManager, playerController, appPreferences, playlistRepository)
+    private fun createViewModel() = SearchViewModel(
+        pluginManager = pluginManager,
+        playerController = playerController,
+        appPreferences = appPreferences,
+        playlistRepository = playlistRepository,
+        downloader = downloader,
+    )
 
     @Test
     fun `filters searchable plugins and auto-selects first`() = runTest {
@@ -274,6 +285,19 @@ class SearchViewModelTest {
 
         viewModel.backToEditing()
         assertEquals(SearchPageStatus.EDITING, viewModel.pageStatus.value)
+    }
+
+    @Test
+    fun `download enqueues selected item with requested quality`() = runTest {
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
+        val item = musicItem("1", "Song 1")
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.download(item, PlayQuality.HIGH)
+
+        verify(downloader).enqueue(listOf(item), PlayQuality.HIGH)
     }
 
     private fun setLoadedPlugins(vararg plugins: LoadedPlugin) {
