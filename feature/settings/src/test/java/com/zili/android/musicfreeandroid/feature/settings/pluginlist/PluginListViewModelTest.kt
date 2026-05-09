@@ -405,6 +405,20 @@ class PluginListViewModelTest {
     }
 
     @Test
+    fun `importMusicSheet reports failure when plugin is missing`() = runTest {
+        val fixture = createFixture()
+
+        fixture.viewModel.importMusicSheet("missing", "https://example.com/sheet")
+        advanceUntilIdle()
+
+        assertEquals(
+            PluginOperationUiState.Failure("链接有误或目标歌单为空"),
+            fixture.viewModel.operationState.value,
+        )
+        assertFalse(fixture.viewModel.sheetState.value.visible)
+    }
+
+    @Test
     fun `importMusicSheet reports failure when parsed list is empty`() = runTest {
         val plugin = loadedPlugin(
             platform = "source",
