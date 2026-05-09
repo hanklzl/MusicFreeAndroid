@@ -6,6 +6,7 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.RecommendSheetTagsResult
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
@@ -125,6 +127,43 @@ class RecommendSheetsViewModelTest {
             ),
             payload,
         )
+    }
+
+    @Test
+    fun `pending sheet load does not overwrite unsupported empty state`() = runTest {
+        val sheetGate = CompletableDeferred<PaginationResult<MusicSheetItemBase>>()
+        val capable = plugin(
+            platform = "capable",
+            methods = setOf("getRecommendSheetsByTag"),
+        )
+        runBlocking {
+            whenever(capable.getRecommendSheetsByTag(any(), any())).doSuspendableAnswer {
+                sheetGate.await()
+            }
+        }
+        enabledPlugins.value = listOf(capable)
+
+        val viewModel = RecommendSheetsViewModel(pluginManager)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.loading)
+
+        enabledPlugins.value = emptyList()
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.selectedPlugin.value)
+        assertEquals("当前没有支持推荐歌单的插件", viewModel.uiState.value.emptyMessage)
+
+        sheetGate.complete(
+            PaginationResult(
+                isEnd = true,
+                data = listOf(musicSheet(id = "stale", title = "旧结果")),
+            ),
+        )
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.selectedPlugin.value)
+        assertEquals("当前没有支持推荐歌单的插件", viewModel.uiState.value.emptyMessage)
+        assertTrue(viewModel.uiState.value.sheets.isEmpty())
     }
 
     private fun plugin(
