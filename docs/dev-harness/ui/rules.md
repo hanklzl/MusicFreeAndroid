@@ -90,6 +90,15 @@ MusicFreeScreenScaffold(
 
 新增自定义顶部页面时，必须先说明为什么不能使用普通 AppBar，并使用 `MusicFreeStatusBarChrome` 或等价实现显式处理顶部状态栏区域。
 
+## 浮层 / Drawer / Popup 状态栏避让 {#rule-overlay-respects-statusbar}
+
+implemented_by: INC-2026-0015
+
+- `ModalDrawerSheet`、`ModalBottomSheet`、自定义 `Popup` 等浮层 composable MUST 通过 `Modifier.windowInsetsPadding(WindowInsets.statusBars)`（或等价的 `Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))`）显式避让顶部状态栏。
+- MUST NOT 让浮层标题、按钮、列表第一项被状态栏遮挡。
+- 适用范围：`feature/*/src/main/.../*.kt` 中所有顶层浮层 composable。
+- 与 INC-2026-0008（MainActivity 不补 implicit top inset）配合：MainActivity 不为浮层补 inset，浮层 composable 自己负责。
+
 ## 待开域 backlog
 
 - DB schema during dev：dev 阶段直接改 entity 类、不写 `Migration` 对象。这是 data 域 rule，等 `docs/dev-harness/data/rules.md` 引入时正式落入。来源：项目记忆 promotion。

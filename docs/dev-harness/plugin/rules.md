@@ -40,3 +40,12 @@ implemented_by: INC-2026-0004
 
 - `installFromUrl` 与 `updatePlugin` 编排路径 MUST 通过 `MockWebServer` 单测验证（`PluginManagerHttpLifecycleTest`），断言 request path 与磁盘内容、`plugins` StateFlow 单例。
 - 真插件 JS 解析能力由 `:plugin/src/test/` 单测层守护，instrumentation 仅做编排验证。
+
+## userVariables 写入串行化 {#rule-user-variable-serialization}
+
+implemented_by: INC-2026-0014
+
+- 插件 `userVariables` 写入路径 MUST 通过 Mutex / 单飞（single-flight）模式串行化；MUST NOT 让多个协程并发写 DataStore。
+- refresh / reload userVariables MUST 等待所有 in-flight 写入完成，再读 DataStore；否则覆盖未持久化的 dialog 编辑。
+- userVariable 写错误 MUST 向调用方暴露（不在 catch block swallow），由 ViewModel 决定是否回滚 UI。
+- 适用范围：`:plugin/src/main/.../uservariable/...` 与 `JsBridge.setUserVariable(...)` 写路径。

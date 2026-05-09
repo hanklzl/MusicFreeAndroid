@@ -2,7 +2,34 @@
 
 > 文档状态：当前规范（Dev Harness — UI Incidents）
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [Incidents Index](../incidents/index.md) ｜ [ui/rules.md](./rules.md)
-> 最后校验：2026-05-09
+> 最后校验：2026-05-10
+
+## INC-2026-0015 — Drawer / 浮层未让 status bar
+
+- id: INC-2026-0015
+- area: ui
+- date: 2026-05-10
+- status: active
+- rule_ref: docs/dev-harness/ui/rules.md#rule-overlay-respects-statusbar
+- guard:
+    type: manual
+- fix_ref: 3a5c474, 48cf1fb
+
+### 根因
+
+抽屉 / Modal / Popup 浮层（`ModalDrawerSheet`、`ModalBottomSheet`、自定义 `Popup`）启用 edge-to-edge 后内容默认延伸到状态栏后方但不通过 `WindowInsets.statusBars` 避让；标题、操作按钮、列表第一项被状态栏遮挡。
+
+### 复发条件
+
+新增 `ModalDrawerSheet` / `ModalBottomSheet` / `Popup` composable 但未通过 `WindowInsets.statusBars` / `windowInsetsPadding(WindowInsets.statusBars)` 避让顶部。
+
+### 教训
+
+浮层顶部 chrome 与普通 Screen 同等责任：`Modifier.windowInsetsPadding(WindowInsets.statusBars)` 显式避让。MainActivity 的 inset 责任不延伸到浮层（与 INC-2026-0008 的边界配合）。
+
+### 备注
+
+guard 当前 manual：未来 contract-test 可静态扫 `ModalDrawerSheet` / `ModalBottomSheet` / `PopupProperties` 出现的 composable 是否在同一 scope 含 `WindowInsets.statusBars` 引用，作为 heuristic guard。
 
 ## INC-2026-0008 — MainActivity 隐式补顶部 inset 白名单
 

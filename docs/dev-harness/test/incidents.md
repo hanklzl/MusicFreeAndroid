@@ -2,7 +2,62 @@
 
 > 文档状态：当前规范（Dev Harness — Test Incidents）
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [Incidents Index](../incidents/index.md) ｜ [test/rules.md](./rules.md)
-> 最后校验：2026-05-09
+> 最后校验：2026-05-10
+
+## INC-2026-0016 — 测试 fixture 没跟生产 ViewModel 构造器更新
+
+- id: INC-2026-0016
+- area: test
+- date: 2026-05-10
+- status: active
+- rule_ref: docs/dev-harness/test/rules.md#rule-test-fixture-must-track-vm-ctor
+- guard:
+    type: ci-step
+    target: .github/workflows/dev-harness-gate.yml (Compile-only test sources step)
+- fix_ref: 566a01b, 457f62c
+
+### 根因
+
+生产 ViewModel 构造器新增参数（如 `downloader` / `appPreferences`）后，对应模块测试 fixture（fake / factory / `*Test.kt` 直接构造）未同步加上参数。该模块 `compileDebugUnitTestKotlin` 失败，但 `assembleDebug` 通过 → bug 被 gradle build cache 掩盖。dev-harness 落地时即在 `feature/home/.../MusicListEditorLiteViewModelTest.kt` 撞上，要 rebase 到含 `566a01b test: update download viewmodel fixtures` 的主线后才能编译过。
+
+### 复发条件
+
+任意 `*ViewModel.kt` 构造器签名变化但相同模块的 `*Test.kt` fixture 未同步。
+
+### 教训
+
+dev-harness gate 必须含一个全模块的"仅编译测试源"步骤（`compileDebugUnitTestKotlin`），不能仅靠各 PR 自己跑 testDebugUnitTest 才发现 fixture lag。运行成本数十秒，杠杆比高。
+
+### 备注
+
+guard 类型 `ci-step`：在 `.github/workflows/dev-harness-gate.yml` 的 "Compile-only test sources (all modules)" 步抓；本地复现见 `bash scripts/dev-harness/check.sh`（默认步骤包含编译全模块测试源）。
+
+## INC-2026-0013 — ViewModel 异步加载 stale 结果未丢弃
+
+- id: INC-2026-0013
+- area: test
+- date: 2026-05-10
+- status: active
+- rule_ref: docs/dev-harness/test/rules.md#rule-async-load-generation
+- guard:
+    type: manual
+- fix_ref: 4311900, 8056415, aca4874, 9334e09, 6f2d687
+
+### 根因
+
+ViewModel 异步加载（chart / recommend / playlist import / 插件 import）的响应有时在用户已切换 / 取消 / 重新触发后才到达；旧响应直接 mutate 当前 state，造成显示串味、跨用户操作泄漏。60 天内 5+ 次相同类别 fix。
+
+### 复发条件
+
+新加 ViewModel 异步加载（`viewModelScope.launch { ... ; _state.value = result }`）但没有 generation / instance counter 校验，也没有显式 `cancelAndJoin()` prior job。
+
+### 教训
+
+异步加载 MUST 带 generation id（递增计数 / Job ref）；响应回到 main thread 时校验 `currentGenId == responseGenId`，不一致则丢弃。或显式 `cancelAndJoin()` 上一次 job 后再启动新的。
+
+### 备注
+
+guard 当前 manual：静态扫成本高，需要跨函数追踪 launch 体内的 state mutation。升级触发条件 = 再现一次同类回归即升级为 heuristic contract-test（扫 `_state.value =` / `_uiState.update {}` 出现在 `viewModelScope.launch { ... }` 内但函数体不含 generation 比较）。
 
 ## INC-2026-0005 — feature 模块缺 androidTest runner 基线
 

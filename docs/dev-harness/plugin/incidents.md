@@ -2,7 +2,34 @@
 
 > 文档状态：当前规范（Dev Harness — Plugin Incidents）
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [Incidents Index](../incidents/index.md) ｜ [plugin/rules.md](./rules.md)
-> 最后校验：2026-05-09
+> 最后校验：2026-05-10
+
+## INC-2026-0014 — userVariables 写入并发竞态
+
+- id: INC-2026-0014
+- area: plugin
+- date: 2026-05-10
+- status: active
+- rule_ref: docs/dev-harness/plugin/rules.md#rule-user-variable-serialization
+- guard:
+    type: manual
+- fix_ref: 5ba9906, 8b94e63, b1cbb08, f0d4727, 1d3583e, 9c9d2ab
+
+### 根因
+
+插件 userVariables（per-plugin 键值对）由多个协程并发写 DataStore，无串行化：dialog 编辑被 refresh 覆盖、refresh 期间在途写入丢失、错误被 swallow 导致状态不一致。需要 6 次连续 fix 才稳定。
+
+### 复发条件
+
+`:plugin/src/main/.../uservariable/...` 中出现新写路径（`setUserVariable` / `updateUserVariables` / refresh）但未串行化、未 await in-flight writes。
+
+### 教训
+
+userVariables 写入路径 MUST 通过 Mutex / 单飞（single-flight）模式串行化；refresh 必须等待 in-flight writes 完成；refresh 错误 MUST 暴露给调用方而不是 swallow。
+
+### 备注
+
+guard 当前 manual：升级触发条件 = 再次出现 userVariable 竞态 fix 即升级为 debug-only runtime invariant（在 JsBridge 写路径加 active write counter，断言 ≤1）。
 
 ## INC-2026-0010 — 集成测试默认依赖 kstore.vip 真网络
 
