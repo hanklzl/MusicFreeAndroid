@@ -9,6 +9,7 @@ import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -19,6 +20,7 @@ import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import com.zili.android.musicfreeandroid.feature.settings.MainDispatcherRule
@@ -34,12 +36,14 @@ class PluginListViewModelTest {
         disabledPlugins: MutableStateFlow<Set<String>> = MutableStateFlow(emptySet()),
         pluginOrder: MutableStateFlow<List<String>> = MutableStateFlow(emptyList()),
         alternativePlugins: MutableStateFlow<Map<String, String>> = MutableStateFlow(emptyMap()),
+        userVariables: MutableStateFlow<Map<String, String>> = MutableStateFlow(emptyMap()),
     ): Fixture {
         val metaStore = mock<PluginMetaStore> {
             on { this.disabledPlugins } doReturn disabledPlugins
             on { this.pluginOrder } doReturn pluginOrder
             on { this.alternativePlugins } doReturn alternativePlugins
             on { subscriptions } doReturn MutableStateFlow(emptyList())
+            on { getUserVariables(any()) } doReturn userVariables
         }
         val pluginManager = mock<PluginManager> {
             on { this.plugins } doReturn plugins
@@ -57,6 +61,7 @@ class PluginListViewModelTest {
             disabledPlugins = disabledPlugins,
             pluginOrder = pluginOrder,
             alternativePlugins = alternativePlugins,
+            userVariables = userVariables,
         )
     }
 
@@ -134,6 +139,49 @@ class PluginListViewModelTest {
     }
 
     @Test
+    fun `plugin item marks disabled alternative target invalid`() = runTest {
+        val fixture = createFixture(
+            plugins = MutableStateFlow(
+                listOf(
+                    loadedPlugin(platform = "source"),
+                    loadedPlugin(platform = "target", methods = setOf("getMediaSource")),
+                ),
+            ),
+            disabledPlugins = MutableStateFlow(setOf("target")),
+            alternativePlugins = MutableStateFlow(mapOf("source" to "target")),
+        )
+        val collectJob = launch { fixture.viewModel.pluginItems.collect() }
+
+        advanceUntilIdle()
+
+        val item = fixture.viewModel.pluginItems.value.first { it.info.platform == "source" }
+        assertEquals("target", item.alternativePlatform)
+        assertTrue(item.alternativeInvalid)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `plugin item marks non media source alternative target invalid`() = runTest {
+        val fixture = createFixture(
+            plugins = MutableStateFlow(
+                listOf(
+                    loadedPlugin(platform = "source"),
+                    loadedPlugin(platform = "target", methods = setOf("search")),
+                ),
+            ),
+            alternativePlugins = MutableStateFlow(mapOf("source" to "target")),
+        )
+        val collectJob = launch { fixture.viewModel.pluginItems.collect() }
+
+        advanceUntilIdle()
+
+        val item = fixture.viewModel.pluginItems.value.first { it.info.platform == "source" }
+        assertEquals("target", item.alternativePlatform)
+        assertTrue(item.alternativeInvalid)
+        collectJob.cancel()
+    }
+
+    @Test
     fun `setAlternativePlugin delegates to meta store`() = runTest {
         val fixture = createFixture()
 
@@ -153,6 +201,15 @@ class PluginListViewModelTest {
 
         verify(fixture.pluginManager).setUserVariables("source", values)
         assertEquals(PluginOperationUiState.Success("设置成功"), fixture.viewModel.operationState.value)
+    }
+
+    @Test
+    fun `userVariables delegates to meta store`() = runTest {
+        val values = MutableStateFlow(mapOf("cookie" to "abc"))
+        val fixture = createFixture(userVariables = values)
+
+        assertEquals(mapOf("cookie" to "abc"), fixture.viewModel.userVariables("source").first())
+        verify(fixture.metaStore).getUserVariables("source")
     }
 
     @Test
@@ -177,6 +234,42 @@ class PluginListViewModelTest {
     }
 
     @Test
+    fun `importMusicItem rejects blank url without calling plugin`() = runTest {
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicItem"),
+            importMusicItemResult = musicItem("song-1"),
+        )
+        val fixture = createFixture(
+            plugins = MutableStateFlow(listOf(plugin)),
+        )
+
+        fixture.viewModel.importMusicItem("source", "   ")
+        advanceUntilIdle()
+
+        verify(plugin, never()).importMusicItem(any())
+        assertEquals(
+            PluginOperationUiState.Failure("链接有误或目标为空"),
+            fixture.viewModel.operationState.value,
+        )
+        assertFalse(fixture.viewModel.sheetState.value.visible)
+    }
+
+    @Test
+    fun `importMusicItem reports failure when plugin is missing or returns null`() = runTest {
+        val fixture = createFixture()
+
+        fixture.viewModel.importMusicItem("missing", "https://example.com/song")
+        advanceUntilIdle()
+
+        assertEquals(
+            PluginOperationUiState.Failure("导入单曲失败"),
+            fixture.viewModel.operationState.value,
+        )
+        assertFalse(fixture.viewModel.sheetState.value.visible)
+    }
+
+    @Test
     fun `importMusicSheet parses items into add to playlist state`() = runTest {
         val items = listOf(musicItem("song-1"), musicItem("song-2"))
         val plugin = loadedPlugin(
@@ -197,6 +290,28 @@ class PluginListViewModelTest {
         assertEquals(items, fixture.viewModel.sheetState.value.pendingItems)
     }
 
+    @Test
+    fun `importMusicSheet reports failure when parsed list is empty`() = runTest {
+        val plugin = loadedPlugin(
+            platform = "source",
+            methods = setOf("importMusicSheet"),
+            importMusicSheetResult = emptyList(),
+        )
+        val fixture = createFixture(
+            plugins = MutableStateFlow(listOf(plugin)),
+        )
+
+        fixture.viewModel.importMusicSheet("source", "https://example.com/sheet")
+        advanceUntilIdle()
+
+        verify(plugin).importMusicSheet("https://example.com/sheet")
+        assertEquals(
+            PluginOperationUiState.Failure("链接有误或目标歌单为空"),
+            fixture.viewModel.operationState.value,
+        )
+        assertFalse(fixture.viewModel.sheetState.value.visible)
+    }
+
     private data class Fixture(
         val viewModel: PluginListViewModel,
         val pluginManager: PluginManager,
@@ -205,6 +320,7 @@ class PluginListViewModelTest {
         val disabledPlugins: MutableStateFlow<Set<String>>,
         val pluginOrder: MutableStateFlow<List<String>>,
         val alternativePlugins: MutableStateFlow<Map<String, String>>,
+        val userVariables: MutableStateFlow<Map<String, String>>,
     )
 
     private fun loadedPlugin(

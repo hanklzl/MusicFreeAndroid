@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -95,14 +96,17 @@ class PluginListViewModel @Inject constructor(
         metaStore.pluginOrder,
         metaStore.alternativePlugins,
     ) { allInfos, disabled, order, alternatives ->
-        val installedPlatforms = allInfos.map { it.platform }.toSet()
+        val mediaSourcePlatforms = allInfos
+            .filter { it.platform !in disabled && "getMediaSource" in it.supportedMethods }
+            .map { it.platform }
+            .toSet()
         val items = allInfos.map { info ->
             val alternative = alternatives[info.platform]
             PluginUiItem(
                 info = info,
                 enabled = info.platform !in disabled,
                 alternativePlatform = alternative,
-                alternativeInvalid = alternative != null && alternative !in installedPlatforms,
+                alternativeInvalid = alternative != null && alternative !in mediaSourcePlatforms,
                 canUpdate = !info.srcUrl.isNullOrBlank(),
                 canImportMusicItem = "importMusicItem" in info.supportedMethods,
                 canImportMusicSheet = "importMusicSheet" in info.supportedMethods,
@@ -151,6 +155,9 @@ class PluginListViewModel @Inject constructor(
             PluginOperationUiState.Success("设置成功")
         }
     }
+
+    fun userVariables(platform: String): Flow<Map<String, String>> =
+        metaStore.getUserVariables(platform)
 
     fun importMusicItem(platform: String, urlLike: String) {
         performOperation(label = "导入单曲中") {
