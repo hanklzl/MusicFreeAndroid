@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -36,7 +35,9 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -55,17 +56,9 @@ class PlayerViewModel @Inject constructor(
     val playerState: StateFlow<PlayerState> = playerController.playerState
 
     private val _internalErrorEvents = MutableSharedFlow<String>(extraBufferCapacity = 4)
-    private val _errorEventsSink = MutableSharedFlow<String>(extraBufferCapacity = 8)
-    val errorEvents: SharedFlow<String> = _errorEventsSink.asSharedFlow()
-
-    init {
-        viewModelScope.launch {
-            playerController.errorEvents.collect { _errorEventsSink.tryEmit(it) }
-        }
-        viewModelScope.launch {
-            _internalErrorEvents.collect { _errorEventsSink.tryEmit(it) }
-        }
-    }
+    val errorEvents: SharedFlow<String> =
+        merge(playerController.errorEvents, _internalErrorEvents)
+            .shareIn(viewModelScope, SharingStarted.Eagerly, replay = 0)
 
     val queueUiModel: StateFlow<PlayQueueUiModel> = combine(
         playerController.queueState,

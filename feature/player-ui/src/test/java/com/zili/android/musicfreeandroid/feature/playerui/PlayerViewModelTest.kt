@@ -662,6 +662,23 @@ class PlayerViewModelTest {
     }
 
     @Test
+    fun `isCurrentDownloaded reacts to downloadedKeys changes after VM construction`() = runTest {
+        val item = MusicItem(id = "44", platform = "p", title = "Y", artist = "B", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        val viewModel = createViewModel()
+        val collectJob = backgroundScope.launch { viewModel.isCurrentDownloaded.collect {} }
+        advanceUntilIdle()
+
+        assertFalse(viewModel.isCurrentDownloaded.value)
+
+        downloaderDownloadedKeysFlow.value = setOf(MediaKey.of(item))
+        advanceUntilIdle()
+
+        assertTrue(viewModel.isCurrentDownloaded.value)
+        collectJob.cancel()
+    }
+
+    @Test
     fun `toggleCurrentFavorite emits error event on repository failure`() = runTest {
         val item = MusicItem(id = "fav", platform = "p", title = "X", artist = "A", album = null, duration = 1L, url = null, artwork = null, qualities = null)
         playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
