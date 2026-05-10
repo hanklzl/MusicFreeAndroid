@@ -99,8 +99,20 @@ class PluginSheetDetailViewModel @Inject constructor(
     }
 
     fun toggleSheetStarred() {
+        val sheet = (currentSheet ?: seedSheet()).toStarredSheet()
+        val wasStarred = isSheetStarred.value
         viewModelScope.launch {
-            starredSheetRepository.toggle((currentSheet ?: seedSheet()).toStarredSheet())
+            starredSheetRepository.toggle(sheet)
+            com.zili.android.musicfreeandroid.logging.MfLog.detail(
+                category = com.zili.android.musicfreeandroid.logging.LogCategory.APP,
+                event = if (wasStarred) "starred_removed" else "starred_added",
+                fields = mapOf(
+                    "kind" to com.zili.android.musicfreeandroid.core.model.StarredKind.SHEET,
+                    "platform" to sheet.platform,
+                    "id" to sheet.id,
+                    "source" to "detail_sheet",
+                ),
+            )
         }
     }
 
