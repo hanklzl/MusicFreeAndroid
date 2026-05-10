@@ -11,6 +11,7 @@ import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.navigation.AlbumDetailRoute
 import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.AlbumDetailSeedStore
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.data.repository.StarredSheetRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
@@ -18,8 +19,10 @@ import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,9 +34,10 @@ class AlbumDetailViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
     private val downloader: Downloader,
     private val mediaSourceResolver: MediaSourceResolver,
+    private val starredSheetRepository: StarredSheetRepository,
 ) : ViewModel() {
 
-    private val route = savedStateHandle.toRoute<AlbumDetailRoute>()
+    private val route = savedStateHandle.toAlbumDetailRoute()
     private val initialAlbumSeed: AlbumItemBase by lazy { resolveInitialAlbumSeed() }
 
     private val _uiState = MutableStateFlow(AlbumDetailUiState())
@@ -41,6 +45,17 @@ class AlbumDetailViewModel @Inject constructor(
 
     private var page = 0
     private var currentAlbum: AlbumItemBase? = null
+
+    val isAlbumStarred: StateFlow<Boolean> = starredSheetRepository
+        .observeIsStarred(id = route.albumId, platform = route.pluginPlatform)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    fun toggleAlbumStarred() {
+        val seed = currentAlbum ?: initialAlbumSeed
+        viewModelScope.launch {
+            starredSheetRepository.toggle(seed.toStarredSheet())
+        }
+    }
 
     init {
         viewModelScope.launch {
@@ -187,4 +202,23 @@ class AlbumDetailViewModel @Inject constructor(
     fun download(item: MusicItem, quality: PlayQuality) {
         downloader.enqueue(listOf(item), quality)
     }
+}
+
+private fun SavedStateHandle.toAlbumDetailRoute(): AlbumDetailRoute {
+    val pluginPlatform = get<String>("pluginPlatform")
+    val albumId = get<String>("albumId")
+    if (pluginPlatform != null && albumId != null) {
+        return AlbumDetailRoute(
+            pluginPlatform = pluginPlatform,
+            albumId = albumId,
+            title = get("title"),
+            artist = get("artist"),
+            artwork = get("artwork"),
+            date = get("date"),
+            description = get("description"),
+            worksNum = get("worksNum"),
+            seedToken = get("seedToken"),
+        )
+    }
+    return toRoute()
 }
