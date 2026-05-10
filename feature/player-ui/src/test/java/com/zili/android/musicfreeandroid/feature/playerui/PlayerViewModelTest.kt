@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid.feature.playerui
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.lyric.LyricTiming
 import com.zili.android.musicfreeandroid.core.model.LyricDocument
@@ -9,6 +11,10 @@ import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
+import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
+import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
+import com.zili.android.musicfreeandroid.downloader.model.MediaKey
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricSearchGroup
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
@@ -18,6 +24,7 @@ import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
@@ -33,8 +40,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -47,8 +57,15 @@ class PlayerViewModelTest {
     private val playlistRepository: PlaylistRepository = mock()
     private val playerLyricLoader: PlayerLyricLoader = mock()
     private val appPreferences: AppPreferences = mock()
+    private val downloader: Downloader = mock()
     private val lyricShowTranslationFlow = MutableStateFlow(false)
     private val lyricDetailFontSizeFlow = MutableStateFlow(1)
+    private val playQualityFlow = MutableStateFlow(PlayQuality.STANDARD)
+    private val playRateFlow = MutableStateFlow(PlaybackSpeeds.DEFAULT)
+    private val downloaderTasksFlow = MutableStateFlow<List<DownloadTaskUi>>(emptyList())
+    private val downloaderDownloadedKeysFlow = MutableStateFlow<Set<MediaKey>>(emptySet())
+    private val downloaderEventsFlow = MutableSharedFlow<DownloadEvent>()
+    private val controllerErrorFlow = MutableSharedFlow<String>(extraBufferCapacity = 4)
     private val playerStateFlow = MutableStateFlow(PlayerState.EMPTY)
     private val queueStateFlow = MutableStateFlow(PlayQueueSnapshot.EMPTY)
 
@@ -61,6 +78,12 @@ class PlayerViewModelTest {
         whenever(playerLyricLoader.observeLyrics(anyOrNull())).thenReturn(flowOf(LyricLoadState.NoTrack))
         whenever(appPreferences.lyricShowTranslation).thenReturn(lyricShowTranslationFlow)
         whenever(appPreferences.lyricDetailFontSize).thenReturn(lyricDetailFontSizeFlow)
+        whenever(appPreferences.playQuality).thenReturn(playQualityFlow)
+        whenever(appPreferences.playRate).thenReturn(playRateFlow)
+        whenever(downloader.tasks).thenReturn(downloaderTasksFlow)
+        whenever(downloader.downloadedKeys).thenReturn(downloaderDownloadedKeysFlow)
+        whenever(downloader.events).thenReturn(downloaderEventsFlow)
+        whenever(playerController.errorEvents).thenReturn(controllerErrorFlow)
     }
 
     @After
@@ -73,6 +96,7 @@ class PlayerViewModelTest {
         playlistRepository,
         playerLyricLoader,
         appPreferences,
+        downloader,
     )
 
     private fun readyLyricState(item: MusicItem, lines: List<ParsedLyricLine>): LyricLoadState.Ready {
@@ -554,6 +578,123 @@ class PlayerViewModelTest {
         assertEquals(1, viewModel.allPlaylists.value.size)
         assertEquals("My List", viewModel.allPlaylists.value[0].name)
         job.cancel()
+    }
+
+    @Test
+    fun `currentQuality reflects appPreferences playQuality`() = runTest {
+        playQualityFlow.value = PlayQuality.HIGH
+        val viewModel = createViewModel()
+        val job = backgroundScope.launch { viewModel.currentQuality.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(PlayQuality.HIGH, viewModel.currentQuality.value)
+        job.cancel()
+    }
+
+    @Test
+    fun `setCurrentQuality writes prefs and calls controller changeQuality`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.setCurrentQuality(PlayQuality.SUPER)
+        advanceUntilIdle()
+
+        verify(appPreferences).setPlayQuality(PlayQuality.SUPER)
+        verify(playerController).changeQuality(PlayQuality.SUPER)
+    }
+
+    @Test
+    fun `currentSpeed reflects appPreferences playRate`() = runTest {
+        playRateFlow.value = 1.5f
+        val viewModel = createViewModel()
+        val job = backgroundScope.launch { viewModel.currentSpeed.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(1.5f, viewModel.currentSpeed.value)
+        job.cancel()
+    }
+
+    @Test
+    fun `setPlaybackSpeed writes prefs and calls controller setPlaybackSpeed`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.setPlaybackSpeed(1.25f)
+        advanceUntilIdle()
+
+        verify(appPreferences).setPlayRate(1.25f)
+        verify(playerController).setPlaybackSpeed(1.25f)
+    }
+
+    @Test
+    fun `downloadCurrent enqueues current item with quality`() = runTest {
+        val item = MusicItem(id = "11", platform = "demo", title = "T", artist = "A", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.downloadCurrent(PlayQuality.HIGH)
+
+        verify(downloader).enqueue(eq(listOf(item)), eq(PlayQuality.HIGH))
+    }
+
+    @Test
+    fun `downloadCurrent is no-op when no current item`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.downloadCurrent(PlayQuality.HIGH)
+
+        verify(downloader, never()).enqueue(any(), any())
+    }
+
+    @Test
+    fun `isCurrentDownloaded true when downloadedKeys contains current item key`() = runTest {
+        val item = MusicItem(id = "33", platform = "p", title = "X", artist = "A", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        downloaderDownloadedKeysFlow.value = setOf(MediaKey.of(item))
+        val viewModel = createViewModel()
+        val job = backgroundScope.launch { viewModel.isCurrentDownloaded.collect {} }
+        advanceUntilIdle()
+
+        assertTrue(viewModel.isCurrentDownloaded.value)
+        job.cancel()
+    }
+
+    @Test
+    fun `isCurrentDownloaded reacts to downloadedKeys changes after VM construction`() = runTest {
+        val item = MusicItem(id = "44", platform = "p", title = "Y", artist = "B", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        val viewModel = createViewModel()
+        val collectJob = backgroundScope.launch { viewModel.isCurrentDownloaded.collect {} }
+        advanceUntilIdle()
+
+        assertFalse(viewModel.isCurrentDownloaded.value)
+
+        downloaderDownloadedKeysFlow.value = setOf(MediaKey.of(item))
+        advanceUntilIdle()
+
+        assertTrue(viewModel.isCurrentDownloaded.value)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `toggleCurrentFavorite emits error event on repository failure`() = runTest {
+        val item = MusicItem(id = "fav", platform = "p", title = "X", artist = "A", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        whenever(playlistRepository.toggleFavorite(item)).thenThrow(RuntimeException("boom"))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val errors = mutableListOf<String>()
+        val collectJob = launch { viewModel.errorEvents.collect { errors.add(it) } }
+        advanceUntilIdle()
+
+        viewModel.toggleCurrentFavorite()
+        advanceUntilIdle()
+
+        assertTrue(errors.any { it.contains("收藏") })
+        collectJob.cancel()
     }
 }
 

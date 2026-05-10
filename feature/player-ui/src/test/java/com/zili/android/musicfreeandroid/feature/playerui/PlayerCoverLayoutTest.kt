@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import org.junit.Assert.assertTrue
@@ -36,9 +37,15 @@ class PlayerCoverLayoutTest {
                             artworkUrl = null,
                             isFav = false,
                             hasCurrentItem = true,
+                            currentQuality = PlayQuality.STANDARD,
+                            isDownloaded = false,
+                            currentSpeed = 1.0f,
                             onToggleFav = {},
                             onAddToPlaylist = {},
                             onToggleLyrics = {},
+                            onQualityClick = {},
+                            onDownloadClick = {},
+                            onSpeedClick = {},
                             modifier = Modifier.weight(1f),
                         )
                         PlayerSeekBar(
