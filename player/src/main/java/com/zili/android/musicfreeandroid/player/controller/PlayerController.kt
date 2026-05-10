@@ -12,6 +12,8 @@ import com.zili.android.musicfreeandroid.core.media.EmptyMediaSourceResolver
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
+import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.player.ext.defaultAlbumArtworkUri
 import com.zili.android.musicfreeandroid.player.ext.toMediaItem
@@ -72,7 +74,7 @@ class PlayerController @Inject constructor(
 
     private var repeatMode: RepeatMode = RepeatMode.OFF
     private var shuffleEnabled: Boolean = false
-    private var playbackSpeed: Float = com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds.DEFAULT
+    private var playbackSpeed: Float = PlaybackSpeeds.DEFAULT
 
     init {
         attachNotificationControls()
@@ -325,7 +327,7 @@ class PlayerController @Inject constructor(
         }
     }
 
-    fun changeQuality(quality: com.zili.android.musicfreeandroid.core.model.PlayQuality) {
+    fun changeQuality(quality: PlayQuality) {
         val item = playQueue.currentItem ?: return
         val expectedIndex = playQueue.currentIndex
         val savedPosition = mediaController?.currentPosition?.coerceAtLeast(0L) ?: 0L
