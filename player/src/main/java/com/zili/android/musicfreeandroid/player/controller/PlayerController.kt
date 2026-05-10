@@ -346,6 +346,7 @@ class PlayerController @Inject constructor(
             playQueue.replaceCurrent(expectedIndex, item, playable)
             emitQueueState()
             withConnectedController { controller ->
+                if (!playQueue.isCurrentItem(expectedIndex, playable)) return@withConnectedController
                 try {
                     val mediaItem = playable.toMediaItem(defaultArtworkUri)
                     controller.setMediaItem(mediaItem)

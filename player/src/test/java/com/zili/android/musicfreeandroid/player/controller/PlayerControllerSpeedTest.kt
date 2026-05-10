@@ -1,14 +1,28 @@
 package com.zili.android.musicfreeandroid.player.controller
 
 import android.content.Context
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolution
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.onSubscription
+import kotlinx.coroutines.launch
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -51,6 +65,71 @@ class PlayerControllerSpeedTest {
             assertEquals(0.5f, controller.playerState.value.playbackSpeed)
             controller.setPlaybackSpeed(2.0f)
             assertEquals(2.0f, controller.playerState.value.playbackSpeed)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `changeQuality is no-op when no current item`() {
+        val controller = PlayerController(context)
+        try {
+            // No queue items — currentItem is null
+            controller.changeQuality(PlayQuality.HIGH)
+            // No crash, state unchanged
+            assertEquals(PlaybackSpeeds.DEFAULT, controller.playerState.value.playbackSpeed)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `changeQuality emits error event when resolver returns null`() {
+        val nullResolver = object : MediaSourceResolver {
+            override suspend fun resolve(item: MusicItem, quality: String): MediaSourceResolution? = null
+        }
+        val controller = PlayerController(context, nullResolver)
+        try {
+            val item = MusicItem(
+                id = "x",
+                platform = "p",
+                title = "T",
+                artist = "A",
+                album = null,
+                duration = 1L,
+                url = null,
+                artwork = null,
+                qualities = null,
+            )
+            controller.playQueue.setQueue(listOf(item), startIndex = 0)
+
+            val subscribed = CountDownLatch(1)
+            val received = CountDownLatch(1)
+            val errorRef = AtomicReference<String?>(null)
+            val collectJob = CoroutineScope(Dispatchers.Default).launch {
+                // onSubscription fires immediately after the upstream subscription is registered,
+                // before any events are delivered — this is the correct synchronization point.
+                controller.errorEvents
+                    .onSubscription { subscribed.countDown() }
+                    .collect {
+                        errorRef.set(it)
+                        received.countDown()
+                    }
+            }
+            // Wait until the collector is registered before calling changeQuality,
+            // so the SharedFlow does not emit to zero subscribers.
+            subscribed.await(2, TimeUnit.SECONDS)
+            try {
+                controller.changeQuality(PlayQuality.HIGH)
+                // Drive the Main looper so the coroutine launched by changeQuality can run.
+                Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                received.await(2, TimeUnit.SECONDS)
+                val errorMessage = errorRef.get()
+                assertNotNull("Expected error event for unresolvable quality", errorMessage)
+                assertTrue(errorMessage!!.contains("不支持") || errorMessage!!.contains("音质"))
+            } finally {
+                collectJob.cancel()
+            }
         } finally {
             controller.release()
         }
