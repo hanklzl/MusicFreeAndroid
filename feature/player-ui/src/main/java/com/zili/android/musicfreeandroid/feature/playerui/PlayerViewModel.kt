@@ -3,12 +3,16 @@ package com.zili.android.musicfreeandroid.feature.playerui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.lyric.LyricTiming
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
+import com.zili.android.musicfreeandroid.downloader.model.MediaKey
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricSearchGroup
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
@@ -19,13 +23,15 @@ import com.zili.android.musicfreeandroid.player.model.PlayerState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
@@ -43,10 +49,23 @@ class PlayerViewModel @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val playerLyricLoader: PlayerLyricLoader,
     private val appPreferences: AppPreferences,
+    private val downloader: Downloader,
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = playerController.playerState
-    val errorEvents: SharedFlow<String> = playerController.errorEvents
+
+    private val _internalErrorEvents = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    private val _errorEventsSink = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    val errorEvents: SharedFlow<String> = _errorEventsSink.asSharedFlow()
+
+    init {
+        viewModelScope.launch {
+            playerController.errorEvents.collect { _errorEventsSink.tryEmit(it) }
+        }
+        viewModelScope.launch {
+            _internalErrorEvents.collect { _errorEventsSink.tryEmit(it) }
+        }
+    }
 
     val queueUiModel: StateFlow<PlayQueueUiModel> = combine(
         playerController.queueState,
@@ -109,6 +128,7 @@ class PlayerViewModel @Inject constructor(
 
     val isCurrentFavorite: StateFlow<Boolean> = playerState
         .map { it.currentItem }
+        .distinctUntilChangedBy { item -> item?.let { it.platform to it.id } }
         .flatMapLatest { item ->
             if (item == null) flowOf(false)
             else playlistRepository.isFavorite(item)
@@ -117,7 +137,55 @@ class PlayerViewModel @Inject constructor(
 
     fun toggleCurrentFavorite() {
         val item = playerState.value.currentItem ?: return
-        viewModelScope.launch { playlistRepository.toggleFavorite(item) }
+        viewModelScope.launch {
+            try {
+                playlistRepository.toggleFavorite(item)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                _internalErrorEvents.tryEmit("收藏操作失败: ${error.message ?: error::class.simpleName}")
+            }
+        }
+    }
+
+    // ---- quality ----
+
+    val currentQuality: StateFlow<PlayQuality> =
+        appPreferences.playQuality
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayQuality.STANDARD)
+
+    fun setCurrentQuality(quality: PlayQuality) {
+        viewModelScope.launch {
+            appPreferences.setPlayQuality(quality)
+        }
+        playerController.changeQuality(quality)
+    }
+
+    // ---- playback speed ----
+
+    val currentSpeed: StateFlow<Float> =
+        appPreferences.playRate
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlaybackSpeeds.DEFAULT)
+
+    fun setPlaybackSpeed(speed: Float) {
+        viewModelScope.launch {
+            appPreferences.setPlayRate(speed)
+        }
+        playerController.setPlaybackSpeed(speed)
+    }
+
+    // ---- download ----
+
+    val isCurrentDownloaded: StateFlow<Boolean> = combine(
+        playerState.map { it.currentItem }.distinctUntilChangedBy { it?.let { item -> item.platform to item.id } },
+        downloader.downloadedKeys,
+    ) { item, keys ->
+        item != null && keys.contains(MediaKey.of(item))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun downloadCurrent(quality: PlayQuality) {
+        val item = playerState.value.currentItem ?: return
+        downloader.enqueue(listOf(item), quality)
     }
 
     // ---- add-to-playlist sheet ----

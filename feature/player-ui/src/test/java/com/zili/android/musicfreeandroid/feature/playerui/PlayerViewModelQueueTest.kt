@@ -1,9 +1,15 @@
 package com.zili.android.musicfreeandroid.feature.playerui
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
+import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
+import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
+import com.zili.android.musicfreeandroid.downloader.model.MediaKey
 import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueUiModel
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
@@ -12,6 +18,7 @@ import com.zili.android.musicfreeandroid.player.model.PlayerState
 import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -38,21 +45,34 @@ class PlayerViewModelQueueTest {
     private val playlistRepository: PlaylistRepository = mock()
     private val playerLyricLoader: PlayerLyricLoader = mock()
     private val appPreferences: AppPreferences = mock()
+    private val downloader: Downloader = mock()
     private val playerStateFlow = MutableStateFlow(PlayerState.EMPTY)
     private val queueStateFlow = MutableStateFlow(PlayQueueSnapshot.EMPTY)
     private val lyricShowTranslationFlow = MutableStateFlow(false)
     private val lyricDetailFontSizeFlow = MutableStateFlow(1)
+    private val playQualityFlow = MutableStateFlow(PlayQuality.STANDARD)
+    private val playRateFlow = MutableStateFlow(PlaybackSpeeds.DEFAULT)
+    private val downloaderTasksFlow = MutableStateFlow<List<DownloadTaskUi>>(emptyList())
+    private val downloaderDownloadedKeysFlow = MutableStateFlow<Set<MediaKey>>(emptySet())
+    private val downloaderEventsFlow = MutableSharedFlow<DownloadEvent>()
+    private val controllerErrorFlow = MutableSharedFlow<String>(extraBufferCapacity = 4)
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         whenever(playerController.playerState).thenReturn(playerStateFlow)
         whenever(playerController.queueState).thenReturn(queueStateFlow)
+        whenever(playerController.errorEvents).thenReturn(controllerErrorFlow)
         whenever(playlistRepository.observeAllPlaylists()).thenReturn(flowOf(emptyList()))
         whenever(playerLyricLoader.observeLyrics(anyOrNull()))
             .thenReturn(flowOf(LyricLoadState.NoTrack))
         whenever(appPreferences.lyricShowTranslation).thenReturn(lyricShowTranslationFlow)
         whenever(appPreferences.lyricDetailFontSize).thenReturn(lyricDetailFontSizeFlow)
+        whenever(appPreferences.playQuality).thenReturn(playQualityFlow)
+        whenever(appPreferences.playRate).thenReturn(playRateFlow)
+        whenever(downloader.tasks).thenReturn(downloaderTasksFlow)
+        whenever(downloader.downloadedKeys).thenReturn(downloaderDownloadedKeysFlow)
+        whenever(downloader.events).thenReturn(downloaderEventsFlow)
     }
 
     @After
@@ -65,6 +85,7 @@ class PlayerViewModelQueueTest {
         playlistRepository,
         playerLyricLoader,
         appPreferences,
+        downloader,
     )
 
     private fun item(id: String) = MusicItem(
