@@ -39,19 +39,23 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4.0.1
 
-      - name: Validate release signing secrets
+      - name: Validate release secrets
         env:
           ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
           ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          LOGAN_AES_KEY: ${{ secrets.LOGAN_AES_KEY }}
+          LOGAN_AES_IV: ${{ secrets.LOGAN_AES_IV }}
         run: |
           missing=0
           for name in \
             ANDROID_RELEASE_KEYSTORE_BASE64 \
             ANDROID_RELEASE_STORE_PASSWORD \
             ANDROID_RELEASE_KEY_ALIAS \
-            ANDROID_RELEASE_KEY_PASSWORD
+            ANDROID_RELEASE_KEY_PASSWORD \
+            LOGAN_AES_KEY \
+            LOGAN_AES_IV
           do
             if [ -z "${!name}" ]; then
               echo "::error::$name is not configured in the GitHub release Environment"
@@ -73,6 +77,8 @@ jobs:
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
           ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
           ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          LOGAN_AES_KEY: ${{ secrets.LOGAN_AES_KEY }}
+          LOGAN_AES_IV: ${{ secrets.LOGAN_AES_IV }}
         run: ./gradlew :app:assembleRelease --no-daemon
 
       - name: Name APK

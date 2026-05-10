@@ -42,6 +42,8 @@
 | `ANDROID_RELEASE_STORE_PASSWORD` | keystore 密码 |
 | `ANDROID_RELEASE_KEY_ALIAS` | release key alias |
 | `ANDROID_RELEASE_KEY_PASSWORD` | release key 密码 |
+| `LOGAN_AES_KEY` | Release Logan 日志 AES key |
+| `LOGAN_AES_IV` | Release Logan 日志 AES IV |
 
 Environment 应配置 required reviewers，并启用 Prevent self-review。deployment branches/tags 至少允许 `v*` tag；如果需要从默认分支手动触发内部验包，也应允许默认分支或受保护分支访问该 Environment。
 
@@ -85,9 +87,9 @@ CI workflow 在 runner 上将 `ANDROID_RELEASE_KEYSTORE_BASE64` 解码到 `$RUNN
 
 签名准备步骤：
 
-1. 校验四个 release secrets 都存在。
+1. 校验四个 release signing secrets 和两个 Logan release secrets 都存在。
 2. 将 `ANDROID_RELEASE_KEYSTORE_BASE64` 通过 base64 解码到 `$RUNNER_TEMP/release.jks`。
-3. 通过环境变量向 Gradle 暴露 keystore path、store password、key alias、key password。
+3. 通过环境变量向 Gradle 暴露 keystore path、store password、key alias、key password、Logan key 和 Logan IV。
 
 产物命名：
 
