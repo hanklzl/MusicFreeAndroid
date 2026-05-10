@@ -27,14 +27,44 @@ class HomeSheetUiModelTest {
             artist = "Demo Artist",
             coverUri = "https://example.com/cover.jpg",
             sourceUrl = null,
+            description = "A remote sheet",
+            artwork = "https://example.com/artwork.jpg",
+            worksNum = 88,
+            raw = mapOf("id" to "sheet-1", "source" to "demo"),
         )
 
         val row = HomeSheetUiModel.fromStarredSheet(sheet)
+        val seed = row.toMusicSheetItemBase()
 
         assertEquals(HomeSheetTab.Starred, row.tab)
         assertEquals("sheet-1", row.id)
         assertEquals("demo", row.platform)
         assertEquals("Starred A", row.title)
         assertEquals("Demo Artist", row.subtitle)
+        assertEquals("sheet-1", seed.id)
+        assertEquals("demo", seed.platform)
+        assertEquals("Starred A", seed.title)
+        assertEquals("Demo Artist", seed.artist)
+        assertEquals("A remote sheet", seed.description)
+        assertEquals("https://example.com/cover.jpg", seed.coverImg)
+        assertEquals("https://example.com/artwork.jpg", seed.artwork)
+        assertEquals(88, seed.worksNum)
+        assertEquals(mapOf("id" to "sheet-1", "source" to "demo"), seed.raw)
+    }
+
+    @Test
+    fun `starred sheet seed preserves artist when artist equals platform`() {
+        val sheet = StarredSheet(
+            id = "sheet-1",
+            platform = "demo",
+            title = "Starred A",
+            artist = "demo",
+            coverUri = null,
+            sourceUrl = null,
+        )
+
+        val seed = HomeSheetUiModel.fromStarredSheet(sheet).toMusicSheetItemBase()
+
+        assertEquals("demo", seed.artist)
     }
 }
