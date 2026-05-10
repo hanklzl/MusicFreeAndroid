@@ -544,7 +544,6 @@ internal fun PlayerOperationsBar(
         ) {
             PlayerOperationIcon(
                 icon = if (isFav) R.drawable.ic_heart else R.drawable.ic_heart_outline,
-                contentDescription = if (isFav) "取消收藏" else "收藏",
                 tint = if (isFav) Color(0xFFE54B4B) else Color.White.copy(alpha = 0.7f),
             )
         }
@@ -554,7 +553,6 @@ internal fun PlayerOperationsBar(
         ) {
             PlayerOperationImage(
                 image = R.drawable.ic_quality_standard,
-                contentDescription = "音质",
             )
         }
         PlayerOperationSlot(
@@ -563,7 +561,6 @@ internal fun PlayerOperationsBar(
         ) {
             PlayerOperationIcon(
                 icon = R.drawable.ic_arrow_down_tray,
-                contentDescription = "下载",
                 tint = Color.White.copy(alpha = 0.7f),
             )
         }
@@ -573,7 +570,6 @@ internal fun PlayerOperationsBar(
         ) {
             PlayerOperationImage(
                 image = R.drawable.ic_rate_100,
-                contentDescription = "倍速",
             )
         }
         PlayerOperationSlot(
@@ -583,7 +579,6 @@ internal fun PlayerOperationsBar(
         ) {
             PlayerOperationIcon(
                 icon = R.drawable.ic_chat_bubble,
-                contentDescription = "歌词",
                 tint = Color.White.copy(alpha = 0.7f),
             )
         }
@@ -594,7 +589,6 @@ internal fun PlayerOperationsBar(
             ) {
                 PlayerOperationIcon(
                     icon = R.drawable.ic_ellipsis_vertical,
-                    contentDescription = "更多",
                     tint = Color.White.copy(alpha = 0.7f),
                 )
             }
@@ -643,12 +637,11 @@ private fun PlayerOperationSlot(
 @Composable
 private fun PlayerOperationIcon(
     @DrawableRes icon: Int,
-    contentDescription: String,
     tint: Color,
 ) {
     Icon(
         painter = painterResource(icon),
-        contentDescription = contentDescription,
+        contentDescription = null,
         tint = tint,
         modifier = Modifier
             .size(IconSizes.normal)
@@ -659,11 +652,10 @@ private fun PlayerOperationIcon(
 @Composable
 private fun PlayerOperationImage(
     @DrawableRes image: Int,
-    contentDescription: String,
 ) {
     Image(
         painter = painterResource(image),
-        contentDescription = contentDescription,
+        contentDescription = null,
         modifier = Modifier
             .size(rpx(52))
             .testTag(PlayerOperationImageVisualTestTag),

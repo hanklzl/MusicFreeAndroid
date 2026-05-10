@@ -60,7 +60,6 @@ fun PlayerLyricsOperations(
         ) {
             LyricOperationIcon(
                 icon = R.drawable.ic_font_size,
-                contentDescription = "调整歌词字号",
                 tint = Color.White,
             )
         }
@@ -71,7 +70,6 @@ fun PlayerLyricsOperations(
         ) {
             LyricOperationIcon(
                 icon = R.drawable.ic_arrows_left_right,
-                contentDescription = "调整歌词进度",
                 tint = Color.White,
             )
         }
@@ -82,7 +80,6 @@ fun PlayerLyricsOperations(
         ) {
             LyricOperationIcon(
                 icon = R.drawable.ic_magnifying_glass,
-                contentDescription = "搜索歌词",
                 tint = Color.White,
             )
         }
@@ -94,7 +91,6 @@ fun PlayerLyricsOperations(
         ) {
             LyricOperationIcon(
                 icon = R.drawable.ic_translation,
-                contentDescription = "切换歌词翻译",
                 tint = translationEnabledColor,
             )
         }
@@ -105,7 +101,6 @@ fun PlayerLyricsOperations(
         ) {
             LyricOperationIcon(
                 icon = R.drawable.ic_ellipsis_vertical,
-                contentDescription = "歌词更多",
                 tint = Color.White,
             )
         }
@@ -141,12 +136,11 @@ private fun LyricOperationSlot(
 @Composable
 private fun LyricOperationIcon(
     @DrawableRes icon: Int,
-    contentDescription: String,
     tint: Color,
 ) {
     Icon(
         painter = painterResource(id = icon),
-        contentDescription = contentDescription,
+        contentDescription = null,
         tint = tint,
         modifier = Modifier
             .size(IconSizes.normal)
