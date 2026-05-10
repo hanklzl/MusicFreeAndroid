@@ -4,9 +4,11 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -32,6 +34,14 @@ class AppPreferences @Inject constructor(
 
     suspend fun setPlayQuality(quality: PlayQuality) {
         dataStore.edit { it[KEY_PLAY_QUALITY] = quality.name }
+    }
+
+    val playRate: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_PLAY_RATE] ?: PlaybackSpeeds.DEFAULT
+    }
+
+    suspend fun setPlayRate(rate: Float) {
+        dataStore.edit { it[KEY_PLAY_RATE] = rate }
     }
 
     val shuffleEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
@@ -166,6 +176,7 @@ class AppPreferences @Inject constructor(
     private companion object {
         val KEY_REPEAT_MODE = stringPreferencesKey("repeat_mode")
         val KEY_PLAY_QUALITY = stringPreferencesKey("play_quality")
+        val KEY_PLAY_RATE = floatPreferencesKey("play_rate")
         val KEY_SHUFFLE_ENABLED = booleanPreferencesKey("shuffle_enabled")
         val KEY_DARK_MODE = booleanPreferencesKey("dark_mode")
         val KEY_CURRENT_MUSIC_INDEX = intPreferencesKey("current_music_index")
