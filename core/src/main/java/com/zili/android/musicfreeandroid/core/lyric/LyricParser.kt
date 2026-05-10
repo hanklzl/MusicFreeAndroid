@@ -8,7 +8,7 @@ import kotlin.math.roundToLong
 
 object LyricParser {
     private val tagRegex = Regex("\\[([^\\]]+)]")
-    private val timestampTokenRegex = Regex("\\[(?:\\d+:)?\\d+:\\d+(?:\\.\\d+)?]")
+    private val timestampTokenRegex = Regex("\\[(?:\\d+:){0,2}\\d+(?:\\.\\d+)?]")
 
     fun parse(
         musicId: String,
@@ -130,7 +130,7 @@ object LyricParser {
 
     private fun parseTimestampMs(tag: String): Long? {
         val parts = tag.split(':')
-        if (parts.size !in 2..3) return null
+        if (parts.size !in 1..3) return null
 
         var totalSeconds = 0.0
         parts.forEach { part ->

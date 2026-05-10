@@ -164,4 +164,76 @@ class LyricParserTest {
 
         assertTrue(doc.lines.isEmpty())
     }
+
+    @Test
+    fun parsesSecondOnlyTimestamp() {
+        val doc = LyricParser.parse(
+            musicId = "m1",
+            musicPlatform = "demo",
+            payload = RawLyricPayload(rawLrc = "[60]Hello"),
+            source = source,
+        )
+
+        assertTrue(doc.isTimed)
+        assertEquals(60_000L, doc.lines.single().timeMs)
+        assertEquals("Hello", doc.lines.single().text)
+    }
+
+    @Test
+    fun parsesFractionalSecondOnlyTimestamp() {
+        val doc = LyricParser.parse(
+            musicId = "m1",
+            musicPlatform = "demo",
+            payload = RawLyricPayload(rawLrc = "[265.35]而我只是嘉宾"),
+            source = source,
+        )
+
+        assertEquals(265_350L, doc.lines.single().timeMs)
+        assertEquals("而我只是嘉宾", doc.lines.single().text)
+    }
+
+    @Test
+    fun mixedFormatsLrcAreTimedAndOrdered() {
+        val doc = LyricParser.parse(
+            musicId = "m1",
+            musicPlatform = "demo",
+            payload = RawLyricPayload(rawLrc = "[5.5]Five and a half\n[00:01.00]One\n[10]Ten"),
+            source = source,
+        )
+
+        assertTrue(doc.isTimed)
+        assertEquals(listOf(1_000L, 5_500L, 10_000L), doc.lines.map { it.timeMs })
+        assertEquals(listOf("One", "Five and a half", "Ten"), doc.lines.map { it.text })
+    }
+
+    @Test
+    fun secondOnlyTranslationMergesByTimestamp() {
+        val doc = LyricParser.parse(
+            musicId = "m1",
+            musicPlatform = "demo",
+            payload = RawLyricPayload(
+                rawLrc = "[1]A\n[2]B",
+                translation = "[1]甲\n[2]乙",
+            ),
+            source = source,
+        )
+
+        assertTrue(doc.hasTranslation)
+        assertEquals("甲", doc.lines[0].translation)
+        assertEquals("乙", doc.lines[1].translation)
+    }
+
+    @Test
+    fun secondOnlyOffsetTagIsNotTreatedAsTimestamp() {
+        val doc = LyricParser.parse(
+            musicId = "m1",
+            musicPlatform = "demo",
+            payload = RawLyricPayload(rawLrc = "[offset:250]\n[1.5]Hello"),
+            source = source,
+        )
+
+        assertEquals(250L, doc.metaOffsetMs)
+        assertEquals(1_500L, doc.lines.single().timeMs)
+        assertEquals("Hello", doc.lines.single().text)
+    }
 }
