@@ -1,7 +1,9 @@
 package com.zili.android.musicfreeandroid.feature.home.sheets
 
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.core.model.StarredKind
 import com.zili.android.musicfreeandroid.core.model.StarredSheet
+import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -66,5 +68,43 @@ class HomeSheetUiModelTest {
         val seed = HomeSheetUiModel.fromStarredSheet(sheet).toMusicSheetItemBase()
 
         assertEquals("demo", seed.artist)
+    }
+
+    @Test
+    fun `fromStarredSheet propagates kind ALBUM`() {
+        val sheet = StarredSheet(
+            id = "alb-1", platform = "qq",
+            title = "Album", artist = "X", coverUri = null, sourceUrl = null,
+            kind = StarredKind.ALBUM,
+        )
+        val ui = HomeSheetUiModel.fromStarredSheet(sheet)
+        assertEquals(StarredKind.ALBUM, ui.kind)
+    }
+
+    @Test
+    fun `toAlbumItemBase reconstructs identity and merges sourceUrl`() {
+        val ui = HomeSheetUiModel(
+            id = "alb-2", platform = "qq",
+            kind = StarredKind.ALBUM,
+            tab = HomeSheetTab.Starred,
+            title = "AlbumTwo",
+            subtitle = "ArtistTwo",
+            coverUri = "art://2",
+            artist = "ArtistTwo",
+            sourceUrl = "https://example.com/2",
+            description = "desc",
+            artwork = "art://2",
+            worksNum = 5,
+            raw = mapOf("foo" to "bar"),
+        )
+        val album: AlbumItemBase = ui.toAlbumItemBase()
+        assertEquals("alb-2", album.id)
+        assertEquals("qq", album.platform)
+        assertEquals("AlbumTwo", album.title)
+        assertEquals("ArtistTwo", album.artist)
+        assertEquals("art://2", album.artwork)
+        assertEquals(5, album.worksNum)
+        assertEquals("https://example.com/2", album.raw["sourceUrl"])
+        assertEquals("bar", album.raw["foo"])
     }
 }
