@@ -4,13 +4,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.zili.android.musicfreeandroid.core.theme.rpx
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -26,6 +29,8 @@ class PlayerOperationsBarTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private lateinit var expectedSizes: OperationExpectedSizes
+
     @Test
     fun `cover operation row uses RN height and six fixed slots`() {
         setContent()
@@ -34,36 +39,38 @@ class PlayerOperationsBarTest {
             .fetchSemanticsNode()
             .boundsInRoot
             .height
-        val slotHeights = composeRule.onAllNodesWithTag(PlayerOperationSlotTestTag)
+        val slotBounds = composeRule.onAllNodesWithTag(CoverOperationSlotTestTag)
             .fetchSemanticsNodes()
-            .map { it.boundsInRoot.height }
-            .distinct()
+            .map { it.boundsInRoot }
 
-        with(composeRule.density) {
-            assertTrue(rowHeight.toDp() > 0.dp)
-            assertEquals(1, slotHeights.size)
-            assertTrue(slotHeights.single().toDp() > 0.dp)
-            assertTrue(rowHeight.toDp() >= slotHeights.single().toDp())
+        assertPxEquals("row height", expectedSizes.rowHeightPx, rowHeight)
+        assertEquals(6, slotBounds.size)
+        slotBounds.forEach { bounds ->
+            assertPxEquals("slot width", expectedSizes.slotSizePx, bounds.width)
+            assertPxEquals("slot height", expectedSizes.slotSizePx, bounds.height)
         }
-        assertEquals(6, composeRule.onAllNodesWithTag(PlayerOperationSlotTestTag).fetchSemanticsNodes().size)
     }
 
     @Test
     fun `cover operation visuals match RN icon and image sizes`() {
         setContent()
 
-        val iconSizes = composeRule.onAllNodesWithTag(PlayerOperationIconVisualTestTag, useUnmergedTree = true)
+        val iconSizes = composeRule.onAllNodesWithTag(CoverOperationIconVisualTestTag, useUnmergedTree = true)
             .fetchSemanticsNodes()
             .map { it.boundsInRoot.size }
-            .distinct()
-        val imageSizes = composeRule.onAllNodesWithTag(PlayerOperationImageVisualTestTag, useUnmergedTree = true)
+        val imageSizes = composeRule.onAllNodesWithTag(CoverOperationImageVisualTestTag, useUnmergedTree = true)
             .fetchSemanticsNodes()
             .map { it.boundsInRoot.size }
-            .distinct()
 
-        assertEquals(1, iconSizes.size)
-        assertEquals(1, imageSizes.size)
-        assertTrue(imageSizes.single().isLargerThan(iconSizes.single()))
+        assertEquals(4, iconSizes.size)
+        assertEquals(2, imageSizes.size)
+        iconSizes.forEach { size ->
+            assertSizeEquals(expectedSizes.iconSizePx, size)
+        }
+        imageSizes.forEach { size ->
+            assertSizeEquals(expectedSizes.imageSizePx, size)
+        }
+        assertTrue(imageSizes.first().isLargerThan(iconSizes.first()))
     }
 
     @Test
@@ -87,6 +94,15 @@ class PlayerOperationsBarTest {
     ) {
         composeRule.setContent {
             MusicFreeTheme {
+                val density = LocalDensity.current
+                expectedSizes = with(density) {
+                    OperationExpectedSizes(
+                        rowHeightPx = rpx(80).toPx(),
+                        slotSizePx = rpx(64).toPx(),
+                        iconSizePx = IconSizes.normal.toPx(),
+                        imageSizePx = rpx(52).toPx(),
+                    )
+                }
                 Box(Modifier.size(width = 360.dp, height = 120.dp)) {
                     PlayerOperationsBar(
                         isFav = false,
@@ -100,5 +116,28 @@ class PlayerOperationsBarTest {
         }
     }
 
+    private fun assertSizeEquals(expectedPx: Float, actual: Size) {
+        assertPxEquals("width", expectedPx, actual.width)
+        assertPxEquals("height", expectedPx, actual.height)
+    }
+
+    private fun assertPxEquals(label: String, expected: Float, actual: Float) {
+        assertEquals(label, expected, actual, SizeTolerancePx)
+    }
+
     private fun Size.isLargerThan(other: Size): Boolean = width > other.width && height > other.height
+
+    private data class OperationExpectedSizes(
+        val rowHeightPx: Float,
+        val slotSizePx: Float,
+        val iconSizePx: Float,
+        val imageSizePx: Float,
+    )
+
+    private companion object {
+        private const val CoverOperationSlotTestTag = "player.operations.slot"
+        private const val CoverOperationIconVisualTestTag = "player.operations.iconVisual"
+        private const val CoverOperationImageVisualTestTag = "player.operations.imageVisual"
+        private const val SizeTolerancePx = 0.5f
+    }
 }

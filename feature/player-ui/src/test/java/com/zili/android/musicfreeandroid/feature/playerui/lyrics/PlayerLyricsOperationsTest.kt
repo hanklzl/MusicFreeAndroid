@@ -3,6 +3,8 @@ package com.zili.android.musicfreeandroid.feature.playerui.lyrics
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -12,9 +14,10 @@ import androidx.compose.ui.unit.dp
 import com.zili.android.musicfreeandroid.core.model.LyricDocument
 import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
 import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
+import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.zili.android.musicfreeandroid.core.theme.rpx
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,26 +31,26 @@ class PlayerLyricsOperationsTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private lateinit var expectedSizes: OperationExpectedSizes
+
     @Test
     fun `lyric operation row uses RN height and five fixed slots`() {
         setContent()
 
-        val rowHeight = composeRule.onNodeWithTag(PlayerLyricsOperationsBarTestTag)
+        val rowHeight = composeRule.onNodeWithTag(LyricOperationsBarTestTag)
             .fetchSemanticsNode()
             .boundsInRoot
             .height
-        val slotHeights = composeRule.onAllNodesWithTag(PlayerLyricsOperationSlotTestTag)
+        val slotBounds = composeRule.onAllNodesWithTag(LyricOperationSlotTestTag)
             .fetchSemanticsNodes()
-            .map { it.boundsInRoot.height }
-            .distinct()
+            .map { it.boundsInRoot }
 
-        with(composeRule.density) {
-            assertTrue(rowHeight.toDp() > 0.dp)
-            assertEquals(1, slotHeights.size)
-            assertTrue(slotHeights.single().toDp() > 0.dp)
-            assertTrue(rowHeight.toDp() >= slotHeights.single().toDp())
+        assertPxEquals("row height", expectedSizes.rowHeightPx, rowHeight)
+        assertEquals(5, slotBounds.size)
+        slotBounds.forEach { bounds ->
+            assertPxEquals("slot width", expectedSizes.slotSizePx, bounds.width)
+            assertPxEquals("slot height", expectedSizes.slotSizePx, bounds.height)
         }
-        assertEquals(5, composeRule.onAllNodesWithTag(PlayerLyricsOperationSlotTestTag).fetchSemanticsNodes().size)
     }
 
     @Test
@@ -55,17 +58,15 @@ class PlayerLyricsOperationsTest {
         setContent()
 
         val iconSizes = composeRule.onAllNodesWithTag(
-            PlayerLyricsOperationIconVisualTestTag,
+            LyricOperationIconVisualTestTag,
             useUnmergedTree = true,
         )
             .fetchSemanticsNodes()
             .map { it.boundsInRoot.size }
-            .distinct()
 
-        with(composeRule.density) {
-            assertEquals(1, iconSizes.size)
-            assertTrue(iconSizes.single().height.toDp() > 0.dp)
-            assertTrue(iconSizes.single().width.toDp() > 0.dp)
+        assertEquals(5, iconSizes.size)
+        iconSizes.forEach { size ->
+            assertSizeEquals(expectedSizes.iconSizePx, size)
         }
     }
 
@@ -108,6 +109,14 @@ class PlayerLyricsOperationsTest {
     ) {
         composeRule.setContent {
             MusicFreeTheme {
+                val density = LocalDensity.current
+                expectedSizes = with(density) {
+                    OperationExpectedSizes(
+                        rowHeightPx = rpx(80).toPx(),
+                        slotSizePx = rpx(64).toPx(),
+                        iconSizePx = IconSizes.normal.toPx(),
+                    )
+                }
                 Box(Modifier.size(width = 360.dp, height = 120.dp)) {
                     PlayerLyricsOperations(
                         state = PlayerLyricsUiState(
@@ -138,4 +147,26 @@ class PlayerLyricsOperationsTest {
         ),
         source = LyricSourceInfo.Plugin("demo"),
     )
+
+    private fun assertSizeEquals(expectedPx: Float, actual: Size) {
+        assertPxEquals("width", expectedPx, actual.width)
+        assertPxEquals("height", expectedPx, actual.height)
+    }
+
+    private fun assertPxEquals(label: String, expected: Float, actual: Float) {
+        assertEquals(label, expected, actual, SizeTolerancePx)
+    }
+
+    private data class OperationExpectedSizes(
+        val rowHeightPx: Float,
+        val slotSizePx: Float,
+        val iconSizePx: Float,
+    )
+
+    private companion object {
+        private const val LyricOperationsBarTestTag = "player.lyrics.operations.bar"
+        private const val LyricOperationSlotTestTag = "player.lyrics.operations.slot"
+        private const val LyricOperationIconVisualTestTag = "player.lyrics.operations.iconVisual"
+        private const val SizeTolerancePx = 0.5f
+    }
 }
