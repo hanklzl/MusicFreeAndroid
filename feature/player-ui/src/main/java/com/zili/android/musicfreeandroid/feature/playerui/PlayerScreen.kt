@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,7 +67,6 @@ import coil3.compose.AsyncImage
 import com.zili.android.musicfreeandroid.core.R
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
-import com.zili.android.musicfreeandroid.core.model.shortLabel
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
@@ -222,7 +226,7 @@ fun PlayerScreen(
                         onMore = { showLyricMoreDialog = true },
                     )
 
-                    Spacer(Modifier.height(rpx(16)))
+                    PlayerLyricsOperationsBottomSpacer()
                 }
             }
 
@@ -372,6 +376,10 @@ private enum class PlayerContentPage {
 internal const val PlayerModeButtonTestTag = "player.controls.mode"
 internal const val PlayerCoverBottomClusterTestTag = "player.cover.bottomCluster"
 internal const val PlayerOperationsBarTestTag = "player.operations.bar"
+internal const val PlayerOperationSlotTestTag = "player.operations.slot"
+internal const val PlayerOperationIconVisualTestTag = "player.operations.iconVisual"
+internal const val PlayerOperationImageVisualTestTag = "player.operations.imageVisual"
+internal const val PlayerLyricsOperationsBottomSpacerTestTag = "player.lyrics.operations.bottomSpacer"
 internal const val PlayerSeekBarTestTag = "player.seekBar"
 
 @DrawableRes
@@ -574,6 +582,16 @@ private fun PlayerCoverArt(
 }
 
 @Composable
+internal fun PlayerLyricsOperationsBottomSpacer() {
+    Spacer(
+        Modifier
+            .fillMaxWidth()
+            .height(rpx(24))
+            .testTag(PlayerLyricsOperationsBottomSpacerTestTag),
+    )
+}
+
+@Composable
 internal fun PlayerOperationsBar(
     isFav: Boolean,
     hasCurrentItem: Boolean,
@@ -592,69 +610,66 @@ internal fun PlayerOperationsBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(rpx(80))
-            .padding(horizontal = rpx(48))
             .testTag(PlayerOperationsBarTestTag),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
+        PlayerOperationSlot(
             onClick = onToggleFav,
             enabled = hasCurrentItem,
+            contentDescription = if (isFav) "取消收藏" else "收藏",
         ) {
-            Icon(
-                painter = painterResource(
-                    id = if (isFav) R.drawable.ic_heart else R.drawable.ic_heart_outline,
-                ),
-                contentDescription = if (isFav) "取消收藏" else "收藏",
+            PlayerOperationIcon(
+                icon = if (isFav) R.drawable.ic_heart else R.drawable.ic_heart_outline,
                 tint = if (isFav) Color(0xFFE54B4B) else Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.size(IconSizes.normal),
             )
         }
-        Text(
-            text = currentQuality.shortLabel(),
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = FontSizes.description,
-            modifier = Modifier
-                .clickable(enabled = hasCurrentItem) { onQualityClick() }
-                .padding(horizontal = rpx(16), vertical = rpx(8)),
-        )
-        IconButton(
+        PlayerOperationSlot(
+            onClick = onQualityClick,
+            enabled = hasCurrentItem,
+            contentDescription = "音质",
+        ) {
+            PlayerOperationImage(
+                image = R.drawable.ic_quality_standard,
+            )
+        }
+        PlayerOperationSlot(
             onClick = onDownloadClick,
             enabled = hasCurrentItem,
+            contentDescription = if (isDownloaded) "已下载" else "下载",
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_arrow_down_tray),
-                contentDescription = if (isDownloaded) "已下载" else "下载",
+            PlayerOperationIcon(
+                icon = R.drawable.ic_arrow_down_tray,
                 tint = if (isDownloaded) Color(0xFF4CAF50) else Color.White.copy(alpha = if (hasCurrentItem) 0.7f else 0.3f),
-                modifier = Modifier.size(IconSizes.normal),
             )
         }
-        Text(
-            text = formatSpeedLabel(currentSpeed),
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = FontSizes.description,
-            modifier = Modifier
-                .clickable(enabled = hasCurrentItem) { onSpeedClick() }
-                .padding(horizontal = rpx(16), vertical = rpx(8)),
-        )
-        IconButton(
+        PlayerOperationSlot(
+            onClick = onSpeedClick,
+            enabled = hasCurrentItem,
+            contentDescription = "倍速",
+        ) {
+            PlayerOperationImage(
+                image = R.drawable.ic_rate_100,
+            )
+        }
+        PlayerOperationSlot(
             onClick = onToggleLyrics,
             enabled = hasCurrentItem,
+            contentDescription = "歌词",
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_chat_bubble),
-                contentDescription = "歌词",
+            PlayerOperationIcon(
+                icon = R.drawable.ic_chat_bubble,
                 tint = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.size(IconSizes.normal),
             )
         }
         Box {
-            IconButton(onClick = { menuExpanded = true }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_ellipsis_vertical),
-                    contentDescription = "更多",
+            PlayerOperationSlot(
+                onClick = { menuExpanded = true },
+                contentDescription = "更多",
+            ) {
+                PlayerOperationIcon(
+                    icon = R.drawable.ic_ellipsis_vertical,
                     tint = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.size(IconSizes.normal),
                 )
             }
             DropdownMenu(
@@ -671,6 +686,60 @@ internal fun PlayerOperationsBar(
             }
         }
     }
+}
+
+@Composable
+private fun PlayerOperationSlot(
+    onClick: () -> Unit,
+    contentDescription: String,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(rpx(64))
+            .testTag(PlayerOperationSlotTestTag)
+            .semantics {
+                this.contentDescription = contentDescription
+                role = Role.Button
+            }
+            .clickable(
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun PlayerOperationIcon(
+    @DrawableRes icon: Int,
+    tint: Color,
+) {
+    Icon(
+        painter = painterResource(icon),
+        contentDescription = null,
+        tint = tint,
+        modifier = Modifier
+            .size(IconSizes.normal)
+            .testTag(PlayerOperationIconVisualTestTag),
+    )
+}
+
+@Composable
+private fun PlayerOperationImage(
+    @DrawableRes image: Int,
+) {
+    Image(
+        painter = painterResource(image),
+        contentDescription = null,
+        modifier = Modifier
+            .size(rpx(52))
+            .testTag(PlayerOperationImageVisualTestTag),
+    )
 }
 
 @Composable
@@ -884,6 +953,3 @@ private fun formatLyricOffset(offsetMs: Long): String {
         else -> "0.0s"
     }
 }
-
-private fun formatSpeedLabel(speed: Float): String =
-    if (speed == speed.toInt().toFloat()) "${speed.toInt()}.0x" else "${speed}x"
