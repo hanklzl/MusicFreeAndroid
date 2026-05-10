@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.home.pluginsheet
 
+import com.zili.android.musicfreeandroid.core.model.StarredKind
 import com.zili.android.musicfreeandroid.core.model.StarredSheet
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import org.junit.Assert.assertEquals
@@ -22,6 +23,7 @@ class PluginSheetStarredMapperTest {
         assertEquals(item.artwork, starred.artwork)
         assertEquals(item.worksNum, starred.worksNum)
         assertEquals(item.raw, starred.raw)
+        assertEquals(StarredKind.SHEET, starred.kind)
     }
 
     @Test
