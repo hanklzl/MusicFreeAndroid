@@ -196,6 +196,10 @@ data class AlbumDetailRoute(
     val title: String? = null,
     val artist: String? = null,
     val artwork: String? = null,
+    val date: String? = null,
+    val description: String? = null,
+    val worksNum: Int? = null,
+    val seedToken: String? = null,
 )
 
 @Serializable
@@ -204,6 +208,10 @@ data class ArtistDetailRoute(
     val artistId: String,
     val name: String,
     val avatar: String? = null,
+    val description: String? = null,
+    val fans: Int? = null,
+    val worksNum: Int? = null,
+    val seedToken: String? = null,
 )
 
 @Serializable

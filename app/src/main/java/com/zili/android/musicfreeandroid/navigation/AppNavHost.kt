@@ -29,7 +29,9 @@ import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
 import com.zili.android.musicfreeandroid.feature.home.HomeSystemActionHandler
+import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.AlbumDetailSeedStore
 import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.albumDetailScreen
+import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.ArtistDetailSeedStore
 import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.artistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.musicDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.MusicDetailSeedStore
@@ -114,6 +116,53 @@ fun AppNavHost(
         searchScreen(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+            onOpenAlbumDetail = { album ->
+                val seedToken = AlbumDetailSeedStore.put(album)
+                navController.navigate(
+                    AlbumDetailRoute(
+                        pluginPlatform = album.platform,
+                        albumId = album.id,
+                        title = album.title,
+                        artist = album.artist,
+                        artwork = album.artwork,
+                        date = album.date,
+                        description = album.description,
+                        worksNum = album.worksNum,
+                        seedToken = seedToken,
+                    ),
+                )
+            },
+            onOpenArtistDetail = { artist ->
+                val seedToken = ArtistDetailSeedStore.put(artist)
+                navController.navigate(
+                    ArtistDetailRoute(
+                        pluginPlatform = artist.platform,
+                        artistId = artist.id,
+                        name = artist.name.orEmpty().ifBlank { "未知歌手" },
+                        avatar = artist.avatar,
+                        description = artist.description,
+                        fans = artist.fans,
+                        worksNum = artist.worksNum,
+                        seedToken = seedToken,
+                    ),
+                )
+            },
+            onOpenSheetDetail = { sheet ->
+                val seedToken = PluginSheetSeedStore.put(sheet)
+                navController.navigate(
+                    PluginSheetDetailRoute(
+                        pluginPlatform = sheet.platform,
+                        sheetId = sheet.id,
+                        title = sheet.title,
+                        artist = sheet.artist,
+                        description = sheet.description,
+                        coverImg = sheet.coverImg,
+                        artwork = sheet.artwork,
+                        worksNum = sheet.worksNum,
+                        seedToken = seedToken,
+                    ),
+                )
+            },
         )
         historyScreen(
             onBack = { navController.popBackStack() },

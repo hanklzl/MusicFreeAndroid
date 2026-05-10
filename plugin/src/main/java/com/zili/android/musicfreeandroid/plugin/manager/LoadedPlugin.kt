@@ -69,7 +69,7 @@ class LoadedPlugin(
                     "await __plugin.search('${escapeJsString(query)}', $page, '${escapeJsString(type)}')"
                 )
                 val map = toMap(result) ?: return@withTimeout SearchResult(isEnd = true, data = emptyList())
-                JsBridge.parseSearchResult(map, fallbackPlatform = info.platform)
+                JsBridge.parseSearchResult(map, fallbackPlatform = info.platform, type = type)
             } catch (e: Exception) {
                 rethrowIfExternalCancellation(e)
                 Log.e(TAG, "search failed for query='$query' on ${info.platform}", e)

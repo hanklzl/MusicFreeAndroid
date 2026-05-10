@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -74,6 +79,11 @@ import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
 import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
+import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
+import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
+import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
+import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.plugin.api.PluginSearchItem
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -82,6 +92,9 @@ import kotlinx.coroutines.flow.onEach
 fun SearchScreen(
     onBack: () -> Unit,
     onNavigateToPlayer: () -> Unit,
+    onOpenAlbumDetail: (AlbumItemBase) -> Unit,
+    onOpenArtistDetail: (ArtistItemBase) -> Unit,
+    onOpenSheetDetail: (MusicSheetItemBase) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
@@ -261,6 +274,9 @@ fun SearchScreen(
                     onMusicClick = { music, items ->
                         viewModel.resolveAndPlay(music, items)
                     },
+                    onAlbumClick = onOpenAlbumDetail,
+                    onArtistClick = onOpenArtistDetail,
+                    onSheetClick = onOpenSheetDetail,
                     onPlayNext = { music -> viewModel.playNext(music) },
                     onAddToPlaylist = { music -> viewModel.showAddToPlaylistSheet(music) },
                     onToggleFavorite = { music -> viewModel.toggleFavorite(music) },
@@ -393,7 +409,7 @@ private fun SearchHistoryPanel(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SearchResultPanel(
-    searchablePlugins: List<com.zili.android.musicfreeandroid.plugin.api.PluginInfo>,
+    searchablePlugins: List<PluginInfo>,
     selectedMediaType: SearchMediaType,
     selectedPlatform: String?,
     currentPluginState: PluginSearchState,
@@ -401,6 +417,9 @@ private fun SearchResultPanel(
     onSelectPlatform: (String) -> Unit,
     onLoadMore: () -> Unit,
     onMusicClick: (MusicItem, List<MusicItem>) -> Unit,
+    onAlbumClick: (AlbumItemBase) -> Unit,
+    onArtistClick: (ArtistItemBase) -> Unit,
+    onSheetClick: (MusicSheetItemBase) -> Unit,
     onPlayNext: (MusicItem) -> Unit,
     onAddToPlaylist: (MusicItem) -> Unit,
     onToggleFavorite: (MusicItem) -> Unit,
@@ -491,43 +510,201 @@ private fun SearchResultPanel(
                             fontSize = FontSizes.content,
                         )
                     }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(
-                            items = items,
-                            key = { item -> "${item.platform}_${item.id}" },
-                        ) { music ->
-                            MusicResultItem(
-                                item = music,
-                                onClick = { onMusicClick(music, items) },
-                                onLongClick = { onLongClick(music) },
-                                onPlayNext = { onPlayNext(music) },
-                                onAddToPlaylist = { onAddToPlaylist(music) },
-                                onToggleFavorite = { onToggleFavorite(music) },
-                                isFavoriteFlow = isFavoriteFlow,
+                } else if (selectedMediaType == SearchMediaType.SHEET) {
+                    val sheets = items.filterIsInstance<PluginSearchItem.Sheet>()
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(rpx(24)),
+                        horizontalArrangement = Arrangement.spacedBy(rpx(16)),
+                        verticalArrangement = Arrangement.spacedBy(rpx(24)),
+                    ) {
+                        gridItems(
+                            items = sheets,
+                            key = { item -> searchResultKey(item) },
+                        ) { sheet ->
+                            SheetResultItem(
+                                item = sheet.item,
+                                onClick = { onSheetClick(sheet.item) },
                             )
                         }
 
                         if (!state.isEnd) {
-                            item {
-                                LaunchedEffect(state.page) { onLoadMore() }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(rpx(24)),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(rpx(48)),
-                                        color = colors.primary,
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                SearchLoadingFooter(state.page, onLoadMore)
+                            }
+                        }
+                    }
+                } else {
+                    val musicQueue = items.filterIsInstance<PluginSearchItem.Music>().map { it.item }
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(
+                            items = items,
+                            key = { item -> searchResultKey(item) },
+                        ) { result ->
+                            when (result) {
+                                is PluginSearchItem.Music -> {
+                                    val music = result.item
+                                    MusicResultItem(
+                                        item = music,
+                                        onClick = { onMusicClick(music, musicQueue) },
+                                        onLongClick = { onLongClick(music) },
+                                        onPlayNext = { onPlayNext(music) },
+                                        onAddToPlaylist = { onAddToPlaylist(music) },
+                                        onToggleFavorite = { onToggleFavorite(music) },
+                                        isFavoriteFlow = isFavoriteFlow,
                                     )
                                 }
+                                is PluginSearchItem.Album -> MediaResultItem(
+                                    coverUri = result.item.artwork,
+                                    title = result.item.title.orEmpty().ifBlank { "未命名专辑" },
+                                    tag = result.item.platform,
+                                    description = albumDescription(result.item),
+                                    onClick = { onAlbumClick(result.item) },
+                                )
+                                is PluginSearchItem.Artist -> MediaResultItem(
+                                    coverUri = result.item.avatar,
+                                    title = result.item.name.orEmpty().ifBlank { "未知歌手" },
+                                    tag = result.item.platform,
+                                    description = artistDescription(result.item),
+                                    onClick = { onArtistClick(result.item) },
+                                )
+                                is PluginSearchItem.Sheet -> MediaResultItem(
+                                    coverUri = result.item.artwork ?: result.item.coverImg,
+                                    title = result.item.title.orEmpty().ifBlank { "未命名歌单" },
+                                    tag = result.item.platform,
+                                    description = result.item.description.orEmpty(),
+                                    onClick = { onSheetClick(result.item) },
+                                )
                             }
+                        }
+
+                        if (!state.isEnd) {
+                            item { SearchLoadingFooter(state.page, onLoadMore) }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+private fun searchResultKey(item: PluginSearchItem): String = when (item) {
+    is PluginSearchItem.Music -> "music_${item.item.platform}_${item.item.id}"
+    is PluginSearchItem.Album -> "album_${item.item.platform}_${item.item.id}"
+    is PluginSearchItem.Artist -> "artist_${item.item.platform}_${item.item.id}"
+    is PluginSearchItem.Sheet -> "sheet_${item.item.platform}_${item.item.id}"
+}
+
+private fun albumDescription(item: AlbumItemBase): String =
+    listOfNotNull(item.artist, item.date)
+        .filter { it.isNotBlank() }
+        .joinToString("    ")
+
+private fun artistDescription(item: ArtistItemBase): String = when {
+    !item.description.isNullOrBlank() -> item.description.orEmpty()
+    item.worksNum != null -> "作品 ${item.worksNum}"
+    else -> ""
+}
+
+@Composable
+private fun SearchLoadingFooter(page: Int, onLoadMore: () -> Unit) {
+    val colors = MusicFreeTheme.colors
+    LaunchedEffect(page) { onLoadMore() }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(rpx(24)),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(rpx(48)),
+            color = colors.primary,
+        )
+    }
+}
+
+@Composable
+private fun MediaResultItem(
+    coverUri: String?,
+    title: String,
+    tag: String,
+    description: String,
+    onClick: () -> Unit,
+) {
+    val colors = MusicFreeTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(rpx(120))
+            .clickable(onClick = onClick)
+            .padding(horizontal = rpx(24)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CoverImage(
+            uri = coverUri,
+            size = rpx(80),
+            cornerRadius = rpx(16),
+        )
+        Spacer(Modifier.width(rpx(24)))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    color = colors.text,
+                    fontSize = FontSizes.content,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (tag.isNotBlank()) {
+                    Spacer(Modifier.width(rpx(12)))
+                    Text(
+                        text = tag,
+                        color = colors.primary,
+                        fontSize = FontSizes.subTitle,
+                        maxLines = 1,
+                    )
+                }
+            }
+            if (description.isNotBlank()) {
+                Text(
+                    text = description,
+                    color = colors.textSecondary,
+                    fontSize = FontSizes.subTitle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SheetResultItem(
+    item: MusicSheetItemBase,
+    onClick: () -> Unit,
+) {
+    val colors = MusicFreeTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        CoverImage(
+            uri = item.artwork ?: item.coverImg,
+            size = rpx(210),
+            cornerRadius = rpx(12),
+        )
+        Spacer(Modifier.height(rpx(12)))
+        Text(
+            text = item.title.orEmpty().ifBlank { "未命名歌单" },
+            color = colors.text,
+            fontSize = FontSizes.subTitle,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
