@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -322,6 +327,9 @@ private enum class PlayerContentPage {
 internal const val PlayerModeButtonTestTag = "player.controls.mode"
 internal const val PlayerCoverBottomClusterTestTag = "player.cover.bottomCluster"
 internal const val PlayerOperationsBarTestTag = "player.operations.bar"
+internal const val PlayerOperationSlotTestTag = "player.operations.slot"
+internal const val PlayerOperationIconVisualTestTag = "player.operations.iconVisual"
+internal const val PlayerOperationImageVisualTestTag = "player.operations.imageVisual"
 internal const val PlayerSeekBarTestTag = "player.seekBar"
 
 @DrawableRes
@@ -529,55 +537,65 @@ internal fun PlayerOperationsBar(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
+        PlayerOperationSlot(
             onClick = onToggleFav,
             enabled = hasCurrentItem,
+            contentDescription = if (isFav) "取消收藏" else "收藏",
         ) {
-            Icon(
-                painter = painterResource(
-                    id = if (isFav) R.drawable.ic_heart else R.drawable.ic_heart_outline,
-                ),
+            PlayerOperationIcon(
+                icon = if (isFav) R.drawable.ic_heart else R.drawable.ic_heart_outline,
                 contentDescription = if (isFav) "取消收藏" else "收藏",
                 tint = if (isFav) Color(0xFFE54B4B) else Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.size(IconSizes.normal),
             )
         }
-        Text(
-            text = "标准",
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = FontSizes.description,
-        )
-        IconButton(onClick = {}) {
-            Icon(
-                painter = painterResource(R.drawable.ic_arrow_down_tray),
+        PlayerOperationSlot(
+            onClick = {},
+            contentDescription = "音质",
+        ) {
+            PlayerOperationImage(
+                image = R.drawable.ic_quality_standard,
+                contentDescription = "音质",
+            )
+        }
+        PlayerOperationSlot(
+            onClick = {},
+            contentDescription = "下载",
+        ) {
+            PlayerOperationIcon(
+                icon = R.drawable.ic_arrow_down_tray,
                 contentDescription = "下载",
                 tint = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.size(IconSizes.normal),
             )
         }
-        Text(
-            text = "1.0x",
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = FontSizes.description,
-        )
-        IconButton(
+        PlayerOperationSlot(
+            onClick = {},
+            contentDescription = "倍速",
+        ) {
+            PlayerOperationImage(
+                image = R.drawable.ic_rate_100,
+                contentDescription = "倍速",
+            )
+        }
+        PlayerOperationSlot(
             onClick = onToggleLyrics,
             enabled = hasCurrentItem,
+            contentDescription = "歌词",
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_chat_bubble),
+            PlayerOperationIcon(
+                icon = R.drawable.ic_chat_bubble,
                 contentDescription = "歌词",
                 tint = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.size(IconSizes.normal),
             )
         }
         Box {
-            IconButton(onClick = { menuExpanded = true }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_ellipsis_vertical),
+            PlayerOperationSlot(
+                onClick = { menuExpanded = true },
+                contentDescription = "更多",
+            ) {
+                PlayerOperationIcon(
+                    icon = R.drawable.ic_ellipsis_vertical,
                     contentDescription = "更多",
                     tint = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.size(IconSizes.normal),
                 )
             }
             DropdownMenu(
@@ -594,6 +612,62 @@ internal fun PlayerOperationsBar(
             }
         }
     }
+}
+
+@Composable
+private fun PlayerOperationSlot(
+    onClick: () -> Unit,
+    contentDescription: String,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(rpx(64))
+            .testTag(PlayerOperationSlotTestTag)
+            .semantics {
+                this.contentDescription = contentDescription
+                role = Role.Button
+            }
+            .clickable(
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun PlayerOperationIcon(
+    @DrawableRes icon: Int,
+    contentDescription: String,
+    tint: Color,
+) {
+    Icon(
+        painter = painterResource(icon),
+        contentDescription = contentDescription,
+        tint = tint,
+        modifier = Modifier
+            .size(IconSizes.normal)
+            .testTag(PlayerOperationIconVisualTestTag),
+    )
+}
+
+@Composable
+private fun PlayerOperationImage(
+    @DrawableRes image: Int,
+    contentDescription: String,
+) {
+    Image(
+        painter = painterResource(image),
+        contentDescription = contentDescription,
+        modifier = Modifier
+            .size(rpx(52))
+            .testTag(PlayerOperationImageVisualTestTag),
+    )
 }
 
 @Composable
