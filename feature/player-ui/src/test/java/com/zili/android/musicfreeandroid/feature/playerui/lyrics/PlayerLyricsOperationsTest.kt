@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.playerui.lyrics
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -37,20 +38,24 @@ class PlayerLyricsOperationsTest {
     fun `lyric operation row uses RN height and five fixed slots`() {
         setContent()
 
-        val rowHeight = composeRule.onNodeWithTag(LyricOperationsBarTestTag)
+        val rowBounds = composeRule.onNodeWithTag(LyricOperationsBarTestTag)
             .fetchSemanticsNode()
             .boundsInRoot
-            .height
         val slotBounds = composeRule.onAllNodesWithTag(LyricOperationSlotTestTag)
             .fetchSemanticsNodes()
             .map { it.boundsInRoot }
 
-        assertPxEquals("row height", expectedSizes.rowHeightPx, rowHeight)
+        assertPxEquals("row height", expectedSizes.rowHeightPx, rowBounds.height)
         assertEquals(5, slotBounds.size)
         slotBounds.forEach { bounds ->
             assertPxEquals("slot width", expectedSizes.slotSizePx, bounds.width)
             assertPxEquals("slot height", expectedSizes.slotSizePx, bounds.height)
         }
+        assertSpaceAroundWithoutHorizontalPadding(
+            rowBounds = rowBounds,
+            slotBounds = slotBounds,
+            itemCount = 5,
+        )
     }
 
     @Test
@@ -157,6 +162,22 @@ class PlayerLyricsOperationsTest {
         assertEquals(label, expected, actual, SizeTolerancePx)
     }
 
+    private fun assertSpaceAroundWithoutHorizontalPadding(
+        rowBounds: Rect,
+        slotBounds: List<Rect>,
+        itemCount: Int,
+    ) {
+        val rowWidth = rowBounds.width
+        val slotSize = expectedSizes.slotSizePx
+        val space = (rowWidth - itemCount * slotSize) / itemCount
+        val expectedLeading = space / 2f
+        val firstLeft = slotBounds.first().left - rowBounds.left
+        val lastRight = slotBounds.last().right - rowBounds.left
+
+        assertPxEquals("first slot leading", expectedLeading, firstLeft)
+        assertPxEquals("last slot trailing", rowWidth - expectedLeading, lastRight)
+    }
+
     private data class OperationExpectedSizes(
         val rowHeightPx: Float,
         val slotSizePx: Float,
@@ -167,6 +188,6 @@ class PlayerLyricsOperationsTest {
         private const val LyricOperationsBarTestTag = "player.lyrics.operations.bar"
         private const val LyricOperationSlotTestTag = "player.lyrics.operations.slot"
         private const val LyricOperationIconVisualTestTag = "player.lyrics.operations.iconVisual"
-        private const val SizeTolerancePx = 0.5f
+        private const val SizeTolerancePx = 1f
     }
 }

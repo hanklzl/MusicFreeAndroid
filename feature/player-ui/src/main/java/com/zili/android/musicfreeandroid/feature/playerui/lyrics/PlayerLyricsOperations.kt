@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -49,7 +48,6 @@ fun PlayerLyricsOperations(
         modifier = modifier
             .fillMaxWidth()
             .height(rpx(80))
-            .padding(horizontal = rpx(48))
             .testTag(PlayerLyricsOperationsBarTestTag),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,

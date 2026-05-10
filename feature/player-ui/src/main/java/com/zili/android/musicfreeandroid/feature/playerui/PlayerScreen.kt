@@ -209,7 +209,7 @@ fun PlayerScreen(
                         onMore = { showLyricMoreDialog = true },
                     )
 
-                    Spacer(Modifier.height(rpx(16)))
+                    PlayerLyricsOperationsBottomSpacer()
                 }
             }
 
@@ -330,6 +330,7 @@ internal const val PlayerOperationsBarTestTag = "player.operations.bar"
 internal const val PlayerOperationSlotTestTag = "player.operations.slot"
 internal const val PlayerOperationIconVisualTestTag = "player.operations.iconVisual"
 internal const val PlayerOperationImageVisualTestTag = "player.operations.imageVisual"
+internal const val PlayerLyricsOperationsBottomSpacerTestTag = "player.lyrics.operations.bottomSpacer"
 internal const val PlayerSeekBarTestTag = "player.seekBar"
 
 @DrawableRes
@@ -520,6 +521,16 @@ private fun PlayerCoverArt(
 }
 
 @Composable
+internal fun PlayerLyricsOperationsBottomSpacer() {
+    Spacer(
+        Modifier
+            .fillMaxWidth()
+            .height(rpx(24))
+            .testTag(PlayerLyricsOperationsBottomSpacerTestTag),
+    )
+}
+
+@Composable
 internal fun PlayerOperationsBar(
     isFav: Boolean,
     hasCurrentItem: Boolean,
@@ -532,7 +543,6 @@ internal fun PlayerOperationsBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(rpx(80))
-            .padding(horizontal = rpx(48))
             .testTag(PlayerOperationsBarTestTag),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,

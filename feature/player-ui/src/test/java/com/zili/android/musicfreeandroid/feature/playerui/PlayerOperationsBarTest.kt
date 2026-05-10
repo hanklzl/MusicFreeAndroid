@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.playerui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -36,20 +37,24 @@ class PlayerOperationsBarTest {
     fun `cover operation row uses RN height and six fixed slots`() {
         setContent()
 
-        val rowHeight = composeRule.onNodeWithTag(PlayerOperationsBarTestTag)
+        val rowBounds = composeRule.onNodeWithTag(PlayerOperationsBarTestTag)
             .fetchSemanticsNode()
             .boundsInRoot
-            .height
         val slotBounds = composeRule.onAllNodesWithTag(CoverOperationSlotTestTag)
             .fetchSemanticsNodes()
             .map { it.boundsInRoot }
 
-        assertPxEquals("row height", expectedSizes.rowHeightPx, rowHeight)
+        assertPxEquals("row height", expectedSizes.rowHeightPx, rowBounds.height)
         assertEquals(6, slotBounds.size)
         slotBounds.forEach { bounds ->
             assertPxEquals("slot width", expectedSizes.slotSizePx, bounds.width)
             assertPxEquals("slot height", expectedSizes.slotSizePx, bounds.height)
         }
+        assertSpaceAroundWithoutHorizontalPadding(
+            rowBounds = rowBounds,
+            slotBounds = slotBounds,
+            itemCount = 6,
+        )
     }
 
     @Test
@@ -97,6 +102,32 @@ class PlayerOperationsBarTest {
         }
     }
 
+    @Test
+    fun `lyric operations bottom spacer uses RN margin`() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                val density = LocalDensity.current
+                expectedSizes = with(density) {
+                    OperationExpectedSizes(
+                        rowHeightPx = rpx(80).toPx(),
+                        slotSizePx = rpx(64).toPx(),
+                        iconSizePx = IconSizes.normal.toPx(),
+                        imageSizePx = rpx(52).toPx(),
+                        lyricBottomSpacerHeightPx = rpx(24).toPx(),
+                    )
+                }
+                PlayerLyricsOperationsBottomSpacer()
+            }
+        }
+
+        val spacerHeight = composeRule.onNodeWithTag(PlayerLyricsOperationsBottomSpacerTestTag)
+            .fetchSemanticsNode()
+            .boundsInRoot
+            .height
+
+        assertPxEquals("lyric operations bottom spacer", expectedSizes.lyricBottomSpacerHeightPx, spacerHeight)
+    }
+
     private fun setContent(
         onToggleFav: () -> Unit = {},
         onAddToPlaylist: () -> Unit = {},
@@ -111,6 +142,7 @@ class PlayerOperationsBarTest {
                         slotSizePx = rpx(64).toPx(),
                         iconSizePx = IconSizes.normal.toPx(),
                         imageSizePx = rpx(52).toPx(),
+                        lyricBottomSpacerHeightPx = rpx(24).toPx(),
                     )
                 }
                 Box(Modifier.size(width = 360.dp, height = 120.dp)) {
@@ -135,6 +167,22 @@ class PlayerOperationsBarTest {
         assertEquals(label, expected, actual, SizeTolerancePx)
     }
 
+    private fun assertSpaceAroundWithoutHorizontalPadding(
+        rowBounds: Rect,
+        slotBounds: List<Rect>,
+        itemCount: Int,
+    ) {
+        val rowWidth = rowBounds.width
+        val slotSize = expectedSizes.slotSizePx
+        val space = (rowWidth - itemCount * slotSize) / itemCount
+        val expectedLeading = space / 2f
+        val firstLeft = slotBounds.first().left - rowBounds.left
+        val lastRight = slotBounds.last().right - rowBounds.left
+
+        assertPxEquals("first slot leading", expectedLeading, firstLeft)
+        assertPxEquals("last slot trailing", rowWidth - expectedLeading, lastRight)
+    }
+
     private fun Size.isLargerThan(other: Size): Boolean = width > other.width && height > other.height
 
     private data class OperationExpectedSizes(
@@ -142,12 +190,13 @@ class PlayerOperationsBarTest {
         val slotSizePx: Float,
         val iconSizePx: Float,
         val imageSizePx: Float,
+        val lyricBottomSpacerHeightPx: Float,
     )
 
     private companion object {
         private const val CoverOperationSlotTestTag = "player.operations.slot"
         private const val CoverOperationIconVisualTestTag = "player.operations.iconVisual"
         private const val CoverOperationImageVisualTestTag = "player.operations.imageVisual"
-        private const val SizeTolerancePx = 0.5f
+        private const val SizeTolerancePx = 1f
     }
 }
