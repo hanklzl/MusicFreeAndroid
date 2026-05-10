@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.zili.android.musicfreeandroid.feature.playerui.component.rate.PlayRateSheetItemTestTagPrefix
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -28,7 +29,7 @@ class PlayRateSheetTest {
             }
         }
         PlaybackSpeeds.ALL.forEach { rate ->
-            rule.onNodeWithTag("player.rate.sheet.item.$rate").assertIsDisplayed()
+            rule.onNodeWithTag(PlayRateSheetItemTestTagPrefix + rate.toString()).assertIsDisplayed()
         }
     }
 
@@ -40,7 +41,7 @@ class PlayRateSheetTest {
                 PlayRateSheetContent(current = 1.0f, onSelect = { selected = it })
             }
         }
-        rule.onNodeWithTag("player.rate.sheet.item.1.5").performClick()
+        rule.onNodeWithTag(PlayRateSheetItemTestTagPrefix + "1.5").performClick()
         assertEquals(1.5f, selected)
     }
 }
