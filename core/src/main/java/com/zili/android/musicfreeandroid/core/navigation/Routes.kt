@@ -104,7 +104,43 @@ data object FileSelectorRoute
 data class PlaylistDetailRoute(val playlistId: String)
 
 @Serializable
-data class MusicListEditorLiteRoute(val playlistId: String)
+data class MusicListEditorLiteRoute(
+    @OptIn(ExperimentalSerializationApi::class)
+    @JsonNames("playlistId")
+    val sourceId: String,
+    val sourceType: String = SOURCE_TYPE_PLAYLIST,
+) {
+    constructor(playlistId: String) : this(
+        sourceId = playlistId,
+        sourceType = SOURCE_TYPE_PLAYLIST,
+    )
+
+    init {
+        require(sourceType == SOURCE_TYPE_PLAYLIST || sourceType == SOURCE_TYPE_LOCAL_LIBRARY) {
+            "Unsupported music list editor source type: $sourceType"
+        }
+        require(sourceType != SOURCE_TYPE_PLAYLIST || sourceId.isNotBlank()) {
+            "sourceId is required for playlist editor routes"
+        }
+        require(sourceType != SOURCE_TYPE_LOCAL_LIBRARY || sourceId == LOCAL_LIBRARY_SOURCE_ID) {
+            "sourceId must be $LOCAL_LIBRARY_SOURCE_ID for local-library editor routes"
+        }
+    }
+
+    val playlistId: String
+        get() = sourceId
+
+    companion object {
+        const val SOURCE_TYPE_PLAYLIST = "playlist"
+        const val SOURCE_TYPE_LOCAL_LIBRARY = "local-library"
+        const val LOCAL_LIBRARY_SOURCE_ID = "local"
+
+        fun localLibrary(): MusicListEditorLiteRoute = MusicListEditorLiteRoute(
+            sourceId = LOCAL_LIBRARY_SOURCE_ID,
+            sourceType = SOURCE_TYPE_LOCAL_LIBRARY,
+        )
+    }
+}
 
 @Serializable
 data object PlayQueueRoute

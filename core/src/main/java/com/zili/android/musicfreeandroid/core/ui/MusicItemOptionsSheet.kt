@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,6 +24,7 @@ fun MusicItemOptionsSheet(
     item: MusicItem,
     onDismiss: () -> Unit,
     onDownload: (item: MusicItem) -> Unit,
+    onRemoveFromLocalLibrary: ((item: MusicItem) -> Unit)? = null,
 ) {
     val state = rememberModalBottomSheetState()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = state) {
@@ -38,6 +40,18 @@ fun MusicItemOptionsSheet(
                     .fillMaxWidth()
                     .clickable { onDownload(item); onDismiss() },
             )
+            if (onRemoveFromLocalLibrary != null) {
+                ListItem(
+                    headlineContent = { Text("从本地音乐移除") },
+                    leadingContent = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onRemoveFromLocalLibrary(item)
+                            onDismiss()
+                        },
+                )
+            }
         }
     }
 }

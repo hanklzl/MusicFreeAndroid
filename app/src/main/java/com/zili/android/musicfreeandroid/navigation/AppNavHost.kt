@@ -82,7 +82,14 @@ fun AppNavHost(
             homeSystemActionHandler = homeSystemActionHandler,
         )
         localScreen(
+            onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+            onNavigateToSearchMusicList = {
+                navController.navigate(SearchMusicListRoute.localLibrary())
+            },
+            onNavigateToMusicListEditor = {
+                navController.navigate(MusicListEditorLiteRoute.localLibrary())
+            },
             onNavigateToDownloading = { navController.navigate(DownloadingRoute) },
         )
         downloadingScreen(

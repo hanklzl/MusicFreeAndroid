@@ -258,6 +258,23 @@ class RoutesTest {
     }
 
     @Test
+    fun `MusicListEditorLiteRoute decodes legacy playlistId payload`() {
+        val legacyJson = """{"playlistId":"playlist-42"}"""
+        val decoded = Json.decodeFromString<MusicListEditorLiteRoute>(legacyJson)
+
+        assertEquals(MusicListEditorLiteRoute(playlistId = "playlist-42"), decoded)
+    }
+
+    @Test
+    fun `local library MusicListEditorLiteRoute is serializable`() {
+        val route = MusicListEditorLiteRoute.localLibrary()
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<MusicListEditorLiteRoute>(json)
+        assertEquals(route, decoded)
+    }
+
+    @Test
     fun `AlbumDetailRoute is serializable`() {
         val route = AlbumDetailRoute(
             pluginPlatform = "demo",
