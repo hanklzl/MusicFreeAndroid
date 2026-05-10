@@ -52,8 +52,20 @@ class AlbumDetailViewModel @Inject constructor(
 
     fun toggleAlbumStarred() {
         val seed = currentAlbum ?: initialAlbumSeed
+        val starred = seed.toStarredSheet()
+        val wasStarred = isAlbumStarred.value
         viewModelScope.launch {
-            starredSheetRepository.toggle(seed.toStarredSheet())
+            starredSheetRepository.toggle(starred)
+            com.zili.android.musicfreeandroid.logging.MfLog.detail(
+                category = com.zili.android.musicfreeandroid.logging.LogCategory.APP,
+                event = if (wasStarred) "starred_removed" else "starred_added",
+                fields = mapOf(
+                    "kind" to com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+                    "platform" to starred.platform,
+                    "id" to starred.id,
+                    "source" to "detail_album",
+                ),
+            )
         }
     }
 
