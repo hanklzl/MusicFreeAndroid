@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.data.db.entity
 
 import androidx.room.Entity
+import com.zili.android.musicfreeandroid.core.model.StarredKind
 
 @Entity(
     tableName = "starred_sheets",
@@ -13,6 +14,7 @@ data class StarredSheetEntity(
     val artist: String?,
     val coverUri: String?,
     val sourceUrl: String?,
+    val kind: String = StarredKind.SHEET,
     val description: String? = null,
     val artwork: String? = null,
     val worksNum: Int? = null,

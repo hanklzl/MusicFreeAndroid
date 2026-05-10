@@ -7,6 +7,7 @@ data class StarredSheet(
     val artist: String?,
     val coverUri: String?,
     val sourceUrl: String?,
+    val kind: String = StarredKind.SHEET,
     val description: String? = null,
     val artwork: String? = null,
     val worksNum: Int? = null,
