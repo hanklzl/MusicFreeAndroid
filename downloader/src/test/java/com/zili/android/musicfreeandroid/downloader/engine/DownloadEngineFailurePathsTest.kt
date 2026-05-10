@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.downloader.io.NetworkState
 import com.zili.android.musicfreeandroid.downloader.model.DownloadFailReason
@@ -50,7 +51,9 @@ class DownloadEngineFailurePathsTest {
         http = FakeHttpDownloader()
         writer = FakeMediaStoreWriter()
         resolver = FakeQualityResolver()
-        configFlow = MutableStateFlow(DownloadConfig(2, false, PlayQuality.STANDARD, "Music/MusicFree/"))
+        configFlow = MutableStateFlow(
+            DownloadConfig(2, false, PlayQuality.STANDARD, QualityFallbackOrder.Asc, "Music/MusicFree/"),
+        )
         network = MutableStateFlow(NetworkState.Wifi)
         engine = DownloadEngine(
             taskDao = db.downloadTaskDao(),

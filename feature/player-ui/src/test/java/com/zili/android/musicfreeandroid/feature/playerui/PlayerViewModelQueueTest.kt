@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.playerui
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
@@ -52,6 +53,8 @@ class PlayerViewModelQueueTest {
     private val lyricDetailFontSizeFlow = MutableStateFlow(1)
     private val playQualityFlow = MutableStateFlow(PlayQuality.STANDARD)
     private val playRateFlow = MutableStateFlow(PlaybackSpeeds.DEFAULT)
+    private val musicDetailDefaultPageFlow = MutableStateFlow(MusicDetailDefaultPage.Album)
+    private val musicDetailAwakeFlow = MutableStateFlow(false)
     private val downloaderTasksFlow = MutableStateFlow<List<DownloadTaskUi>>(emptyList())
     private val downloaderDownloadedKeysFlow = MutableStateFlow<Set<MediaKey>>(emptySet())
     private val downloaderEventsFlow = MutableSharedFlow<DownloadEvent>()
@@ -70,6 +73,8 @@ class PlayerViewModelQueueTest {
         whenever(appPreferences.lyricDetailFontSize).thenReturn(lyricDetailFontSizeFlow)
         whenever(appPreferences.playQuality).thenReturn(playQualityFlow)
         whenever(appPreferences.playRate).thenReturn(playRateFlow)
+        whenever(appPreferences.musicDetailDefaultPage).thenReturn(musicDetailDefaultPageFlow)
+        whenever(appPreferences.musicDetailAwake).thenReturn(musicDetailAwakeFlow)
         whenever(downloader.tasks).thenReturn(downloaderTasksFlow)
         whenever(downloader.downloadedKeys).thenReturn(downloaderDownloadedKeysFlow)
         whenever(downloader.events).thenReturn(downloaderEventsFlow)

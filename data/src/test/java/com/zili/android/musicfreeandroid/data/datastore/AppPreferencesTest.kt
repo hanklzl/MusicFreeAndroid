@@ -5,8 +5,13 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
+import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
+import com.zili.android.musicfreeandroid.core.model.SortMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
@@ -158,5 +163,55 @@ class AppPreferencesTest {
     fun `set lyric auto search`() = testScope.runTest {
         prefs.setLyricAutoSearchEnabled(false)
         assertFalse(prefs.lyricAutoSearchEnabled.first())
+    }
+
+    @Test
+    fun `default basic runtime settings match RN defaults`() = testScope.runTest {
+        assertEquals(50, prefs.maxSearchHistoryLength.first())
+        assertEquals(MusicDetailDefaultPage.Album, prefs.musicDetailDefaultPage.first())
+        assertFalse(prefs.musicDetailAwake.first())
+        assertEquals(SearchResultClickAction.PlayMusic, prefs.clickMusicInSearch.first())
+        assertEquals(AlbumMusicClickAction.PlayAlbum, prefs.clickMusicInAlbum.first())
+        assertEquals(SortMode.Manual, prefs.musicOrderInLocalSheet.first())
+        assertEquals(PlayQuality.STANDARD, prefs.defaultPlayQuality.first())
+        assertEquals(QualityFallbackOrder.Asc, prefs.playQualityOrder.first())
+        assertFalse(prefs.useCellularPlay.first())
+    }
+
+    @Test
+    fun `set and get basic runtime settings`() = testScope.runTest {
+        prefs.setMaxSearchHistoryLength(100)
+        prefs.setMusicDetailDefaultPage(MusicDetailDefaultPage.Lyric)
+        prefs.setMusicDetailAwake(true)
+        prefs.setClickMusicInSearch(SearchResultClickAction.PlayMusicAndReplace)
+        prefs.setClickMusicInAlbum(AlbumMusicClickAction.PlayMusic)
+        prefs.setMusicOrderInLocalSheet(SortMode.Title)
+        prefs.setDefaultPlayQuality(PlayQuality.SUPER)
+        prefs.setPlayQualityOrder(QualityFallbackOrder.Desc)
+        prefs.setUseCellularPlay(true)
+
+        assertEquals(100, prefs.maxSearchHistoryLength.first())
+        assertEquals(MusicDetailDefaultPage.Lyric, prefs.musicDetailDefaultPage.first())
+        assertTrue(prefs.musicDetailAwake.first())
+        assertEquals(SearchResultClickAction.PlayMusicAndReplace, prefs.clickMusicInSearch.first())
+        assertEquals(AlbumMusicClickAction.PlayMusic, prefs.clickMusicInAlbum.first())
+        assertEquals(SortMode.Title, prefs.musicOrderInLocalSheet.first())
+        assertEquals(PlayQuality.SUPER, prefs.defaultPlayQuality.first())
+        assertEquals(QualityFallbackOrder.Desc, prefs.playQualityOrder.first())
+        assertTrue(prefs.useCellularPlay.first())
+    }
+
+    @Test
+    fun `search history is trimmed by configured max history length`() = testScope.runTest {
+        prefs.setMaxSearchHistoryLength(3)
+
+        repeat(5) { index ->
+            prefs.addSearchQuery("query-$index")
+        }
+
+        assertEquals(
+            listOf("query-4", "query-3", "query-2"),
+            prefs.searchHistory.first(),
+        )
     }
 }

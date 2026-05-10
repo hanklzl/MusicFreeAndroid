@@ -3,7 +3,12 @@ package com.zili.android.musicfreeandroid.feature.settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
+import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
+import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
+import com.zili.android.musicfreeandroid.core.model.SortMode
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.logging.FeedbackLogExporterContract
 import com.zili.android.musicfreeandroid.logging.FeedbackPackage
@@ -82,8 +87,18 @@ class SettingsViewModelTest {
 
         val state = viewModel.basicSettingsUiState.value
 
+        assertEquals(50, state.maxSearchHistoryLength)
+        assertEquals(MusicDetailDefaultPage.Album, state.musicDetailDefaultPage)
+        assertEquals(false, state.musicDetailAwake)
+        assertEquals(SearchResultClickAction.PlayMusic, state.clickMusicInSearch)
+        assertEquals(AlbumMusicClickAction.PlayAlbum, state.clickMusicInAlbum)
+        assertEquals(SortMode.Manual, state.musicOrderInLocalSheet)
+        assertEquals(PlayQuality.STANDARD, state.defaultPlayQuality)
+        assertEquals(QualityFallbackOrder.Asc, state.playQualityOrder)
         assertEquals(3, state.maxDownload)
         assertEquals(PlayQuality.STANDARD, state.defaultDownloadQuality)
+        assertEquals(QualityFallbackOrder.Asc, state.downloadQualityOrder)
+        assertEquals(false, state.useCellularPlay)
         assertEquals(false, state.useCellularDownload)
         assertEquals(true, state.lyricAutoSearchEnabled)
         assertTrue(!state.storageAccessState.isConfigured)
@@ -97,20 +112,50 @@ class SettingsViewModelTest {
             val job = backgroundScope.launch { viewModel.basicSettingsUiState.collect {} }
             advanceUntilIdle()
 
+            viewModel.setMaxSearchHistoryLength(100)
+            viewModel.setMusicDetailDefaultPage(MusicDetailDefaultPage.Lyric)
+            viewModel.setMusicDetailAwake(true)
+            viewModel.setClickMusicInSearch(SearchResultClickAction.PlayMusicAndReplace)
+            viewModel.setClickMusicInAlbum(AlbumMusicClickAction.PlayMusic)
+            viewModel.setMusicOrderInLocalSheet(SortMode.Title)
+            viewModel.setDefaultPlayQuality(PlayQuality.HIGH)
+            viewModel.setPlayQualityOrder(QualityFallbackOrder.Desc)
             viewModel.setMaxDownload(7)
             viewModel.setDefaultDownloadQuality(PlayQuality.SUPER)
+            viewModel.setDownloadQualityOrder(QualityFallbackOrder.Desc)
+            viewModel.setUseCellularPlay(true)
             viewModel.setUseCellularDownload(true)
             viewModel.setLyricAutoSearchEnabled(false)
             advanceUntilIdle()
 
             val state = viewModel.basicSettingsUiState.value
+            assertEquals(100, state.maxSearchHistoryLength)
+            assertEquals(MusicDetailDefaultPage.Lyric, state.musicDetailDefaultPage)
+            assertEquals(true, state.musicDetailAwake)
+            assertEquals(SearchResultClickAction.PlayMusicAndReplace, state.clickMusicInSearch)
+            assertEquals(AlbumMusicClickAction.PlayMusic, state.clickMusicInAlbum)
+            assertEquals(SortMode.Title, state.musicOrderInLocalSheet)
+            assertEquals(PlayQuality.HIGH, state.defaultPlayQuality)
+            assertEquals(QualityFallbackOrder.Desc, state.playQualityOrder)
             assertEquals(7, state.maxDownload)
             assertEquals(PlayQuality.SUPER, state.defaultDownloadQuality)
+            assertEquals(QualityFallbackOrder.Desc, state.downloadQualityOrder)
+            assertEquals(true, state.useCellularPlay)
             assertEquals(true, state.useCellularDownload)
             assertEquals(false, state.lyricAutoSearchEnabled)
             assertTrue(!state.storageAccessState.isConfigured)
+            assertEquals(100, appPreferences.maxSearchHistoryLength.first())
+            assertEquals(MusicDetailDefaultPage.Lyric, appPreferences.musicDetailDefaultPage.first())
+            assertEquals(true, appPreferences.musicDetailAwake.first())
+            assertEquals(SearchResultClickAction.PlayMusicAndReplace, appPreferences.clickMusicInSearch.first())
+            assertEquals(AlbumMusicClickAction.PlayMusic, appPreferences.clickMusicInAlbum.first())
+            assertEquals(SortMode.Title, appPreferences.musicOrderInLocalSheet.first())
+            assertEquals(PlayQuality.HIGH, appPreferences.defaultPlayQuality.first())
+            assertEquals(QualityFallbackOrder.Desc, appPreferences.playQualityOrder.first())
             assertEquals(7, appPreferences.maxDownload.first())
             assertEquals(PlayQuality.SUPER, appPreferences.defaultDownloadQuality.first())
+            assertEquals(QualityFallbackOrder.Desc, appPreferences.downloadQualityOrder.first())
+            assertEquals(true, appPreferences.useCellularPlay.first())
             assertEquals(true, appPreferences.useCellularDownload.first())
             assertEquals(false, appPreferences.lyricAutoSearchEnabled.first())
             job.cancel()

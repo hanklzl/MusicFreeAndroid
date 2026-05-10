@@ -3,6 +3,9 @@ package com.zili.android.musicfreeandroid.plugin.media
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolution
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
+import com.zili.android.musicfreeandroid.core.model.fallbackSequence
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import kotlinx.coroutines.flow.first
@@ -12,11 +15,12 @@ import javax.inject.Singleton
 @Singleton
 class PluginMediaSourceService @Inject constructor(
     private val pluginManager: PluginManager,
+    private val playbackRuntimeSettings: PlaybackRuntimeSettings = PlaybackRuntimeSettings.Defaults,
 ) : MediaSourceResolver {
 
     override suspend fun resolve(
         item: MusicItem,
-        quality: String,
+        quality: String?,
     ): MediaSourceResolution? {
         if (!item.url.isNullOrBlank()) {
             return null
@@ -31,19 +35,23 @@ class PluginMediaSourceService @Inject constructor(
             ?.let { pluginManager.getPlugin(it) }
             ?.takeIf { it.supportsMediaSource() }
 
-        alternativePlugin?.resolveWith(
-            item = item,
-            quality = quality,
-            requestedPlatform = item.platform,
-            redirected = true,
-        )?.let { return it }
+        for (candidateQuality in qualityCandidates(quality)) {
+            alternativePlugin?.resolveWith(
+                item = item,
+                quality = candidateQuality,
+                requestedPlatform = item.platform,
+                redirected = true,
+            )?.let { return it }
 
-        return sourcePlugin.resolveWith(
-            item = item,
-            quality = quality,
-            requestedPlatform = item.platform,
-            redirected = false,
-        )
+            sourcePlugin.resolveWith(
+                item = item,
+                quality = candidateQuality,
+                requestedPlatform = item.platform,
+                redirected = false,
+            )?.let { return it }
+        }
+
+        return null
     }
 
     private suspend fun LoadedPlugin.resolveWith(
@@ -67,4 +75,16 @@ class PluginMediaSourceService @Inject constructor(
 
     private fun LoadedPlugin.supportsMediaSource(): Boolean =
         "getMediaSource" in info.supportedMethods
+
+    private suspend fun qualityCandidates(explicitQuality: String?): List<String> {
+        if (!explicitQuality.isNullOrBlank()) {
+            return listOf(explicitQuality)
+        }
+
+        val defaultQuality = playbackRuntimeSettings.defaultPlayQuality()
+        val order = playbackRuntimeSettings.playQualityOrder()
+        return defaultQuality.fallbackSequence(order).map { it.wireName() }
+    }
+
+    private fun PlayQuality.wireName(): String = name.lowercase()
 }

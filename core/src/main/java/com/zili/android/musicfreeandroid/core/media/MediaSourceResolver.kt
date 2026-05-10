@@ -6,7 +6,7 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 interface MediaSourceResolver {
     suspend fun resolve(
         item: MusicItem,
-        quality: String = "standard",
+        quality: String? = null,
     ): MediaSourceResolution?
 }
 
@@ -21,6 +21,6 @@ data class MediaSourceResolution(
 object EmptyMediaSourceResolver : MediaSourceResolver {
     override suspend fun resolve(
         item: MusicItem,
-        quality: String,
+        quality: String?,
     ): MediaSourceResolution? = null
 }

@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.downloader.quality
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -22,16 +23,44 @@ class QualityFallbackTest {
         }
     }
 
-    @Test fun startsAtRequestedQualityAndStepsDown() = runTest {
+    @Test fun defaultAscStartsAtRequestedQualityThenTriesHigherBeforeLower() = runTest {
         val fr = FakeResolver(mapOf(
-            "super" to null,
-            "high" to MediaSourceResult(url = "u-high", headers = null, userAgent = null, quality = null),
+            "standard" to MediaSourceResult(url = "u-std", headers = null, userAgent = null, quality = null),
+            "super" to MediaSourceResult(url = "u-super", headers = null, userAgent = null, quality = null),
+        ))
+        val (q, src) = QualityFallback.resolve(item(), PlayQuality.HIGH) { it, ql -> fr.resolve(it, ql) }!!
+        assertEquals(PlayQuality.SUPER, q)
+        assertEquals("u-super", src.url)
+        assertEquals(listOf("high", "super"), fr.callOrder)
+    }
+
+    @Test fun ascFallsBackToLowerAfterHigherQualitiesFail() = runTest {
+        val fr = FakeResolver(mapOf(
             "standard" to MediaSourceResult(url = "u-std", headers = null, userAgent = null, quality = null),
         ))
-        val (q, src) = QualityFallback.resolve(item(), PlayQuality.SUPER) { it, ql -> fr.resolve(it, ql) }!!
-        assertEquals(PlayQuality.HIGH, q)
-        assertEquals("u-high", src.url)
-        assertEquals(listOf("super", "high"), fr.callOrder)
+        val (q, src) = QualityFallback.resolve(
+            item(),
+            PlayQuality.HIGH,
+            QualityFallbackOrder.Asc,
+        ) { it, ql -> fr.resolve(it, ql) }!!
+        assertEquals(PlayQuality.STANDARD, q)
+        assertEquals("u-std", src.url)
+        assertEquals(listOf("high", "super", "standard"), fr.callOrder)
+    }
+
+    @Test fun descStartsAtRequestedQualityThenTriesLowerBeforeHigher() = runTest {
+        val fr = FakeResolver(mapOf(
+            "low" to MediaSourceResult(url = "u-low", headers = null, userAgent = null, quality = null),
+            "super" to MediaSourceResult(url = "u-super", headers = null, userAgent = null, quality = null),
+        ))
+        val (q, src) = QualityFallback.resolve(
+            item(),
+            PlayQuality.HIGH,
+            QualityFallbackOrder.Desc,
+        ) { it, ql -> fr.resolve(it, ql) }!!
+        assertEquals(PlayQuality.LOW, q)
+        assertEquals("u-low", src.url)
+        assertEquals(listOf("high", "standard", "low"), fr.callOrder)
     }
 
     @Test fun blankUrlIsSkippedSameAsNullResult() = runTest {
@@ -39,7 +68,11 @@ class QualityFallbackTest {
             "high" to MediaSourceResult(url = "", headers = null, userAgent = null, quality = null),
             "standard" to MediaSourceResult(url = "u-std", headers = null, userAgent = null, quality = null),
         ))
-        val (q, src) = QualityFallback.resolve(item(), PlayQuality.HIGH) { it, ql -> fr.resolve(it, ql) }!!
+        val (q, src) = QualityFallback.resolve(
+            item(),
+            PlayQuality.HIGH,
+            QualityFallbackOrder.Desc,
+        ) { it, ql -> fr.resolve(it, ql) }!!
         assertEquals(PlayQuality.STANDARD, q)
         assertEquals("u-std", src.url)
         assertEquals(listOf("high", "standard"), fr.callOrder)
@@ -49,6 +82,6 @@ class QualityFallbackTest {
         val fr = FakeResolver(emptyMap())
         val result = QualityFallback.resolve(item(), PlayQuality.LOW) { it, ql -> fr.resolve(it, ql) }
         assertNull(result)
-        assertEquals(listOf("low"), fr.callOrder)
+        assertEquals(listOf("low", "standard", "high", "super"), fr.callOrder)
     }
 }

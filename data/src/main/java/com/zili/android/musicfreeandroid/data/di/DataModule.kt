@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
@@ -17,6 +18,9 @@ import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
 import com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDao
+import com.zili.android.musicfreeandroid.data.datastore.AppPlaybackRuntimeSettings
+import com.zili.android.musicfreeandroid.data.repository.AppPlaylistDefaultSortProvider
+import com.zili.android.musicfreeandroid.data.repository.PlaylistDefaultSortProvider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -75,4 +79,16 @@ object DataModule {
     @Singleton
     fun provideContentResolver(@ApplicationContext context: Context): ContentResolver =
         context.contentResolver
+
+    @Provides
+    @Singleton
+    fun providePlaybackRuntimeSettings(
+        settings: AppPlaybackRuntimeSettings,
+    ): PlaybackRuntimeSettings = settings
+
+    @Provides
+    @Singleton
+    fun providePlaylistDefaultSortProvider(
+        provider: AppPlaylistDefaultSortProvider,
+    ): PlaylistDefaultSortProvider = provider
 }

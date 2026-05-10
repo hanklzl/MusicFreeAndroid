@@ -21,7 +21,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
+import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
+import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
+import com.zili.android.musicfreeandroid.core.model.SortMode
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.feature.settings.components.SettingActionRow
@@ -34,12 +39,35 @@ private data class Choice<T>(
     val label: String,
 )
 
+private enum class BasicSettingsDialog {
+    MaxSearchHistoryLength,
+    MusicDetailDefaultPage,
+    ClickMusicInSearch,
+    ClickMusicInAlbum,
+    MusicOrderInLocalSheet,
+    DefaultPlayQuality,
+    PlayQualityOrder,
+    MaxDownload,
+    DefaultDownloadQuality,
+    DownloadQualityOrder,
+}
+
 @Composable
 fun BasicSettingsContent(
     state: BasicSettingsUiState,
     feedbackExportState: FeedbackExportUiState = FeedbackExportUiState(),
+    onMaxSearchHistoryLengthChange: (Int) -> Unit,
+    onMusicDetailDefaultPageChange: (MusicDetailDefaultPage) -> Unit,
+    onMusicDetailAwakeChange: (Boolean) -> Unit,
+    onClickMusicInSearchChange: (SearchResultClickAction) -> Unit,
+    onClickMusicInAlbumChange: (AlbumMusicClickAction) -> Unit,
+    onMusicOrderInLocalSheetChange: (SortMode) -> Unit,
+    onDefaultPlayQualityChange: (PlayQuality) -> Unit,
+    onPlayQualityOrderChange: (QualityFallbackOrder) -> Unit,
     onMaxDownloadChange: (Int) -> Unit,
     onDefaultDownloadQualityChange: (PlayQuality) -> Unit,
+    onDownloadQualityOrderChange: (QualityFallbackOrder) -> Unit,
+    onUseCellularPlayChange: (Boolean) -> Unit,
     onUseCellularDownloadChange: (Boolean) -> Unit,
     onLyricAutoSearchEnabledChange: (Boolean) -> Unit,
     onNavigateToFileSelector: () -> Unit,
@@ -47,8 +75,7 @@ fun BasicSettingsContent(
     onClearLogs: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var maxDownloadDialogVisible by remember { mutableStateOf(false) }
-    var downloadQualityDialogVisible by remember { mutableStateOf(false) }
+    var activeDialog by remember { mutableStateOf<BasicSettingsDialog?>(null) }
     val isFeedbackActionInProgress = feedbackExportState.isOperationInProgress
 
     LazyColumn(
@@ -61,18 +88,54 @@ fun BasicSettingsContent(
         item { TopBottomSpacer() }
         item {
             SettingSectionCard("常规", testTag = FidelityAnchors.Settings.BasicSectionCommon) {
-                PendingValueRow("历史记录最多保存条数")
-                PendingValueRow("打开歌曲详情页时")
-                PendingValueRow("处于歌曲详情页时常亮")
+                SettingValueRow(
+                    title = "历史记录最多保存条数",
+                    value = state.maxSearchHistoryLength.toString(),
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicMaxSearchHistoryLength,
+                    onClick = { activeDialog = BasicSettingsDialog.MaxSearchHistoryLength },
+                )
+                SettingValueRow(
+                    title = "打开歌曲详情页时",
+                    value = state.musicDetailDefaultPage.label(),
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicMusicDetailDefaultPage,
+                    onClick = { activeDialog = BasicSettingsDialog.MusicDetailDefaultPage },
+                )
+                SettingSwitchRow(
+                    title = "处于歌曲详情页时常亮",
+                    checked = state.musicDetailAwake,
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicMusicDetailAwake,
+                    onCheckedChange = onMusicDetailAwakeChange,
+                )
                 PendingValueRow("关联歌词方式")
                 PendingValueRow("通知栏显示关闭按钮 (重启后生效)")
             }
         }
         item {
             SettingSectionCard("歌单&专辑", testTag = FidelityAnchors.Settings.BasicSectionSheetAlbum) {
-                PendingValueRow("点击搜索结果内单曲时")
-                PendingValueRow("点击专辑内单曲时")
-                PendingValueRow("新建歌单时默认歌曲排序")
+                SettingValueRow(
+                    title = "点击搜索结果内单曲时",
+                    value = state.clickMusicInSearch.label(),
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicClickMusicInSearch,
+                    onClick = { activeDialog = BasicSettingsDialog.ClickMusicInSearch },
+                )
+                SettingValueRow(
+                    title = "点击专辑内单曲时",
+                    value = state.clickMusicInAlbum.label(),
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicClickMusicInAlbum,
+                    onClick = { activeDialog = BasicSettingsDialog.ClickMusicInAlbum },
+                )
+                SettingValueRow(
+                    title = "新建歌单时默认歌曲排序",
+                    value = state.musicOrderInLocalSheet.label(),
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicMusicOrderInLocalSheet,
+                    onClick = { activeDialog = BasicSettingsDialog.MusicOrderInLocalSheet },
+                )
             }
         }
         item {
@@ -89,8 +152,20 @@ fun BasicSettingsContent(
                 PendingValueRow("播放失败时尝试更换音源")
                 PendingValueRow("播放失败时自动暂停")
                 PendingValueRow("播放被暂时打断时")
-                PendingValueRow("默认播放音质")
-                PendingValueRow("默认播放音质缺失时")
+                SettingValueRow(
+                    title = "默认播放音质",
+                    value = state.defaultPlayQuality.label(),
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicDefaultPlayQuality,
+                    onClick = { activeDialog = BasicSettingsDialog.DefaultPlayQuality },
+                )
+                SettingValueRow(
+                    title = "默认播放音质缺失时",
+                    value = state.playQualityOrder.playbackLabel(),
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicPlayQualityOrder,
+                    onClick = { activeDialog = BasicSettingsDialog.PlayQualityOrder },
+                )
             }
         }
         item {
@@ -106,21 +181,33 @@ fun BasicSettingsContent(
                     value = state.maxDownload.toString(),
                     enabled = true,
                     testTag = FidelityAnchors.Settings.BasicMaxDownload,
-                    onClick = { maxDownloadDialogVisible = true },
+                    onClick = { activeDialog = BasicSettingsDialog.MaxDownload },
                 )
                 SettingValueRow(
                     title = "默认下载音质",
                     value = state.defaultDownloadQuality.label(),
                     enabled = true,
                     testTag = FidelityAnchors.Settings.BasicDefaultDownloadQuality,
-                    onClick = { downloadQualityDialogVisible = true },
+                    onClick = { activeDialog = BasicSettingsDialog.DefaultDownloadQuality },
                 )
-                PendingValueRow("默认下载音质缺失时")
+                SettingValueRow(
+                    title = "默认下载音质缺失时",
+                    value = state.downloadQualityOrder.downloadLabel(),
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicDownloadQualityOrder,
+                    onClick = { activeDialog = BasicSettingsDialog.DownloadQualityOrder },
+                )
             }
         }
         item {
             SettingSectionCard("网络", testTag = FidelityAnchors.Settings.BasicSectionNetwork) {
-                PendingValueRow("使用移动网络播放")
+                SettingSwitchRow(
+                    title = "使用移动网络播放",
+                    checked = state.useCellularPlay,
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicUseCellularPlay,
+                    onCheckedChange = onUseCellularPlayChange,
+                )
                 SettingSwitchRow(
                     title = "使用移动网络下载",
                     checked = state.useCellularDownload,
@@ -174,33 +261,123 @@ fun BasicSettingsContent(
         item { TopBottomSpacer() }
     }
 
-    if (maxDownloadDialogVisible) {
-        ChoiceDialog(
+    when (activeDialog) {
+        BasicSettingsDialog.MaxSearchHistoryLength -> ChoiceDialog(
+            title = "历史记录最多保存条数",
+            choices = listOf(20, 50, 100, 200, 500).map { Choice(it, it.toString()) },
+            onDismiss = { activeDialog = null },
+            onSelected = { value ->
+                onMaxSearchHistoryLengthChange(value)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.MusicDetailDefaultPage -> ChoiceDialog(
+            title = "打开歌曲详情页时",
+            choices = listOf(
+                Choice(MusicDetailDefaultPage.Album, MusicDetailDefaultPage.Album.label()),
+                Choice(MusicDetailDefaultPage.Lyric, MusicDetailDefaultPage.Lyric.label()),
+            ),
+            onDismiss = { activeDialog = null },
+            onSelected = { page ->
+                onMusicDetailDefaultPageChange(page)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.ClickMusicInSearch -> ChoiceDialog(
+            title = "点击搜索结果内单曲时",
+            choices = listOf(
+                Choice(SearchResultClickAction.PlayMusic, SearchResultClickAction.PlayMusic.label()),
+                Choice(SearchResultClickAction.PlayMusicAndReplace, SearchResultClickAction.PlayMusicAndReplace.label()),
+            ),
+            onDismiss = { activeDialog = null },
+            onSelected = { action ->
+                onClickMusicInSearchChange(action)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.ClickMusicInAlbum -> ChoiceDialog(
+            title = "点击专辑内单曲时",
+            choices = listOf(
+                Choice(AlbumMusicClickAction.PlayMusic, AlbumMusicClickAction.PlayMusic.label()),
+                Choice(AlbumMusicClickAction.PlayAlbum, AlbumMusicClickAction.PlayAlbum.label()),
+            ),
+            onDismiss = { activeDialog = null },
+            onSelected = { action ->
+                onClickMusicInAlbumChange(action)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.MusicOrderInLocalSheet -> ChoiceDialog(
+            title = "新建歌单时默认歌曲排序",
+            choices = SortMode.entries.map { Choice(it, it.label()) },
+            onDismiss = { activeDialog = null },
+            onSelected = { sortMode ->
+                onMusicOrderInLocalSheetChange(sortMode)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.DefaultPlayQuality -> ChoiceDialog(
+            title = "默认播放音质",
+            choices = playQualityChoices(),
+            onDismiss = { activeDialog = null },
+            onSelected = { quality ->
+                onDefaultPlayQualityChange(quality)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.PlayQualityOrder -> ChoiceDialog(
+            title = "默认播放音质缺失时",
+            choices = listOf(
+                Choice(QualityFallbackOrder.Asc, QualityFallbackOrder.Asc.playbackLabel()),
+                Choice(QualityFallbackOrder.Desc, QualityFallbackOrder.Desc.playbackLabel()),
+            ),
+            onDismiss = { activeDialog = null },
+            onSelected = { order ->
+                onPlayQualityOrderChange(order)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.MaxDownload -> ChoiceDialog(
             title = "最大同时下载数目",
             choices = listOf(1, 3, 5, 7).map { Choice(it, it.toString()) },
-            onDismiss = { maxDownloadDialogVisible = false },
+            onDismiss = { activeDialog = null },
             onSelected = { value ->
                 onMaxDownloadChange(value)
-                maxDownloadDialogVisible = false
+                activeDialog = null
             },
         )
-    }
 
-    if (downloadQualityDialogVisible) {
-        ChoiceDialog(
+        BasicSettingsDialog.DefaultDownloadQuality -> ChoiceDialog(
             title = "默认下载音质",
-            choices = listOf(
-                Choice(PlayQuality.LOW, "低音质"),
-                Choice(PlayQuality.STANDARD, "标准音质"),
-                Choice(PlayQuality.HIGH, "高音质"),
-                Choice(PlayQuality.SUPER, "超高音质"),
-            ),
-            onDismiss = { downloadQualityDialogVisible = false },
+            choices = playQualityChoices(),
+            onDismiss = { activeDialog = null },
             onSelected = { quality ->
                 onDefaultDownloadQualityChange(quality)
-                downloadQualityDialogVisible = false
+                activeDialog = null
             },
         )
+
+        BasicSettingsDialog.DownloadQualityOrder -> ChoiceDialog(
+            title = "默认下载音质缺失时",
+            choices = listOf(
+                Choice(QualityFallbackOrder.Asc, QualityFallbackOrder.Asc.downloadLabel()),
+                Choice(QualityFallbackOrder.Desc, QualityFallbackOrder.Desc.downloadLabel()),
+            ),
+            onDismiss = { activeDialog = null },
+            onSelected = { order ->
+                onDownloadQualityOrderChange(order)
+                activeDialog = null
+            },
+        )
+
+        null -> Unit
     }
 }
 
@@ -272,9 +449,50 @@ private fun storageDirectoryLabel(state: StorageAccessState): String {
     }
 }
 
+private fun playQualityChoices(): List<Choice<PlayQuality>> = listOf(
+    Choice(PlayQuality.LOW, PlayQuality.LOW.label()),
+    Choice(PlayQuality.STANDARD, PlayQuality.STANDARD.label()),
+    Choice(PlayQuality.HIGH, PlayQuality.HIGH.label()),
+    Choice(PlayQuality.SUPER, PlayQuality.SUPER.label()),
+)
+
+private fun MusicDetailDefaultPage.label(): String = when (this) {
+    MusicDetailDefaultPage.Album -> "默认展示专辑页"
+    MusicDetailDefaultPage.Lyric -> "默认展示歌词页"
+}
+
+private fun SearchResultClickAction.label(): String = when (this) {
+    SearchResultClickAction.PlayMusic -> "播放歌曲"
+    SearchResultClickAction.PlayMusicAndReplace -> "播放歌曲并替换播放列表"
+}
+
+private fun AlbumMusicClickAction.label(): String = when (this) {
+    AlbumMusicClickAction.PlayMusic -> "播放歌曲"
+    AlbumMusicClickAction.PlayAlbum -> "播放专辑"
+}
+
+private fun SortMode.label(): String = when (this) {
+    SortMode.Manual -> "手动排序"
+    SortMode.Title -> "按标题"
+    SortMode.Artist -> "按歌手"
+    SortMode.Album -> "按专辑"
+    SortMode.Newest -> "按添加时间倒序"
+    SortMode.Oldest -> "按添加时间正序"
+}
+
 private fun PlayQuality.label(): String = when (this) {
     PlayQuality.LOW -> "低音质"
     PlayQuality.STANDARD -> "标准音质"
     PlayQuality.HIGH -> "高音质"
     PlayQuality.SUPER -> "超高音质"
+}
+
+private fun QualityFallbackOrder.playbackLabel(): String = when (this) {
+    QualityFallbackOrder.Asc -> "播放更高音质"
+    QualityFallbackOrder.Desc -> "播放更低音质"
+}
+
+private fun QualityFallbackOrder.downloadLabel(): String = when (this) {
+    QualityFallbackOrder.Asc -> "下载更高音质"
+    QualityFallbackOrder.Desc -> "下载更低音质"
 }

@@ -2,6 +2,9 @@ package com.zili.android.musicfreeandroid.plugin.media
 
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -14,6 +17,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
@@ -68,10 +72,51 @@ class PluginMediaSourceServiceTest {
         assertFalse(result.redirected)
     }
 
+    @Test
+    fun `implicit quality uses configured default and fallback order`() = runTest {
+        val source = plugin("source", supportsMedia = true, url = "")
+        whenever(source.getMediaSource(any(), eq("super"))).thenReturn(
+            MediaSourceResult(url = "https://source.example/super.mp3", headers = null, userAgent = null, quality = null),
+        )
+        val service = service(
+            plugins = listOf(source),
+            alternatives = emptyMap(),
+            settings = FakePlaybackRuntimeSettings(
+                quality = PlayQuality.STANDARD,
+                order = QualityFallbackOrder.Asc,
+            ),
+        )
+
+        val result = service.resolve(item("source"))!!
+
+        assertEquals("https://source.example/super.mp3", result.item.url)
+    }
+
+    @Test
+    fun `explicit quality does not apply fallback order`() = runTest {
+        val source = plugin("source", supportsMedia = true, url = "")
+        whenever(source.getMediaSource(any(), eq("super"))).thenReturn(
+            MediaSourceResult(url = "https://source.example/super.mp3", headers = null, userAgent = null, quality = null),
+        )
+        val service = service(
+            plugins = listOf(source),
+            alternatives = emptyMap(),
+            settings = FakePlaybackRuntimeSettings(
+                quality = PlayQuality.STANDARD,
+                order = QualityFallbackOrder.Asc,
+            ),
+        )
+
+        val result = service.resolve(item("source"), quality = "high")
+
+        assertEquals(null, result)
+    }
+
     private fun service(
         plugins: List<LoadedPlugin>,
         alternatives: Map<String, String>,
         disabled: Set<String> = emptySet(),
+        settings: PlaybackRuntimeSettings = PlaybackRuntimeSettings.Defaults,
     ): PluginMediaSourceService {
         val manager = mock<PluginManager>()
         val metaStore = mock<PluginMetaStore>()
@@ -82,7 +127,7 @@ class PluginMediaSourceServiceTest {
         whenever(metaStore.alternativePlugins).thenReturn(flowOf(alternatives))
         whenever(metaStore.disabledPlugins).thenReturn(flowOf(disabled))
         whenever(manager.pluginMetaStore).thenReturn(metaStore)
-        return PluginMediaSourceService(manager)
+        return PluginMediaSourceService(manager, settings)
     }
 
     private suspend fun plugin(platform: String, supportsMedia: Boolean, url: String): LoadedPlugin {
@@ -115,4 +160,15 @@ class PluginMediaSourceServiceTest {
         artwork = null,
         qualities = null,
     )
+
+    private class FakePlaybackRuntimeSettings(
+        private val quality: PlayQuality,
+        private val order: QualityFallbackOrder,
+    ) : PlaybackRuntimeSettings {
+        override suspend fun defaultPlayQuality(): PlayQuality = quality
+
+        override suspend fun playQualityOrder(): QualityFallbackOrder = order
+
+        override suspend fun useCellularPlay(): Boolean = false
+    }
 }

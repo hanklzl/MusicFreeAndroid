@@ -148,7 +148,7 @@ class PlayerControllerNotificationControlsTest {
 
         override suspend fun resolve(
             item: MusicItem,
-            quality: String,
+            quality: String?,
         ): MediaSourceResolution? {
             requestedIds += item.id
             val source = MediaSourceResult(
@@ -172,7 +172,7 @@ class PlayerControllerNotificationControlsTest {
 
         override suspend fun resolve(
             item: MusicItem,
-            quality: String,
+            quality: String?,
         ): MediaSourceResolution? {
             requestedIds += item.id
             return null

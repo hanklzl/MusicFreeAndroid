@@ -159,8 +159,14 @@ class DownloadEngine(
         val targetQuality = runCatching {
             PlayQuality.valueOf(task.targetQuality.uppercase())
         }.getOrDefault(PlayQuality.STANDARD)
+        val config = configFlow.value
 
-        val resolved = QualityFallback.resolve(musicItem, targetQuality, resolver)
+        val resolved = QualityFallback.resolve(
+            musicItem,
+            targetQuality,
+            config.downloadQualityOrder,
+            resolver,
+        )
         val source: MediaSourceResult = if (resolved != null) {
             resolved.second
         } else {
@@ -180,7 +186,7 @@ class DownloadEngine(
         val ext = DownloadFilenames.extensionFromUrl(source.url)
         val mime = DownloadFilenames.mimeFor(ext)
         val displayName = DownloadFilenames.displayName(musicItem, ext)
-        val relPath = configFlow.value.downloadDirRelative
+        val relPath = config.downloadDirRelative
 
         val cacheFile = File(cacheDir, "${UUID.randomUUID()}.$ext").also { it.parentFile?.mkdirs() }
         try {

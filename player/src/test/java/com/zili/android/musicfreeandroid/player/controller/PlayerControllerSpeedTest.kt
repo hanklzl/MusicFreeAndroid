@@ -86,7 +86,7 @@ class PlayerControllerSpeedTest {
     @Test
     fun `changeQuality emits error event when resolver returns null`() {
         val nullResolver = object : MediaSourceResolver {
-            override suspend fun resolve(item: MusicItem, quality: String): MediaSourceResolution? = null
+            override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution? = null
         }
         val controller = PlayerController(context, nullResolver)
         try {

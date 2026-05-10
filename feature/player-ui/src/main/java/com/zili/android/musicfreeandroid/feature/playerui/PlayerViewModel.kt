@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.playerui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.Playlist
@@ -54,6 +55,15 @@ class PlayerViewModel @Inject constructor(
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = playerController.playerState
+
+    val musicDetailDefaultPage: StateFlow<MusicDetailDefaultPage?> =
+        appPreferences.musicDetailDefaultPage
+            .map<MusicDetailDefaultPage, MusicDetailDefaultPage?> { it }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val musicDetailAwake: StateFlow<Boolean> =
+        appPreferences.musicDetailAwake
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private val _internalErrorEvents = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val errorEvents: SharedFlow<String> =

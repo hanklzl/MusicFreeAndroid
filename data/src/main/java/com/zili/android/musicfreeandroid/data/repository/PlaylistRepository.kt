@@ -31,6 +31,7 @@ class PlaylistRepository @Inject constructor(
     private val musicDao: MusicDao,
     private val coverStore: PlaylistCoverStore,
     private val converters: Converters,
+    private val defaultSortProvider: PlaylistDefaultSortProvider = PlaylistDefaultSortProvider.Manual,
 ) {
 
     fun observeAllPlaylists(): Flow<List<Playlist>> =
@@ -66,7 +67,14 @@ class PlaylistRepository @Inject constructor(
 
     suspend fun createPlaylist(playlist: Playlist) {
         val now = System.currentTimeMillis()
-        playlistDao.insertPlaylist(playlist.toEntity(createdAt = now, updatedAt = now))
+        val sortMode = if (playlist.id == Playlist.DEFAULT_FAVORITE_ID || playlist.sortMode != SortMode.Manual) {
+            playlist.sortMode
+        } else {
+            defaultSortProvider.defaultSortMode()
+        }
+        playlistDao.insertPlaylist(
+            playlist.copy(sortMode = sortMode).toEntity(createdAt = now, updatedAt = now),
+        )
     }
 
     suspend fun updatePlaylistInfo(id: String, name: String? = null, description: String? = null) {
