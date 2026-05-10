@@ -56,6 +56,7 @@
 | [docs/superpowers/specs/2026-05-09-plugin-management-parity-design.md](./superpowers/specs/2026-05-09-plugin-management-parity-design.md) | 当前规范（插件管理 RN 完整对齐） | 是（作为实现计划输入） | 插件卡片操作、音源重定向、用户变量、导入单曲/歌单、安装更新反馈与全局音源解析设计 |
 | [docs/superpowers/specs/2026-05-09-recommend-toplist-rn-align-design.md](./superpowers/specs/2026-05-09-recommend-toplist-rn-align-design.md) | 当前规范（推荐歌单与榜单 RN 对齐） | 是（作为实现计划输入） | 推荐歌单/榜单入口页主要 UI 对齐 RN、插件能力过滤与详情点击 seed 修复设计 |
 | [docs/superpowers/specs/2026-05-09-settings-basic-alignment-design.md](./superpowers/specs/2026-05-09-settings-basic-alignment-design.md) | 当前规范（基本设置对齐） | 是（作为实现计划输入） | typed settings route、基本设置 RN 分区可见、Android 卡片分组、已生效项可编辑与未接入项禁用展示设计 |
+| [docs/superpowers/specs/2026-05-10-release-settings-feedback-crash-design.md](./superpowers/specs/2026-05-10-release-settings-feedback-crash-design.md) | 当前规范（Release 设置页反馈日志崩溃修复） | 是（作为实现计划输入） | Release 包从首页侧栏进入设置页时因反馈日志导出路径校验崩溃的根因与修复设计 |
 | [docs/superpowers/specs/2026-05-10-local-music-rn-parity-design.md](./superpowers/specs/2026-05-10-local-music-rn-parity-design.md) | 当前规范（本地音乐 RN 对齐） | 是（作为实现计划输入） | 本地音乐 AppBar 主题色、搜索/扫描/批量编辑/下载列表入口与持久本地曲库链路设计 |
 | [docs/superpowers/specs/2026-05-10-favorite-starred-playlists-design.md](./superpowers/specs/2026-05-10-favorite-starred-playlists-design.md) | 当前规范（默认我喜欢与收藏歌单修复） | 是（作为实现计划输入） | 默认 `我喜欢` 歌单自动恢复、首页收藏歌单真实数据、插件歌单详情 heart 收藏入口设计 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |

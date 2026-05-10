@@ -25,6 +25,7 @@ object LoggingModule {
         cacheDir = context.filesDir.resolve("logan-cache"),
         logDir = context.filesDir.resolve("logan"),
         feedbackDir = File(context.cacheDir, "feedback"),
+        feedbackShareRootDir = context.cacheDir,
         aesKey16 = BuildConfig.LOGAN_AES_KEY,
         aesIv16 = BuildConfig.LOGAN_AES_IV,
         appVersionName = BuildConfig.VERSION_NAME,

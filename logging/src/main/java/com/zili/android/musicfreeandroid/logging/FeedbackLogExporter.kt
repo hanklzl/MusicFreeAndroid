@@ -22,12 +22,12 @@ class FeedbackLogExporter(
 ) : FeedbackLogExporterContract {
     init {
         val feedbackDirectory = config.feedbackDir.toPath().normalize().toAbsolutePath()
-        val allowedFeedbackRoot = config.cacheDir.resolve("feedback").toPath().normalize().toAbsolutePath()
+        val allowedFeedbackRoot = config.feedbackShareRootDir.resolve("feedback").toPath().normalize().toAbsolutePath()
 
         require(
             feedbackDirectory == allowedFeedbackRoot || feedbackDirectory.startsWith(allowedFeedbackRoot),
         ) {
-            "feedbackDir must be within cacheDir/feedback for secure sharing"
+            "feedbackDir must be within feedbackShareRootDir/feedback for secure sharing"
         }
     }
 

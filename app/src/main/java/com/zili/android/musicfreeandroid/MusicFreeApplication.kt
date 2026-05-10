@@ -16,6 +16,7 @@ class MusicFreeApplication : Application() {
                 cacheDir = File(filesDir, "logan-cache"),
                 logDir = File(filesDir, "logan"),
                 feedbackDir = File(cacheDir, "feedback"),
+                feedbackShareRootDir = cacheDir,
                 aesKey16 = BuildConfig.LOGAN_AES_KEY,
                 aesIv16 = BuildConfig.LOGAN_AES_IV,
                 appVersionName = BuildConfig.VERSION_NAME,

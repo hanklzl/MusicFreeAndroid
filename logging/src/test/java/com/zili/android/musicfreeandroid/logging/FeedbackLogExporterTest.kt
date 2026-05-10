@@ -167,6 +167,39 @@ class FeedbackLogExporterTest {
     }
 
     @Test
+    fun `createPackage allows feedbackDir under share cache when logan cache is separate`() = runBlocking {
+        val filesRoot = tmp.newFolder("files")
+        val logDir = File(filesRoot, "logan").apply { mkdirs() }
+        val loganCacheDir = File(filesRoot, "logan-cache").apply { mkdirs() }
+        val feedbackShareRootDir = tmp.newFolder("cache")
+        val feedbackDir = File(feedbackShareRootDir, "feedback").apply { mkdirs() }
+        createLogFile(logDir, "release.log", "release", System.currentTimeMillis())
+
+        val config = LoggingConfig(
+            cacheDir = loganCacheDir,
+            logDir = logDir,
+            feedbackDir = feedbackDir,
+            feedbackShareRootDir = feedbackShareRootDir,
+            aesKey16 = "0123456789abcdef",
+            aesIv16 = "abcdef0123456789",
+            appVersionName = "1.0.0",
+            appVersionCode = 1L,
+            applicationId = "com.example.musicfree",
+            buildType = "release",
+        )
+
+        val exporter = FeedbackLogExporter(
+            config,
+            sessionIdProvider = { "session-release" },
+        )
+
+        val pkg = exporter.createPackage()
+
+        assertTrue(pkg.file.exists())
+        assertTrue(pkg.file.toPath().normalize().startsWith(feedbackDir.toPath().normalize()))
+    }
+
+    @Test
     fun `createPackage rejects feedbackDir outside cache feedback path`() {
         val logger = RecordingLogger()
         MfLog.install(logger)
