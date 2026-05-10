@@ -41,6 +41,7 @@ import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.plu
 import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.recommendsheets.navigation.recommendSheetsScreen
 import com.zili.android.musicfreeandroid.feature.home.searchmusiclist.navigation.searchMusicListScreen
+import com.zili.android.musicfreeandroid.feature.home.sheets.toAlbumItemBase
 import com.zili.android.musicfreeandroid.feature.home.sheets.toMusicSheetItemBase
 import com.zili.android.musicfreeandroid.feature.home.history.navigation.historyScreen
 import com.zili.android.musicfreeandroid.feature.home.downloading.navigation.downloadingScreen
@@ -95,6 +96,23 @@ fun AppNavHost(
                         coverImg = sheet.coverImg,
                         artwork = sheet.artwork,
                         worksNum = sheet.worksNum,
+                        seedToken = seedToken,
+                    ),
+                )
+            },
+            onNavigateToStarredAlbum = { row ->
+                val album = row.toAlbumItemBase()
+                val seedToken = AlbumDetailSeedStore.put(album)
+                navController.navigate(
+                    AlbumDetailRoute(
+                        pluginPlatform = album.platform,
+                        albumId = album.id,
+                        title = album.title,
+                        artist = album.artist,
+                        artwork = album.artwork,
+                        date = album.date,
+                        description = album.description,
+                        worksNum = album.worksNum,
                         seedToken = seedToken,
                     ),
                 )

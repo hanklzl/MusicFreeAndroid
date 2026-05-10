@@ -59,6 +59,8 @@ fun HomeScreenContent(
     onImportClick: () -> Unit,
     onOpenMineSheet: (String) -> Unit,
     onOpenStarredSheet: (HomeSheetUiModel) -> Unit,
+    onOpenStarredAlbum: (HomeSheetUiModel) -> Unit,
+    onTrashClick: (HomeSheetUiModel) -> Unit,
 ) {
     val drawerState = rememberDrawerState(
         initialValue = DrawerValue.Closed,
@@ -136,6 +138,8 @@ fun HomeScreenContent(
                     onImportClick = onImportClick,
                     onOpenMineSheet = onOpenMineSheet,
                     onOpenStarredSheet = onOpenStarredSheet,
+                    onOpenStarredAlbum = onOpenStarredAlbum,
+                    onTrashClick = onTrashClick,
                 )
             }
         }

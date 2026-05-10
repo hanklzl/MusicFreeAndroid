@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,9 +24,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.R
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
@@ -45,6 +49,7 @@ fun AlbumDetailScreen(
     viewModel: AlbumDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isStarred by viewModel.isAlbumStarred.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
     var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
@@ -54,6 +59,17 @@ fun AlbumDetailScreen(
         title = uiState.title,
         onBack = onBack,
         modifier = modifier.fillMaxSize(),
+        actions = {
+            IconButton(onClick = { viewModel.toggleAlbumStarred() }) {
+                Icon(
+                    painter = painterResource(
+                        id = if (isStarred) R.drawable.ic_heart else R.drawable.ic_heart_outline,
+                    ),
+                    contentDescription = if (isStarred) "取消收藏专辑" else "收藏专辑",
+                    tint = if (isStarred) MusicFreeTheme.colors.primary else MusicFreeTheme.colors.appBarText,
+                )
+            }
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier

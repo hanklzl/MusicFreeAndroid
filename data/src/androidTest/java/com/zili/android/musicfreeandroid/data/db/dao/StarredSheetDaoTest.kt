@@ -97,4 +97,13 @@ class StarredSheetDaoTest {
             result.map { "${it.id}|${it.platform}" }.toSet()
         )
     }
+
+    @Test
+    fun upsert_storesKindAlbum_andRoundTripsThroughObserveAll() = runTest {
+        dao.upsert(entity(id = "alb-1", updatedAt = 1000L).copy(
+            kind = com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+        ))
+        val stored = dao.observeAll().first().single()
+        assertEquals(com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM, stored.kind)
+    }
 }

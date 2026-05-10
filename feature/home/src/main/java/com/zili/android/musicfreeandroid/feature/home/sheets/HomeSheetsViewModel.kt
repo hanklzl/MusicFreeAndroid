@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.data.repository.StarredSheetRepository
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -11,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -53,5 +56,23 @@ class HomeSheetsViewModel @Inject constructor(
 
     fun selectTab(tab: HomeSheetTab) {
         selectedTab.value = tab
+    }
+
+    fun unstar(item: HomeSheetUiModel) {
+        val platform = item.platform ?: return
+        viewModelScope.launch {
+            starredSheetRepository.deleteByIdAndPlatform(id = item.id, platform = platform)
+            MfLog.detail(
+                category = LogCategory.APP,
+                event = "starred_removed",
+                fields = mapOf(
+                    "kind" to item.kind,
+                    "platform" to platform,
+                    "id" to item.id,
+                    "title" to item.title,
+                    "source" to "home_starred_trash",
+                ),
+            )
+        }
     }
 }

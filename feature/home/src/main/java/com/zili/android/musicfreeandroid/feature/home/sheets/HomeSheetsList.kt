@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.home.sheets
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zili.android.musicfreeandroid.core.model.StarredKind
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
@@ -35,6 +37,8 @@ fun LazyListScope.homeSheetsList(
     uiModel: HomePlaylistSectionUiModel,
     onOpenMineSheet: (String) -> Unit,
     onOpenStarredSheet: (HomeSheetUiModel) -> Unit,
+    onOpenStarredAlbum: (HomeSheetUiModel) -> Unit,
+    onTrashClick: (HomeSheetUiModel) -> Unit,
 ) {
     items(
         items = uiModel.rows,
@@ -46,10 +50,12 @@ fun LazyListScope.homeSheetsList(
             onClick = {
                 if (item.tab == HomeSheetTab.Mine) {
                     onOpenMineSheet(item.id)
-                } else {
-                    onOpenStarredSheet(item)
+                } else when (item.kind) {
+                    StarredKind.ALBUM -> onOpenStarredAlbum(item)
+                    else -> onOpenStarredSheet(item)
                 }
             },
+            onTrashClick = { onTrashClick(item) },
         )
     }
 }
@@ -59,6 +65,7 @@ private fun HomeSheetRow(
     item: HomeSheetUiModel,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
+    onTrashClick: () -> Unit,
 ) {
     val rowTag = if (item.tab == HomeSheetTab.Mine) {
         FidelityAnchorPatterns.mineSheetItem(item.id)
@@ -130,12 +137,14 @@ private fun HomeSheetRow(
                     .padding(horizontal = rpx(10), vertical = rpx(4)),
             )
         }
-        if (!item.isDefault) {
+        if (item.tab == HomeSheetTab.Starred && !item.isDefault) {
             Icon(
                 painter = painterResource(R.drawable.ic_home_trash_outline),
-                contentDescription = null,
+                contentDescription = "取消收藏",
                 tint = MusicFreeTheme.colors.textSecondary,
-                modifier = Modifier.size(rpx(42)),
+                modifier = Modifier
+                    .size(rpx(42))
+                    .clickable(onClick = onTrashClick),
             )
         }
     }

@@ -1,7 +1,9 @@
 package com.zili.android.musicfreeandroid.feature.home.sheets
 
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.core.model.StarredKind
 import com.zili.android.musicfreeandroid.core.model.StarredSheet
+import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 
 data class HomeSheetUiModel(
@@ -12,6 +14,7 @@ data class HomeSheetUiModel(
     val subtitle: String,
     val coverUri: String?,
     val isDefault: Boolean = false,
+    val kind: String = StarredKind.SHEET,
     val artist: String? = null,
     val sourceUrl: String? = null,
     val description: String? = null,
@@ -37,6 +40,7 @@ data class HomeSheetUiModel(
             title = sheet.title,
             subtitle = sheet.artist ?: sheet.platform,
             coverUri = sheet.coverUri,
+            kind = sheet.kind,
             artist = sheet.artist,
             sourceUrl = sheet.sourceUrl,
             description = sheet.description,
@@ -58,6 +62,23 @@ fun HomeSheetUiModel.toMusicSheetItemBase(): MusicSheetItemBase {
         artist = artist,
         description = description,
         coverImg = coverUri,
+        artwork = artwork,
+        worksNum = worksNum,
+        raw = mergedRaw,
+    )
+}
+
+fun HomeSheetUiModel.toAlbumItemBase(): AlbumItemBase {
+    val platform = requireNotNull(platform) { "Starred album rows require a plugin platform" }
+    val mergedRaw = raw.toMutableMap()
+    sourceUrl?.let { mergedRaw.putIfAbsent("sourceUrl", it) }
+    return AlbumItemBase(
+        id = id,
+        platform = platform,
+        title = title,
+        date = raw["date"] as? String,
+        artist = artist,
+        description = description,
         artwork = artwork,
         worksNum = worksNum,
         raw = mergedRaw,

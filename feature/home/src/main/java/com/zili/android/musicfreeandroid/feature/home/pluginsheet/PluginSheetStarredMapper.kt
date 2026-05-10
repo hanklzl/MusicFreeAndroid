@@ -10,6 +10,7 @@ internal fun MusicSheetItemBase.toStarredSheet(): StarredSheet = StarredSheet(
     artist = artist,
     coverUri = coverImg,
     sourceUrl = raw["sourceUrl"] as? String,
+    kind = com.zili.android.musicfreeandroid.core.model.StarredKind.SHEET,
     description = description,
     artwork = artwork,
     worksNum = worksNum,

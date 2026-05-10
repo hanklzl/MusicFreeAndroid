@@ -19,6 +19,9 @@ import com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImp
 import com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportViewModel
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
+import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModel
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -33,9 +36,11 @@ fun HomeScreen(
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
     onNavigateToStarredSheet: (HomeSheetUiModel) -> Unit,
+    onNavigateToStarredAlbum: (HomeSheetUiModel) -> Unit,
     homeSystemActionHandler: HomeSystemActionHandler,
     viewModel: HomeViewModel = hiltViewModel(),
     importViewModel: PlaylistImportViewModel = hiltViewModel(),
+    homeSheetsViewModel: HomeSheetsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -63,6 +68,7 @@ fun HomeScreen(
     }
 
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingUnstar by remember { mutableStateOf<HomeSheetUiModel?>(null) }
 
     val currentLanguage = remember {
         Locale.getDefault().getDisplayLanguage(Locale.getDefault())
@@ -116,6 +122,19 @@ fun HomeScreen(
         onImportClick = { importViewModel.openImportSheet() },
         onOpenMineSheet = { sheetId -> onNavigateToPlaylistDetail(sheetId) },
         onOpenStarredSheet = onNavigateToStarredSheet,
+        onOpenStarredAlbum = onNavigateToStarredAlbum,
+        onTrashClick = { row ->
+            pendingUnstar = row
+            MfLog.detail(
+                category = LogCategory.APP,
+                event = "starred_unstar_confirm_shown",
+                fields = mapOf(
+                    "kind" to row.kind,
+                    "platform" to (row.platform ?: ""),
+                    "id" to row.id,
+                ),
+            )
+        },
     )
 
     if (showCreateDialog) {
@@ -125,6 +144,27 @@ fun HomeScreen(
                 viewModel.createPlaylist(name)
                 showCreateDialog = false
             },
+        )
+    }
+
+    pendingUnstar?.let { row ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingUnstar = null },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    homeSheetsViewModel.unstar(row)
+                    pendingUnstar = null
+                }) {
+                    androidx.compose.material3.Text("确定")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pendingUnstar = null }) {
+                    androidx.compose.material3.Text("取消")
+                }
+            },
+            title = { androidx.compose.material3.Text("取消收藏") },
+            text = { androidx.compose.material3.Text("确定要取消收藏「${row.title}」吗？") },
         )
     }
 

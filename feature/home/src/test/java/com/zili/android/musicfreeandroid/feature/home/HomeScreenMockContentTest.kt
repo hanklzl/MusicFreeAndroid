@@ -72,6 +72,8 @@ class HomeScreenMockContentTest {
                     onImportClick = {},
                     onOpenMineSheet = { openedMineSheetIds += it },
                     onOpenStarredSheet = {},
+                    onOpenStarredAlbum = {},
+                    onTrashClick = {},
                 )
             }
         }

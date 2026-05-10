@@ -14,6 +14,8 @@ fun LazyListScope.homeSheetsSection(
     onImportClick: () -> Unit,
     onOpenMineSheet: (String) -> Unit,
     onOpenStarredSheet: (HomeSheetUiModel) -> Unit,
+    onOpenStarredAlbum: (HomeSheetUiModel) -> Unit,
+    onTrashClick: (HomeSheetUiModel) -> Unit,
 ) {
     item(key = FidelityAnchors.Home.SheetsRoot) {
         HomeSheetsHeader(
@@ -32,5 +34,7 @@ fun LazyListScope.homeSheetsSection(
         uiModel = uiModel,
         onOpenMineSheet = onOpenMineSheet,
         onOpenStarredSheet = onOpenStarredSheet,
+        onOpenStarredAlbum = onOpenStarredAlbum,
+        onTrashClick = onTrashClick,
     )
 }

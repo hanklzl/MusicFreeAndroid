@@ -39,6 +39,8 @@ class HomeSheetsSectionTest {
                         onImportClick = { importClicks++ },
                         onOpenMineSheet = {},
                         onOpenStarredSheet = {},
+                        onOpenStarredAlbum = {},
+                        onTrashClick = {},
                     )
                 }
             }
