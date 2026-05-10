@@ -5,12 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
+import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
 import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.ArtistDetailSeedStore
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +26,7 @@ class ArtistDetailViewModel @Inject constructor(
     private val pluginManager: PluginManager,
     private val playerController: PlayerController,
     private val mediaSourceResolver: MediaSourceResolver,
+    private val appPreferences: AppPreferences,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<ArtistDetailRoute>()
@@ -97,7 +101,10 @@ class ArtistDetailViewModel @Inject constructor(
 
         val queue = list.toMutableList()
         queue[index] = resolved
-        playerController.playQueue(queue, index)
+        when (appPreferences.clickMusicInAlbum.first()) {
+            AlbumMusicClickAction.PlayMusic -> playerController.playItem(resolved)
+            AlbumMusicClickAction.PlayAlbum -> playerController.playQueue(queue, index)
+        }
         return true
     }
 

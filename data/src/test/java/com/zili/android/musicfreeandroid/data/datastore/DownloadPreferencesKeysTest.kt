@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.data.datastore
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -47,6 +48,12 @@ class DownloadPreferencesKeysTest {
         assertEquals(PlayQuality.STANDARD, prefs.defaultDownloadQuality.first())
         prefs.setDefaultDownloadQuality(PlayQuality.HIGH)
         assertEquals(PlayQuality.HIGH, prefs.defaultDownloadQuality.first())
+    }
+
+    @Test fun downloadQualityOrderDefaultsToAsc() = runTest {
+        assertEquals(QualityFallbackOrder.Asc, prefs.downloadQualityOrder.first())
+        prefs.setDownloadQualityOrder(QualityFallbackOrder.Desc)
+        assertEquals(QualityFallbackOrder.Desc, prefs.downloadQualityOrder.first())
     }
 
     @Test fun downloadDirRelativeDefaultsToMusicMusicFree() = runTest {

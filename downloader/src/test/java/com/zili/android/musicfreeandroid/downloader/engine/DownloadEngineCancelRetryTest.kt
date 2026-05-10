@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.downloader.io.NetworkState
 import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
@@ -45,7 +46,9 @@ class DownloadEngineCancelRetryTest {
         engine = DownloadEngine(
             taskDao = db.downloadTaskDao(), downloadedDao = db.downloadedTrackDao(),
             http = http, writer = writer.asWriter(), resolver = resolver::resolve,
-            configFlow = MutableStateFlow(DownloadConfig(1, false, PlayQuality.STANDARD, "Music/MusicFree/")),
+            configFlow = MutableStateFlow(
+                DownloadConfig(1, false, PlayQuality.STANDARD, QualityFallbackOrder.Asc, "Music/MusicFree/"),
+            ),
             networkFlow = MutableStateFlow(NetworkState.Wifi),
             cacheDir = createTempDirectory("dlcache").toFile(),
             ioDispatcher = UnconfinedTestDispatcher(),

@@ -1,6 +1,10 @@
 package com.zili.android.musicfreeandroid.feature.playerui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,6 +42,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -65,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.zili.android.musicfreeandroid.core.R
+import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
@@ -100,7 +106,10 @@ fun PlayerScreen(
     val allPlaylists by viewModel.allPlaylists.collectAsStateWithLifecycle()
     val lyricSearchResults by viewModel.lyricSearchResults.collectAsStateWithLifecycle()
     val lyricSearchLoading by viewModel.lyricSearchLoading.collectAsStateWithLifecycle()
+    val musicDetailDefaultPage by viewModel.musicDetailDefaultPage.collectAsStateWithLifecycle()
+    val musicDetailAwake by viewModel.musicDetailAwake.collectAsStateWithLifecycle()
     var contentPage by remember { mutableStateOf(PlayerContentPage.Cover) }
+    var defaultPageApplied by remember { mutableStateOf(false) }
     var showLyricSearchSheet by remember { mutableStateOf(false) }
     var showLyricOffsetDialog by remember { mutableStateOf(false) }
     var showLyricMoreDialog by remember { mutableStateOf(false) }
@@ -132,6 +141,26 @@ fun PlayerScreen(
     LaunchedEffect(Unit) {
         viewModel.errorEvents.collect { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(musicDetailDefaultPage) {
+        val defaultPage = musicDetailDefaultPage ?: return@LaunchedEffect
+        if (!defaultPageApplied) {
+            contentPage = defaultPage.toPlayerContentPage()
+            defaultPageApplied = true
+        }
+    }
+
+    DisposableEffect(context, musicDetailAwake) {
+        val activity = context.findActivity()
+        if (musicDetailAwake) {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            if (musicDetailAwake) {
+                activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
         }
     }
 
@@ -371,6 +400,17 @@ fun PlayerScreen(
 private enum class PlayerContentPage {
     Cover,
     Lyrics,
+}
+
+private fun MusicDetailDefaultPage.toPlayerContentPage(): PlayerContentPage = when (this) {
+    MusicDetailDefaultPage.Album -> PlayerContentPage.Cover
+    MusicDetailDefaultPage.Lyric -> PlayerContentPage.Lyrics
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 internal const val PlayerModeButtonTestTag = "player.controls.mode"

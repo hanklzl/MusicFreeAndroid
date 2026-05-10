@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
+import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.navigation.AlbumDetailRoute
@@ -15,6 +16,7 @@ import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -105,7 +107,10 @@ class AlbumDetailViewModel @Inject constructor(
 
         val queue = list.toMutableList()
         queue[index] = resolved
-        playerController.playQueue(queue, index)
+        when (appPreferences.clickMusicInAlbum.first()) {
+            AlbumMusicClickAction.PlayMusic -> playerController.playItem(resolved)
+            AlbumMusicClickAction.PlayAlbum -> playerController.playQueue(queue, index)
+        }
         return true
     }
 

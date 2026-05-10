@@ -12,6 +12,7 @@ import com.zili.android.musicfreeandroid.core.media.EmptyMediaSourceResolver
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
+import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
@@ -21,6 +22,7 @@ import com.zili.android.musicfreeandroid.player.ext.defaultAlbumArtworkUri
 import com.zili.android.musicfreeandroid.player.ext.toMediaItem
 import com.zili.android.musicfreeandroid.player.model.PlaybackState
 import com.zili.android.musicfreeandroid.player.model.PlayerState
+import com.zili.android.musicfreeandroid.player.network.PlaybackNetworkStateProvider
 import com.zili.android.musicfreeandroid.player.queue.PlayQueue
 import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
@@ -55,6 +57,8 @@ import kotlin.coroutines.resumeWithException
 class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val mediaSourceResolver: MediaSourceResolver = EmptyMediaSourceResolver,
+    private val playbackRuntimeSettings: PlaybackRuntimeSettings = PlaybackRuntimeSettings.Defaults,
+    private val networkStateProvider: PlaybackNetworkStateProvider = PlaybackNetworkStateProvider.AlwaysAllowed,
 ) : PlaybackNotificationQueueControls {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val connectionMutex = Mutex()
@@ -359,6 +363,10 @@ class PlayerController @Inject constructor(
         val wasPlaying = mediaController?.isPlaying == true
 
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            if (!canPlayOverCurrentNetwork(item)) {
+                _errorEvents.emit("当前网络不允许播放，请在设置中开启移动网络播放")
+                return@launch
+            }
             val resolution = runCatching {
                 mediaSourceResolver.resolve(item, quality.name.lowercase())
             }.getOrNull()
@@ -470,6 +478,21 @@ class PlayerController @Inject constructor(
     }
 
     private suspend fun resolvePlayableItem(item: MusicItem): MusicItem? {
+        if (!canPlayOverCurrentNetwork(item)) {
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "playback_blocked_by_network",
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "status" to "blocked",
+                    "network" to "cellular",
+                ),
+            )
+            _errorEvents.emit("当前网络不允许播放，请在设置中开启移动网络播放")
+            return null
+        }
+
         if (!item.url.isNullOrBlank()) return item
 
         val startedAt = System.nanoTime()
@@ -490,7 +513,22 @@ class PlayerController @Inject constructor(
             )
         }.getOrNull()
         val playable = resolution?.item
-        return if (!playable?.url.isNullOrBlank()) {
+        if (playable != null && !playable.url.isNullOrBlank() && !canPlayOverCurrentNetwork(playable)) {
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "playback_blocked_by_network",
+                fields = mapOf(
+                    "platform" to playable.platform,
+                    "itemId" to playable.id,
+                    "status" to "blocked",
+                    "network" to "cellular",
+                ),
+            )
+            _errorEvents.emit("当前网络不允许播放，请在设置中开启移动网络播放")
+            return null
+        }
+
+        return if (playable != null && !playable.url.isNullOrBlank()) {
             MfLog.detail(
                 category = LogCategory.PLAYER,
                 event = "playback_resolve_success",
@@ -519,6 +557,21 @@ class PlayerController @Inject constructor(
             _errorEvents.emit("播放失败: 无法解析音源")
             null
         }
+    }
+
+    private suspend fun canPlayOverCurrentNetwork(item: MusicItem): Boolean {
+        if (item.isLocalPlaybackSource()) return true
+        if (playbackRuntimeSettings.useCellularPlay()) return true
+        return !networkStateProvider.currentState().isCellular
+    }
+
+    private fun MusicItem.isLocalPlaybackSource(): Boolean {
+        if (platform.equals("local", ignoreCase = true)) return true
+        val source = url ?: return false
+        return source.startsWith("file://", ignoreCase = true) ||
+            source.startsWith("content://", ignoreCase = true) ||
+            source.startsWith("android.resource://", ignoreCase = true) ||
+            source.startsWith("/")
     }
 
     private fun PlayQueue.isCurrentItem(index: Int, item: MusicItem): Boolean {

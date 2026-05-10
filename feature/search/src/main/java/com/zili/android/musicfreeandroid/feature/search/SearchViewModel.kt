@@ -7,6 +7,7 @@ import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -489,7 +491,12 @@ class SearchViewModel @Inject constructor(
                             "durationMs" to durationMs,
                         ),
                     )
-                    playerController.playQueue(resolvedQueue, startIndex)
+                    when (appPreferences.clickMusicInSearch.first()) {
+                        SearchResultClickAction.PlayMusic -> playerController.playItem(resolvedItem)
+                        SearchResultClickAction.PlayMusicAndReplace -> {
+                            playerController.playQueue(resolvedQueue, startIndex)
+                        }
+                    }
                     _playEvent.emit(PlayEvent.NavigateToPlayer)
                 } else {
                     MfLog.error(

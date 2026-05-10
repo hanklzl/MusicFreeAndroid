@@ -6,6 +6,7 @@ import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
@@ -60,6 +61,7 @@ class SearchViewModelTest {
         }
         whenever(appPreferences.searchHistory).thenReturn(flowOf(emptyList()))
         whenever(appPreferences.defaultDownloadQuality).thenReturn(flowOf(PlayQuality.STANDARD))
+        whenever(appPreferences.clickMusicInSearch).thenReturn(flowOf(SearchResultClickAction.PlayMusic))
         whenever(playlistRepository.observeAllPlaylists()).thenReturn(flowOf(emptyList()))
     }
 
@@ -395,12 +397,12 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun `resolveAndPlay uses shared resolver and preserves original platform`() = runTest {
+    fun `resolveAndPlay defaults to playing only clicked music and preserves original platform`() = runTest {
         whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
 
         val item = musicItem(id = "1", title = "Song 1").copy(platform = "source", url = null)
         val resolver = object : MediaSourceResolver {
-            override suspend fun resolve(item: MusicItem, quality: String): MediaSourceResolution {
+            override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution {
                 val source = MediaSourceResult(
                     url = "https://resolver.example/1.mp3",
                     headers = null,
@@ -423,11 +425,51 @@ class SearchViewModelTest {
         viewModel.resolveAndPlay(item, listOf(item))
         advanceUntilIdle()
 
+        argumentCaptor<MusicItem>().apply {
+            verify(playerController).playItem(capture())
+            assertEquals("source", firstValue.platform)
+            assertEquals("https://resolver.example/1.mp3", firstValue.url)
+        }
+        verify(playerController, never()).playQueue(any(), any())
+    }
+
+    @Test
+    fun `resolveAndPlay replaces queue when search click setting requests replacement`() = runTest {
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
+        whenever(appPreferences.clickMusicInSearch).thenReturn(flowOf(SearchResultClickAction.PlayMusicAndReplace))
+
+        val item = musicItem(id = "1", title = "Song 1").copy(platform = "source", url = null)
+        val second = musicItem(id = "2", title = "Song 2").copy(platform = "source", url = null)
+        val resolver = object : MediaSourceResolver {
+            override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution {
+                val source = MediaSourceResult(
+                    url = "https://resolver.example/1.mp3",
+                    headers = null,
+                    userAgent = null,
+                    quality = null,
+                )
+                return MediaSourceResolution(
+                    item = item.copy(url = source.url),
+                    source = source,
+                    requestedPlatform = item.platform,
+                    resolverPlatform = "resolver",
+                    redirected = true,
+                )
+            }
+        }
+
+        val viewModel = createViewModel(mediaSourceResolver = resolver)
+        advanceUntilIdle()
+
+        viewModel.resolveAndPlay(item, listOf(item, second))
+        advanceUntilIdle()
+
         argumentCaptor<List<MusicItem>>().apply {
             verify(playerController).playQueue(capture(), eq(0))
-            assertEquals("source", firstValue.first().platform)
             assertEquals("https://resolver.example/1.mp3", firstValue.first().url)
+            assertEquals("2", firstValue[1].id)
         }
+        verify(playerController, never()).playItem(any())
     }
 
     private fun setLoadedPlugins(vararg plugins: LoadedPlugin) {

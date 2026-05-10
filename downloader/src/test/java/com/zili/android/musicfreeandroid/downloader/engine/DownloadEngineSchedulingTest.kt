@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.downloader.io.NetworkState
 import com.zili.android.musicfreeandroid.downloader.model.MediaKey
@@ -48,8 +49,15 @@ class DownloadEngineSchedulingTest {
         http = FakeHttpDownloader()
         writer = FakeMediaStoreWriter()
         resolver = FakeQualityResolver()
-        configFlow = MutableStateFlow(DownloadConfig(maxDownload = 2, useCellularDownload = false,
-            defaultDownloadQuality = PlayQuality.STANDARD, downloadDirRelative = "Music/MusicFree/"))
+        configFlow = MutableStateFlow(
+            DownloadConfig(
+                maxDownload = 2,
+                useCellularDownload = false,
+                defaultDownloadQuality = PlayQuality.STANDARD,
+                downloadQualityOrder = QualityFallbackOrder.Asc,
+                downloadDirRelative = "Music/MusicFree/",
+            ),
+        )
         network = MutableStateFlow(NetworkState.Wifi)
         engine = DownloadEngine(
             taskDao = db.downloadTaskDao(),
@@ -109,5 +117,20 @@ class DownloadEngineSchedulingTest {
         engine.enqueue(listOf(item("1")), PlayQuality.STANDARD)
         advanceUntilIdle()
         assertEquals(0, writer.commitCount)
+    }
+
+    @Test fun configuredDownloadQualityOrderControlsFallback() = runTest {
+        configFlow.value = configFlow.value.copy(downloadQualityOrder = QualityFallbackOrder.Asc)
+        resolver.bind(
+            MediaKey.of("1", "qq"),
+            "super",
+            MediaSourceResult(url = "https://x/1-super.mp3", headers = null, userAgent = null, quality = null),
+        )
+
+        engine.enqueue(listOf(item("1")), PlayQuality.HIGH)
+        advanceUntilIdle()
+
+        assertTrue(db.downloadedTrackDao().exists("1", "qq"))
+        assertEquals(listOf("high", "super"), resolver.callOrder)
     }
 }

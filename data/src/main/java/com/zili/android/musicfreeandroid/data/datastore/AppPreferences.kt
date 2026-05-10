@@ -10,6 +10,11 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
+import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
+import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
+import com.zili.android.musicfreeandroid.core.model.SortMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -110,6 +115,14 @@ class AppPreferences @Inject constructor(
 
     // ── Search History ──
 
+    val maxSearchHistoryLength: Flow<Int> = dataStore.data.map { prefs ->
+        (prefs[KEY_MAX_SEARCH_HISTORY_LENGTH] ?: DEFAULT_MAX_SEARCH_HISTORY).coerceIn(1, 500)
+    }
+
+    suspend fun setMaxSearchHistoryLength(value: Int) {
+        dataStore.edit { it[KEY_MAX_SEARCH_HISTORY_LENGTH] = value.coerceIn(1, 500) }
+    }
+
     val searchHistory: Flow<List<String>> = dataStore.data.map { prefs ->
         prefs[KEY_SEARCH_HISTORY]
             ?.split("\u001F")  // Unit Separator 作为分隔符，避免逗号在搜索词中出现
@@ -127,8 +140,10 @@ class AppPreferences @Inject constructor(
                 ?: mutableListOf()
             current.remove(query)  // 去重
             current.add(0, query)  // 最新置顶
-            if (current.size > MAX_SEARCH_HISTORY) {
-                current.subList(MAX_SEARCH_HISTORY, current.size).clear()
+            val maxHistory = (prefs[KEY_MAX_SEARCH_HISTORY_LENGTH] ?: DEFAULT_MAX_SEARCH_HISTORY)
+                .coerceIn(1, 500)
+            if (current.size > maxHistory) {
+                current.subList(maxHistory, current.size).clear()
             }
             prefs[KEY_SEARCH_HISTORY] = current.joinToString("\u001F")
         }
@@ -165,12 +180,86 @@ class AppPreferences @Inject constructor(
         dataStore.edit { it[KEY_DEFAULT_DOWNLOAD_QUALITY] = quality.name }
     }
 
+    val downloadQualityOrder: Flow<QualityFallbackOrder> = dataStore.data.map { prefs ->
+        prefs.enumValue(KEY_DOWNLOAD_QUALITY_ORDER, QualityFallbackOrder.Asc)
+    }
+
+    suspend fun setDownloadQualityOrder(order: QualityFallbackOrder) {
+        dataStore.edit { it[KEY_DOWNLOAD_QUALITY_ORDER] = order.name }
+    }
+
     val downloadDirRelative: Flow<String> = dataStore.data.map { prefs ->
         prefs[KEY_DOWNLOAD_DIR_RELATIVE] ?: "Music/MusicFree/"
     }
 
     suspend fun setDownloadDirRelative(value: String) {
         dataStore.edit { it[KEY_DOWNLOAD_DIR_RELATIVE] = value }
+    }
+
+    // ── Basic Settings ──
+
+    val musicDetailDefaultPage: Flow<MusicDetailDefaultPage> = dataStore.data.map { prefs ->
+        prefs.enumValue(KEY_MUSIC_DETAIL_DEFAULT_PAGE, MusicDetailDefaultPage.Album)
+    }
+
+    suspend fun setMusicDetailDefaultPage(value: MusicDetailDefaultPage) {
+        dataStore.edit { it[KEY_MUSIC_DETAIL_DEFAULT_PAGE] = value.name }
+    }
+
+    val musicDetailAwake: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_MUSIC_DETAIL_AWAKE] ?: false
+    }
+
+    suspend fun setMusicDetailAwake(value: Boolean) {
+        dataStore.edit { it[KEY_MUSIC_DETAIL_AWAKE] = value }
+    }
+
+    val clickMusicInSearch: Flow<SearchResultClickAction> = dataStore.data.map { prefs ->
+        prefs.enumValue(KEY_CLICK_MUSIC_IN_SEARCH, SearchResultClickAction.PlayMusic)
+    }
+
+    suspend fun setClickMusicInSearch(value: SearchResultClickAction) {
+        dataStore.edit { it[KEY_CLICK_MUSIC_IN_SEARCH] = value.name }
+    }
+
+    val clickMusicInAlbum: Flow<AlbumMusicClickAction> = dataStore.data.map { prefs ->
+        prefs.enumValue(KEY_CLICK_MUSIC_IN_ALBUM, AlbumMusicClickAction.PlayAlbum)
+    }
+
+    suspend fun setClickMusicInAlbum(value: AlbumMusicClickAction) {
+        dataStore.edit { it[KEY_CLICK_MUSIC_IN_ALBUM] = value.name }
+    }
+
+    val musicOrderInLocalSheet: Flow<SortMode> = dataStore.data.map { prefs ->
+        prefs.enumValue(KEY_MUSIC_ORDER_IN_LOCAL_SHEET, SortMode.Manual)
+    }
+
+    suspend fun setMusicOrderInLocalSheet(value: SortMode) {
+        dataStore.edit { it[KEY_MUSIC_ORDER_IN_LOCAL_SHEET] = value.name }
+    }
+
+    val defaultPlayQuality: Flow<PlayQuality> = dataStore.data.map { prefs ->
+        prefs.enumValue(KEY_DEFAULT_PLAY_QUALITY, PlayQuality.STANDARD)
+    }
+
+    suspend fun setDefaultPlayQuality(quality: PlayQuality) {
+        dataStore.edit { it[KEY_DEFAULT_PLAY_QUALITY] = quality.name }
+    }
+
+    val playQualityOrder: Flow<QualityFallbackOrder> = dataStore.data.map { prefs ->
+        prefs.enumValue(KEY_PLAY_QUALITY_ORDER, QualityFallbackOrder.Asc)
+    }
+
+    suspend fun setPlayQualityOrder(order: QualityFallbackOrder) {
+        dataStore.edit { it[KEY_PLAY_QUALITY_ORDER] = order.name }
+    }
+
+    val useCellularPlay: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_USE_CELLULAR_PLAY] ?: false
+    }
+
+    suspend fun setUseCellularPlay(value: Boolean) {
+        dataStore.edit { it[KEY_USE_CELLULAR_PLAY] = value }
     }
 
     private companion object {
@@ -185,10 +274,27 @@ class AppPreferences @Inject constructor(
         val KEY_LYRIC_DETAIL_FONT_SIZE = intPreferencesKey("lyric_detail_font_size")
         val KEY_LYRIC_AUTO_SEARCH_ENABLED = booleanPreferencesKey("lyric_auto_search_enabled")
         val KEY_SEARCH_HISTORY = stringPreferencesKey("search_history")
-        const val MAX_SEARCH_HISTORY = 20
+        val KEY_MAX_SEARCH_HISTORY_LENGTH = intPreferencesKey("max_search_history_length")
+        const val DEFAULT_MAX_SEARCH_HISTORY = 50
         val KEY_MAX_DOWNLOAD = intPreferencesKey("max_download")
         val KEY_USE_CELLULAR_DOWNLOAD = booleanPreferencesKey("use_cellular_download")
         val KEY_DEFAULT_DOWNLOAD_QUALITY = stringPreferencesKey("default_download_quality")
+        val KEY_DOWNLOAD_QUALITY_ORDER = stringPreferencesKey("download_quality_order")
         val KEY_DOWNLOAD_DIR_RELATIVE = stringPreferencesKey("download_dir_relative")
+        val KEY_MUSIC_DETAIL_DEFAULT_PAGE = stringPreferencesKey("music_detail_default_page")
+        val KEY_MUSIC_DETAIL_AWAKE = booleanPreferencesKey("music_detail_awake")
+        val KEY_CLICK_MUSIC_IN_SEARCH = stringPreferencesKey("click_music_in_search")
+        val KEY_CLICK_MUSIC_IN_ALBUM = stringPreferencesKey("click_music_in_album")
+        val KEY_MUSIC_ORDER_IN_LOCAL_SHEET = stringPreferencesKey("music_order_in_local_sheet")
+        val KEY_DEFAULT_PLAY_QUALITY = stringPreferencesKey("default_play_quality")
+        val KEY_PLAY_QUALITY_ORDER = stringPreferencesKey("play_quality_order")
+        val KEY_USE_CELLULAR_PLAY = booleanPreferencesKey("use_cellular_play")
     }
 }
+
+private inline fun <reified T : Enum<T>> Preferences.enumValue(
+    key: Preferences.Key<String>,
+    defaultValue: T,
+): T = this[key]?.let { raw ->
+    runCatching { enumValueOf<T>(raw) }.getOrNull()
+} ?: defaultValue

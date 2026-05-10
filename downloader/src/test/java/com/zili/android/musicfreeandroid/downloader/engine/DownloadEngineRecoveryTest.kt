@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.downloader.engine
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.entity.DownloadTaskEntity
 import com.zili.android.musicfreeandroid.downloader.io.NetworkState
@@ -56,7 +57,9 @@ class DownloadEngineRecoveryTest {
             taskDao = db.downloadTaskDao(), downloadedDao = db.downloadedTrackDao(),
             http = FakeHttpDownloader(), writer = FakeMediaStoreWriter().asWriter(),
             resolver = FakeQualityResolver()::resolve,
-            configFlow = MutableStateFlow(DownloadConfig(2, false, PlayQuality.STANDARD, "Music/MusicFree/")),
+            configFlow = MutableStateFlow(
+                DownloadConfig(2, false, PlayQuality.STANDARD, QualityFallbackOrder.Asc, "Music/MusicFree/"),
+            ),
             networkFlow = MutableStateFlow(NetworkState.Offline),  // keep scheduler from picking up the rows after reset
             cacheDir = createTempDirectory("dlrec").toFile(),
             ioDispatcher = UnconfinedTestDispatcher(),

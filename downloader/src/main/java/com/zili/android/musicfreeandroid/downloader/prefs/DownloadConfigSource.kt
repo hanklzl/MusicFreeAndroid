@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.downloader.prefs
 
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,21 +14,33 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class DownloadConfigSource @Inject constructor(
-    private val appPrefs: AppPreferences,
+class DownloadConfigSource internal constructor(
+    appPrefs: AppPreferences,
+    scope: CoroutineScope,
 ) {
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    @Inject
+    constructor(appPrefs: AppPreferences) : this(
+        appPrefs,
+        CoroutineScope(Dispatchers.Default + SupervisorJob()),
+    )
 
     val state: StateFlow<DownloadConfig> = combine(
         appPrefs.maxDownload,
         appPrefs.useCellularDownload,
         appPrefs.defaultDownloadQuality,
+        appPrefs.downloadQualityOrder,
         appPrefs.downloadDirRelative,
-    ) { maxDl, cellular, quality, dir ->
-        DownloadConfig(maxDl, cellular, quality, dir)
+    ) { maxDl, cellular, quality, qualityOrder, dir ->
+        DownloadConfig(maxDl, cellular, quality, qualityOrder, dir)
     }.stateIn(
         scope = scope,
         started = SharingStarted.Eagerly,
-        initialValue = DownloadConfig(3, false, PlayQuality.STANDARD, "Music/MusicFree/"),
+        initialValue = DownloadConfig(
+            3,
+            false,
+            PlayQuality.STANDARD,
+            QualityFallbackOrder.Asc,
+            "Music/MusicFree/",
+        ),
     )
 }
