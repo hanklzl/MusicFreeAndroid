@@ -48,7 +48,7 @@ class AlbumDetailViewModel @Inject constructor(
 
     val isAlbumStarred: StateFlow<Boolean> = starredSheetRepository
         .observeIsStarred(id = route.albumId, platform = route.pluginPlatform)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun toggleAlbumStarred() {
         val seed = currentAlbum ?: initialAlbumSeed
@@ -63,6 +63,7 @@ class AlbumDetailViewModel @Inject constructor(
                     "kind" to com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
                     "platform" to starred.platform,
                     "id" to starred.id,
+                    "title" to starred.title,
                     "source" to "detail_album",
                 ),
             )

@@ -69,6 +69,7 @@ class HomeSheetsViewModel @Inject constructor(
                     "kind" to item.kind,
                     "platform" to platform,
                     "id" to item.id,
+                    "title" to item.title,
                     "source" to "home_starred_trash",
                 ),
             )

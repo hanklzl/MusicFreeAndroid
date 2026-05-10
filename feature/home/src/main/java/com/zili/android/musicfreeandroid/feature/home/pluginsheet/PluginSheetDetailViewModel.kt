@@ -110,6 +110,7 @@ class PluginSheetDetailViewModel @Inject constructor(
                     "kind" to com.zili.android.musicfreeandroid.core.model.StarredKind.SHEET,
                     "platform" to sheet.platform,
                     "id" to sheet.id,
+                    "title" to sheet.title,
                     "source" to "detail_sheet",
                 ),
             )

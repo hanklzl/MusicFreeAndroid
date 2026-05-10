@@ -25,6 +25,7 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -78,18 +79,23 @@ class AlbumDetailViewModelTest {
     fun `isAlbumStarred mirrors repository flow`() = runTest(testDispatcher) {
         val flow = MutableStateFlow(false)
         val vm = newViewModel(flow)
+        val observed = mutableListOf<Boolean>()
+        val job = launch { vm.isAlbumStarred.collect { observed.add(it) } }
         advanceUntilIdle()
         assertEquals(false, vm.isAlbumStarred.value)
 
         flow.value = true
         advanceUntilIdle()
         assertEquals(true, vm.isAlbumStarred.value)
+
+        job.cancel()
     }
 
     @Test
     fun `toggleAlbumStarred forwards album seed with kind ALBUM`() = runTest(testDispatcher) {
         val flow = MutableStateFlow(false)
         val vm = newViewModel(flow)
+        val job = launch { vm.isAlbumStarred.collect {} }
         advanceUntilIdle()
 
         vm.toggleAlbumStarred()
@@ -103,5 +109,7 @@ class AlbumDetailViewModelTest {
         assertEquals(StarredKind.ALBUM, payload.kind)
         assertEquals("AlbumOne", payload.title)
         assertEquals("ArtistOne", payload.artist)
+
+        job.cancel()
     }
 }
