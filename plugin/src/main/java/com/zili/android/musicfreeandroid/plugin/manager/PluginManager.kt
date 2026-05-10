@@ -450,9 +450,9 @@ class PluginManager @Inject constructor(
     /**
      * Enabled plugins that support the `search` method, sorted by user-defined order.
      */
-    fun getSearchablePlugins(): Flow<List<LoadedPlugin>> =
+    fun getSearchablePlugins(type: String = "music"): Flow<List<LoadedPlugin>> =
         getSortedEnabledPlugins().map { plugins ->
-            plugins.filter { it.info.supportsSearchType("music") }
+            plugins.filter { it.info.supportsSearchType(type) }
         }
 
     /**

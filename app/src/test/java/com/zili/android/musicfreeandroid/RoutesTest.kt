@@ -265,11 +265,15 @@ class RoutesTest {
             title = "Album A",
             artist = "Artist A",
             artwork = "https://example.com/album.jpg",
+            date = "2026-05-10",
+            description = "Album description",
+            worksNum = 12,
+            seedToken = "seed-album",
         )
         val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
         val decoded = Json.decodeFromString<AlbumDetailRoute>(json)
-        assertNotNull(decoded)
+        assertEquals(route, decoded)
     }
 
     @Test
@@ -279,11 +283,15 @@ class RoutesTest {
             artistId = "artist-1",
             name = "Artist A",
             avatar = "https://example.com/artist.jpg",
+            description = "Artist description",
+            fans = 1234,
+            worksNum = 42,
+            seedToken = "seed-artist",
         )
         val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
         val decoded = Json.decodeFromString<ArtistDetailRoute>(json)
-        assertNotNull(decoded)
+        assertEquals(route, decoded)
     }
 
     @Test

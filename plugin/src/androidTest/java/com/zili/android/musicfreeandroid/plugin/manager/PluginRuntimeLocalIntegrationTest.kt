@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.zili.android.musicfreeandroid.plugin.api.musicItems
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -67,11 +68,12 @@ class PluginRuntimeLocalIntegrationTest {
             result.data.isNotEmpty(),
         )
 
-        val title = result.data.first().title
+        val musicItem = result.musicItems().first()
+        val title = musicItem.title
         assertTrue("Title should contain decoded HTML marker", title.contains("&"))
         assertTrue("Title should contain dayjs formatted date", title.contains("2026-03-21"))
 
-        val source = plugin.getMediaSource(result.data.first(), quality = "standard")
+        val source = plugin.getMediaSource(musicItem, quality = "standard")
         assertNotNull("Media source should resolve when songmid is preserved", source)
         assertTrue(
             "Resolved source should include songmid from search payload",

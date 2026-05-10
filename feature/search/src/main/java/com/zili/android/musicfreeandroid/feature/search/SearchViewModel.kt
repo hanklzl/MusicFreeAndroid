@@ -23,13 +23,17 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val pluginManager: PluginManager,
@@ -53,6 +57,7 @@ class SearchViewModel @Inject constructor(
     val pageStatus: StateFlow<SearchPageStatus> = _pageStatus.asStateFlow()
 
     private var pluginsReady = false
+    private var searchablePluginsMediaType: SearchMediaType? = null
 
     private data class PendingSearch(
         val query: String,
@@ -132,9 +137,14 @@ class SearchViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            pluginManager.getSearchablePlugins().collect { plugins ->
-                handleSearchablePluginsChanged(plugins.map { it.info })
-            }
+            _selectedMediaType
+                .flatMapLatest { mediaType ->
+                    pluginManager.getSearchablePlugins(mediaType.key)
+                        .map { plugins -> mediaType to plugins }
+                }
+                .collect { (mediaType, plugins) ->
+                    handleSearchablePluginsChanged(mediaType, plugins.map { it.info })
+                }
         }
         viewModelScope.launch {
             runCatching {
@@ -148,7 +158,10 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    private fun handleSearchablePluginsChanged(searchable: List<PluginInfo>) {
+    private fun handleSearchablePluginsChanged(mediaType: SearchMediaType, searchable: List<PluginInfo>) {
+        if (mediaType != _selectedMediaType.value) return
+
+        searchablePluginsMediaType = mediaType
         _searchablePlugins.value = searchable
 
         val selected = _selectedPlatform.value
@@ -163,8 +176,9 @@ class SearchViewModel @Inject constructor(
     }
 
     private fun updatePageStatusForPluginAvailability() {
-        val searchable = _searchablePlugins.value
-        if (searchable.isNotEmpty()) {
+        val searchable = searchablePluginsFor(_selectedMediaType.value)
+        if (searchable == null) return
+        if (!searchable.isNullOrEmpty()) {
             if (_pageStatus.value == SearchPageStatus.NO_PLUGIN) {
                 _pageStatus.value = SearchPageStatus.EDITING
             }
@@ -180,11 +194,20 @@ class SearchViewModel @Inject constructor(
 
     private fun runPendingSearchIfPossible() {
         val pending = pendingSearch ?: return
-        if (_searchablePlugins.value.isEmpty()) return
+        if (pending.mediaType != _selectedMediaType.value) return
+        if (searchablePluginsFor(pending.mediaType).isNullOrEmpty()) return
 
         pendingSearch = null
         _pageStatus.value = SearchPageStatus.SEARCHING
         searchForMediaType(pending.query, pending.mediaType)
+    }
+
+    private fun searchablePluginsFor(mediaType: SearchMediaType): List<PluginInfo>? {
+        return if (searchablePluginsMediaType == mediaType) {
+            _searchablePlugins.value
+        } else {
+            null
+        }
     }
 
     // ── 搜索 ──
@@ -201,8 +224,8 @@ class SearchViewModel @Inject constructor(
     }
 
     private fun searchForMediaType(query: String, mediaType: SearchMediaType) {
-        val plugins = _searchablePlugins.value
-        if (plugins.isEmpty()) {
+        val plugins = searchablePluginsFor(mediaType)
+        if (plugins.isNullOrEmpty()) {
             pendingSearch = PendingSearch(query, mediaType)
             updatePageStatusForPluginAvailability()
             return
@@ -259,18 +282,18 @@ class SearchViewModel @Inject constructor(
     // ── Tab 切换 ──
 
     fun selectMediaType(type: SearchMediaType) {
-        _selectedMediaType.value = type
+        if (_selectedMediaType.value == type) return
+
         val query = _currentQuery.value
-        // 如果该类型还没搜过，触发搜索
+        // 先登记 pending，再切换类型，避免插件列表 collector 提前收到新类型。
         if (query.isNotBlank() && _searchResults.value[type] == null) {
-            searchForMediaType(query, type)
+            pendingSearch = PendingSearch(query, type)
+            _pageStatus.value = SearchPageStatus.SEARCHING
         }
-        // 自动选第一个插件
-        val platforms = _searchResults.value[type]?.keys?.toList()
-            ?: _searchablePlugins.value.map { it.platform }
-        if (_selectedPlatform.value !in platforms && platforms.isNotEmpty()) {
-            _selectedPlatform.value = platforms.first()
-        }
+        searchablePluginsMediaType = null
+        _searchablePlugins.value = emptyList()
+        _selectedPlatform.value = null
+        _selectedMediaType.value = type
     }
 
     fun selectPlatform(platform: String) {

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.zili.android.musicfreeandroid.plugin.api.musicItems
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -76,7 +77,7 @@ class PluginRuntimeNetworkIntegrationTest {
         )
 
         var mediaSourceUrl: String? = null
-        for (item in wySearch.data.take(5)) {
+        for (item in wySearch.musicItems().take(5)) {
             val source = runCatching {
                 wy.getMediaSource(
                     musicItem = item,
@@ -117,7 +118,7 @@ class PluginRuntimeNetworkIntegrationTest {
         )
 
         var mediaSourceUrl: String? = null
-        for (item in search.data.take(5)) {
+        for (item in search.musicItems().take(5)) {
             val source = runCatching {
                 wy.getMediaSource(
                     musicItem = item,
@@ -163,7 +164,7 @@ class PluginRuntimeNetworkIntegrationTest {
             search.data.isNotEmpty(),
         )
         var playableUrl: String? = null
-        for (item in search.data.take(5)) {
+        for (item in search.musicItems().take(5)) {
             val source = runCatching {
                 updated.getMediaSource(item, quality = "standard")
             }.getOrNull()

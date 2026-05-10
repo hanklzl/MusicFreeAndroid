@@ -15,6 +15,7 @@ import com.zili.android.musicfreeandroid.plugin.api.MusicSheetInfoResult
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import com.zili.android.musicfreeandroid.plugin.api.PaginationResult
 import com.zili.android.musicfreeandroid.plugin.api.RecommendSheetTagsResult
+import com.zili.android.musicfreeandroid.plugin.api.PluginSearchItem
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.api.TopListDetailResult
 
@@ -97,12 +98,27 @@ object JsBridge {
     fun parseSearchResult(
         map: Map<String, Any?>,
         fallbackPlatform: String? = null,
+        type: String = "music",
     ): SearchResult {
         val isEnd = map["isEnd"] as? Boolean ?: false
         @Suppress("UNCHECKED_CAST")
         val dataList = (map["data"] as? List<*>)?.mapNotNull { entry ->
-            (entry as? Map<String, Any?>)?.let {
-                toMusicItem(it, fallbackPlatform = fallbackPlatform)
+            (entry as? Map<String, Any?>)?.let { itemMap ->
+                when (type.lowercase()) {
+                    "music", "lyric" -> PluginSearchItem.Music(
+                        toMusicItem(itemMap, fallbackPlatform = fallbackPlatform),
+                    )
+                    "album" -> PluginSearchItem.Album(
+                        toAlbumItemBase(itemMap, fallbackPlatform = fallbackPlatform),
+                    )
+                    "artist" -> PluginSearchItem.Artist(
+                        toArtistItemBase(itemMap, fallbackPlatform = fallbackPlatform),
+                    )
+                    "sheet" -> PluginSearchItem.Sheet(
+                        toMusicSheetItemBase(itemMap, fallbackPlatform = fallbackPlatform),
+                    )
+                    else -> null
+                }
             }
         } ?: emptyList()
         return SearchResult(isEnd = isEnd, data = dataList)
@@ -229,7 +245,7 @@ object JsBridge {
             date = map["date"]?.toString(),
             artist = map["artist"]?.toString(),
             description = map["description"]?.toString(),
-            artwork = map["artwork"]?.toString(),
+            artwork = firstImageUrl(map, MusicImageFieldKeys),
             worksNum = (map["worksNum"] as? Number)?.toInt(),
             raw = map.toMap(),
         )
@@ -248,10 +264,16 @@ object JsBridge {
         )
     }
 
-    fun toArtistItemBase(map: Map<String, Any?>): ArtistItemBase {
+    fun toArtistItemBase(
+        map: Map<String, Any?>,
+        fallbackPlatform: String? = null,
+    ): ArtistItemBase {
         return ArtistItemBase(
             id = map["id"]?.toString() ?: "",
-            platform = map["platform"]?.toString() ?: "",
+            platform = normalizedPlatform(
+                rawPlatform = map["platform"],
+                fallbackPlatform = fallbackPlatform,
+            ),
             name = map["name"]?.toString(),
             avatar = map["avatar"]?.toString(),
             fans = (map["fans"] as? Number)?.toInt(),
