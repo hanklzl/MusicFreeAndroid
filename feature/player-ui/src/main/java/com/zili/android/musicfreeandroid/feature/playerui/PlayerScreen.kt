@@ -60,13 +60,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.zili.android.musicfreeandroid.core.R
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
+import com.zili.android.musicfreeandroid.feature.playerui.component.quality.MusicQualitySheet
+import com.zili.android.musicfreeandroid.feature.playerui.component.quality.MusicQualitySheetMode
 import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueSheet
+import com.zili.android.musicfreeandroid.feature.playerui.component.rate.PlayRateSheet
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricMoreDialog
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricSearchSheet
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsContent
@@ -84,6 +88,9 @@ fun PlayerScreen(
     val lyricsUiState by viewModel.lyricsUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val isFav by viewModel.isCurrentFavorite.collectAsStateWithLifecycle()
+    val currentQuality by viewModel.currentQuality.collectAsStateWithLifecycle()
+    val currentSpeed by viewModel.currentSpeed.collectAsStateWithLifecycle()
+    val isDownloaded by viewModel.isCurrentDownloaded.collectAsStateWithLifecycle()
     val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
     val allPlaylists by viewModel.allPlaylists.collectAsStateWithLifecycle()
     val lyricSearchResults by viewModel.lyricSearchResults.collectAsStateWithLifecycle()
@@ -93,6 +100,8 @@ fun PlayerScreen(
     var showLyricOffsetDialog by remember { mutableStateOf(false) }
     var showLyricMoreDialog by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
+    var qualitySheetMode by remember { mutableStateOf<MusicQualitySheetMode?>(null) }
+    var showRateSheet by remember { mutableStateOf(false) }
     var pendingImportKind by remember { mutableStateOf<LocalLyricKind?>(null) }
     val openLyricDocument = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -168,9 +177,17 @@ fun PlayerScreen(
                         artworkUrl = artworkUrl,
                         isFav = isFav,
                         hasCurrentItem = currentItem != null,
+                        currentQuality = currentQuality,
+                        isDownloaded = isDownloaded,
+                        currentSpeed = currentSpeed,
                         onToggleFav = { viewModel.toggleCurrentFavorite() },
                         onAddToPlaylist = { viewModel.showAddToPlaylistSheet() },
                         onToggleLyrics = { contentPage = PlayerContentPage.Lyrics },
+                        onQualityClick = { qualitySheetMode = MusicQualitySheetMode.Play },
+                        onDownloadClick = {
+                            if (!isDownloaded) qualitySheetMode = MusicQualitySheetMode.Download
+                        },
+                        onSpeedClick = { showRateSheet = true },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -311,6 +328,38 @@ fun PlayerScreen(
                 onDismiss = { showQueueSheet = false },
             )
         }
+
+        qualitySheetMode?.let { mode ->
+            MusicQualitySheet(
+                current = currentQuality,
+                mode = mode,
+                availableQualities = currentItem?.qualities,
+                onDismiss = { qualitySheetMode = null },
+                onSelect = { quality ->
+                    when (mode) {
+                        MusicQualitySheetMode.Play -> {
+                            viewModel.setCurrentQuality(quality)
+                        }
+                        MusicQualitySheetMode.Download -> {
+                            viewModel.downloadCurrent(quality)
+                            Toast.makeText(context, "已加入下载队列", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    qualitySheetMode = null
+                },
+            )
+        }
+
+        if (showRateSheet) {
+            PlayRateSheet(
+                current = currentSpeed,
+                onDismiss = { showRateSheet = false },
+                onSelect = { rate ->
+                    viewModel.setPlaybackSpeed(rate)
+                    showRateSheet = false
+                },
+            )
+        }
     }
 }
 
@@ -440,9 +489,15 @@ internal fun PlayerCoverPageContent(
     artworkUrl: String?,
     isFav: Boolean,
     hasCurrentItem: Boolean,
+    currentQuality: PlayQuality,
+    isDownloaded: Boolean,
+    currentSpeed: Float,
     onToggleFav: () -> Unit,
     onAddToPlaylist: () -> Unit,
     onToggleLyrics: () -> Unit,
+    onQualityClick: () -> Unit,
+    onDownloadClick: () -> Unit,
+    onSpeedClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -472,9 +527,15 @@ internal fun PlayerCoverPageContent(
             PlayerOperationsBar(
                 isFav = isFav,
                 hasCurrentItem = hasCurrentItem,
+                currentQuality = currentQuality,
+                isDownloaded = isDownloaded,
+                currentSpeed = currentSpeed,
                 onToggleFav = onToggleFav,
                 onAddToPlaylist = onAddToPlaylist,
                 onToggleLyrics = onToggleLyrics,
+                onQualityClick = onQualityClick,
+                onDownloadClick = onDownloadClick,
+                onSpeedClick = onSpeedClick,
             )
             Spacer(Modifier.height(rpx(24)))
         }
@@ -515,9 +576,15 @@ private fun PlayerCoverArt(
 internal fun PlayerOperationsBar(
     isFav: Boolean,
     hasCurrentItem: Boolean,
+    currentQuality: PlayQuality,
+    isDownloaded: Boolean,
+    currentSpeed: Float,
     onToggleFav: () -> Unit,
     onAddToPlaylist: () -> Unit,
     onToggleLyrics: () -> Unit,
+    onQualityClick: () -> Unit,
+    onDownloadClick: () -> Unit,
+    onSpeedClick: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Row(
@@ -543,22 +610,31 @@ internal fun PlayerOperationsBar(
             )
         }
         Text(
-            text = "标准",
+            text = qualityLabel(currentQuality),
             color = Color.White.copy(alpha = 0.7f),
             fontSize = FontSizes.description,
+            modifier = Modifier
+                .clickable(enabled = hasCurrentItem) { onQualityClick() }
+                .padding(horizontal = rpx(16), vertical = rpx(8)),
         )
-        IconButton(onClick = {}) {
+        IconButton(
+            onClick = onDownloadClick,
+            enabled = hasCurrentItem,
+        ) {
             Icon(
                 painter = painterResource(R.drawable.ic_arrow_down_tray),
-                contentDescription = "下载",
-                tint = Color.White.copy(alpha = 0.7f),
+                contentDescription = if (isDownloaded) "已下载" else "下载",
+                tint = if (isDownloaded) Color(0xFF4CAF50) else Color.White.copy(alpha = if (hasCurrentItem) 0.7f else 0.3f),
                 modifier = Modifier.size(IconSizes.normal),
             )
         }
         Text(
-            text = "1.0x",
+            text = formatSpeedLabel(currentSpeed),
             color = Color.White.copy(alpha = 0.7f),
             fontSize = FontSizes.description,
+            modifier = Modifier
+                .clickable(enabled = hasCurrentItem) { onSpeedClick() }
+                .padding(horizontal = rpx(16), vertical = rpx(8)),
         )
         IconButton(
             onClick = onToggleLyrics,
@@ -807,3 +883,13 @@ private fun formatLyricOffset(offsetMs: Long): String {
         else -> "0.0s"
     }
 }
+
+private fun qualityLabel(quality: PlayQuality): String = when (quality) {
+    PlayQuality.LOW -> "低音质"
+    PlayQuality.STANDARD -> "标准"
+    PlayQuality.HIGH -> "高音质"
+    PlayQuality.SUPER -> "超高"
+}
+
+private fun formatSpeedLabel(speed: Float): String =
+    if (speed == speed.toInt().toFloat()) "${speed.toInt()}.0x" else "${speed}x"
