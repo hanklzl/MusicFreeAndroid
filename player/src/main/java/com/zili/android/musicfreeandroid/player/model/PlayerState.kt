@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.player.model
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 
 data class PlayerState(
@@ -11,6 +12,7 @@ data class PlayerState(
     val position: Long = 0L,
     val repeatMode: RepeatMode = RepeatMode.OFF,
     val shuffleEnabled: Boolean = false,
+    val playbackSpeed: Float = PlaybackSpeeds.DEFAULT,
 ) {
     val hasMedia: Boolean get() = currentItem != null
 

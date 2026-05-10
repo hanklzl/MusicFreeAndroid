@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.player.controller
 import android.content.ComponentName
 import android.content.Context
 import android.os.Looper
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -71,6 +72,7 @@ class PlayerController @Inject constructor(
 
     private var repeatMode: RepeatMode = RepeatMode.OFF
     private var shuffleEnabled: Boolean = false
+    private var playbackSpeed: Float = com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds.DEFAULT
 
     init {
         attachNotificationControls()
@@ -313,6 +315,48 @@ class PlayerController @Inject constructor(
         emitQueueState()
     }
 
+    fun setPlaybackSpeed(speed: Float) {
+        playbackSpeed = speed
+        runOnControllerThread {
+            mediaController?.let {
+                it.setPlaybackParameters(PlaybackParameters(speed))
+            }
+            emitState()
+        }
+    }
+
+    fun changeQuality(quality: com.zili.android.musicfreeandroid.core.model.PlayQuality) {
+        val item = playQueue.currentItem ?: return
+        val expectedIndex = playQueue.currentIndex
+        val savedPosition = mediaController?.currentPosition?.coerceAtLeast(0L) ?: 0L
+        val wasPlaying = mediaController?.isPlaying == true
+
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val resolution = runCatching {
+                mediaSourceResolver.resolve(item, quality.name.lowercase())
+            }.getOrNull()
+            val playable = resolution?.item
+            if (playable == null || playable.url.isNullOrBlank()) {
+                _errorEvents.emit("当前歌曲不支持该音质")
+                return@launch
+            }
+            if (!playQueue.isCurrentItem(expectedIndex, item)) return@launch
+            playQueue.replaceCurrent(expectedIndex, item, playable)
+            emitQueueState()
+            withConnectedController { controller ->
+                try {
+                    val mediaItem = playable.toMediaItem(defaultArtworkUri)
+                    controller.setMediaItem(mediaItem)
+                    controller.prepare()
+                    if (savedPosition > 0L) controller.seekTo(savedPosition)
+                    if (wasPlaying) controller.play()
+                } catch (e: RuntimeException) {
+                    _errorEvents.tryEmit("切换音质失败: ${e.message}")
+                }
+            }
+        }
+    }
+
     fun release() {
         connectJob?.cancel()
         runOnControllerThread {
@@ -540,6 +584,7 @@ class PlayerController @Inject constructor(
             position = controller?.currentPosition?.coerceAtLeast(0L) ?: 0L,
             repeatMode = repeatMode,
             shuffleEnabled = shuffleEnabled,
+            playbackSpeed = playbackSpeed,
         )
     }
 
