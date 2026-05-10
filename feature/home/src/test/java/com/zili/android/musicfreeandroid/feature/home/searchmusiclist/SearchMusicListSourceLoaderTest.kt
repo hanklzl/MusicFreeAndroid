@@ -2,8 +2,10 @@ package com.zili.android.musicfreeandroid.feature.home.searchmusiclist
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
-import com.zili.android.musicfreeandroid.feature.home.collection.CollectionSource
+import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.feature.home.collection.CollectionSource
+import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +22,7 @@ import org.mockito.kotlin.whenever
 class SearchMusicListSourceLoaderTest {
 
     private val playlistRepository: PlaylistRepository = mock()
+    private val musicRepository: MusicRepository = mock()
     private val playerController: PlayerController = mock()
 
     @Test
@@ -28,7 +31,7 @@ class SearchMusicListSourceLoaderTest {
         whenever(playlistRepository.observeMusicInPlaylist("playlist-1"))
             .thenReturn(flowOf(playlistItems))
 
-        val loader = SearchMusicListSourceLoader(playlistRepository, playerController)
+        val loader = SearchMusicListSourceLoader(playlistRepository, playerController, musicRepository)
 
         val actual = loader.observe(SearchMusicListRoute.playlist("playlist-1")).first()
 
@@ -41,7 +44,7 @@ class SearchMusicListSourceLoaderTest {
         val historyItems = listOf(track(id = "history-song"))
         whenever(playerController.playHistory).thenReturn(MutableStateFlow(historyItems))
 
-        val loader = SearchMusicListSourceLoader(playlistRepository, playerController)
+        val loader = SearchMusicListSourceLoader(playlistRepository, playerController, musicRepository)
 
         val actual = loader.observe(SearchMusicListRoute.history()).first()
 
@@ -49,17 +52,22 @@ class SearchMusicListSourceLoaderTest {
     }
 
     @Test
-    fun `local library source returns empty list in minimal foundation implementation`() = runTest {
-        val loader = SearchMusicListSourceLoader(playlistRepository, playerController)
+    fun `local library source loads persisted local music from repository`() = runTest {
+        val localItems = listOf(track(id = "local-song", platform = LocalMusicScanner.PLATFORM_LOCAL))
+        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+            .thenReturn(flowOf(localItems))
+
+        val loader = SearchMusicListSourceLoader(playlistRepository, playerController, musicRepository)
 
         val actual = loader.observe(CollectionSource.LocalLibrary).first()
 
-        assertEquals(emptyList<MusicItem>(), actual)
+        assertEquals(localItems, actual)
+        verify(musicRepository).observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)
     }
 
     @Test
     fun `transient source returns empty list in minimal foundation implementation`() = runTest {
-        val loader = SearchMusicListSourceLoader(playlistRepository, playerController)
+        val loader = SearchMusicListSourceLoader(playlistRepository, playerController, musicRepository)
 
         val actual = loader.observe(CollectionSource.Transient(sourceId = "session-42")).first()
 

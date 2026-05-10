@@ -81,6 +81,30 @@ class PluginMetaStoreTest {
     }
 
     @Test
+    fun `alternative plugin defaults to empty`() = runBlocking {
+        assertTrue(store.alternativePlugins.first().isEmpty())
+        assertNull(store.getAlternativePlugin("source").first())
+    }
+
+    @Test
+    fun `set and clear alternative plugin`() = runBlocking {
+        store.setAlternativePlugin("source", "target")
+        assertEquals("target", store.getAlternativePlugin("source").first())
+        assertEquals(mapOf("source" to "target"), store.alternativePlugins.first())
+
+        store.setAlternativePlugin("source", null)
+        assertNull(store.getAlternativePlugin("source").first())
+        assertTrue(store.alternativePlugins.first().isEmpty())
+    }
+
+    @Test
+    fun `self alternative plugin is stored as cleared`() = runBlocking {
+        store.setAlternativePlugin("source", "source")
+        assertNull(store.getAlternativePlugin("source").first())
+        assertTrue(store.alternativePlugins.first().isEmpty())
+    }
+
+    @Test
     fun `user variables default to empty`() = runBlocking {
         assertTrue(store.getUserVariables("netease").first().isEmpty())
     }

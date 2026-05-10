@@ -2,7 +2,9 @@ package com.zili.android.musicfreeandroid.feature.home.toplist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiModel
+import com.zili.android.musicfreeandroid.feature.home.pluginfeature.pluginsSupporting
+import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,9 +21,13 @@ class TopListViewModel @Inject constructor(
     private val pluginManager: PluginManager,
 ) : ViewModel() {
 
-    val availablePlugins: StateFlow<List<PluginInfo>> = pluginManager.plugins
-        .map { list -> list.map { it.info } }
+    private val capablePlugins: StateFlow<List<LoadedPlugin>> = pluginManager.getSortedEnabledPlugins()
+        .map { plugins -> plugins.filter { plugin -> plugin.supportsTopLists() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val availablePlugins: StateFlow<List<PluginCapabilityUiModel>> = capablePlugins
+        .map { plugins -> plugins.pluginsSupporting("getTopLists") }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _selectedPlugin = MutableStateFlow<String?>(null)
     val selectedPlugin: StateFlow<String?> = _selectedPlugin.asStateFlow()
@@ -29,48 +35,113 @@ class TopListViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<TopListUiState>(TopListUiState.Idle)
     val uiState: StateFlow<TopListUiState> = _uiState.asStateFlow()
 
+    private var loadGeneration: Long = 0
+    private var selectedPluginInstance: LoadedPlugin? = null
+
     init {
         viewModelScope.launch {
             pluginManager.ensurePluginsLoaded()
         }
         viewModelScope.launch {
-            availablePlugins.collect { plugins ->
-                if (_selectedPlugin.value == null && plugins.isNotEmpty()) {
-                    selectPlugin(plugins.first().platform)
+            capablePlugins.collect { plugins ->
+                when {
+                    plugins.isEmpty() -> {
+                        invalidateLoads()
+                        selectedPluginInstance = null
+                        _selectedPlugin.value = null
+                        _uiState.value = TopListUiState.Error("当前没有支持榜单的插件")
+                    }
+                    selectedPluginInstance == null -> {
+                        selectPlugin(plugins.first())
+                    }
+                    plugins.none { it === selectedPluginInstance } -> {
+                        val replacement = _selectedPlugin.value?.let { platform ->
+                            plugins.firstOrNull { it.info.platform.trim() == platform }
+                        }
+                        selectPlugin(replacement ?: plugins.first())
+                    }
                 }
             }
         }
     }
 
     fun selectPlugin(platform: String) {
-        if (_selectedPlugin.value == platform && _uiState.value is TopListUiState.Success) {
+        val plugin = capablePlugins.value.firstOrNull { it.info.platform.trim() == platform }
+            ?: pluginManager.getPlugin(platform)?.takeIf { it.supportsTopLists() }
+        if (plugin == null) {
+            invalidateLoads()
+            selectedPluginInstance = null
+            _selectedPlugin.value = null
+            _uiState.value = TopListUiState.Error(
+                if (capablePlugins.value.isEmpty()) {
+                    "当前没有支持榜单的插件"
+                } else {
+                    "插件不存在：$platform"
+                },
+            )
             return
         }
-        _selectedPlugin.value = platform
-        loadTopLists(platform)
+        selectPlugin(plugin)
     }
 
     fun refresh() {
-        val platform = _selectedPlugin.value ?: return
-        loadTopLists(platform)
+        val plugin = currentSelectedPlugin() ?: return
+        selectedPluginInstance = plugin
+        _selectedPlugin.value = plugin.info.platform.trim()
+        loadTopLists(plugin, nextLoadGeneration())
     }
 
-    private fun loadTopLists(platform: String) {
-        val plugin = pluginManager.getPlugin(platform)
-        if (plugin == null) {
-            _uiState.value = TopListUiState.Error("插件不存在：$platform")
+    private fun selectPlugin(plugin: LoadedPlugin) {
+        if (selectedPluginInstance === plugin && _uiState.value is TopListUiState.Success) {
             return
         }
+        selectedPluginInstance = plugin
+        _selectedPlugin.value = plugin.info.platform.trim()
+        loadTopLists(plugin, nextLoadGeneration())
+    }
 
+    private fun loadTopLists(plugin: LoadedPlugin, generation: Long) {
+        if (!isCurrentLoad(plugin, generation)) return
         viewModelScope.launch {
+            if (!isCurrentLoad(plugin, generation)) return@launch
             _uiState.value = TopListUiState.Loading
-            runCatching {
+            val result = runCatching {
                 plugin.getTopLists()
-            }.onSuccess { groups ->
+            }
+            if (!isCurrentLoad(plugin, generation)) return@launch
+
+            result.onSuccess { groups ->
                 _uiState.value = TopListUiState.Success(groups)
             }.onFailure { e ->
                 _uiState.value = TopListUiState.Error(e.message ?: "加载榜单失败")
             }
         }
     }
+
+    private fun nextLoadGeneration(): Long {
+        loadGeneration += 1
+        return loadGeneration
+    }
+
+    private fun invalidateLoads() {
+        loadGeneration += 1
+    }
+
+    private fun isCurrentLoad(plugin: LoadedPlugin, generation: Long): Boolean =
+        loadGeneration == generation &&
+            selectedPluginInstance === plugin &&
+            _selectedPlugin.value == plugin.info.platform.trim()
+
+    private fun currentSelectedPlugin(): LoadedPlugin? {
+        val current = selectedPluginInstance
+        if (current != null && _selectedPlugin.value == current.info.platform.trim()) {
+            return current
+        }
+        val platform = _selectedPlugin.value ?: return null
+        return capablePlugins.value.firstOrNull { it.info.platform.trim() == platform }
+            ?: pluginManager.getPlugin(platform)
+    }
+
+    private fun LoadedPlugin.supportsTopLists(): Boolean =
+        info.platform.trim().isNotBlank() && "getTopLists" in info.supportedMethods
 }

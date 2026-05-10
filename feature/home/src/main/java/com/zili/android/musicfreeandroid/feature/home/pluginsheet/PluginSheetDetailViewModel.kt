@@ -4,12 +4,18 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedResolver
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.fallbackSheetSeed
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,8 +35,14 @@ class PluginSheetDetailViewModel @Inject constructor(
     private val pluginManager: PluginManager,
     private val playerController: PlayerController,
     private val playlistRepository: PlaylistRepository,
+    private val appPreferences: AppPreferences,
+    private val downloader: Downloader,
+    private val mediaSourceResolver: MediaSourceResolver,
 ) : ViewModel() {
     private val route = savedStateHandle.toRoute<PluginSheetDetailRoute>()
+    private val seedResolver = PluginSheetRouteSeedResolver(route.seedToken) {
+        route.fallbackSheetSeed()
+    }
 
     private val _uiState = MutableStateFlow(PluginSheetDetailUiState(loading = true))
     val uiState: StateFlow<PluginSheetDetailUiState> = _uiState.asStateFlow()
@@ -137,11 +149,9 @@ class PluginSheetDetailViewModel @Inject constructor(
             return false
         }
 
-        val plugin = pluginManager.getPlugin(route.pluginPlatform) ?: return false
         val clicked = list[index]
         val resolved = if (clicked.url.isNullOrBlank()) {
-            val source = plugin.getMediaSource(clicked) ?: return false
-            clicked.copy(url = source.url)
+            mediaSourceResolver.resolve(clicked)?.item ?: return false
         } else {
             clicked
         }
@@ -193,26 +203,12 @@ class PluginSheetDetailViewModel @Inject constructor(
         }
     }
 
-    private fun seedSheet(): MusicSheetItemBase {
-        val raw = mutableMapOf<String, Any?>(
-            "id" to route.sheetId,
-            "platform" to route.pluginPlatform,
-        )
-        route.title?.let { raw["title"] = it }
-        route.artist?.let { raw["artist"] = it }
-        route.coverImg?.let { raw["coverImg"] = it }
-        route.artwork?.let { raw["artwork"] = it }
+    private fun seedSheet(): MusicSheetItemBase =
+        seedResolver.resolve()
 
-        return MusicSheetItemBase(
-            id = route.sheetId,
-            platform = route.pluginPlatform,
-            title = route.title,
-            artist = route.artist,
-            description = null,
-            coverImg = route.coverImg,
-            artwork = route.artwork,
-            worksNum = null,
-            raw = raw,
-        )
+    val defaultDownloadQuality = appPreferences.defaultDownloadQuality
+
+    fun download(item: MusicItem, quality: PlayQuality) {
+        downloader.enqueue(listOf(item), quality)
     }
 }

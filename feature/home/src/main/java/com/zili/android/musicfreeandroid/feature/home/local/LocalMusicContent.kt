@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -44,22 +46,16 @@ fun LocalMusicContent(
     onItemLongClick: (MusicItem) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    downloadedKeys: Set<String> = emptySet(),
 ) {
     when (uiState) {
         LocalMusicUiState.Loading -> {
-            Box(
-                modifier = modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
+            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
             }
         }
-
         is LocalMusicUiState.Error -> {
-            Box(
-                modifier = modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
+            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(uiState.message, color = MusicFreeTheme.colors.danger)
                     Spacer(Modifier.height(8.dp))
@@ -73,18 +69,15 @@ fun LocalMusicContent(
                 }
             }
         }
-
         is LocalMusicUiState.Success -> {
             if (uiState.musicItems.isEmpty()) {
-                Box(
-                    modifier = modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("没有找到本地音乐", color = MusicFreeTheme.colors.textSecondary)
                 }
             } else {
                 MusicList(
                     items = uiState.musicItems,
+                    downloadedKeys = downloadedKeys,
                     onItemClick = { item -> onItemClick(item, uiState.musicItems) },
                     onItemLongClick = onItemLongClick,
                     modifier = modifier,
@@ -97,6 +90,7 @@ fun LocalMusicContent(
 @Composable
 private fun MusicList(
     items: List<MusicItem>,
+    downloadedKeys: Set<String>,
     onItemClick: (MusicItem) -> Unit,
     onItemLongClick: (MusicItem) -> Unit,
     modifier: Modifier = Modifier,
@@ -113,6 +107,7 @@ private fun MusicList(
         itemsIndexed(items, key = { _, item -> "${item.platform}:${item.id}" }) { index, item ->
             MusicListItem(
                 item = item,
+                downloaded = downloadedKeys.contains("${item.id}@${item.platform}"),
                 onClick = { onItemClick(item) },
                 onLongClick = { onItemLongClick(item) },
             )
@@ -130,6 +125,7 @@ private fun MusicList(
 @Composable
 private fun MusicListItem(
     item: MusicItem,
+    downloaded: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -140,23 +136,31 @@ private fun MusicListItem(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CoverImage(
-            uri = item.artwork,
-            size = 48.dp,
-            cornerRadius = 4.dp,
-        )
+        CoverImage(uri = item.artwork, size = 48.dp, cornerRadius = 4.dp)
         Spacer(Modifier.width(12.dp))
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(
-                text = item.title,
-                color = MusicFreeTheme.colors.text,
-                fontSize = FontSizes.content,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = item.title,
+                    color = MusicFreeTheme.colors.text,
+                    fontSize = FontSizes.content,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (downloaded) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = "已下载",
+                        tint = MusicFreeTheme.colors.primary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
             if (item.artist.isNotBlank()) {
                 Text(
                     text = item.artist + if (!item.album.isNullOrBlank()) " - ${item.album}" else "",

@@ -15,7 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,24 +27,29 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.R as CoreR
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.feature.home.playlist.CreatePlaylistDialog
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicListEditorLiteScreen(
     onBack: () -> Unit,
     viewModel: MusicListEditorLiteViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // TODO(Task 27): replace with AddToPlaylistBottomSheet (core/ui/AddToPlaylistBottomSheetContent)
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
 
     MusicFreeScreenScaffold(
         title = uiState.playlistName.ifBlank { "歌单编辑" },
@@ -60,39 +67,68 @@ fun MusicListEditorLiteScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-        if (uiState.items.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = if (uiState.hasPendingChanges) "已移除全部歌曲，点击保存应用" else "播放列表为空",
-                    color = MusicFreeTheme.colors.textSecondary,
-                )
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                item {
-                    MusicListEditorLiteActions(
-                        uiState = uiState,
-                        onSelectAll = viewModel::selectAll,
-                        onClearSelection = viewModel::clearSelection,
-                        onRemoveSelected = viewModel::removeSelectedFromPlaylist,
-                        onAddToNextQueue = viewModel::addSelectedToNextQueue,
-                        onAddToPlaylist = { showAddToPlaylistDialog = true },
+            if (uiState.items.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if (uiState.hasPendingChanges) "已移除全部歌曲，点击保存应用" else "播放列表为空",
+                        color = MusicFreeTheme.colors.textSecondary,
                     )
                 }
-                items(uiState.items, key = { "${it.platform}:${it.id}" }) { item ->
-                    MusicListEditorLiteRow(
-                        item = item,
-                        selected = "${item.platform}:${item.id}" in uiState.selectedItemKeys,
-                        onToggleSelection = { viewModel.toggleSelection(item) },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 72.dp),
-                        color = MusicFreeTheme.colors.divider,
-                    )
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    item {
+                        MusicListEditorLiteActions(
+                            uiState = uiState,
+                            onSelectAll = viewModel::selectAll,
+                            onClearSelection = viewModel::clearSelection,
+                            onRemoveSelected = viewModel::removeSelectedFromPlaylist,
+                            onAddToNextQueue = viewModel::addSelectedToNextQueue,
+                            onAddToPlaylist = { showAddToPlaylistDialog = true },
+                            onDownloadSelected = viewModel::downloadSelected,
+                        )
+                    }
+                    items(uiState.items, key = { "${it.platform}:${it.id}" }) { item ->
+                        MusicListEditorLiteRow(
+                            item = item,
+                            selected = "${item.platform}:${item.id}" in uiState.selectedItemKeys,
+                            onToggleSelection = { viewModel.toggleSelection(item) },
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 72.dp),
+                            color = MusicFreeTheme.colors.divider,
+                        )
+                    }
                 }
             }
         }
+    }
+
+    if (showAddToPlaylistDialog) {
+        ModalBottomSheet(
+            onDismissRequest = { showAddToPlaylistDialog = false },
+        ) {
+            AddToPlaylistBottomSheetContent(
+                playlists = uiState.availableTargetPlaylists,
+                onSelect = { playlist ->
+                    viewModel.addSelectedToPlaylist(playlist.id)
+                    showAddToPlaylistDialog = false
+                },
+                onCreateNew = { showCreatePlaylistDialog = true },
+                folderPlusIcon = painterResource(id = CoreR.drawable.ic_folder_plus),
+                favoriteCoverIcon = painterResource(id = CoreR.drawable.ic_playlist_favorite_cover),
+            )
         }
+    }
+
+    if (showCreatePlaylistDialog) {
+        CreatePlaylistDialog(
+            onDismiss = { showCreatePlaylistDialog = false },
+            onCreate = { name ->
+                viewModel.createPlaylistAndAddSelected(name)
+                showCreatePlaylistDialog = false
+                showAddToPlaylistDialog = false
+            },
+        )
     }
 }
 
@@ -104,6 +140,7 @@ private fun MusicListEditorLiteActions(
     onRemoveSelected: () -> Unit,
     onAddToNextQueue: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    onDownloadSelected: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -157,9 +194,15 @@ private fun MusicListEditorLiteActions(
             }
             TextButton(
                 onClick = onAddToPlaylist,
-                enabled = uiState.selectedCount > 0 && uiState.availableTargetPlaylists.isNotEmpty(),
+                enabled = uiState.selectedCount > 0,
             ) {
                 Text("添加到歌单")
+            }
+            TextButton(
+                onClick = onDownloadSelected,
+                enabled = uiState.selectedCount > 0,
+            ) {
+                Text("下载选中")
             }
         }
 

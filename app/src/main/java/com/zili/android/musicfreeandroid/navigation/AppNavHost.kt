@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import com.zili.android.musicfreeandroid.core.navigation.AlbumDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
+import com.zili.android.musicfreeandroid.core.navigation.DownloadingRoute
 import com.zili.android.musicfreeandroid.core.navigation.FileSelectorRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
@@ -23,20 +24,25 @@ import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
+import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
 import com.zili.android.musicfreeandroid.feature.home.HomeSystemActionHandler
+import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.AlbumDetailSeedStore
 import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.albumDetailScreen
+import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.ArtistDetailSeedStore
 import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.artistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.musicDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.MusicDetailSeedStore
 import com.zili.android.musicfreeandroid.feature.home.musiclisteditor.navigation.musicListEditorLiteScreen
+import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStore
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.pluginSheetDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.playlist.playlistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.recommendsheets.navigation.recommendSheetsScreen
 import com.zili.android.musicfreeandroid.feature.home.searchmusiclist.navigation.searchMusicListScreen
 import com.zili.android.musicfreeandroid.feature.home.history.navigation.historyScreen
+import com.zili.android.musicfreeandroid.feature.home.downloading.navigation.downloadingScreen
 import com.zili.android.musicfreeandroid.feature.home.local.navigation.localScreen
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.toplist.navigation.topListScreen
@@ -69,7 +75,7 @@ fun AppNavHost(
             onNavigateToRecommendSheets = { navController.navigate(RecommendSheetsRoute) },
             onNavigateToHistory = { navController.navigate(HistoryRoute) },
             onNavigateToLocal = { navController.navigate(LocalRoute) },
-            onNavigateToSettings = { navController.navigate(SettingsRoute) },
+            onNavigateToSettings = { type: SettingsType -> navController.navigate(SettingsRoute(type)) },
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
             onNavigateToTopList = { navController.navigate(TopListRoute) },
             onNavigateToPlaylistDetail = { playlistId ->
@@ -78,7 +84,18 @@ fun AppNavHost(
             homeSystemActionHandler = homeSystemActionHandler,
         )
         localScreen(
+            onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+            onNavigateToSearchMusicList = {
+                navController.navigate(SearchMusicListRoute.localLibrary())
+            },
+            onNavigateToMusicListEditor = {
+                navController.navigate(MusicListEditorLiteRoute.localLibrary())
+            },
+            onNavigateToDownloading = { navController.navigate(DownloadingRoute) },
+        )
+        downloadingScreen(
+            onBack = { navController.popBackStack() },
         )
         playerScreen(
             onBack = { navController.popBackStack() },
@@ -99,6 +116,53 @@ fun AppNavHost(
         searchScreen(
             onBack = { navController.popBackStack() },
             onNavigateToPlayer = { navController.navigate(PlayerRoute) },
+            onOpenAlbumDetail = { album ->
+                val seedToken = AlbumDetailSeedStore.put(album)
+                navController.navigate(
+                    AlbumDetailRoute(
+                        pluginPlatform = album.platform,
+                        albumId = album.id,
+                        title = album.title,
+                        artist = album.artist,
+                        artwork = album.artwork,
+                        date = album.date,
+                        description = album.description,
+                        worksNum = album.worksNum,
+                        seedToken = seedToken,
+                    ),
+                )
+            },
+            onOpenArtistDetail = { artist ->
+                val seedToken = ArtistDetailSeedStore.put(artist)
+                navController.navigate(
+                    ArtistDetailRoute(
+                        pluginPlatform = artist.platform,
+                        artistId = artist.id,
+                        name = artist.name.orEmpty().ifBlank { "未知歌手" },
+                        avatar = artist.avatar,
+                        description = artist.description,
+                        fans = artist.fans,
+                        worksNum = artist.worksNum,
+                        seedToken = seedToken,
+                    ),
+                )
+            },
+            onOpenSheetDetail = { sheet ->
+                val seedToken = PluginSheetSeedStore.put(sheet)
+                navController.navigate(
+                    PluginSheetDetailRoute(
+                        pluginPlatform = sheet.platform,
+                        sheetId = sheet.id,
+                        title = sheet.title,
+                        artist = sheet.artist,
+                        description = sheet.description,
+                        coverImg = sheet.coverImg,
+                        artwork = sheet.artwork,
+                        worksNum = sheet.worksNum,
+                        seedToken = seedToken,
+                    ),
+                )
+            },
         )
         historyScreen(
             onBack = { navController.popBackStack() },
@@ -137,11 +201,19 @@ fun AppNavHost(
         )
         topListScreen(
             onBack = { navController.popBackStack() },
-            onOpenTopListDetail = { pluginPlatform, topListId ->
+            onOpenTopListDetail = { pluginPlatform, topList ->
+                val seedToken = PluginSheetSeedStore.put(topList)
                 navController.navigate(
                     TopListDetailRoute(
                         pluginPlatform = pluginPlatform,
-                        topListId = topListId,
+                        topListId = topList.id,
+                        title = topList.title,
+                        artist = topList.artist,
+                        description = topList.description,
+                        coverImg = topList.coverImg,
+                        artwork = topList.artwork,
+                        worksNum = topList.worksNum,
+                        seedToken = seedToken,
                     ),
                 )
             },
@@ -168,14 +240,18 @@ fun AppNavHost(
         recommendSheetsScreen(
             onBack = { navController.popBackStack() },
             onOpenSheetDetail = { pluginPlatform, sheet ->
+                val seedToken = PluginSheetSeedStore.put(sheet)
                 navController.navigate(
                     PluginSheetDetailRoute(
                         pluginPlatform = pluginPlatform,
                         sheetId = sheet.id,
                         title = sheet.title,
                         artist = sheet.artist,
+                        description = sheet.description,
                         coverImg = sheet.coverImg,
                         artwork = sheet.artwork,
+                        worksNum = sheet.worksNum,
+                        seedToken = seedToken,
                     ),
                 )
             },

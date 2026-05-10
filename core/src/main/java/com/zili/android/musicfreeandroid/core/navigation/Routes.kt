@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.core.navigation
 
+import androidx.annotation.Keep
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
@@ -79,7 +80,19 @@ data class SearchMusicListRoute(
 }
 
 @Serializable
-data object SettingsRoute
+@Keep
+enum class SettingsType {
+    Basic,
+    Plugin,
+    Theme,
+    Backup,
+    About,
+}
+
+@Serializable
+data class SettingsRoute(
+    val type: SettingsType = SettingsType.Basic,
+)
 
 @Serializable
 data object PermissionsRoute
@@ -91,7 +104,43 @@ data object FileSelectorRoute
 data class PlaylistDetailRoute(val playlistId: String)
 
 @Serializable
-data class MusicListEditorLiteRoute(val playlistId: String)
+data class MusicListEditorLiteRoute(
+    @OptIn(ExperimentalSerializationApi::class)
+    @JsonNames("playlistId")
+    val sourceId: String,
+    val sourceType: String = SOURCE_TYPE_PLAYLIST,
+) {
+    constructor(playlistId: String) : this(
+        sourceId = playlistId,
+        sourceType = SOURCE_TYPE_PLAYLIST,
+    )
+
+    init {
+        require(sourceType == SOURCE_TYPE_PLAYLIST || sourceType == SOURCE_TYPE_LOCAL_LIBRARY) {
+            "Unsupported music list editor source type: $sourceType"
+        }
+        require(sourceType != SOURCE_TYPE_PLAYLIST || sourceId.isNotBlank()) {
+            "sourceId is required for playlist editor routes"
+        }
+        require(sourceType != SOURCE_TYPE_LOCAL_LIBRARY || sourceId == LOCAL_LIBRARY_SOURCE_ID) {
+            "sourceId must be $LOCAL_LIBRARY_SOURCE_ID for local-library editor routes"
+        }
+    }
+
+    val playlistId: String
+        get() = sourceId
+
+    companion object {
+        const val SOURCE_TYPE_PLAYLIST = "playlist"
+        const val SOURCE_TYPE_LOCAL_LIBRARY = "local-library"
+        const val LOCAL_LIBRARY_SOURCE_ID = "local"
+
+        fun localLibrary(): MusicListEditorLiteRoute = MusicListEditorLiteRoute(
+            sourceId = LOCAL_LIBRARY_SOURCE_ID,
+            sourceType = SOURCE_TYPE_LOCAL_LIBRARY,
+        )
+    }
+}
 
 @Serializable
 data object PlayQueueRoute
@@ -103,6 +152,13 @@ data object TopListRoute
 data class TopListDetailRoute(
     val pluginPlatform: String,
     val topListId: String,
+    val title: String? = null,
+    val artist: String? = null,
+    val description: String? = null,
+    val coverImg: String? = null,
+    val artwork: String? = null,
+    val worksNum: Int? = null,
+    val seedToken: String? = null,
 )
 
 @Serializable
@@ -114,8 +170,11 @@ data class PluginSheetDetailRoute(
     val sheetId: String,
     val title: String? = null,
     val artist: String? = null,
+    val description: String? = null,
     val coverImg: String? = null,
     val artwork: String? = null,
+    val worksNum: Int? = null,
+    val seedToken: String? = null,
 )
 
 @Serializable
@@ -137,6 +196,10 @@ data class AlbumDetailRoute(
     val title: String? = null,
     val artist: String? = null,
     val artwork: String? = null,
+    val date: String? = null,
+    val description: String? = null,
+    val worksNum: Int? = null,
+    val seedToken: String? = null,
 )
 
 @Serializable
@@ -145,6 +208,10 @@ data class ArtistDetailRoute(
     val artistId: String,
     val name: String,
     val avatar: String? = null,
+    val description: String? = null,
+    val fans: Int? = null,
+    val worksNum: Int? = null,
+    val seedToken: String? = null,
 )
 
 @Serializable
@@ -155,3 +222,6 @@ data object PluginSortRoute
 
 @Serializable
 data object PluginSubscriptionRoute
+
+@Serializable
+data object DownloadingRoute

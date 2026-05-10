@@ -62,4 +62,53 @@ class PlaylistMapperTest {
             assertEquals(mode, back.sortMode)
         }
     }
+
+    @Test
+    fun `toModel without resolver preserves coverUri verbatim`() {
+        val entity = PlaylistEntity(
+            id = "p1", name = "Mix",
+            coverUri = "playlist_covers/p1.jpg",
+            description = null, sortMode = "Manual",
+            createdAt = 0L, updatedAt = 0L,
+        )
+        assertEquals("playlist_covers/p1.jpg", entity.toModel().coverUri)
+    }
+
+    @Test
+    fun `toModel applies resolver only when it returns non-null`() {
+        val entity = PlaylistEntity(
+            id = "p1", name = "Mix",
+            coverUri = "playlist_covers/p1.jpg",
+            description = null, sortMode = "Manual",
+            createdAt = 0L, updatedAt = 0L,
+        )
+        val resolved = entity.toModel(legacyCoverResolver = { raw ->
+            if (raw.startsWith("playlist_covers/")) "file:///abs/$raw" else null
+        })
+        assertEquals("file:///abs/playlist_covers/p1.jpg", resolved.coverUri)
+    }
+
+    @Test
+    fun `toModel resolver returning null falls back to raw value`() {
+        val entity = PlaylistEntity(
+            id = "p1", name = "Mix",
+            coverUri = "https://example.com/cover.jpg",
+            description = null, sortMode = "Manual",
+            createdAt = 0L, updatedAt = 0L,
+        )
+        val resolved = entity.toModel(legacyCoverResolver = { _ -> null })
+        assertEquals("https://example.com/cover.jpg", resolved.coverUri)
+    }
+
+    @Test
+    fun `toModel preserves null coverUri regardless of resolver`() {
+        val entity = PlaylistEntity(
+            id = "p1", name = "Empty",
+            coverUri = null,
+            description = null, sortMode = "Manual",
+            createdAt = 0L, updatedAt = 0L,
+        )
+        val resolved = entity.toModel(legacyCoverResolver = { _ -> "file:///should/not/show" })
+        assertEquals(null, resolved.coverUri)
+    }
 }

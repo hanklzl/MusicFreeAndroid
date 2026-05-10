@@ -6,10 +6,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +28,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.unit.Dp
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
@@ -41,6 +45,7 @@ fun HomeDrawerContent(
     uiModel: HomeDrawerUiModel,
     onEntryClick: (HomeDrawerAction) -> Unit,
     modifier: Modifier = Modifier,
+    statusBarTopPadding: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
 ) {
     val context = LocalContext.current
 
@@ -57,11 +62,13 @@ fun HomeDrawerContent(
             modifier = Modifier
                 .fillMaxHeight()
                 .verticalScroll(rememberScrollState())
-                .padding(top = rpx(12), bottom = rpx(24)),
+                .padding(top = statusBarTopPadding + rpx(12), bottom = rpx(24)),
         ) {
             Text(
                 text = context.applicationInfo.loadLabel(context.packageManager).toString(),
-                modifier = Modifier.padding(horizontal = rpx(24), vertical = rpx(28)),
+                modifier = Modifier
+                    .padding(horizontal = rpx(24), vertical = rpx(28))
+                    .testTag(FidelityAnchors.Home.DrawerTitle),
                 color = MusicFreeTheme.colors.text,
                 fontSize = FontSizes.appBar,
             )

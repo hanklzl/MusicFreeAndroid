@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.plugin.engine
 
+import com.zili.android.musicfreeandroid.plugin.api.PluginSearchItem
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -71,9 +72,90 @@ class JsBridgeTest {
                 mapOf("id" to "1", "platform" to "test", "title" to "Song", "artist" to "A"),
             ),
         )
-        val result = JsBridge.parseSearchResult(map)
+        val result = JsBridge.parseSearchResult(map, type = "music")
         assertTrue(result.isEnd)
         assertEquals(1, result.data.size)
+        assertEquals("Song", (result.data.single() as PluginSearchItem.Music).item.title)
+    }
+
+    @Test
+    fun `parseSearchResult parses album results`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "data" to listOf(
+                mapOf(
+                    "id" to "album-1",
+                    "platform" to "",
+                    "title" to "Album A",
+                    "artist" to "Artist A",
+                    "date" to "2026-05-10",
+                    "artwork" to "//img.example.com/album.jpg",
+                ),
+            ),
+        )
+
+        val result = JsBridge.parseSearchResult(payload, fallbackPlatform = "demo", type = "album")
+
+        val album = (result.data.single() as PluginSearchItem.Album).item
+        assertEquals("album-1", album.id)
+        assertEquals("demo", album.platform)
+        assertEquals("Album A", album.title)
+        assertEquals("Artist A", album.artist)
+        assertEquals("2026-05-10", album.date)
+        assertEquals("https://img.example.com/album.jpg", album.artwork)
+    }
+
+    @Test
+    fun `parseSearchResult parses artist results`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "data" to listOf(
+                mapOf(
+                    "id" to "artist-1",
+                    "platform" to "",
+                    "name" to "Artist A",
+                    "avatar" to "https://img.example.com/artist.jpg",
+                    "fans" to 123,
+                    "worksNum" to 12,
+                ),
+            ),
+        )
+
+        val result = JsBridge.parseSearchResult(payload, fallbackPlatform = "demo", type = "artist")
+
+        val artist = (result.data.single() as PluginSearchItem.Artist).item
+        assertEquals("artist-1", artist.id)
+        assertEquals("demo", artist.platform)
+        assertEquals("Artist A", artist.name)
+        assertEquals(123, artist.fans)
+        assertEquals(12, artist.worksNum)
+    }
+
+    @Test
+    fun `parseSearchResult parses sheet results`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "data" to listOf(
+                mapOf(
+                    "id" to "sheet-1",
+                    "platform" to "",
+                    "title" to "Sheet A",
+                    "description" to "Daily",
+                    "cover" to "//img.example.com/sheet.jpg",
+                    "worksNum" to 30,
+                ),
+            ),
+        )
+
+        val result = JsBridge.parseSearchResult(payload, fallbackPlatform = "demo", type = "sheet")
+
+        val sheet = (result.data.single() as PluginSearchItem.Sheet).item
+        assertEquals("sheet-1", sheet.id)
+        assertEquals("demo", sheet.platform)
+        assertEquals("Sheet A", sheet.title)
+        assertEquals("Daily", sheet.description)
+        assertEquals("https://img.example.com/sheet.jpg", sheet.coverImg)
+        assertEquals(30, sheet.worksNum)
     }
 
     @Test
@@ -480,5 +562,100 @@ class JsBridgeTest {
         val result = JsBridge.parseImportMusicSheetResult(payload, fallbackPlatform = "demo")
 
         assertEquals("explicit", result.single().platform)
+    }
+
+    @Test
+    fun `parseSearchResult backfills blank platforms from loaded plugin`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "data" to listOf(
+                mapOf("id" to "m1", "platform" to "", "title" to "Song A", "artist" to "A"),
+                mapOf("id" to "m2", "title" to "Song B", "artist" to "B"),
+            ),
+        )
+
+        val result = JsBridge.parseSearchResult(payload, fallbackPlatform = "网易", type = "music")
+
+        assertEquals(
+            listOf("网易", "网易"),
+            result.data.map { (it as PluginSearchItem.Music).item.platform },
+        )
+    }
+
+    @Test
+    fun `parseSearchResult keeps explicit non blank platform`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "data" to listOf(
+                mapOf("id" to "m1", "platform" to "explicit", "title" to "Song A", "artist" to "A"),
+            ),
+        )
+
+        val result = JsBridge.parseSearchResult(payload, fallbackPlatform = "网易", type = "music")
+
+        assertEquals("explicit", (result.data.single() as PluginSearchItem.Music).item.platform)
+    }
+
+    @Test
+    fun `parseAlbumInfoResult backfills blank platforms from loaded plugin`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "albumItem" to mapOf(
+                "id" to "album-1",
+                "platform" to "",
+                "title" to "Album A",
+            ),
+            "musicList" to listOf(
+                mapOf("id" to "m1", "platform" to "", "title" to "Song A", "artist" to "A"),
+                mapOf("id" to "m2", "title" to "Song B", "artist" to "B"),
+            ),
+        )
+
+        val result = JsBridge.parseAlbumInfoResult(payload, fallbackPlatform = "网易")
+
+        assertEquals("网易", result.albumItem?.platform)
+        assertEquals(listOf("网易", "网易"), result.musicList.map { it.platform })
+    }
+
+    @Test
+    fun `parseArtistWorksResult backfills blank platforms from loaded plugin`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "data" to listOf(
+                mapOf("id" to "m1", "platform" to "", "title" to "Song A", "artist" to "A"),
+                mapOf("id" to "m2", "title" to "Song B", "artist" to "B"),
+            ),
+        )
+
+        val result = JsBridge.parseArtistWorksResult(payload, "music", fallbackPlatform = "网易")
+
+        assertEquals(listOf("网易", "网易"), result.musicList.map { it.platform })
+    }
+
+    @Test
+    fun `parseImportMusicItemResult backfills blank platform from loaded plugin`() {
+        val payload = mapOf<String, Any?>(
+            "id" to "m1",
+            "title" to "Single",
+            "artist" to "A",
+        )
+
+        val result = JsBridge.parseImportMusicItemResult(payload, fallbackPlatform = "网易")
+
+        assertEquals("网易", result.platform)
+    }
+
+    @Test
+    fun `parseImportMusicItemResult keeps explicit non blank platform`() {
+        val payload = mapOf<String, Any?>(
+            "id" to "m1",
+            "platform" to "explicit",
+            "title" to "Single",
+            "artist" to "A",
+        )
+
+        val result = JsBridge.parseImportMusicItemResult(payload, fallbackPlatform = "网易")
+
+        assertEquals("explicit", result.platform)
     }
 }

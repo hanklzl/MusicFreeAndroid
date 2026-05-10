@@ -5,6 +5,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
+import com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity
+import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -101,5 +103,37 @@ class MusicDaoTest {
     fun insertAll() = runTest {
         dao.insertAll(listOf(entity("1"), entity("2"), entity("3")))
         assertEquals(3, dao.count())
+    }
+
+    @Test
+    fun replaceByPlatform_keepsCrossRefsForRetainedItems() = runTest {
+        val playlistDao = db.playlistDao()
+        playlistDao.insertPlaylist(
+            PlaylistEntity(
+                id = "playlist-1",
+                name = "Local favorites",
+                coverUri = null,
+                description = null,
+                sortMode = "Manual",
+                createdAt = 0L,
+                updatedAt = 0L,
+            )
+        )
+        dao.insert(entity("1", platform = "local", title = "Old Song"))
+        dao.insert(entity("2", platform = "local", title = "Deleted Song"))
+        playlistDao.insertCrossRef(
+            PlaylistMusicCrossRef(
+                playlistId = "playlist-1",
+                musicId = "1",
+                musicPlatform = "local",
+                sortOrder = 0,
+            )
+        )
+
+        dao.replaceByPlatform("local", listOf(entity("1", platform = "local", title = "Updated Song")))
+
+        assertEquals("Updated Song", dao.getById("1", "local")!!.title)
+        assertNull(dao.getById("2", "local"))
+        assertEquals(1, playlistDao.countMusicInPlaylist("playlist-1"))
     }
 }

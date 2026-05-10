@@ -15,6 +15,7 @@ import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
+import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import kotlinx.serialization.json.Json
@@ -136,11 +137,27 @@ class RoutesTest {
     }
 
     @Test
-    fun `SettingsRoute is serializable`() {
-        val json = Json.encodeToString(serializer(), SettingsRoute)
+    fun `SettingsRoute defaults to basic type`() {
+        val route = SettingsRoute()
+        val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
+
         val decoded = Json.decodeFromString<SettingsRoute>(json)
-        assertNotNull(decoded)
+
+        assertEquals(SettingsType.Basic, decoded.type)
+    }
+
+    @Test
+    fun `SettingsRoute serializes every supported type`() {
+        SettingsType.entries.forEach { type ->
+            val route = SettingsRoute(type = type)
+            val json = Json.encodeToString(serializer(), route)
+            assertNotNull(json)
+
+            val decoded = Json.decodeFromString<SettingsRoute>(json)
+
+            assertEquals(route, decoded)
+        }
     }
 
     @Test
@@ -171,11 +188,20 @@ class RoutesTest {
 
     @Test
     fun `TopListDetailRoute is serializable`() {
-        val route = TopListDetailRoute(pluginPlatform = "demo", topListId = "sheet-1")
+        val route = TopListDetailRoute(
+            pluginPlatform = "demo",
+            topListId = "sheet-1",
+            title = "飙升榜",
+            artist = "官方",
+            description = "每日更新",
+            coverImg = "https://example.com/top.jpg",
+            artwork = "https://example.com/top-art.jpg",
+            worksNum = 100,
+            seedToken = "seed-1",
+        )
         val json = Json.encodeToString(serializer(), route)
-        assertNotNull(json)
         val decoded = Json.decodeFromString<TopListDetailRoute>(json)
-        assertNotNull(decoded)
+        assertEquals(route, decoded)
     }
 
     @Test
@@ -192,11 +218,16 @@ class RoutesTest {
             pluginPlatform = "demo",
             sheetId = "sheet-9",
             title = "热门推荐",
+            artist = "编辑精选",
+            description = "适合通勤",
+            coverImg = "https://example.com/sheet.jpg",
+            artwork = "https://example.com/sheet-art.jpg",
+            worksNum = 42,
+            seedToken = "seed-9",
         )
         val json = Json.encodeToString(serializer(), route)
-        assertNotNull(json)
         val decoded = Json.decodeFromString<PluginSheetDetailRoute>(json)
-        assertNotNull(decoded)
+        assertEquals(route, decoded)
     }
 
     @Test
@@ -227,6 +258,23 @@ class RoutesTest {
     }
 
     @Test
+    fun `MusicListEditorLiteRoute decodes legacy playlistId payload`() {
+        val legacyJson = """{"playlistId":"playlist-42"}"""
+        val decoded = Json.decodeFromString<MusicListEditorLiteRoute>(legacyJson)
+
+        assertEquals(MusicListEditorLiteRoute(playlistId = "playlist-42"), decoded)
+    }
+
+    @Test
+    fun `local library MusicListEditorLiteRoute is serializable`() {
+        val route = MusicListEditorLiteRoute.localLibrary()
+        val json = Json.encodeToString(serializer(), route)
+        assertNotNull(json)
+        val decoded = Json.decodeFromString<MusicListEditorLiteRoute>(json)
+        assertEquals(route, decoded)
+    }
+
+    @Test
     fun `AlbumDetailRoute is serializable`() {
         val route = AlbumDetailRoute(
             pluginPlatform = "demo",
@@ -234,11 +282,15 @@ class RoutesTest {
             title = "Album A",
             artist = "Artist A",
             artwork = "https://example.com/album.jpg",
+            date = "2026-05-10",
+            description = "Album description",
+            worksNum = 12,
+            seedToken = "seed-album",
         )
         val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
         val decoded = Json.decodeFromString<AlbumDetailRoute>(json)
-        assertNotNull(decoded)
+        assertEquals(route, decoded)
     }
 
     @Test
@@ -248,11 +300,15 @@ class RoutesTest {
             artistId = "artist-1",
             name = "Artist A",
             avatar = "https://example.com/artist.jpg",
+            description = "Artist description",
+            fans = 1234,
+            worksNum = 42,
+            seedToken = "seed-artist",
         )
         val json = Json.encodeToString(serializer(), route)
         assertNotNull(json)
         val decoded = Json.decodeFromString<ArtistDetailRoute>(json)
-        assertNotNull(decoded)
+        assertEquals(route, decoded)
     }
 
     @Test

@@ -4,7 +4,13 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.navigation.AlbumDetailRoute
+import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.AlbumDetailSeedStore
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -20,9 +26,13 @@ class AlbumDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val pluginManager: PluginManager,
     private val playerController: PlayerController,
+    private val appPreferences: AppPreferences,
+    private val downloader: Downloader,
+    private val mediaSourceResolver: MediaSourceResolver,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<AlbumDetailRoute>()
+    private val initialAlbumSeed: AlbumItemBase by lazy { resolveInitialAlbumSeed() }
 
     private val _uiState = MutableStateFlow(AlbumDetailUiState())
     val uiState: StateFlow<AlbumDetailUiState> = _uiState.asStateFlow()
@@ -86,11 +96,9 @@ class AlbumDetailViewModel @Inject constructor(
             return false
         }
 
-        val plugin = pluginManager.getPlugin(route.pluginPlatform) ?: return false
         val clicked = list[index]
         val resolved = if (clicked.url.isNullOrBlank()) {
-            val source = plugin.getMediaSource(clicked) ?: return false
-            clicked.copy(url = source.url)
+            mediaSourceResolver.resolve(clicked)?.item ?: return false
         } else {
             clicked
         }
@@ -113,7 +121,8 @@ class AlbumDetailViewModel @Inject constructor(
             return
         }
 
-        val seed = seedAlbum()
+        val seed = initialAlbumSeed
+        currentAlbum = seed
         runCatching {
             plugin.getAlbumInfo(seed, page = 1)
         }.onSuccess { detail ->
@@ -141,7 +150,9 @@ class AlbumDetailViewModel @Inject constructor(
         }
     }
 
-    private fun seedAlbum(): AlbumItemBase {
+    private fun resolveInitialAlbumSeed(): AlbumItemBase {
+        AlbumDetailSeedStore.take(route.seedToken)?.let { return it }
+
         val raw = mutableMapOf<String, Any?>(
             "id" to route.albumId,
             "platform" to route.pluginPlatform,
@@ -149,17 +160,26 @@ class AlbumDetailViewModel @Inject constructor(
         route.title?.let { raw["title"] = it }
         route.artist?.let { raw["artist"] = it }
         route.artwork?.let { raw["artwork"] = it }
+        route.date?.let { raw["date"] = it }
+        route.description?.let { raw["description"] = it }
+        route.worksNum?.let { raw["worksNum"] = it }
 
         return AlbumItemBase(
             id = route.albumId,
             platform = route.pluginPlatform,
             title = route.title,
-            date = null,
+            date = route.date,
             artist = route.artist,
-            description = null,
+            description = route.description,
             artwork = route.artwork,
-            worksNum = null,
+            worksNum = route.worksNum,
             raw = raw,
         )
+    }
+
+    val defaultDownloadQuality = appPreferences.defaultDownloadQuality
+
+    fun download(item: MusicItem, quality: PlayQuality) {
+        downloader.enqueue(listOf(item), quality)
     }
 }

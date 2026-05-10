@@ -2,9 +2,12 @@ package com.zili.android.musicfreeandroid.player.service
 
 import android.app.PendingIntent
 import android.content.Intent
+import androidx.annotation.OptIn as AndroidXOptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -16,12 +19,19 @@ import com.zili.android.musicfreeandroid.core.R as CoreR
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.player.R
+import com.zili.android.musicfreeandroid.player.source.HeaderInjectingDataSourceFactory
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class PlaybackService : MediaSessionService() {
+
+    @Inject lateinit var headerInjectingFactory: HeaderInjectingDataSourceFactory
 
     private var mediaSession: MediaSession? = null
 
     private val playbackSessionCallback = object : MediaSession.Callback {
+        @AndroidXOptIn(markerClass = [UnstableApi::class])
         override fun onConnect(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
@@ -75,6 +85,7 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    @AndroidXOptIn(markerClass = [UnstableApi::class])
     override fun onCreate() {
         super.onCreate()
         MfLog.detail(
@@ -105,6 +116,9 @@ class PlaybackService : MediaSessionService() {
                 /* handleAudioFocus = */ true,
             )
             .setHandleAudioBecomingNoisy(true)
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(this).setDataSourceFactory(headerInjectingFactory)
+            )
             .build()
 
         mediaSession = MediaSession.Builder(this, player)

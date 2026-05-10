@@ -3,6 +3,9 @@ package com.zili.android.musicfreeandroid.plugin.manager
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.timedSuspend
 import com.zili.android.musicfreeandroid.plugin.api.AlbumInfoResult
 import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
 import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
@@ -18,13 +21,11 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.RecommendSheetTagsResult
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.api.TopListDetailResult
-import com.zili.android.musicfreeandroid.logging.MfLog
-import com.zili.android.musicfreeandroid.logging.LogCategory
-import com.zili.android.musicfreeandroid.logging.timedSuspend
 import com.zili.android.musicfreeandroid.plugin.engine.JsBridge
 import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 
@@ -46,18 +47,19 @@ data class PluginInstallSource(
  * A loaded JS plugin backed by its own [JsEngine] instance.
  * Implements [PluginApi] by delegating calls to the JS plugin object (`__plugin`).
  *
- * Uses quickjs-kt's native Promise support — no JSON.stringify round-trip needed.
- * JsObject implements Map, so it can be passed directly to JsBridge parsers.
+ * Uses quickjs-kt's native Promise support; JsObject implements Map, so it can be
+ * passed directly to JsBridge parsers.
  */
 class LoadedPlugin(
     override val info: PluginInfo,
     private val engine: JsEngine,
     var filePath: String,
     val installSource: PluginInstallSource = PluginInstallSource(PluginInstallSourceType.LOCAL_FILE),
-    ) : PluginApi {
+) : PluginApi {
 
     companion object {
         private const val TIMEOUT_MS = 30_000L
+        private const val MEDIA_SOURCE_RETRY_DELAY_MS = 150L
     }
 
     private suspend fun <T> executeApiCall(
@@ -77,7 +79,7 @@ class LoadedPlugin(
         )
 
         return withTimeout(TIMEOUT_MS) {
-            val start = System.nanoTime()
+            val startedAt = System.nanoTime()
             try {
                 val (result, durationMs) = timedSuspend { block() }
                 MfLog.detail(
@@ -91,19 +93,18 @@ class LoadedPlugin(
                     ) + inputFields + resultFields(result),
                 )
                 result
-            } catch (e: Exception) {
-                rethrowIfExternalCancellation(e)
-                val durationMs = (System.nanoTime() - start) / 1_000_000
+            } catch (error: Exception) {
+                rethrowIfExternalCancellation(error)
                 MfLog.error(
                     category = LogCategory.PLUGIN,
                     event = "plugin_api_call_failed",
-                    throwable = e,
+                    throwable = error,
                     fields = mapOf(
                         "platform" to info.platform,
                         "method" to method,
                         "status" to "failed",
-                        "errorClass" to e::class.java.name,
-                        "durationMs" to durationMs,
+                        "errorClass" to error::class.java.name,
+                        "durationMs" to elapsedMs(startedAt),
                         "result" to "failure",
                     ) + inputFields,
                 )
@@ -130,16 +131,14 @@ class LoadedPlugin(
             },
         ) {
             val result = engine.evaluate<Any?>(
-                "await __plugin.search('${escapeJsString(query)}', $page, '${escapeJsString(type)}')"
+                "await __plugin.search('${escapeJsString(query)}', $page, '${escapeJsString(type)}')",
             )
             val map = toMap(result) ?: return@executeApiCall SearchResult(isEnd = true, data = emptyList())
-            JsBridge.parseSearchResult(map)
+            JsBridge.parseSearchResult(map, fallbackPlatform = info.platform, type = type)
         }
     }
 
     override suspend fun getMediaSource(musicItem: MusicItem, quality: String): MediaSourceResult? {
-        if (!hasMethod("getMediaSource")) return null
-
         return executeApiCall(
             method = "getMediaSource",
             inputFields = mapOf(
@@ -150,29 +149,76 @@ class LoadedPlugin(
             resultFields = { result ->
                 mapOf(
                     "hasUrl" to (result?.url?.isNotBlank() == true),
+                    "quality" to (result?.quality?.name ?: quality),
                 )
             },
         ) {
-            injectGlobalMap("__musicItem", JsBridge.musicItemToMap(musicItem))
-            val result = engine.evaluate<Any?>(
-                "await __plugin.getMediaSource(__musicItem, '$quality')"
+            getMediaSourceWithRetry(musicItem, quality)
+        }
+    }
+
+    private suspend fun getMediaSourceWithRetry(musicItem: MusicItem, quality: String): MediaSourceResult? {
+        if (!hasMethod("getMediaSource")) return fallbackQuality(musicItem, quality)
+
+        return try {
+            doGetMediaSource(musicItem, quality) ?: fallbackQuality(musicItem, quality)
+        } catch (firstError: Exception) {
+            rethrowIfExternalCancellation(firstError)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_api_call_failed",
+                throwable = firstError,
+                fields = mapOf(
+                    "platform" to info.platform,
+                    "method" to "getMediaSource",
+                    "musicItemId" to musicItem.id,
+                    "quality" to quality,
+                    "status" to "failed",
+                    "reason" to "first_attempt_failed",
+                ),
             )
-            val map = toMap(result)
-            if (map != null) {
-                JsBridge.parseMediaSourceResult(map)
-            } else {
-                val qualityEnum = runCatching { PlayQuality.valueOf(quality.uppercase()) }.getOrNull()
-                val fallbackUrl = qualityEnum?.let { musicItem.qualities?.get(it)?.url }
-                fallbackUrl?.let {
-                    MediaSourceResult(
-                        url = it,
-                        headers = null,
-                        userAgent = null,
-                        quality = qualityEnum,
-                    )
-                }
+            delay(MEDIA_SOURCE_RETRY_DELAY_MS)
+            try {
+                doGetMediaSource(musicItem, quality) ?: fallbackQuality(musicItem, quality)
+            } catch (secondError: Exception) {
+                rethrowIfExternalCancellation(secondError)
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_api_call_failed",
+                    throwable = secondError,
+                    fields = mapOf(
+                        "platform" to info.platform,
+                        "method" to "getMediaSource",
+                        "musicItemId" to musicItem.id,
+                        "quality" to quality,
+                        "status" to "failed",
+                        "reason" to "retry_failed",
+                    ),
+                )
+                fallbackQuality(musicItem, quality)
             }
         }
+    }
+
+    private suspend fun doGetMediaSource(musicItem: MusicItem, quality: String): MediaSourceResult? {
+        injectGlobalMap("__musicItem", JsBridge.musicItemToMap(musicItem))
+        val result = engine.evaluate<Any?>(
+            "await __plugin.getMediaSource(__musicItem, '${escapeJsString(quality)}')",
+        )
+        val map = toMap(result) ?: return null
+        val parsed = JsBridge.parseMediaSourceResult(map) ?: return null
+        return parsed.takeIf { it.url.isNotBlank() }
+    }
+
+    private fun fallbackQuality(musicItem: MusicItem, quality: String): MediaSourceResult? {
+        val qualityEnum = runCatching { PlayQuality.valueOf(quality.uppercase()) }.getOrNull() ?: return null
+        val fallbackUrl = musicItem.qualities?.get(qualityEnum)?.url ?: return null
+        return MediaSourceResult(
+            url = fallbackUrl,
+            headers = null,
+            userAgent = null,
+            quality = qualityEnum,
+        )
     }
 
     override suspend fun getMusicInfo(musicItem: MusicItem): MusicItem? {
@@ -216,7 +262,7 @@ class LoadedPlugin(
             injectGlobalMap("__albumItem", JsBridge.albumItemToMap(albumItem))
             val result = engine.evaluate<Any?>("await __plugin.getAlbumInfo(__albumItem, $page)")
             val map = toMap(result) ?: return@executeApiCall null
-            JsBridge.parseAlbumInfoResult(map)
+            JsBridge.parseAlbumInfoResult(map, fallbackPlatform = info.platform)
         }
     }
 
@@ -237,10 +283,10 @@ class LoadedPlugin(
         ) {
             injectGlobalMap("__artistItem", JsBridge.artistItemToMap(artistItem))
             val result = engine.evaluate<Any?>(
-                "await __plugin.getArtistWorks(__artistItem, $page, '${escapeJsString(type)}')"
+                "await __plugin.getArtistWorks(__artistItem, $page, '${escapeJsString(type)}')",
             )
             val map = toMap(result) ?: return@executeApiCall null
-            JsBridge.parseArtistWorksResult(map, type)
+            JsBridge.parseArtistWorksResult(map, type, fallbackPlatform = info.platform)
         }
     }
 
@@ -255,7 +301,7 @@ class LoadedPlugin(
             },
         ) {
             val result = engine.evaluate<Any?>(
-                "await __plugin.importMusicSheet('${escapeJsString(urlLike)}')"
+                "await __plugin.importMusicSheet('${escapeJsString(urlLike)}')",
             )
             JsBridge.parseImportMusicSheetResult(result, fallbackPlatform = info.platform)
         }
@@ -269,10 +315,10 @@ class LoadedPlugin(
             onFailure = { null },
         ) {
             val result = engine.evaluate<Any?>(
-                "await __plugin.importMusicItem('${escapeJsString(urlLike)}')"
+                "await __plugin.importMusicItem('${escapeJsString(urlLike)}')",
             )
             val map = toMap(result) ?: return@executeApiCall null
-            JsBridge.parseImportMusicItemResult(map)
+            JsBridge.parseImportMusicItemResult(map, fallbackPlatform = info.platform)
         }
     }
 
@@ -307,7 +353,7 @@ class LoadedPlugin(
         ) {
             injectGlobalMap("__topListItem", JsBridge.musicSheetItemToMap(topListItem))
             val result = engine.evaluate<Any?>(
-                "await __plugin.getTopListDetail(__topListItem, $page)"
+                "await __plugin.getTopListDetail(__topListItem, $page)",
             )
             val map = toMap(result) ?: return@executeApiCall null
             JsBridge.parseTopListDetailResult(map, fallbackPlatform = info.platform)
@@ -335,7 +381,7 @@ class LoadedPlugin(
         ) {
             injectGlobalMap("__sheetItem", JsBridge.musicSheetItemToMap(sheetItem))
             val result = engine.evaluate<Any?>(
-                "await __plugin.getMusicSheetInfo(__sheetItem, $page)"
+                "await __plugin.getMusicSheetInfo(__sheetItem, $page)",
             )
             val map = toMap(result) ?: return@executeApiCall null
             JsBridge.parseMusicSheetInfoResult(map, fallbackPlatform = info.platform)
@@ -355,9 +401,7 @@ class LoadedPlugin(
                 )
             },
         ) {
-            val result = engine.evaluate<Any?>(
-                "await __plugin.getRecommendSheetTags()"
-            )
+            val result = engine.evaluate<Any?>("await __plugin.getRecommendSheetTags()")
             val map = toMap(result) ?: return@executeApiCall null
             JsBridge.parseRecommendSheetTagsResult(map)
         }
@@ -370,9 +414,7 @@ class LoadedPlugin(
         if (!hasMethod("getRecommendSheetsByTag")) return null
         return executeApiCall(
             method = "getRecommendSheetsByTag",
-            inputFields = mapOf(
-                "page" to page,
-            ),
+            inputFields = mapOf("page" to page),
             onFailure = { null },
             resultFields = { result ->
                 mapOf(
@@ -383,7 +425,7 @@ class LoadedPlugin(
         ) {
             injectGlobalMap("__recommendTag", tag)
             val result = engine.evaluate<Any?>(
-                "await __plugin.getRecommendSheetsByTag(__recommendTag, $page)"
+                "await __plugin.getRecommendSheetsByTag(__recommendTag, $page)",
             )
             val map = toMap(result) ?: return@executeApiCall null
             JsBridge.parseRecommendSheetsByTagResult(map)
@@ -411,7 +453,7 @@ class LoadedPlugin(
         ) {
             injectGlobalMap("__musicItem", JsBridge.musicItemToMap(musicItem))
             val result = engine.evaluate<Any?>(
-                "await __plugin.getMusicComments(__musicItem, $page)"
+                "await __plugin.getMusicComments(__musicItem, $page)",
             )
             val map = toMap(result) ?: return@executeApiCall null
             JsBridge.parseMusicCommentsResult(map)
@@ -422,21 +464,26 @@ class LoadedPlugin(
         engine.close()
     }
 
+    suspend fun updateUserVariables(values: Map<String, String>) {
+        val jsonStr = kotlinx.serialization.json.Json.encodeToString(values)
+        engine.evaluate<Any?>("globalThis.__userVariables = JSON.parse('${escapeJsString(jsonStr)}')")
+    }
+
     // -- Internal helpers --
 
     private suspend fun hasMethod(name: String): Boolean {
         return try {
             engine.evaluate<Boolean>("typeof __plugin.$name === 'function'")
-        } catch (e: Exception) {
-            rethrowIfExternalCancellation(e)
+        } catch (error: Exception) {
+            rethrowIfExternalCancellation(error)
             false
         }
     }
 
-    private fun rethrowIfExternalCancellation(e: Exception) {
+    private fun rethrowIfExternalCancellation(error: Exception) {
         // Keep existing timeout fallbacks, but never turn parent-job cancellation into plugin errors.
-        if (e is CancellationException && e !is TimeoutCancellationException) {
-            throw e
+        if (error is CancellationException && error !is TimeoutCancellationException) {
+            throw error
         }
     }
 
@@ -461,4 +508,7 @@ class LoadedPlugin(
             .replace("\n", "\\n")
             .replace("\r", "\\r")
     }
+
+    private fun elapsedMs(startedAt: Long): Long =
+        (System.nanoTime() - startedAt) / 1_000_000
 }

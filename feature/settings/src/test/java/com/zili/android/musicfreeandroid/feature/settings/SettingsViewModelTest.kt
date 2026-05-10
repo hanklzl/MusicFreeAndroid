@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.logging.FeedbackLogExporterContract
 import com.zili.android.musicfreeandroid.logging.FeedbackPackage
@@ -15,6 +16,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -28,7 +30,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.rules.TemporaryFolder
 import org.robolectric.RobolectricTestRunner
-import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -54,7 +55,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `storage access state is unconfigured by default`() = runTest(mainDispatcherRule.dispatcher) {
-        val viewModel = createViewModel(createAppPreferences(), createFakeExporter())
+        val viewModel = createViewModel(createAppPreferences())
 
         val state = viewModel.storageAccessState.value
 
@@ -65,12 +66,10 @@ class SettingsViewModelTest {
     @Test
     fun `set storage directory persists selected tree uri`() = runTest(mainDispatcherRule.dispatcher) {
         val appPreferences = createAppPreferences()
-        val viewModel = createViewModel(appPreferences, createFakeExporter())
+        val viewModel = createViewModel(appPreferences)
         val treeUri = "content://com.android.externalstorage.documents/tree/primary%3AMusicFree"
 
         viewModel.setStorageDirectory(treeUri)
-        // Drains scheduler-tracked work; with UnconfinedTestDispatcher launches
-        // already run eagerly, but the explicit drain documents the intent.
         advanceUntilIdle()
 
         val persisted = appPreferences.storageDirectoryUri.first()
@@ -78,13 +77,52 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `basic settings state exposes default runtime-backed preferences`() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = createViewModel(createAppPreferences())
+
+        val state = viewModel.basicSettingsUiState.value
+
+        assertEquals(3, state.maxDownload)
+        assertEquals(PlayQuality.STANDARD, state.defaultDownloadQuality)
+        assertEquals(false, state.useCellularDownload)
+        assertEquals(true, state.lyricAutoSearchEnabled)
+        assertTrue(!state.storageAccessState.isConfigured)
+    }
+
+    @Test
+    fun `basic settings setters update collected runtime-backed state and preferences`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val appPreferences = createAppPreferences()
+            val viewModel = createViewModel(appPreferences)
+            val job = backgroundScope.launch { viewModel.basicSettingsUiState.collect {} }
+            advanceUntilIdle()
+
+            viewModel.setMaxDownload(7)
+            viewModel.setDefaultDownloadQuality(PlayQuality.SUPER)
+            viewModel.setUseCellularDownload(true)
+            viewModel.setLyricAutoSearchEnabled(false)
+            advanceUntilIdle()
+
+            val state = viewModel.basicSettingsUiState.value
+            assertEquals(7, state.maxDownload)
+            assertEquals(PlayQuality.SUPER, state.defaultDownloadQuality)
+            assertEquals(true, state.useCellularDownload)
+            assertEquals(false, state.lyricAutoSearchEnabled)
+            assertTrue(!state.storageAccessState.isConfigured)
+            assertEquals(7, appPreferences.maxDownload.first())
+            assertEquals(PlayQuality.SUPER, appPreferences.defaultDownloadQuality.first())
+            assertEquals(true, appPreferences.useCellularDownload.first())
+            assertEquals(false, appPreferences.lyricAutoSearchEnabled.first())
+            job.cancel()
+        }
+
+    @Test
     fun `create feedback package updates pending package`() = runTest(mainDispatcherRule.dispatcher) {
-        val appPreferences = createAppPreferences()
         val expectedPackage = createFeedbackPackage("generated-feedback.zip")
         val exporter = createFakeExporter(
             feedbackPackage = expectedPackage,
         )
-        val viewModel = createViewModel(appPreferences, exporter)
+        val viewModel = createViewModel(createAppPreferences(), exporter)
 
         viewModel.createFeedbackPackage()
         advanceUntilIdle()
@@ -96,10 +134,9 @@ class SettingsViewModelTest {
 
     @Test
     fun `shared package can be consumed`() = runTest(mainDispatcherRule.dispatcher) {
-        val appPreferences = createAppPreferences()
         val expectedPackage = createFeedbackPackage("generated-feedback.zip")
         val exporter = createFakeExporter(feedbackPackage = expectedPackage)
-        val viewModel = createViewModel(appPreferences, exporter)
+        val viewModel = createViewModel(createAppPreferences(), exporter)
 
         viewModel.createFeedbackPackage()
         advanceUntilIdle()
@@ -112,13 +149,8 @@ class SettingsViewModelTest {
 
     @Test
     fun `create feedback package ignores concurrent clicks`() = runTest(mainDispatcherRule.dispatcher) {
-        val appPreferences = createAppPreferences()
-        val expectedPackage = createFeedbackPackage("generated-feedback.zip")
-        val exporter = createFakeExporter(
-            feedbackPackage = expectedPackage,
-            createDelayMs = 100,
-        )
-        val viewModel = createViewModel(appPreferences, exporter)
+        val exporter = createFakeExporter(createDelayMs = 100)
+        val viewModel = createViewModel(createAppPreferences(), exporter)
 
         viewModel.createFeedbackPackage()
         viewModel.createFeedbackPackage()
@@ -130,9 +162,8 @@ class SettingsViewModelTest {
 
     @Test
     fun `clear logs is blocked by create in progress`() = runTest(mainDispatcherRule.dispatcher) {
-        val appPreferences = createAppPreferences()
         val exporter = createFakeExporter(createDelayMs = 100)
-        val viewModel = createViewModel(appPreferences, exporter)
+        val viewModel = createViewModel(createAppPreferences(), exporter)
 
         viewModel.createFeedbackPackage()
         viewModel.clearLogs()
@@ -146,9 +177,8 @@ class SettingsViewModelTest {
 
     @Test
     fun `clear logs calls exporter`() = runTest(mainDispatcherRule.dispatcher) {
-        val appPreferences = createAppPreferences()
         val exporter = createFakeExporter()
-        val viewModel = createViewModel(appPreferences, exporter)
+        val viewModel = createViewModel(createAppPreferences(), exporter)
 
         viewModel.clearLogs()
         advanceUntilIdle()
@@ -158,9 +188,8 @@ class SettingsViewModelTest {
 
     @Test
     fun `clear logs ignores concurrent clicks`() = runTest(mainDispatcherRule.dispatcher) {
-        val appPreferences = createAppPreferences()
         val exporter = createFakeExporter(clearDelayMs = 100)
-        val viewModel = createViewModel(appPreferences, exporter)
+        val viewModel = createViewModel(createAppPreferences(), exporter)
 
         viewModel.clearLogs()
         viewModel.clearLogs()
@@ -172,13 +201,12 @@ class SettingsViewModelTest {
 
     @Test
     fun `create feedback package logs error when exporter throws`() = runTest(mainDispatcherRule.dispatcher) {
-        val appPreferences = createAppPreferences()
         val error = RuntimeException("feedback export failed")
         val exporter = createFakeExporter(exception = error)
         val logger = RecordingLogger()
         MfLog.install(logger)
 
-        val viewModel = createViewModel(appPreferences, exporter)
+        val viewModel = createViewModel(createAppPreferences(), exporter)
         viewModel.createFeedbackPackage()
         advanceUntilIdle()
 
@@ -204,7 +232,7 @@ class SettingsViewModelTest {
 
     private fun createViewModel(
         appPreferences: AppPreferences,
-        exporter: FeedbackLogExporterContract,
+        exporter: FeedbackLogExporterContract = createFakeExporter(),
     ): SettingsViewModel {
         return SettingsViewModel(appPreferences, exporter)
     }

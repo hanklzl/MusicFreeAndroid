@@ -1,6 +1,8 @@
 package com.zili.android.musicfreeandroid.player.service
 
 import android.os.Bundle
+import androidx.annotation.OptIn as AndroidXOptIn
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
 import androidx.media3.session.SessionCommand
 
@@ -13,6 +15,7 @@ object PlaybackNotificationActions {
     val SkipToPreviousCommand = SessionCommand(ACTION_SKIP_TO_PREVIOUS, emptyCommandExtras())
     val SkipToNextCommand = SessionCommand(ACTION_SKIP_TO_NEXT, emptyCommandExtras())
 
+    @AndroidXOptIn(markerClass = [UnstableApi::class])
     fun mediaButtonPreferences(): List<CommandButton> {
         return listOf(
             CommandButton.Builder(CommandButton.ICON_PREVIOUS)

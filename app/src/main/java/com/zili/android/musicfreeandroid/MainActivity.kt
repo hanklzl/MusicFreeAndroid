@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid
 
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -20,12 +21,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.zili.android.musicfreeandroid.downloader.Downloader
+import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
 import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayer
 import com.zili.android.musicfreeandroid.navigation.AndroidHomeSystemActionHandler
 import com.zili.android.musicfreeandroid.navigation.AppNavHost
@@ -34,16 +40,36 @@ import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var playerController: PlayerController
 
+    @Inject
+    lateinit var downloader: Downloader
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         MfLog.trace(LogCategory.APP, "main_activity_create_start")
         super.onCreate(savedInstanceState)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                downloader.events.collect { event ->
+                    when (event) {
+                        is DownloadEvent.QueueIdle -> {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "下载任务已完成",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                        else -> Unit
+                    }
+                }
+            }
+        }
         enableEdgeToEdge()
         MfLog.trace(LogCategory.APP, "edge_to_edge_enabled")
         setContent {

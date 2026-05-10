@@ -31,6 +31,9 @@ class MusicRepository @Inject constructor(
     suspend fun insertAll(items: List<MusicItem>) =
         musicDao.insertAll(items.map { it.toEntity(converters) })
 
+    suspend fun replaceByPlatform(platform: String, items: List<MusicItem>) =
+        musicDao.replaceByPlatform(platform, items.map { it.toEntity(converters) })
+
     suspend fun update(item: MusicItem) =
         musicDao.update(item.toEntity(converters))
 

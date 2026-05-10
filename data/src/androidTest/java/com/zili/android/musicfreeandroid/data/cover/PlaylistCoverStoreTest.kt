@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -20,10 +21,12 @@ class PlaylistCoverStoreTest {
 
     @After fun cleanup() { baseDir.deleteRecursively() }
 
-    @Test fun saveFromUri_writesFile_andReturnsRelativePath() = runBlocking {
+    @Test fun saveFromUri_writesFile_andReturnsFileUri() = runBlocking {
         val src = createTempImage("origin.jpg")
-        val rel = store.saveFromUri(playlistId = "plistA", src = src.toUri())
-        assertNotNull(rel)
+        val out = store.saveFromUri(playlistId = "plistA", src = src.toUri())
+        assertNotNull(out)
+        val expected = "file://" + File(baseDir, "plistA.jpg").absolutePath
+        assertEquals(expected, out)
         assertTrue(File(baseDir, "plistA.jpg").exists())
     }
 
@@ -34,9 +37,31 @@ class PlaylistCoverStoreTest {
         assertTrue(!File(baseDir, "plistA.jpg").exists())
     }
 
-    @Test fun copyFromArtwork_returnsNullForRemoteUrl() = runBlocking {
-        val rel = store.copyFromArtwork("plistA", "https://example.com/cover.jpg")
-        assertNull(rel)
+    @Test fun copyFromArtwork_passesThroughHttpsUrl() = runBlocking {
+        val url = "https://example.com/cover.jpg"
+        val out = store.copyFromArtwork("plistA", url)
+        assertEquals(url, out)
+        assertTrue("no file should be written", !File(baseDir, "plistA.jpg").exists())
+    }
+
+    @Test fun copyFromArtwork_passesThroughHttpUrl() = runBlocking {
+        val url = "http://example.com/cover.jpg"
+        val out = store.copyFromArtwork("plistA", url)
+        assertEquals(url, out)
+    }
+
+    @Test fun copyFromArtwork_savesFileUriToDisk() = runBlocking {
+        val src = createTempImage("art.jpg")
+        val out = store.copyFromArtwork("plistA", "file://${src.absolutePath}")
+        val expected = "file://" + File(baseDir, "plistA.jpg").absolutePath
+        assertEquals(expected, out)
+        assertTrue(File(baseDir, "plistA.jpg").exists())
+    }
+
+    @Test fun copyFromArtwork_returnsNullForBlankOrUnknownScheme() = runBlocking {
+        assertNull(store.copyFromArtwork("plistA", null))
+        assertNull(store.copyFromArtwork("plistA", ""))
+        assertNull(store.copyFromArtwork("plistA", "asset://x.jpg"))
     }
 
     private fun createTempImage(name: String): File =

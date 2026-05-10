@@ -4,7 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.navigation.ArtistDetailRoute
+import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.ArtistDetailSeedStore
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -20,9 +22,11 @@ class ArtistDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val pluginManager: PluginManager,
     private val playerController: PlayerController,
+    private val mediaSourceResolver: MediaSourceResolver,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<ArtistDetailRoute>()
+    private val initialArtistSeed: ArtistItemBase by lazy { resolveInitialArtistSeed() }
 
     private val _uiState = MutableStateFlow(ArtistDetailUiState())
     val uiState: StateFlow<ArtistDetailUiState> = _uiState.asStateFlow()
@@ -84,11 +88,9 @@ class ArtistDetailViewModel @Inject constructor(
             return false
         }
 
-        val plugin = pluginManager.getPlugin(route.pluginPlatform) ?: return false
         val clicked = list[index]
         val resolved = if (clicked.url.isNullOrBlank()) {
-            val source = plugin.getMediaSource(clicked) ?: return false
-            clicked.copy(url = source.url)
+            mediaSourceResolver.resolve(clicked)?.item ?: return false
         } else {
             clicked
         }
@@ -111,7 +113,7 @@ class ArtistDetailViewModel @Inject constructor(
             return
         }
 
-        val seed = seedArtist()
+        val seed = initialArtistSeed
         currentArtist = seed
         runCatching {
             plugin.getArtistWorks(seed, page = 1, type = "music")
@@ -139,22 +141,27 @@ class ArtistDetailViewModel @Inject constructor(
         }
     }
 
-    private fun seedArtist(): ArtistItemBase {
+    private fun resolveInitialArtistSeed(): ArtistItemBase {
+        ArtistDetailSeedStore.take(route.seedToken)?.let { return it }
+
         val raw = mutableMapOf<String, Any?>(
             "id" to route.artistId,
             "platform" to route.pluginPlatform,
             "name" to route.name,
         )
         route.avatar?.let { raw["avatar"] = it }
+        route.description?.let { raw["description"] = it }
+        route.fans?.let { raw["fans"] = it }
+        route.worksNum?.let { raw["worksNum"] = it }
 
         return ArtistItemBase(
             id = route.artistId,
             platform = route.pluginPlatform,
             name = route.name,
             avatar = route.avatar,
-            fans = null,
-            description = null,
-            worksNum = null,
+            fans = route.fans,
+            description = route.description,
+            worksNum = route.worksNum,
             raw = raw,
         )
     }

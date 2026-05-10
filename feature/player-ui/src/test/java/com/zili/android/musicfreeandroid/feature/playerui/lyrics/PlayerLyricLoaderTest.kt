@@ -8,6 +8,7 @@ import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.LyricRepository
 import com.zili.android.musicfreeandroid.plugin.api.LyricResult
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.plugin.api.PluginSearchItem
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -23,6 +24,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -229,7 +231,7 @@ class PlayerLyricLoaderTest {
             platform = "lyric",
             search = SearchResult(
                 isEnd = true,
-                data = listOf(candidate),
+                data = musicSearchItems(candidate),
             ),
             lyric = lyricResult("Found by search"),
         )
@@ -256,7 +258,7 @@ class PlayerLyricLoaderTest {
             platform = "demo",
             search = SearchResult(
                 isEnd = true,
-                data = listOf(currentCandidate),
+                data = musicSearchItems(currentCandidate),
             ),
             lyric = null,
         )
@@ -264,7 +266,7 @@ class PlayerLyricLoaderTest {
             platform = "lyric",
             search = SearchResult(
                 isEnd = true,
-                data = listOf(otherCandidate),
+                data = musicSearchItems(otherCandidate),
             ),
             lyric = lyricResult("Other Platform Lyric"),
         )
@@ -297,7 +299,7 @@ class PlayerLyricLoaderTest {
             platform = "lyric",
             search = SearchResult(
                 isEnd = true,
-                data = listOf(looseCandidate, exactCandidate),
+                data = musicSearchItems(looseCandidate, exactCandidate),
             ),
             lyric = null,
         )
@@ -330,7 +332,10 @@ class PlayerLyricLoaderTest {
         val currentPlugin = plugin(platform = "demo", lyric = null)
         val lyricPlugin = plugin(
             platform = "lyric",
-            search = SearchResult(isEnd = true, data = listOf(music("found", "lyric", title = "Found", artist = "Artist"))),
+            search = SearchResult(
+                isEnd = true,
+                data = musicSearchItems(music("found", "lyric", title = "Found", artist = "Artist")),
+            ),
             lyric = null,
         )
 
@@ -434,11 +439,11 @@ class PlayerLyricLoaderTest {
         val otherCandidate = music("manual-other", "lyric")
         val currentPlugin = plugin(
             platform = "demo",
-            search = SearchResult(isEnd = true, data = listOf(currentCandidate)),
+            search = SearchResult(isEnd = true, data = musicSearchItems(currentCandidate)),
         )
         val otherPlugin = plugin(
             platform = "lyric",
-            search = SearchResult(isEnd = true, data = listOf(otherCandidate)),
+            search = SearchResult(isEnd = true, data = musicSearchItems(otherCandidate)),
         )
 
         lyricPlugins.value = listOf(currentPlugin, otherPlugin)
@@ -468,6 +473,62 @@ class PlayerLyricLoaderTest {
         assertEquals(emptyList<MusicItem>(), groups[0].items)
         assertNotNull(groups[0].errorMessage)
         assertTrue(groups[0].errorMessage!!.contains("搜索歌词失败"))
+    }
+
+    @Test
+    fun autoSearchInProgressDoesNotEmitNoLyricBeforeFinalFailure() = runTest {
+        val loader = loader()
+        val music = music("no-early-empty", "demo")
+        val currentPlugin = plugin(platform = "demo", lyric = null)
+        val lyricPlugin = plugin(
+            platform = "lyric",
+            search = SearchResult(
+                isEnd = true,
+                data = musicSearchItems(music("candidate", "lyric", title = "Song", artist = "Artist")),
+            ),
+            lyric = lyricResult("Found Later"),
+        )
+
+        whenever(pluginManager.getPlugin("demo")).thenReturn(currentPlugin)
+        whenever(pluginManager.getPlugin("lyric")).thenReturn(lyricPlugin)
+        whenever(lyricRepository.observeCache(music)).thenReturn(flowOf(null))
+        lyricPlugins.value = listOf(lyricPlugin)
+
+        val states = loader.observeLyrics(music).toList()
+
+        assertEquals(LyricLoadState.Loading(music), states.first())
+        assertTrue(states.last() is LyricLoadState.Ready)
+        assertFalse(states.dropLast(1).any { it is LyricLoadState.NoLyric })
+    }
+
+    @Test
+    fun cacheReemissionAfterReadyDoesNotEmitNoLyricBetweenReadyStates() = runTest {
+        val loader = loader()
+        val music = music("cache-reemit-ready", "demo")
+        val cacheFlow = MutableStateFlow<LyricCache?>(null)
+        val demoPlugin = plugin(platform = "demo", lyric = lyricResult("Remote Lyric"))
+
+        whenever(pluginManager.getPlugin("demo")).thenReturn(demoPlugin)
+        whenever(lyricRepository.observeCache(music)).thenReturn(cacheFlow)
+        whenever(lyricRepository.saveRemoteLyric(eq(music), any(), any())).thenAnswer {
+            cacheFlow.value = lyricCache(
+                music = music,
+                remotePayload = RawLyricPayload(rawLrc = "[00:01.00]Remote Lyric"),
+                remoteSourcePlatform = "demo",
+                remoteSourceMusicId = music.id,
+            )
+            Unit
+        }
+
+        val states = mutableListOf<LyricLoadState>()
+        val job = launch {
+            loader.observeLyrics(music).toList(states)
+        }
+        advanceUntilIdle()
+        job.cancel()
+
+        assertTrue(states.filterIsInstance<LyricLoadState.Ready>().size >= 1)
+        assertFalse(states.any { it is LyricLoadState.NoLyric })
     }
 }
 
@@ -511,7 +572,10 @@ private fun lyricCache(
     localTranslation = localTranslation,
     associatedMusic = associatedMusic,
     userOffsetMs = userOffsetMs,
-)
+    )
+
+private fun musicSearchItems(vararg items: MusicItem): List<PluginSearchItem> =
+    items.map { PluginSearchItem.Music(it) }
 
 private fun plugin(
     platform: String,

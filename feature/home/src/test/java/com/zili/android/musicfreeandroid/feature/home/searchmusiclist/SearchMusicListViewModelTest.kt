@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.home.searchmusiclist
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
+import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ class SearchMusicListViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val playlistRepository: PlaylistRepository = mock()
+    private val musicRepository: MusicRepository = mock()
     private val playerController: PlayerController = mock()
 
     @Before
@@ -48,7 +50,7 @@ class SearchMusicListViewModelTest {
             .thenReturn(MutableStateFlow(items))
         val viewModel = SearchMusicListViewModel(
             route = SearchMusicListRoute.playlist("playlist-1"),
-            sourceLoader = SearchMusicListSourceLoader(playlistRepository, playerController),
+            sourceLoader = SearchMusicListSourceLoader(playlistRepository, playerController, musicRepository),
             playerController = playerController,
         )
 
@@ -68,7 +70,7 @@ class SearchMusicListViewModelTest {
         whenever(playerController.playHistory).thenReturn(MutableStateFlow(historyItems))
         val viewModel = SearchMusicListViewModel(
             route = SearchMusicListRoute.history(),
-            sourceLoader = SearchMusicListSourceLoader(playlistRepository, playerController),
+            sourceLoader = SearchMusicListSourceLoader(playlistRepository, playerController, musicRepository),
             playerController = playerController,
         )
 
@@ -89,7 +91,7 @@ class SearchMusicListViewModelTest {
         whenever(playerController.playHistory).thenReturn(MutableStateFlow(historyItems))
         val viewModel = SearchMusicListViewModel(
             route = SearchMusicListRoute.history(),
-            sourceLoader = SearchMusicListSourceLoader(playlistRepository, playerController),
+            sourceLoader = SearchMusicListSourceLoader(playlistRepository, playerController, musicRepository),
             playerController = playerController,
         )
 

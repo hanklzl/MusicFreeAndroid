@@ -3,9 +3,7 @@ package com.zili.android.musicfreeandroid.feature.settings
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -33,6 +30,7 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
@@ -43,6 +41,7 @@ import com.zili.android.musicfreeandroid.logging.MfLog
 
 @Composable
 fun SettingsScreen(
+    type: SettingsType,
     onBack: () -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
@@ -51,13 +50,12 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val storageAccessState by viewModel.storageAccessState.collectAsStateWithLifecycle()
+    val basicState by viewModel.basicSettingsUiState.collectAsStateWithLifecycle()
     val feedbackExportUiState by viewModel.feedbackExportUiState.collectAsStateWithLifecycle()
-    val isActionInProgress = feedbackExportUiState.isOperationInProgress
     val context = LocalContext.current
     var showFeedbackConfirm by remember { mutableStateOf(false) }
 
-    LaunchedEffect(viewModel, feedbackExportUiState.pendingPackage) {
+    LaunchedEffect(context, viewModel, feedbackExportUiState.pendingPackage) {
         feedbackExportUiState.pendingPackage?.let { packageItem ->
             val feedbackUri = FileProvider.getUriForFile(
                 context,
@@ -66,7 +64,7 @@ fun SettingsScreen(
             )
 
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/zip"
+                setType("application/zip")
                 putExtra(Intent.EXTRA_STREAM, feedbackUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
@@ -93,7 +91,7 @@ fun SettingsScreen(
         }
     }
 
-    LaunchedEffect(viewModel, feedbackExportUiState.errorMessage) {
+    LaunchedEffect(context, viewModel, feedbackExportUiState.errorMessage) {
         feedbackExportUiState.errorMessage?.let { errorMessage ->
             Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
             viewModel.clearFeedbackError()
@@ -101,98 +99,66 @@ fun SettingsScreen(
     }
 
     MusicFreeScreenScaffold(
-        title = "设置",
+        title = type.title(),
         onBack = onBack,
         modifier = modifier
             .fillMaxSize()
             .testTag(FidelityAnchors.Screen.SettingsRoot)
             .semantics { testTagsAsResourceId = true },
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = rpx(24)),
-        ) {
-            item {
-                Spacer(modifier = Modifier.height(rpx(24)))
-                SettingsEntryCard(
-                    title = "插件管理",
-                    description = "管理已安装的插件，安装新插件，管理订阅",
-                    actionText = "进入",
-                    onClick = onNavigateToPluginList,
-                    modifier = Modifier.testTag(FidelityAnchors.Settings.PluginManagementEntry),
-                )
-            }
+        when (type) {
+            SettingsType.Basic -> BasicSettingsContent(
+                state = basicState,
+                feedbackExportState = feedbackExportUiState,
+                onMaxDownloadChange = viewModel::setMaxDownload,
+                onDefaultDownloadQualityChange = viewModel::setDefaultDownloadQuality,
+                onUseCellularDownloadChange = viewModel::setUseCellularDownload,
+                onLyricAutoSearchEnabledChange = viewModel::setLyricAutoSearchEnabled,
+                onNavigateToFileSelector = onNavigateToFileSelector,
+                onCreateFeedbackPackage = { showFeedbackConfirm = true },
+                onClearLogs = viewModel::clearLogs,
+                modifier = Modifier.padding(innerPadding),
+            )
 
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "主题设置",
-                    description = "主题选项将显示在这里。",
-                    modifier = Modifier.testTag(FidelityAnchors.Settings.ThemeEntry),
-                )
-            }
+            SettingsType.Plugin -> SettingsTypeEntryContent(
+                rootTag = FidelityAnchors.Settings.PluginRoot,
+                title = "插件管理",
+                description = "管理已安装的插件，安装新插件，管理订阅",
+                entryTag = FidelityAnchors.Settings.PluginManagementEntry,
+                actionText = "进入",
+                onClick = onNavigateToPluginList,
+                modifier = Modifier.padding(innerPadding),
+            )
 
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "备份",
-                    description = "备份与恢复入口将显示在这里。",
-                    modifier = Modifier.testTag(FidelityAnchors.Settings.BackupEntry),
-                )
-            }
+            SettingsType.Theme -> SettingsTypeEntryContent(
+                rootTag = FidelityAnchors.Settings.ThemeRoot,
+                title = "主题设置",
+                description = "主题选项将显示在这里。",
+                entryTag = FidelityAnchors.Settings.ThemeEntry,
+                actionText = "待接入",
+                onClick = null,
+                modifier = Modifier.padding(innerPadding),
+            )
 
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "关于",
-                    description = "应用信息与版本详情将显示在这里。",
-                    modifier = Modifier.testTag(FidelityAnchors.Settings.AboutEntry),
-                )
-            }
+            SettingsType.Backup -> SettingsTypeEntryContent(
+                rootTag = FidelityAnchors.Settings.BackupRoot,
+                title = "备份与恢复",
+                description = "备份与恢复入口将显示在这里。",
+                entryTag = FidelityAnchors.Settings.BackupEntry,
+                actionText = "待接入",
+                onClick = null,
+                modifier = Modifier.padding(innerPadding),
+            )
 
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "权限管理",
-                    description = "管理悬浮窗和存储/音频读取权限",
-                    actionText = "进入",
-                    onClick = onNavigateToPermissions,
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "存储目录",
-                    description = storageDirectoryDescription(storageAccessState),
-                    actionText = if (storageAccessState.isConfigured) "更换" else "选择",
-                    onClick = onNavigateToFileSelector,
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "生成日志包并分享",
-                    description = "创建包含日志与运行环境信息的压缩包，用于问题反馈。",
-                    actionText = "生成",
-                    enabled = !isActionInProgress,
-                    onClick = { showFeedbackConfirm = true },
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(rpx(16)))
-                SettingsEntryCard(
-                    title = "清空日志",
-                    description = "清理本地日志缓存与历史日志导出文件。",
-                    actionText = "清空",
-                    enabled = !isActionInProgress,
-                    onClick = { viewModel.clearLogs() },
-                )
-            }
+            SettingsType.About -> SettingsTypeEntryContent(
+                rootTag = FidelityAnchors.Settings.AboutRoot,
+                title = "关于 MusicFree",
+                description = "应用信息与版本详情将显示在这里。",
+                entryTag = FidelityAnchors.Settings.AboutEntry,
+                actionText = "待接入",
+                onClick = null,
+                modifier = Modifier.padding(innerPadding),
+            )
         }
     }
 
@@ -207,15 +173,6 @@ fun SettingsScreen(
     }
 }
 
-private fun storageDirectoryDescription(state: StorageAccessState): String {
-    val prefix = if (state.isConfigured) {
-        "已配置目录：${state.selectedDirectory?.displayName}"
-    } else {
-        "未配置目录"
-    }
-    return "$prefix，用于后续下载、备份和本地导入能力。"
-}
-
 @Composable
 private fun FeedbackExportConfirmDialog(
     onDismiss: () -> Unit,
@@ -228,7 +185,7 @@ private fun FeedbackExportConfirmDialog(
         },
         text = {
             Text(
-                text = "日志包可能包含搜索词、请求地址、插件返回内容以及设备信息。\\n\\n仅在需要排查问题时用于反馈。",
+                text = "日志包可能包含搜索词、请求地址、插件返回内容以及设备信息。\n\n仅在需要排查问题时用于反馈。",
             )
         },
         confirmButton = {
@@ -245,49 +202,56 @@ private fun FeedbackExportConfirmDialog(
 }
 
 @Composable
-private fun SettingsEntryCard(
+private fun SettingsTypeEntryContent(
+    rootTag: String,
     title: String,
     description: String,
-    actionText: String? = null,
-    enabled: Boolean = true,
+    entryTag: String,
+    actionText: String,
+    onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
 ) {
-    val action = onClick
-    val label = actionText
-    val hasAction = label != null && action != null
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(rpx(16)),
-        colors = CardDefaults.cardColors(
-            containerColor = MusicFreeTheme.colors.card,
-        ),
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .testTag(rootTag)
+            .padding(horizontal = rpx(24)),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = rpx(24), vertical = rpx(20)),
-            horizontalArrangement = if (hasAction) Arrangement.SpaceBetween else Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = FontSizes.content,
-                    color = MusicFreeTheme.colors.text,
-                )
-                Spacer(modifier = Modifier.height(rpx(6)))
-                Text(
-                    text = description,
-                    fontSize = FontSizes.description,
-                    color = MusicFreeTheme.colors.textSecondary,
-                )
-            }
-            if (hasAction) {
-                TextButton(onClick = action, enabled = enabled) {
-                    Text(text = label)
+        item {
+            Spacer(modifier = Modifier.height(rpx(24)))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(entryTag),
+                shape = RoundedCornerShape(rpx(16)),
+                colors = CardDefaults.cardColors(containerColor = MusicFreeTheme.colors.card),
+            ) {
+                Column(modifier = Modifier.padding(horizontal = rpx(24), vertical = rpx(20))) {
+                    Text(
+                        text = title,
+                        fontSize = FontSizes.content,
+                        color = MusicFreeTheme.colors.text,
+                    )
+                    Spacer(modifier = Modifier.height(rpx(6)))
+                    Text(
+                        text = description,
+                        fontSize = FontSizes.description,
+                        color = MusicFreeTheme.colors.textSecondary,
+                    )
+                    Spacer(modifier = Modifier.height(rpx(12)))
+                    TextButton(onClick = onClick ?: {}, enabled = onClick != null) {
+                        Text(actionText)
+                    }
                 }
             }
         }
     }
+}
+
+private fun SettingsType.title(): String = when (this) {
+    SettingsType.Basic -> "基本设置"
+    SettingsType.Plugin -> "插件管理"
+    SettingsType.Theme -> "主题设置"
+    SettingsType.Backup -> "备份与恢复"
+    SettingsType.About -> "关于 MusicFree"
 }

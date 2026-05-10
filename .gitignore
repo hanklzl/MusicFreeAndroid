@@ -14,3 +14,5 @@ local.properties
 .superpowers
 tools/logan/out/
 tools/logan/*.class
+**/__pycache__/
+*.pyc

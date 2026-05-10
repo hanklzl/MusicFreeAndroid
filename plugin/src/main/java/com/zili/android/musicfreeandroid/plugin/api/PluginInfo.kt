@@ -14,4 +14,5 @@ data class PluginInfo(
     val cacheControl: String? = null,
     val hints: Map<String, List<String>>? = null,
     val supportedMethods: Set<String> = emptySet(),
+    val userVariables: List<PluginUserVariable> = emptyList(),
 )

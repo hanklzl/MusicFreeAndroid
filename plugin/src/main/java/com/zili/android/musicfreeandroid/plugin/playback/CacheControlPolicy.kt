@@ -1,0 +1,20 @@
+package com.zili.android.musicfreeandroid.plugin.playback
+
+enum class CacheControl(val wire: String) {
+    Cache("cache"),
+    NoCache("no-cache"),
+    NoStore("no-store");
+
+    companion object {
+        fun parse(s: String?): CacheControl = when (s?.lowercase()) {
+            "cache" -> Cache
+            "no-store" -> NoStore
+            else -> NoCache
+        }
+    }
+}
+
+fun shouldUseCache(cc: CacheControl, isOffline: Boolean): Boolean =
+    cc == CacheControl.Cache || (cc == CacheControl.NoCache && isOffline)
+
+fun shouldWriteCache(cc: CacheControl): Boolean = cc != CacheControl.NoStore

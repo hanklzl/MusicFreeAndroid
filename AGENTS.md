@@ -14,13 +14,36 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 
 1. `docs/DOCS_STATUS.md`（文档状态索引：当前规范 / 当前参考 / 历史记录）
 2. `AGENTS.md`（当前仓库工作约束）
-3. 与任务相关的“当前规范”文档
+3. `docs/dev-harness/INDEX.md`（开发守门总入口；按域跳到对应 rules.md / incidents.md）
+4. 与任务相关的“当前规范”文档
 
 强制规则：
 
 - `docs/superpowers/plans/*.md` 默认视为历史执行快照，不可直接当作当前执行指令。
 - 文档之间的引用必须使用相对路径，禁止使用 `/Users/...` 绝对路径。
 - 跨仓库引用也必须使用相对路径（例如 `../MusicFree/...`）。
+
+## Dev Harness 强制入口
+
+任何涉及下述域的改动，动手前必须读取对应 rules.md：
+
+- UI / Compose Screen：`docs/dev-harness/ui/rules.md`
+- 插件系统：`docs/dev-harness/plugin/rules.md`
+- 播放器 / Media3：`docs/dev-harness/player/rules.md`
+- 测试代码 / 测试基建：`docs/dev-harness/test/rules.md`
+
+每条 rule 都关联一条或多条 incident（`docs/dev-harness/incidents/index.md`）和 / 或一条 contract test。
+违反 rules.md 中标记 MUST / MUST NOT 的条款将在 CI `dev-harness-gate` 作业被拦下。
+
+历史决策快照在 `docs/superpowers/specs/` 与 `plans/`（仅参考），不是当前规则源。
+
+## 项目记忆与守门约束
+
+- 强约束：`docs/dev-harness/<area>/rules.md`
+- 历史踩坑：`docs/dev-harness/incidents/index.md`（按 ID 反查到 area + rule + guard）
+- AI 工作流：见 `.agents/skills/<area>-skill/`，软链到 `.claude/skills/`、`.codex/skills/`
+- 历史决策快照：`docs/superpowers/specs/` 与 `plans/`（仅参考，不是当前规则源）
+- 个人会话偏好（Claude Code only）：`~/.claude/projects/.../memory/MEMORY.md`，不进仓库
 
 ## Git Worktree 开发约束
 
@@ -95,12 +118,26 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 
 ### UI Harness Rules
 
-新增或修改 Compose Screen 前，必须读取并遵守 [screen-chrome-rules](docs/ui-harness/screen-chrome-rules.md)。
+新增或修改 Compose Screen 前，必须读取并遵守 [docs/dev-harness/ui/rules.md](docs/dev-harness/ui/rules.md)。
 
 - Screen 切换动画、普通 AppBar、沉浸式状态栏处理必须走公共 harness 入口。
 - 普通 AppBar 页面不得直接手写分散的 `TopAppBar` + `TopAppBarDefaults.topAppBarColors(...)`。
 - 特殊 Chrome 页面必须在规则文档中登记，并自行负责状态栏背景和顶部 inset。
 - `docs/superpowers/plans/*.md` 中旧动画或 AppBar 写法不作为当前 UI Harness 规范来源。
+- 旧入口 `docs/ui-harness/screen-chrome-rules.md` 已迁移；保留只读 redirect stub 以兼容历史引用。
+
+### R8 与反射保留规则
+
+Release 构建启用 R8 和资源压缩；新增或修改会被运行时按类名、成员名或序列化类型名解析的类型时，必须审查是否需要 `@Keep` 或等价 ProGuard 规则，并补充 release 运行态验收。
+
+需要保留 class 名称的典型场景：
+
+- 类型的全限定类名会在运行时作为字符串被解析，例如 `Class.forName(...)`、框架反射、外部协议或持久化数据引用。
+- Navigation Compose typed route 的 enum 参数、custom `NavType` 参数，或其他依赖默认全限定 `serialName` 查找类型的导航参数。
+- `kotlinx.serialization` 多态、默认 `serialName`、跨版本持久化 payload 或外部接口把类名当作稳定协议的一部分。
+- Android framework、第三方 SDK、JS bridge 或插件桥按约定反射调用的类、构造函数、方法或字段；若只需要保留成员名，优先使用精确 `-keepclassmembers`，不要扩大到整包。
+
+不应为了省事 blanket keep 整个模块。普通 `@Serializable` route/data class 如果只通过生成 serializer 读写字段，且类名不是运行时协议的一部分，通常不需要 `@Keep`。一旦新增此类保留规则，必须至少验证 `:app:assembleRelease`，并在可用设备/模拟器上安装 release 包冷启动检查 `AndroidRuntime` 崩溃日志。
 
 ### 日志记录规范
 

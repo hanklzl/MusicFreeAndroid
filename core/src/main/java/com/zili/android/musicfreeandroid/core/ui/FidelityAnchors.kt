@@ -27,6 +27,7 @@ object FidelityAnchors {
         const val SheetsCreate = "home.sheets.action.create"
         const val SheetsImport = "home.sheets.action.import"
         const val DrawerRoot = "home.drawer.root"
+        const val DrawerTitle = "home.drawer.title"
         const val DrawerSettings = "home.drawer.settings"
         const val DrawerPluginManagement = "home.drawer.pluginManagement"
         const val DrawerPermissions = "home.drawer.permissions"
@@ -55,6 +56,16 @@ object FidelityAnchors {
         const val MiniRoot = "player.mini.root"
         const val MiniPlayPause = "player.mini.playPause"
         const val MiniQueue = "player.mini.queue"
+
+        object Queue {
+            const val SheetRoot = "player.queue.root"
+            const val RepeatModeButton = "player.queue.repeatMode"
+            const val ClearButton = "player.queue.clear"
+            const val EmptyState = "player.queue.empty"
+            const val Row = "player.queue.row"
+            const val CurrentMarker = "player.queue.currentMarker"
+            const val RemoveButton = "player.queue.removeButton"
+        }
     }
 
     object Panel {
@@ -67,6 +78,24 @@ object FidelityAnchors {
     }
 
     object Settings {
+        const val BasicRoot = "settings.basic.root"
+        const val BasicSectionCommon = "settings.basic.section.common"
+        const val BasicSectionSheetAlbum = "settings.basic.section.sheetAlbum"
+        const val BasicSectionPlugin = "settings.basic.section.plugin"
+        const val BasicSectionPlayback = "settings.basic.section.playback"
+        const val BasicSectionDownload = "settings.basic.section.download"
+        const val BasicSectionNetwork = "settings.basic.section.network"
+        const val BasicSectionLyric = "settings.basic.section.lyric"
+        const val BasicSectionCache = "settings.basic.section.cache"
+        const val BasicSectionDeveloper = "settings.basic.section.developer"
+        const val BasicMaxDownload = "settings.basic.maxDownload"
+        const val BasicDefaultDownloadQuality = "settings.basic.defaultDownloadQuality"
+        const val BasicUseCellularDownload = "settings.basic.useCellularDownload"
+        const val BasicLyricAutoSearch = "settings.basic.lyricAutoSearch"
+        const val PluginRoot = "settings.plugin.root"
+        const val ThemeRoot = "settings.theme.root"
+        const val BackupRoot = "settings.backup.root"
+        const val AboutRoot = "settings.about.root"
         const val PluginManagementEntry = "settings.pluginManagement.entry"
         const val ThemeEntry = "settings.theme.entry"
         const val BackupEntry = "settings.backup.entry"

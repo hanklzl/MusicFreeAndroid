@@ -3,8 +3,18 @@ package com.zili.android.musicfreeandroid.feature.home.local
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,37 +29,79 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
+import com.zili.android.musicfreeandroid.core.storage.DocumentTreeStorageAccess
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
-import com.zili.android.musicfreeandroid.feature.home.HomeUiState
-import com.zili.android.musicfreeandroid.feature.home.HomeViewModel
+import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
 
 @Composable
 fun LocalScreen(
+    onBack: () -> Unit,
+    onNavigateToSearchMusicList: () -> Unit,
+    onNavigateToMusicListEditor: () -> Unit,
+    onNavigateToDownloading: () -> Unit,
     onNavigateToPlayer: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = hiltViewModel(),
+    viewModel: LocalMusicViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val activeCount by viewModel.downloadActiveCount.collectAsStateWithLifecycle()
+    val downloadedKeys by viewModel.downloadedKeys.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val permission = remember { requiredAudioPermission() }
+    var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
+    var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
+    val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
 
-    // TODO(Task 27): track addToPlaylistItem for AddToPlaylistBottomSheet
     var hasAudioPermission by remember { mutableStateOf<Boolean?>(null) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var configuredStorageDirectoryUri by remember { mutableStateOf<String?>(null) }
+
+    fun isAudioPermissionGranted(): Boolean =
+        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         hasAudioPermission = granted
         if (granted) {
-            viewModel.scanLocalMusic()
+            viewModel.scanLocalMusic(configuredStorageDirectoryUri)
+        } else {
+            viewModel.showError("未授予音频读取权限，请授权后重试")
         }
     }
 
-    LaunchedEffect(Unit) {
-        if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+    val openDocumentTreeLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        if (uri != null) {
+            hasAudioPermission = isAudioPermissionGranted()
+            runCatching {
+                DocumentTreeStorageAccess.persistReadWritePermission(
+                    contentResolver = context.contentResolver,
+                    treeUri = uri,
+                )
+            }.onSuccess {
+                val treeUri = uri.toString()
+                configuredStorageDirectoryUri = treeUri
+                viewModel.persistStorageDirectoryAndScan(treeUri)
+            }.onFailure { e ->
+                viewModel.showError(e.message ?: "保存目录权限失败")
+            }
+        }
+    }
+
+    fun startConfiguredOrMediaStoreScan() {
+        val configuredUri = configuredStorageDirectoryUri
+        if (!configuredUri.isNullOrBlank()) {
+            hasAudioPermission = isAudioPermissionGranted()
+            viewModel.scanLocalMusic(configuredUri)
+        } else if (isAudioPermissionGranted()) {
             hasAudioPermission = true
             viewModel.scanLocalMusic()
         } else {
@@ -57,42 +109,99 @@ fun LocalScreen(
         }
     }
 
-    // TODO(Task 27): wire AddToPlaylistBottomSheet (core/ui/AddToPlaylistBottomSheetContent)
-    // addToPlaylistItem?.let { item -> AddToPlaylistBottomSheet(...) }
-
-    val localUiState = when (hasAudioPermission) {
-        false -> LocalMusicUiState.Error("未授予音频读取权限，请授权后重试")
-        else -> uiState.toLocalMusicUiState()
+    LaunchedEffect(Unit) {
+        configuredStorageDirectoryUri = viewModel.currentStorageDirectoryUri()
+        startConfiguredOrMediaStoreScan()
     }
 
-    Column(
+    optionsItem?.let { item ->
+        MusicItemOptionsSheet(
+            item = item,
+            onDismiss = { optionsItem = null },
+            onDownload = { qualityFor = it; optionsItem = null },
+            onRemoveFromLocalLibrary = {
+                viewModel.removeFromLocalLibrary(it)
+                optionsItem = null
+            },
+        )
+    }
+    qualityFor?.let { item ->
+        DownloadQualityDialog(
+            initial = defaultQuality,
+            onDismiss = { qualityFor = null },
+            onConfirm = { q -> viewModel.download(item, q); qualityFor = null },
+        )
+    }
+
+    MusicFreeScreenScaffold(
+        title = "本地音乐",
+        onBack = onBack,
         modifier = modifier
             .fillMaxSize()
             .testTag(FidelityAnchors.Screen.LocalRoot)
             .semantics { testTagsAsResourceId = true },
-    ) {
-        MusicFreeStatusBarChrome(color = MusicFreeTheme.colors.pageBackground)
+        actions = {
+            IconButton(onClick = onNavigateToSearchMusicList) {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = "搜索",
+                    tint = MusicFreeTheme.colors.appBarText,
+                )
+            }
+            BadgedBox(
+                badge = {
+                    if (activeCount > 0) {
+                        Badge { Text(activeCount.toString()) }
+                    }
+                },
+            ) {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = "更多",
+                        tint = MusicFreeTheme.colors.appBarText,
+                    )
+                }
+            }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(
+                    text = { Text("扫描本地音乐") },
+                    onClick = {
+                        menuExpanded = false
+                        openDocumentTreeLauncher.launch(null)
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text("批量编辑") },
+                    onClick = {
+                        menuExpanded = false
+                        onNavigateToMusicListEditor()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(if (activeCount > 0) "下载列表（$activeCount）" else "下载列表") },
+                    onClick = {
+                        menuExpanded = false
+                        onNavigateToDownloading()
+                    },
+                )
+            }
+        },
+    ) { innerPadding ->
         LocalMusicContent(
-            uiState = localUiState,
+            uiState = uiState,
+            downloadedKeys = downloadedKeys.map { it.value }.toSet(),
             onItemClick = { item, items ->
                 viewModel.playItem(item, items)
                 onNavigateToPlayer()
             },
-            onItemLongClick = { _ -> /* TODO(Task 27): show AddToPlaylistBottomSheet */ },
+            onItemLongClick = { item -> optionsItem = item },
             onRetry = {
-                if (hasAudioPermission == false) {
-                    permissionLauncher.launch(permission)
-                } else {
-                    viewModel.scanLocalMusic()
-                }
+                startConfiguredOrMediaStoreScan()
             },
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
         )
     }
-}
-
-private fun HomeUiState.toLocalMusicUiState(): LocalMusicUiState = when (this) {
-    HomeUiState.Loading -> LocalMusicUiState.Loading
-    is HomeUiState.Success -> LocalMusicUiState.Success(musicItems)
-    is HomeUiState.Error -> LocalMusicUiState.Error(message)
 }

@@ -12,6 +12,7 @@ import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricSearchGroup
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
+import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueUiModel
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsUiState
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.player.model.PlayerState
@@ -26,8 +27,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -45,12 +48,36 @@ class PlayerViewModel @Inject constructor(
     val playerState: StateFlow<PlayerState> = playerController.playerState
     val errorEvents: SharedFlow<String> = playerController.errorEvents
 
-    private val lyricLoadState: StateFlow<LyricLoadState> = playerState
+    val queueUiModel: StateFlow<PlayQueueUiModel> = combine(
+        playerController.queueState,
+        playerState,
+    ) { snapshot, player ->
+        PlayQueueUiModel(
+            items = snapshot.items,
+            currentIndex = snapshot.currentIndex,
+            repeatMode = player.repeatMode,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayQueueUiModel.EMPTY)
+
+    private val rawLyricLoadState: StateFlow<LyricLoadState> = playerState
         .map { it.currentItem }
         .distinctUntilChangedBy { item -> item?.let { it.platform to it.id } }
         .flatMapLatest { item ->
             playerLyricLoader.observeLyrics(item)
         }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LyricLoadState.NoTrack)
+
+    private val lyricLoadState: StateFlow<LyricLoadState> = rawLyricLoadState
+        .scan<LyricLoadState, LyricLoadState?>(null) { previous, next ->
+            val previousReady = previous as? LyricLoadState.Ready
+            val nextLoading = next as? LyricLoadState.Loading
+            if (previousReady != null && nextLoading != null && previousReady.music.sameMusicKey(nextLoading.music)) {
+                previousReady
+            } else {
+                next
+            }
+        }
+        .filterNotNull()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LyricLoadState.NoTrack)
 
     val lyricsUiState: StateFlow<PlayerLyricsUiState> = combine(
@@ -153,7 +180,15 @@ class PlayerViewModel @Inject constructor(
 
     fun cycleRepeatMode() = playerController.cycleRepeatMode()
 
+    fun cyclePlaybackMode() = playerController.cyclePlaybackMode()
+
     fun toggleShuffle() = playerController.toggleShuffle()
+
+    fun playQueueIndex(index: Int) = playerController.skipTo(index)
+
+    fun removeFromQueue(index: Int) = playerController.removeFromQueue(index)
+
+    fun clearQueue() = playerController.reset()
 
     fun setLyricShowTranslation(enabled: Boolean) {
         viewModelScope.launch { appPreferences.setLyricShowTranslation(enabled) }
@@ -228,3 +263,6 @@ class PlayerViewModel @Inject constructor(
         playerController.play()
     }
 }
+
+private fun MusicItem.sameMusicKey(other: MusicItem): Boolean =
+    platform == other.platform && id == other.id

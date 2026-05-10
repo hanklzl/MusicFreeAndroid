@@ -1,6 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.search
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.plugin.api.PluginSearchItem
 
 /** 搜索页整体页面状态 */
 enum class SearchPageStatus {
@@ -19,7 +19,7 @@ sealed interface PluginSearchState {
     data object Idle : PluginSearchState
     data object Loading : PluginSearchState
     data class Success(
-        val items: List<MusicItem>,
+        val items: List<PluginSearchItem>,
         val isEnd: Boolean,
         val page: Int,
     ) : PluginSearchState

@@ -8,6 +8,7 @@ import com.zili.android.musicfreeandroid.data.mapper.LyricCache
 import com.zili.android.musicfreeandroid.data.repository.LyricRepository
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.plugin.api.LyricResult
+import com.zili.android.musicfreeandroid.plugin.api.musicItems
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -88,7 +89,10 @@ class PlayerLyricLoader @Inject constructor(
             .filter { includeCurrentPlatform || it.info.platform != music.platform }
             .map { plugin ->
                 try {
-                    LyricSearchGroup(plugin.info, plugin.search(query = query, page = 1, type = "lyric").data.take(2))
+                    val candidates = plugin.search(query = query, page = 1, type = "lyric")
+                        .musicItems()
+                        .take(2)
+                    LyricSearchGroup(plugin.info, candidates)
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {

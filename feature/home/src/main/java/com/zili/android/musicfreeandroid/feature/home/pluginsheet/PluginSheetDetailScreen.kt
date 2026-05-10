@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.feature.home.pluginsheet
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -34,13 +37,16 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.core.ui.MusicItemAction
 import com.zili.android.musicfreeandroid.core.ui.MusicItemMoreMenu
+import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
+import com.zili.android.musicfreeandroid.core.ui.PlatformTag
 import com.zili.android.musicfreeandroid.feature.home.playlist.CreatePlaylistDialog
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun PluginSheetDetailScreen(
     onBack: () -> Unit,
@@ -52,6 +58,9 @@ fun PluginSheetDetailScreen(
     val scope = rememberCoroutineScope()
     val sheetState by viewModel.sheetState.collectAsState()
     val allPlaylists by viewModel.allPlaylists.collectAsState()
+    var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
+    var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
+    val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
 
     MusicFreeScreenScaffold(
         title = uiState.title,
@@ -96,69 +105,28 @@ fun PluginSheetDetailScreen(
                         key = { _, item -> "${item.platform}:${item.id}" },
                     ) { index, item ->
                         val isFav by viewModel.isFavoriteFlow(item).collectAsStateWithLifecycle(initialValue = false)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    scope.launch {
-                                        val ok = viewModel.playAt(index)
-                                        if (ok) onNavigateToPlayer()
-                                    }
+                        PluginSheetMusicRow(
+                            index = index,
+                            item = item,
+                            isFavorite = isFav,
+                            onClick = {
+                                scope.launch {
+                                    val ok = viewModel.playAt(index)
+                                    if (ok) onNavigateToPlayer()
                                 }
-                                .padding(horizontal = rpx(24), vertical = rpx(12)),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "${index + 1}",
-                                color = MusicFreeTheme.colors.textSecondary,
-                                fontSize = FontSizes.description,
-                                modifier = Modifier.padding(end = rpx(12)),
-                            )
-                            CoverImage(
-                                uri = item.artwork,
-                                size = rpx(88),
-                                cornerRadius = rpx(8),
-                            )
-                            Column(
-                                modifier = Modifier
-                                    .padding(start = rpx(18))
-                                    .weight(1f),
-                            ) {
-                                Text(
-                                    text = item.title,
-                                    color = MusicFreeTheme.colors.text,
-                                    fontSize = FontSizes.content,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = item.artist,
-                                    color = MusicFreeTheme.colors.textSecondary,
-                                    fontSize = FontSizes.description,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            MusicItemMoreMenu(
-                                actions = setOf(
-                                    MusicItemAction.PlayNext,
-                                    MusicItemAction.ToggleFavorite,
-                                    MusicItemAction.AddToPlaylist,
-                                ),
-                                isFavorite = isFav,
-                                onAction = { action ->
-                                    when (action) {
-                                        MusicItemAction.ToggleFavorite -> viewModel.toggleFavorite(item)
-                                        MusicItemAction.AddToPlaylist -> viewModel.showAddToPlaylistSheet(item)
-                                        MusicItemAction.PlayNext -> {
-                                            // TODO: PlayerController.playNext when API is wired
-                                        }
-                                        MusicItemAction.RemoveFromPlaylist -> {}
+                            },
+                            onLongClick = { optionsItem = item },
+                            onAction = { action ->
+                                when (action) {
+                                    MusicItemAction.ToggleFavorite -> viewModel.toggleFavorite(item)
+                                    MusicItemAction.AddToPlaylist -> viewModel.showAddToPlaylistSheet(item)
+                                    MusicItemAction.PlayNext -> {
+                                        // TODO: PlayerController.playNext when API is wired
                                     }
-                                },
-                                triggerIcon = painterResource(id = R.drawable.ic_ellipsis_vertical),
-                            )
-                        }
+                                    MusicItemAction.RemoveFromPlaylist -> {}
+                                }
+                            },
+                        )
                     }
 
                     if (!uiState.isEnd) {
@@ -208,4 +176,103 @@ fun PluginSheetDetailScreen(
             )
         }
     }
+
+    optionsItem?.let { item ->
+        MusicItemOptionsSheet(
+            item = item,
+            onDismiss = { optionsItem = null },
+            onDownload = { qualityFor = it; optionsItem = null },
+        )
+    }
+    qualityFor?.let { item ->
+        DownloadQualityDialog(
+            initial = defaultQuality,
+            onDismiss = { qualityFor = null },
+            onConfirm = { q -> viewModel.download(item, q); qualityFor = null },
+        )
+    }
 }
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun PluginSheetMusicRow(
+    index: Int,
+    item: MusicItem,
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onAction: (MusicItemAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+            .padding(horizontal = rpx(24), vertical = rpx(12)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "${index + 1}",
+            color = MusicFreeTheme.colors.textSecondary,
+            fontSize = FontSizes.description,
+            modifier = Modifier.padding(end = rpx(12)),
+        )
+        CoverImage(
+            uri = item.artwork,
+            size = rpx(88),
+            cornerRadius = rpx(8),
+        )
+        Column(
+            modifier = Modifier
+                .padding(start = rpx(18))
+                .weight(1f),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val tagText = pluginSheetPlatformTagText(item.platform)
+                Text(
+                    text = item.title,
+                    color = MusicFreeTheme.colors.text,
+                    fontSize = FontSizes.content,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (tagText != null) {
+                    PlatformTag(
+                        text = tagText,
+                        modifier = Modifier.padding(start = rpx(12)),
+                    )
+                }
+            }
+            Text(
+                text = pluginSheetDescription(item),
+                color = MusicFreeTheme.colors.textSecondary,
+                fontSize = FontSizes.description,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        MusicItemMoreMenu(
+            actions = setOf(
+                MusicItemAction.PlayNext,
+                MusicItemAction.ToggleFavorite,
+                MusicItemAction.AddToPlaylist,
+            ),
+            isFavorite = isFavorite,
+            onAction = onAction,
+            triggerIcon = painterResource(id = R.drawable.ic_ellipsis_vertical),
+        )
+    }
+}
+
+internal fun pluginSheetPlatformTagText(platform: String): String? {
+    val normalized = platform.trim()
+    if (normalized.isBlank()) return null
+    return if (normalized == "local") "本地" else normalized
+}
+
+private fun pluginSheetDescription(item: MusicItem): String =
+    item.artist + if (!item.album.isNullOrBlank()) " - ${item.album}" else ""
