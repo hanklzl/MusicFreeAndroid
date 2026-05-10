@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.home.sheets
 
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.model.StarredSheet
+import com.zili.android.musicfreeandroid.core.model.StarredKind
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.data.repository.StarredSheetRepository
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -72,5 +74,47 @@ class HomeSheetsViewModelTest {
         assertEquals(1, viewModel.uiState.value.starredCount)
         assertEquals(mineTitles, viewModel.uiState.value.items.map { it.title })
         assertEquals("12首", viewModel.uiState.value.items.single().subtitle)
+    }
+
+    @Test
+    fun `unstar invokes repository deleteByIdAndPlatform for starred row`() = runTest {
+        whenever(playlistRepository.observeAllPlaylists()).thenReturn(flowOf(emptyList()))
+        whenever(starredSheetRepository.observeAll()).thenReturn(flowOf(listOf(
+            com.zili.android.musicfreeandroid.core.model.StarredSheet(
+                id = "alb-1", platform = "qq",
+                title = "AlbumOne", artist = null, coverUri = null, sourceUrl = null,
+                kind = com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+            ),
+        )))
+
+        val viewModel = HomeSheetsViewModel(playlistRepository, starredSheetRepository)
+        advanceUntilIdle()
+        viewModel.selectTab(com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab.Starred)
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.items.single()
+        viewModel.unstar(row)
+        advanceUntilIdle()
+
+        verify(starredSheetRepository).deleteByIdAndPlatform(id = "alb-1", platform = "qq")
+    }
+
+    @Test
+    fun `unstar ignores rows without platform`() = runTest {
+        whenever(playlistRepository.observeAllPlaylists()).thenReturn(flowOf(emptyList()))
+        whenever(starredSheetRepository.observeAll()).thenReturn(flowOf(emptyList()))
+
+        val viewModel = HomeSheetsViewModel(playlistRepository, starredSheetRepository)
+        advanceUntilIdle()
+
+        val mineRow = HomeSheetUiModel(
+            id = "fav", platform = null, tab = com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab.Mine,
+            title = "我喜欢", subtitle = "0首", coverUri = null,
+        )
+        viewModel.unstar(mineRow)
+        advanceUntilIdle()
+
+        org.mockito.kotlin.verify(starredSheetRepository, org.mockito.kotlin.never())
+            .deleteByIdAndPlatform(org.mockito.kotlin.any(), org.mockito.kotlin.any())
     }
 }

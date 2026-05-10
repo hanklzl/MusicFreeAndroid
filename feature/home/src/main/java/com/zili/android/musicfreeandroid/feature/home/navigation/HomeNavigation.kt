@@ -18,6 +18,7 @@ fun NavGraphBuilder.homeScreen(
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
     onNavigateToStarredSheet: (HomeSheetUiModel) -> Unit,
+    onNavigateToStarredAlbum: (HomeSheetUiModel) -> Unit,
     homeSystemActionHandler: HomeSystemActionHandler,
 ) {
     composable<HomeRoute> {
@@ -31,6 +32,7 @@ fun NavGraphBuilder.homeScreen(
             onNavigateToTopList = onNavigateToTopList,
             onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,
             onNavigateToStarredSheet = onNavigateToStarredSheet,
+            onNavigateToStarredAlbum = onNavigateToStarredAlbum,
             homeSystemActionHandler = homeSystemActionHandler,
         )
     }
