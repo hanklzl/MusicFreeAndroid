@@ -44,6 +44,7 @@ kotlin {
 dependencies {
     implementation(project(":core"))
     implementation(project(":data"))
+    implementation(project(":logging"))
     implementation(project(":plugin"))
     implementation(project(":player"))
     implementation(project(":downloader"))

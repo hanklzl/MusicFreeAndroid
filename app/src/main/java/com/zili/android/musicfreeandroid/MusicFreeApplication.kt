@@ -1,7 +1,28 @@
 package com.zili.android.musicfreeandroid
 
 import android.app.Application
+import com.zili.android.musicfreeandroid.logging.LoggingConfig
+import com.zili.android.musicfreeandroid.logging.LoggingInitializer
 import dagger.hilt.android.HiltAndroidApp
+import java.io.File
 
 @HiltAndroidApp
-class MusicFreeApplication : Application()
+class MusicFreeApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+
+        LoggingInitializer.initialize(
+            LoggingConfig(
+                cacheDir = File(filesDir, "logan-cache"),
+                logDir = File(filesDir, "logan"),
+                feedbackDir = File(cacheDir, "feedback"),
+                aesKey16 = BuildConfig.LOGAN_AES_KEY,
+                aesIv16 = BuildConfig.LOGAN_AES_IV,
+                appVersionName = BuildConfig.VERSION_NAME,
+                appVersionCode = BuildConfig.VERSION_CODE.toLong(),
+                applicationId = BuildConfig.APPLICATION_ID,
+                buildType = BuildConfig.BUILD_TYPE,
+            ),
+        )
+    }
+}

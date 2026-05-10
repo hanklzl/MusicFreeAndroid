@@ -1,11 +1,12 @@
 package com.zili.android.musicfreeandroid.plugin.meta
 
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.plugin.di.PluginMetaDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -49,7 +50,7 @@ class PluginMetaStore @Inject constructor(
     val pluginOrder: Flow<List<String>> = dataStore.data.map { prefs ->
         prefs[KEY_PLUGIN_ORDER]?.let { jsonStr ->
             runCatching { json.decodeFromString<List<String>>(jsonStr) }
-                .onFailure { Log.w(TAG, "Failed to decode plugin_order, resetting", it) }
+                .onFailure { logDecodeFailure("plugin_order", it) }
                 .getOrDefault(emptyList())
         } ?: emptyList()
     }
@@ -65,7 +66,7 @@ class PluginMetaStore @Inject constructor(
     val alternativePlugins: Flow<Map<String, String>> = dataStore.data.map { prefs ->
         prefs[KEY_ALTERNATIVE_PLUGINS]?.let { jsonStr ->
             runCatching { json.decodeFromString<Map<String, String>>(jsonStr) }
-                .onFailure { Log.w(TAG, "Failed to decode alternative_plugins, resetting", it) }
+                .onFailure { logDecodeFailure("alternative_plugins", it) }
                 .getOrDefault(emptyMap())
                 .filterValues { it.isNotBlank() }
         } ?: emptyMap()
@@ -94,7 +95,7 @@ class PluginMetaStore @Inject constructor(
     private fun currentAlternativePlugins(prefs: Preferences): Map<String, String> =
         prefs[KEY_ALTERNATIVE_PLUGINS]?.let { jsonStr ->
             runCatching { json.decodeFromString<Map<String, String>>(jsonStr) }
-                .onFailure { Log.w(TAG, "Failed to decode alternative_plugins, resetting", it) }
+                .onFailure { logDecodeFailure("alternative_plugins", it) }
                 .getOrDefault(emptyMap())
                 .filterValues { it.isNotBlank() }
         } ?: emptyMap()
@@ -104,7 +105,7 @@ class PluginMetaStore @Inject constructor(
     fun getUserVariables(platform: String): Flow<Map<String, String>> = dataStore.data.map { prefs ->
         prefs[userVariablesKey(platform)]?.let { jsonStr ->
             runCatching { json.decodeFromString<Map<String, String>>(jsonStr) }
-                .onFailure { Log.w(TAG, "Failed to decode user_variables for $platform, resetting", it) }
+                .onFailure { logDecodeFailure("user_variables", it, mapOf("platform" to platform)) }
                 .getOrDefault(emptyMap())
         } ?: emptyMap()
     }
@@ -120,7 +121,7 @@ class PluginMetaStore @Inject constructor(
     val subscriptions: Flow<List<SubscriptionItem>> = dataStore.data.map { prefs ->
         prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
             runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }
-                .onFailure { Log.w(TAG, "Failed to decode subscriptions, resetting", it) }
+                .onFailure { logDecodeFailure("subscriptions", it) }
                 .getOrDefault(emptyList())
         } ?: emptyList()
     }
@@ -157,15 +158,30 @@ class PluginMetaStore @Inject constructor(
     private fun currentSubscriptions(prefs: Preferences): List<SubscriptionItem> =
         prefs[KEY_SUBSCRIPTIONS]?.let { jsonStr ->
             runCatching { json.decodeFromString<List<SubscriptionItem>>(jsonStr) }
-                .onFailure { Log.w(TAG, "Failed to decode subscriptions, resetting", it) }
+                .onFailure { logDecodeFailure("subscriptions", it) }
                 .getOrDefault(emptyList())
         } ?: emptyList()
 
     private fun userVariablesKey(platform: String) =
         stringPreferencesKey("user_variables_$platform")
 
+    private fun logDecodeFailure(
+        key: String,
+        throwable: Throwable,
+        extraFields: Map<String, Any?> = emptyMap(),
+    ) {
+        MfLog.error(
+            category = LogCategory.PLUGIN,
+            event = "plugin_metadata_decode_failed",
+            throwable = throwable,
+            fields = mapOf(
+                "key" to key,
+                "status" to "failed",
+            ) + extraFields,
+        )
+    }
+
     private companion object {
-        const val TAG = "PluginMetaStore"
         val KEY_DISABLED_PLUGINS = stringSetPreferencesKey("disabled_plugins")
         val KEY_PLUGIN_ORDER = stringPreferencesKey("plugin_order")
         val KEY_ALTERNATIVE_PLUGINS = stringPreferencesKey("alternative_plugins")

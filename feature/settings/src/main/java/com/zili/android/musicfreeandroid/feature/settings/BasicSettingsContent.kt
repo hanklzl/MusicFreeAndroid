@@ -37,15 +37,19 @@ private data class Choice<T>(
 @Composable
 fun BasicSettingsContent(
     state: BasicSettingsUiState,
+    feedbackExportState: FeedbackExportUiState = FeedbackExportUiState(),
     onMaxDownloadChange: (Int) -> Unit,
     onDefaultDownloadQualityChange: (PlayQuality) -> Unit,
     onUseCellularDownloadChange: (Boolean) -> Unit,
     onLyricAutoSearchEnabledChange: (Boolean) -> Unit,
     onNavigateToFileSelector: () -> Unit,
+    onCreateFeedbackPackage: () -> Unit = {},
+    onClearLogs: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var maxDownloadDialogVisible by remember { mutableStateOf(false) }
     var downloadQualityDialogVisible by remember { mutableStateOf(false) }
+    val isFeedbackActionInProgress = feedbackExportState.isOperationInProgress
 
     LazyColumn(
         modifier = modifier
@@ -153,7 +157,18 @@ fun BasicSettingsContent(
                 PendingValueRow("记录详细日志")
                 PendingValueRow("调试面板")
                 SettingActionRow("查看错误日志", enabled = false, onClick = {})
-                SettingActionRow("清空日志", enabled = false, onClick = {})
+                SettingActionRow(
+                    title = "生成日志包并分享",
+                    enabled = !isFeedbackActionInProgress,
+                    trailingText = if (feedbackExportState.isExporting) "生成中" else "",
+                    onClick = onCreateFeedbackPackage,
+                )
+                SettingActionRow(
+                    title = "清空日志",
+                    enabled = !isFeedbackActionInProgress,
+                    trailingText = if (feedbackExportState.isClearing) "清理中" else "",
+                    onClick = onClearLogs,
+                )
             }
         }
         item { TopBottomSpacer() }

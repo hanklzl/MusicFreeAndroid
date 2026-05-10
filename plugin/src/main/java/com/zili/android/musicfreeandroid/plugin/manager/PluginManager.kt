@@ -1,13 +1,15 @@
 package com.zili.android.musicfreeandroid.plugin.manager
 
 import android.content.Context
-import android.util.Log
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.PluginUserVariable
 import com.zili.android.musicfreeandroid.plugin.engine.AxiosShim
 import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
 import com.zili.android.musicfreeandroid.plugin.engine.RequireShim
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.timedSuspend
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -50,7 +52,6 @@ class PluginManager @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "PluginManager"
         private const val PLUGINS_DIR_NAME = "plugins"
         private const val PLUGIN_META_SUFFIX = ".meta.properties"
         private val CORE_PLUGIN_METHODS = setOf(
@@ -108,14 +109,54 @@ class PluginManager @Inject constructor(
             val loaded = mutableListOf<LoadedPlugin>()
             val files = pluginsDir.listFiles { _, name -> name.endsWith(".js") } ?: emptyArray()
             for (file in files) {
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_load_start",
+                    fields = mapOf(
+                        "operation" to "load",
+                        "status" to "start",
+                        "fileName" to file.name,
+                    ),
+                )
                 try {
-                    val plugin = loadPluginFromFile(file, readInstallMetadata(file))
+                    val (plugin, durationMs) = timedSuspend {
+                        loadPluginFromFile(file, readInstallMetadata(file))
+                    }
                     if (plugin != null) {
                         loaded.add(plugin)
-                        Log.i(TAG, "Loaded plugin: ${plugin.info.platform} from ${file.name}")
+                        MfLog.detail(
+                            category = LogCategory.PLUGIN,
+                            event = "plugin_load_success",
+                            fields = mapOf(
+                                "operation" to "load",
+                                "status" to "success",
+                                "platform" to plugin.info.platform,
+                                "fileName" to file.name,
+                                "durationMs" to durationMs,
+                            ),
+                        )
+                    } else {
+                        MfLog.error(
+                            category = LogCategory.PLUGIN,
+                            event = "plugin_load_failed",
+                            fields = mapOf(
+                                "operation" to "load",
+                                "status" to "failed",
+                                "fileName" to file.name,
+                            ),
+                        )
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to load plugin from ${file.name}", e)
+                    MfLog.error(
+                        category = LogCategory.PLUGIN,
+                        event = "plugin_load_failed",
+                        throwable = e,
+                        fields = mapOf(
+                            "operation" to "load",
+                            "status" to "failed",
+                            "fileName" to file.name,
+                        ),
+                    )
                 }
             }
             _plugins.value = loaded
@@ -410,15 +451,54 @@ class PluginManager @Inject constructor(
         withContext(Dispatchers.IO) {
             val current = _plugins.value.toMutableList()
             val plugin = current.find { it.info.platform == platform }
-            if (plugin != null) {
-                plugin.destroy()
-                File(plugin.filePath).delete()
-                deleteInstallMetadata(File(plugin.filePath))
-                current.remove(plugin)
-                _plugins.value = current
-                Log.i(TAG, "Uninstalled plugin: $platform")
-            } else {
-                Log.w(TAG, "Plugin not found for uninstall: $platform")
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "plugin_uninstall_start",
+                fields = mapOf(
+                    "operation" to "uninstall",
+                    "status" to "start",
+                    "platform" to platform,
+                ),
+            )
+            try {
+                if (plugin != null) {
+                    plugin.destroy()
+                    File(plugin.filePath).delete()
+                    deleteInstallMetadata(File(plugin.filePath))
+                    current.remove(plugin)
+                    _plugins.value = current
+                    MfLog.detail(
+                        category = LogCategory.PLUGIN,
+                        event = "plugin_uninstall_success",
+                        fields = mapOf(
+                            "operation" to "uninstall",
+                            "status" to "success",
+                            "platform" to platform,
+                            "fileName" to plugin.filePath.substringAfterLast('/'),
+                        ),
+                    )
+                } else {
+                    MfLog.error(
+                        category = LogCategory.PLUGIN,
+                        event = "plugin_uninstall_failed",
+                        fields = mapOf(
+                            "operation" to "uninstall",
+                            "status" to "failed",
+                            "platform" to platform,
+                        ),
+                    )
+                }
+            } catch (e: Exception) {
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_uninstall_failed",
+                    throwable = e,
+                    fields = mapOf(
+                        "operation" to "uninstall",
+                        "status" to "failed",
+                        "platform" to platform,
+                    ),
+                )
             }
         }
     }
@@ -491,21 +571,64 @@ class PluginManager @Inject constructor(
     }
 
     private suspend fun installFromFileLocked(sourceFile: File): LoadedPlugin? {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_install_start",
+            fields = mapOf(
+                "operation" to "install_from_file",
+                "status" to "start",
+                "fileName" to sourceFile.name,
+            ),
+        )
         return try {
-            installWithStagedFile(
-                fileName = sourceFile.name,
-                installSource = PluginInstallSource(
-                    type = PluginInstallSourceType.LOCAL_FILE,
-                    value = sourceFile.absolutePath,
-                ),
-            ) { stagedFile ->
-                sourceFile.copyTo(stagedFile, overwrite = true)
-                true
-            }?.also { plugin ->
-                Log.i(TAG, "Installed plugin: ${plugin.info.platform} from file")
+            val (plugin, durationMs) = timedSuspend {
+                installWithStagedFile(
+                    fileName = sourceFile.name,
+                    installSource = PluginInstallSource(
+                        type = PluginInstallSourceType.LOCAL_FILE,
+                        value = sourceFile.absolutePath,
+                    ),
+                ) { stagedFile ->
+                    sourceFile.copyTo(stagedFile, overwrite = true)
+                    true
+                }
             }
+
+            if (plugin != null) {
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_install_success",
+                    fields = mapOf(
+                        "operation" to "install_from_file",
+                        "status" to "success",
+                        "platform" to plugin.info.platform,
+                        "fileName" to sourceFile.name,
+                        "durationMs" to durationMs,
+                    ),
+                )
+            } else {
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_install_failed",
+                    fields = mapOf(
+                        "operation" to "install_from_file",
+                        "status" to "failed",
+                        "fileName" to sourceFile.name,
+                    ),
+                )
+            }
+            plugin
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to install plugin from file: ${sourceFile.name}", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_install_failed",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "install_from_file",
+                    "status" to "failed",
+                    "fileName" to sourceFile.name,
+                ),
+            )
             null
         }
     }
@@ -518,13 +641,60 @@ class PluginManager @Inject constructor(
             value = url,
         ),
     ): LoadedPlugin? {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_install_start",
+            fields = mapOf(
+                "operation" to "install_from_url",
+                "status" to "start",
+                "url" to url,
+                "fileName" to fileName,
+            ),
+        )
+
         return try {
             val bytes = downloadUrlBytes(url) ?: return null
-            installFromBytesLocked(bytes, fileName, installSource)?.also { plugin ->
-                Log.i(TAG, "Installed plugin: ${plugin.info.platform} from URL")
+            val (plugin, durationMs) = timedSuspend {
+                installFromBytesLocked(bytes, fileName, installSource)
             }
+            if (plugin != null) {
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_install_success",
+                    fields = mapOf(
+                        "operation" to "install_from_url",
+                        "status" to "success",
+                        "platform" to plugin.info.platform,
+                        "url" to url,
+                        "fileName" to fileName,
+                        "durationMs" to durationMs,
+                    ),
+                )
+            } else {
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_install_failed",
+                    fields = mapOf(
+                        "operation" to "install_from_url",
+                        "status" to "failed",
+                        "url" to url,
+                        "fileName" to fileName,
+                    ),
+                )
+            }
+            plugin
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to install plugin from URL: $url", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_install_failed",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "install_from_url",
+                    "status" to "failed",
+                    "url" to url,
+                    "fileName" to fileName,
+                ),
+            )
             null
         }
     }
@@ -541,7 +711,26 @@ class PluginManager @Inject constructor(
     }
 
     private suspend fun installFromSubscriptionUrlLocked(subscriptionUrl: String): SubscriptionInstallResult {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_install_start",
+            fields = mapOf(
+                "operation" to "install_from_subscription",
+                "status" to "start",
+                "url" to subscriptionUrl,
+            ),
+        )
         if (subscriptionUrl.isBlank()) {
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_install_failed",
+                fields = mapOf(
+                    "operation" to "install_from_subscription",
+                    "status" to "failed",
+                    "url" to subscriptionUrl,
+                    "message" to "subscription_url_empty",
+                ),
+            )
             return SubscriptionInstallResult(
                 totalEntries = 0,
                 successfulInstalls = 0,
@@ -551,16 +740,37 @@ class PluginManager @Inject constructor(
         }
 
         val rawJson = downloadUrlBytes(subscriptionUrl)?.toString(StandardCharsets.UTF_8)
-            ?: return SubscriptionInstallResult(
-                totalEntries = 0,
-                successfulInstalls = 0,
-                failedInstalls = 0,
-                errorMessage = "订阅下载失败",
-            )
+            ?: run {
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_install_failed",
+                    fields = mapOf(
+                        "operation" to "install_from_subscription",
+                        "status" to "failed",
+                        "url" to subscriptionUrl,
+                        "message" to "subscription_download_failed",
+                    ),
+                )
+                return SubscriptionInstallResult(
+                    totalEntries = 0,
+                    successfulInstalls = 0,
+                    failedInstalls = 0,
+                    errorMessage = "订阅下载失败",
+                )
+            }
 
         val parsed = SubscriptionParser.parse(rawJson)
         if (parsed.isMalformed) {
-            Log.e(TAG, "Malformed subscription JSON from $subscriptionUrl")
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_install_failed",
+                fields = mapOf(
+                    "operation" to "install_from_subscription",
+                    "status" to "failed",
+                    "url" to subscriptionUrl,
+                    "message" to "subscription_json_invalid",
+                ),
+            )
             return SubscriptionInstallResult(
                 totalEntries = 0,
                 successfulInstalls = 0,
@@ -586,6 +796,18 @@ class PluginManager @Inject constructor(
             }
         }
 
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_install_success",
+            fields = mapOf(
+                "operation" to "install_from_subscription",
+                "status" to "success",
+                "url" to subscriptionUrl,
+                "totalEntries" to parsed.totalEntries,
+                "successfulInstalls" to successfulInstalls,
+                "failedInstalls" to parsed.totalEntries - successfulInstalls,
+            ),
+        )
         return SubscriptionInstallResult(
             totalEntries = parsed.totalEntries,
             successfulInstalls = successfulInstalls,
@@ -598,12 +820,33 @@ class PluginManager @Inject constructor(
         installSource: PluginInstallSource,
         populateStagedFile: (File) -> Boolean,
     ): LoadedPlugin? {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_replace_file_start",
+            fields = mapOf(
+                "operation" to "replace_plugin_file",
+                "status" to "start",
+                "fileName" to fileName,
+            ),
+        )
+
+        val startedAt = System.currentTimeMillis()
         val targetFile = File(pluginsDir, fileName)
         val stagedFile = createStagedPluginFile(fileName)
 
         try {
             val populated = populateStagedFile(stagedFile)
             if (!populated) {
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_replace_file_failed",
+                    fields = mapOf(
+                        "operation" to "replace_plugin_file",
+                        "status" to "failed",
+                        "fileName" to fileName,
+                        "message" to "staged_file_population_failed",
+                    ),
+                )
                 return null
             }
 
@@ -611,12 +854,32 @@ class PluginManager @Inject constructor(
             val replaced = replaceFileAtomically(source = stagedFile, target = targetFile)
             if (!replaced) {
                 plugin.destroy()
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_replace_file_failed",
+                    fields = mapOf(
+                        "operation" to "replace_plugin_file",
+                        "status" to "failed",
+                        "fileName" to fileName,
+                    ),
+                )
                 return null
             }
 
             plugin.filePath = targetFile.absolutePath
             addOrReplacePlugin(plugin)
             writeInstallMetadata(targetFile, plugin.installSource)
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "plugin_replace_file_success",
+                fields = mapOf(
+                    "operation" to "replace_plugin_file",
+                    "status" to "success",
+                    "platform" to plugin.info.platform,
+                    "fileName" to fileName,
+                    "durationMs" to System.currentTimeMillis() - startedAt,
+                ),
+            )
             return plugin
         } finally {
             if (stagedFile.exists()) {
@@ -626,17 +889,58 @@ class PluginManager @Inject constructor(
     }
 
     private fun downloadUrlBytes(url: String): ByteArray? {
+        val startedAt = System.currentTimeMillis()
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_download_start",
+            fields = mapOf(
+                "operation" to "download",
+                "status" to "start",
+                "url" to url,
+            ),
+        )
         return try {
             val request = Request.Builder().url(url).build()
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
-                    Log.e(TAG, "Failed to download from $url: ${response.code}")
+                    MfLog.error(
+                        category = LogCategory.PLUGIN,
+                        event = "plugin_download_failed",
+                        fields = mapOf(
+                            "operation" to "download",
+                            "status" to "failed",
+                            "url" to url,
+                            "statusCode" to response.code,
+                            "durationMs" to System.currentTimeMillis() - startedAt,
+                        ),
+                    )
                     return null
                 }
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_download_success",
+                    fields = mapOf(
+                        "operation" to "download",
+                        "status" to "success",
+                        "url" to url,
+                        "statusCode" to response.code,
+                        "durationMs" to System.currentTimeMillis() - startedAt,
+                    ),
+                )
                 response.body?.bytes()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to download content from $url", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_download_failed",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "download",
+                    "status" to "failed",
+                    "url" to url,
+                    "durationMs" to System.currentTimeMillis() - startedAt,
+                ),
+            )
             null
         }
     }
@@ -857,13 +1161,43 @@ class PluginManager @Inject constructor(
                 props.store(output, null)
             }
         }.onFailure {
-            Log.w(TAG, "Failed to persist install metadata for ${pluginFile.name}", it)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_metadata_save_failed",
+                throwable = it,
+                fields = mapOf(
+                    "operation" to "save_install_metadata",
+                    "status" to "failed",
+                    "fileName" to pluginFile.name,
+                ),
+            )
         }
     }
 
     private fun readInstallMetadata(pluginFile: File): PluginInstallSource {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_metadata_read_start",
+            fields = mapOf(
+                "operation" to "read_install_metadata",
+                "status" to "start",
+                "fileName" to pluginFile.name,
+            ),
+        )
+
         val metaFile = metadataFileFor(pluginFile)
         if (!metaFile.exists()) {
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "plugin_metadata_read_success",
+                fields = mapOf(
+                    "operation" to "read_install_metadata",
+                    "status" to "success",
+                    "fileName" to pluginFile.name,
+                    "metadataExists" to false,
+                    "type" to PluginInstallSourceType.LOCAL_FILE.name,
+                ),
+            )
             return PluginInstallSource(
                 type = PluginInstallSourceType.LOCAL_FILE,
                 value = pluginFile.absolutePath,
@@ -887,6 +1221,16 @@ class PluginManager @Inject constructor(
                 value = props.getProperty("sourceValue").takeUnless { it.isNullOrBlank() },
             )
         }.getOrElse {
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_metadata_read_failed",
+                throwable = it,
+                fields = mapOf(
+                    "operation" to "read_install_metadata",
+                    "status" to "failed",
+                    "fileName" to pluginFile.name,
+                ),
+            )
             PluginInstallSource(
                 type = PluginInstallSourceType.LOCAL_FILE,
                 value = pluginFile.absolutePath,
@@ -931,7 +1275,16 @@ class PluginManager @Inject constructor(
             )
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to replace plugin file ${target.name}", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_replace_file_failed",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "replace_plugin_file",
+                    "status" to "failed",
+                    "fileName" to target.name,
+                ),
+            )
             false
         }
     }
@@ -950,6 +1303,16 @@ class PluginManager @Inject constructor(
         file: File,
         installSource: PluginInstallSource,
     ): LoadedPlugin? {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_load_parse_start",
+            fields = mapOf(
+                "operation" to "load",
+                "status" to "start",
+                "fileName" to file.name,
+            ),
+        )
+
         val jsCode = file.readText()
         val engine = JsEngine.create()
 
@@ -975,7 +1338,7 @@ class PluginManager @Inject constructor(
             """.trimIndent())
 
             // Wrap plugin code in CommonJS-style module pattern and assign to __plugin
-            val wrappedCode = """
+                val wrappedCode = """
                 var module = {exports: {}};
                 var exports = module.exports;
                 (function(require, module, exports, console, env) {
@@ -987,7 +1350,17 @@ class PluginManager @Inject constructor(
             try {
                 engine.evaluate<Any?>(wrappedCode)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to evaluate plugin code from ${file.name}", e)
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_error",
+                    throwable = e,
+                    fields = mapOf(
+                        "operation" to "load",
+                        "status" to "failed",
+                        "fileName" to file.name,
+                        "phase" to "evaluate",
+                    ),
+                )
                 engine.close()
                 return null
             }
@@ -996,12 +1369,31 @@ class PluginManager @Inject constructor(
             try {
                 extractPluginInfo(engine)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to extract plugin info from ${file.name}", e)
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_error",
+                    throwable = e,
+                    fields = mapOf(
+                        "operation" to "load",
+                        "status" to "failed",
+                        "fileName" to file.name,
+                        "phase" to "extract_metadata",
+                    ),
+                )
                 engine.close()
                 return null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load plugin from ${file.name}", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_error",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "load",
+                    "status" to "failed",
+                    "fileName" to file.name,
+                ),
+            )
             engine.close()
             return null
         }
@@ -1012,6 +1404,17 @@ class PluginManager @Inject constructor(
             val jsonStr = Json.encodeToString(userVars)
             engine.evaluate<Any?>("globalThis.__userVariables = JSON.parse('${jsonStr.escapeForJsString()}')")
         }
+
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_load_parse_success",
+            fields = mapOf(
+                "operation" to "load",
+                "status" to "success",
+                "platform" to info.platform,
+                "fileName" to file.name,
+            ),
+        )
 
         return LoadedPlugin(
             info = info,
@@ -1045,7 +1448,12 @@ class PluginManager @Inject constructor(
             val raw = runCatching {
                 engine.evaluate<Any?>("JSON.stringify(__plugin.userVariables)")?.toString()
             }.onFailure {
-                Log.w(TAG, "Failed to stringify userVariables, ignoring", it)
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_user_variables_stringify_failed",
+                    throwable = it,
+                    fields = mapOf("status" to "failed"),
+                )
             }.getOrNull()
             return parsePluginUserVariables(raw)
         }
@@ -1123,6 +1531,11 @@ internal fun parsePluginUserVariables(raw: String?): List<PluginUserVariable> {
             }
         }
     }.onFailure {
-        Log.w("PluginManager", "Failed to parse userVariables, ignoring", it)
+        MfLog.error(
+            category = LogCategory.PLUGIN,
+            event = "plugin_user_variables_parse_failed",
+            throwable = it,
+            fields = mapOf("status" to "failed"),
+        )
     }.getOrDefault(emptyList())
 }

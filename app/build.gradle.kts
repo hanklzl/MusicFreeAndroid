@@ -12,6 +12,7 @@ val releaseSigningEnvironmentVariables = listOf(
     "ANDROID_RELEASE_KEY_ALIAS",
     "ANDROID_RELEASE_KEY_PASSWORD",
 )
+val releaseLoganEnvironmentVariables = listOf("LOGAN_AES_KEY", "LOGAN_AES_IV")
 
 val releaseSigningRequested = gradle.startParameter.taskNames.any { taskName ->
     val normalizedTaskName = taskName.substringAfterLast(':')
@@ -29,6 +30,16 @@ fun requiredReleaseSigningEnv(name: String): String =
                 "Set ${releaseSigningEnvironmentVariables.joinToString()} before running a release build."
         )
 
+fun requiredReleaseLoganEnv(name: String): String =
+    providers.environmentVariable(name).orNull
+        ?: throw org.gradle.api.GradleException(
+            "Missing release Logan environment variable: $name. " +
+                "Set ${releaseLoganEnvironmentVariables.joinToString()} before running a release build."
+        )
+
+fun quotedBuildConfigString(value: String): String =
+    "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
 android {
     namespace = "com.zili.android.musicfreeandroid"
     compileSdk {
@@ -45,6 +56,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "com.zili.android.musicfreeandroid.HiltTestRunner"
+
+        buildConfigField("String", "LOGAN_AES_KEY", quotedBuildConfigString("0123456789abcdef"))
+        buildConfigField("String", "LOGAN_AES_IV", quotedBuildConfigString("abcdef0123456789"))
     }
 
     signingConfigs {
@@ -70,6 +84,18 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (releaseSigningRequested) {
+                buildConfigField(
+                    "String",
+                    "LOGAN_AES_KEY",
+                    quotedBuildConfigString(requiredReleaseLoganEnv("LOGAN_AES_KEY")),
+                )
+                buildConfigField(
+                    "String",
+                    "LOGAN_AES_IV",
+                    quotedBuildConfigString(requiredReleaseLoganEnv("LOGAN_AES_IV")),
+                )
+            }
         }
     }
     compileOptions {
@@ -78,6 +104,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -98,6 +125,7 @@ dependencies {
     implementation(project(":feature:player-ui"))
     implementation(project(":feature:search"))
     implementation(project(":feature:settings"))
+    implementation(project(":logging"))
     implementation(project(":downloader"))
 
     // AndroidX

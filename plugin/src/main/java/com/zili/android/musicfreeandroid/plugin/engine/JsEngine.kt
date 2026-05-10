@@ -1,10 +1,11 @@
 package com.zili.android.musicfreeandroid.plugin.engine
 
-import android.util.Log
 import com.dokar.quickjs.QuickJs
 import com.dokar.quickjs.binding.asyncFunction
 import com.dokar.quickjs.binding.define
 import com.dokar.quickjs.binding.function
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.LogCategory
 import kotlinx.coroutines.Dispatchers
 
 /**
@@ -19,8 +20,6 @@ class JsEngine private constructor(
 ) {
 
     companion object {
-        private const val TAG = "JsEngine"
-
         /**
          * Create a new JsEngine backed by a fresh QuickJs context.
          * Uses a single-thread dispatcher for JS thread affinity.
@@ -30,22 +29,33 @@ class JsEngine private constructor(
             // Register console object (quickjs-kt does not provide one by default)
             qjs.define("console") {
                 function<Any?>("log") { args ->
-                    Log.i("JSConsole", args.joinToString(" "))
+                    logConsole(level = "log", args = args)
                 }
                 function<Any?>("warn") { args ->
-                    Log.w("JSConsole", args.joinToString(" "))
+                    logConsole(level = "warn", args = args)
                 }
                 function<Any?>("error") { args ->
-                    Log.e("JSConsole", args.joinToString(" "))
+                    logConsole(level = "error", args = args)
                 }
                 function<Any?>("info") { args ->
-                    Log.i("JSConsole", args.joinToString(" "))
+                    logConsole(level = "info", args = args)
                 }
                 function<Any?>("debug") { args ->
-                    Log.d("JSConsole", args.joinToString(" "))
+                    logConsole(level = "debug", args = args)
                 }
             }
             return JsEngine(qjs)
+        }
+
+        private fun logConsole(level: String, args: Array<Any?>) {
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "js_console",
+                fields = mapOf(
+                    "level" to level,
+                    "detail" to args.joinToString(" ") { it?.toString().orEmpty() },
+                ),
+            )
         }
     }
 
@@ -65,7 +75,15 @@ class JsEngine private constructor(
         return try {
             quickJs.evaluate<Any?>(code)
         } catch (e: Exception) {
-            Log.w(TAG, "evaluateOrNull failed", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_error",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "evaluateOrNull",
+                    "status" to "failed",
+                ),
+            )
             null
         }
     }
@@ -103,7 +121,15 @@ class JsEngine private constructor(
         try {
             quickJs.close()
         } catch (e: Exception) {
-            Log.w(TAG, "Error closing QuickJs context", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_error",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "close",
+                    "status" to "failed",
+                ),
+            )
         }
     }
 

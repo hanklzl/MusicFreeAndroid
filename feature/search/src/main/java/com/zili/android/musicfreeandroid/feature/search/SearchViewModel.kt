@@ -1,8 +1,8 @@
 package com.zili.android.musicfreeandroid.feature.search
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zili.android.musicfreeandroid.core.media.MediaSourceResolution
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
@@ -11,10 +11,14 @@ import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.timedSuspend
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +27,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -43,10 +46,6 @@ class SearchViewModel @Inject constructor(
     private val downloader: Downloader,
     private val mediaSourceResolver: MediaSourceResolver,
 ) : ViewModel() {
-
-    companion object {
-        private const val TAG = "SearchViewModel"
-    }
 
     // ── 插件状态 ──
     private val _searchablePlugins = MutableStateFlow<List<PluginInfo>>(emptyList())
@@ -116,7 +115,7 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             val newId = UUID.randomUUID().toString()
             playlistRepository.createPlaylist(
-                Playlist(id = newId, name = name, coverUri = null)
+                Playlist(id = newId, name = name, coverUri = null),
             )
             playlistRepository.addMusicToPlaylist(newId, item)
             hideAddToPlaylistSheet()
@@ -130,7 +129,9 @@ class SearchViewModel @Inject constructor(
 
     /** 当前选中的 Tab 组合对应的搜索状态 */
     val currentPluginState: StateFlow<PluginSearchState> = combine(
-        _searchResults, _selectedMediaType, _selectedPlatform,
+        _searchResults,
+        _selectedMediaType,
+        _selectedPlatform,
     ) { results, mediaType, platform ->
         platform?.let { results[mediaType]?.get(it) } ?: PluginSearchState.Idle
     }.stateIn(viewModelScope, SharingStarted.Lazily, PluginSearchState.Idle)
@@ -149,8 +150,13 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching {
                 pluginManager.ensurePluginsLoaded()
-            }.onFailure { e ->
-                runCatching { Log.e(TAG, "Failed to load plugins", e) }
+            }.onFailure { error ->
+                MfLog.error(
+                    category = LogCategory.SEARCH,
+                    event = "search_plugins_load_failed",
+                    throwable = error,
+                    fields = mapOf("status" to "failed"),
+                )
             }
             pluginsReady = true
             updatePageStatusForPluginAvailability()
@@ -178,7 +184,7 @@ class SearchViewModel @Inject constructor(
     private fun updatePageStatusForPluginAvailability() {
         val searchable = searchablePluginsFor(_selectedMediaType.value)
         if (searchable == null) return
-        if (!searchable.isNullOrEmpty()) {
+        if (searchable.isNotEmpty()) {
             if (_pageStatus.value == SearchPageStatus.NO_PLUGIN) {
                 _pageStatus.value = SearchPageStatus.EDITING
             }
@@ -238,22 +244,86 @@ class SearchViewModel @Inject constructor(
         _searchResults.update { current ->
             current.toMutableMap().apply { put(mediaType, typeResults) }
         }
+        MfLog.detail(
+            category = LogCategory.SEARCH,
+            event = "search_start",
+            fields = mapOf(
+                "query" to query,
+                "type" to mediaType.key,
+                "platformCount" to plugins.size,
+                "status" to "start",
+            ),
+        )
 
         // 并行搜索每个插件
         plugins.forEach { pluginInfo ->
             viewModelScope.launch {
-                val plugin = pluginManager.getPlugin(pluginInfo.platform) ?: return@launch
+                val plugin = pluginManager.getPlugin(pluginInfo.platform)
+                if (plugin == null) {
+                    MfLog.error(
+                        category = LogCategory.SEARCH,
+                        event = "search_plugin_failed",
+                        fields = mapOf(
+                            "platform" to pluginInfo.platform,
+                            "type" to mediaType.key,
+                            "query" to query,
+                            "page" to 1,
+                            "status" to "failed",
+                            "reason" to "plugin_missing",
+                        ),
+                    )
+                    updatePluginState(mediaType, pluginInfo.platform, PluginSearchState.Error("插件不可用"))
+                    checkSearchCompletion(mediaType)
+                    return@launch
+                }
+
+                val startedAt = System.nanoTime()
                 try {
-                    val result = plugin.search(query, page = 1, type = mediaType.key)
-                    updatePluginState(mediaType, pluginInfo.platform, PluginSearchState.Success(
-                        items = result.data,
-                        isEnd = result.isEnd,
-                        page = 1,
-                    ))
-                } catch (e: Exception) {
-                    runCatching { Log.e(TAG, "Search failed for ${pluginInfo.platform}", e) }
-                    updatePluginState(mediaType, pluginInfo.platform,
-                        PluginSearchState.Error(e.message ?: "搜索失败"))
+                    val (result, durationMs) = timedSuspend {
+                        plugin.search(query, page = 1, type = mediaType.key)
+                    }
+                    MfLog.detail(
+                        category = LogCategory.SEARCH,
+                        event = "search_plugin_success",
+                        fields = mapOf(
+                            "platform" to pluginInfo.platform,
+                            "type" to mediaType.key,
+                            "query" to query,
+                            "page" to 1,
+                            "resultCount" to result.data.size,
+                            "isEnd" to result.isEnd,
+                            "status" to "success",
+                            "durationMs" to durationMs,
+                        ),
+                    )
+                    updatePluginState(
+                        mediaType,
+                        pluginInfo.platform,
+                        PluginSearchState.Success(
+                            items = result.data,
+                            isEnd = result.isEnd,
+                            page = 1,
+                        ),
+                    )
+                } catch (error: Exception) {
+                    MfLog.error(
+                        category = LogCategory.SEARCH,
+                        event = "search_plugin_failed",
+                        throwable = error,
+                        fields = mapOf(
+                            "platform" to pluginInfo.platform,
+                            "type" to mediaType.key,
+                            "query" to query,
+                            "page" to 1,
+                            "status" to "failed",
+                            "durationMs" to elapsedMs(startedAt),
+                        ),
+                    )
+                    updatePluginState(
+                        mediaType,
+                        pluginInfo.platform,
+                        PluginSearchState.Error(error.message ?: "搜索失败"),
+                    )
                 }
                 checkSearchCompletion(mediaType)
             }
@@ -313,15 +383,48 @@ class SearchViewModel @Inject constructor(
         val query = _currentQuery.value
 
         viewModelScope.launch {
+            val startedAt = System.nanoTime()
             try {
-                val result = plugin.search(query, page = nextPage, type = mediaType.key)
-                updatePluginState(mediaType, platform, current.copy(
-                    items = current.items + result.data,
-                    isEnd = result.isEnd,
-                    page = nextPage,
-                ))
-            } catch (e: Exception) {
-                runCatching { Log.e(TAG, "Load more failed", e) }
+                val (result, durationMs) = timedSuspend {
+                    plugin.search(query, page = nextPage, type = mediaType.key)
+                }
+                MfLog.detail(
+                    category = LogCategory.SEARCH,
+                    event = "search_plugin_success",
+                    fields = mapOf(
+                        "platform" to platform,
+                        "type" to mediaType.key,
+                        "query" to query,
+                        "page" to nextPage,
+                        "resultCount" to result.data.size,
+                        "isEnd" to result.isEnd,
+                        "status" to "success",
+                        "durationMs" to durationMs,
+                    ),
+                )
+                updatePluginState(
+                    mediaType,
+                    platform,
+                    current.copy(
+                        items = current.items + result.data,
+                        isEnd = result.isEnd,
+                        page = nextPage,
+                    ),
+                )
+            } catch (error: Exception) {
+                MfLog.error(
+                    category = LogCategory.SEARCH,
+                    event = "search_plugin_failed",
+                    throwable = error,
+                    fields = mapOf(
+                        "platform" to platform,
+                        "type" to mediaType.key,
+                        "query" to query,
+                        "page" to nextPage,
+                        "status" to "failed",
+                        "durationMs" to elapsedMs(startedAt),
+                    ),
+                )
             }
         }
     }
@@ -338,16 +441,28 @@ class SearchViewModel @Inject constructor(
 
     fun playNext(item: MusicItem) {
         playerController.addNextInQueue(item)
-        Log.d(TAG, "playNext: ${item.title} 已加入下一首")
+        MfLog.detail(
+            category = LogCategory.SEARCH,
+            event = "play_next_enqueued",
+            fields = mapOf(
+                "platform" to item.platform,
+                "itemId" to item.id,
+                "itemTitle" to item.title,
+            ),
+        )
     }
 
     fun resolveAndPlay(item: MusicItem, queue: List<MusicItem>) {
         viewModelScope.launch {
+            val startedAt = System.nanoTime()
+            var resolution: MediaSourceResolution? = null
             try {
-                val resolvedItem = if (item.url.isNullOrBlank()) {
-                    mediaSourceResolver.resolve(item)?.item
-                } else {
-                    item
+                val (resolvedItem, durationMs) = timedSuspend {
+                    if (item.url.isNullOrBlank()) {
+                        mediaSourceResolver.resolve(item)?.also { resolution = it }?.item
+                    } else {
+                        item
+                    }
                 }
                 if (resolvedItem != null) {
                     val index = queue.indexOfFirst {
@@ -361,14 +476,50 @@ class SearchViewModel @Inject constructor(
                         listOf(resolvedItem) + queue
                     }
                     val startIndex = if (index >= 0) index else 0
+                    MfLog.detail(
+                        category = LogCategory.SEARCH,
+                        event = "playback_resolve_success",
+                        fields = mapOf(
+                            "platform" to item.platform,
+                            "itemId" to item.id,
+                            "itemTitle" to item.title,
+                            "resolverPlatform" to (resolution?.resolverPlatform ?: item.platform),
+                            "redirected" to (resolution?.redirected ?: false),
+                            "status" to "success",
+                            "durationMs" to durationMs,
+                        ),
+                    )
                     playerController.playQueue(resolvedQueue, startIndex)
                     _playEvent.emit(PlayEvent.NavigateToPlayer)
                 } else {
-                    Log.w(TAG, "Failed to resolve media source for ${item.title}")
+                    MfLog.error(
+                        category = LogCategory.SEARCH,
+                        event = "playback_resolve_failed",
+                        fields = mapOf(
+                            "platform" to item.platform,
+                            "itemId" to item.id,
+                            "itemTitle" to item.title,
+                            "status" to "failed",
+                            "reason" to "no_source",
+                            "durationMs" to durationMs,
+                        ),
+                    )
                     _playEvent.emit(PlayEvent.Failed("播放失败，请重试"))
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "resolveAndPlay failed for ${item.title}", e)
+            } catch (error: Exception) {
+                MfLog.error(
+                    category = LogCategory.SEARCH,
+                    event = "playback_resolve_failed",
+                    throwable = error,
+                    fields = mapOf(
+                        "platform" to item.platform,
+                        "itemId" to item.id,
+                        "itemTitle" to item.title,
+                        "status" to "failed",
+                        "reason" to "resolve_and_play_error",
+                        "durationMs" to elapsedMs(startedAt),
+                    ),
+                )
                 _playEvent.emit(PlayEvent.Failed("播放失败，请重试"))
             }
         }
@@ -391,4 +542,7 @@ class SearchViewModel @Inject constructor(
     fun download(item: MusicItem, quality: PlayQuality) {
         downloader.enqueue(listOf(item), quality)
     }
+
+    private fun elapsedMs(startedAt: Long): Long =
+        (System.nanoTime() - startedAt) / 1_000_000
 }

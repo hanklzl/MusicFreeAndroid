@@ -15,6 +15,8 @@ import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.player.ext.defaultAlbumArtworkUri
 import com.zili.android.musicfreeandroid.player.ext.toMediaItem
 import com.zili.android.musicfreeandroid.player.model.PlaybackState
@@ -81,35 +83,58 @@ class PlayerController @Inject constructor(
     }
 
     suspend fun connect() {
-        connectionMutex.withLock {
-            attachNotificationControls()
-            if (mediaController != null) return
-            withContext(Dispatchers.Main.immediate) {
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "player_connect_start",
+            fields = mapOf("status" to "start"),
+        )
+        try {
+            connectionMutex.withLock {
                 attachNotificationControls()
-                if (mediaController != null) return@withContext
-                val sessionToken = SessionToken(
-                    context,
-                    ComponentName(context, PlaybackService::class.java),
-                )
-                val controller = suspendCancellableCoroutine { cont ->
-                    val future = MediaController.Builder(context, sessionToken).buildAsync()
-                    future.addListener(
-                        {
-                            try {
-                                cont.resume(future.get())
-                            } catch (e: Exception) {
-                                cont.resumeWithException(e)
-                            }
-                        },
-                        MoreExecutors.directExecutor(),
+                if (mediaController != null) return
+                withContext(Dispatchers.Main.immediate) {
+                    attachNotificationControls()
+                    if (mediaController != null) return@withContext
+                    val sessionToken = SessionToken(
+                        context,
+                        ComponentName(context, PlaybackService::class.java),
                     )
-                    cont.invokeOnCancellation { MediaController.releaseFuture(future) }
+                    val controller = suspendCancellableCoroutine { cont ->
+                        val future = MediaController.Builder(context, sessionToken).buildAsync()
+                        future.addListener(
+                            {
+                                try {
+                                    cont.resume(future.get())
+                                } catch (error: Exception) {
+                                    cont.resumeWithException(error)
+                                }
+                            },
+                            MoreExecutors.directExecutor(),
+                        )
+                        cont.invokeOnCancellation { MediaController.releaseFuture(future) }
+                    }
+                    mediaController = controller
+                    controller.addListener(playerListener)
+                    attachNotificationControls()
+                    emitState()
                 }
-                mediaController = controller
-                controller.addListener(playerListener)
-                attachNotificationControls()
-                emitState()
             }
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "player_connect_success",
+                fields = mapOf("status" to "success"),
+            )
+        } catch (error: Exception) {
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "player_connect_failed",
+                throwable = error,
+                fields = mapOf(
+                    "status" to "failed",
+                    "errorClass" to error::class.java.name,
+                ),
+            )
+            throw error
         }
     }
 
@@ -381,6 +406,16 @@ class PlayerController @Inject constructor(
     ) {
         attachNotificationControls()
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "playback_start",
+                fields = mapOf(
+                    "status" to "start",
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "expectedIndex" to expectedIndex,
+                ),
+            )
             val playable = resolvePlayableItem(item)
             if (playable == null) {
                 rollbackPlaybackSelection(expectedIndex, item, rollbackIndex)
@@ -398,8 +433,18 @@ class PlayerController @Inject constructor(
                     controller.setMediaItem(mediaItem)
                     controller.prepare()
                     controller.play()
-                } catch (e: RuntimeException) {
-                    _errorEvents.tryEmit("播放失败: ${e.message}")
+                } catch (error: RuntimeException) {
+                    MfLog.error(
+                        category = LogCategory.PLAYER,
+                        event = "playback_failed",
+                        throwable = error,
+                        fields = mapOf(
+                            "platform" to playable.platform,
+                            "itemId" to playable.id,
+                            "status" to "failed",
+                        ),
+                    )
+                    _errorEvents.tryEmit("播放失败: ${error.message}")
                 }
             }
         }
@@ -427,13 +472,50 @@ class PlayerController @Inject constructor(
     private suspend fun resolvePlayableItem(item: MusicItem): MusicItem? {
         if (!item.url.isNullOrBlank()) return item
 
+        val startedAt = System.nanoTime()
         val resolution = runCatching {
             mediaSourceResolver.resolve(item)
+        }.onFailure { error ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "playback_resolve_failed",
+                throwable = error,
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "status" to "failed",
+                    "reason" to "resolver_exception",
+                    "durationMs" to elapsedMs(startedAt),
+                ),
+            )
         }.getOrNull()
         val playable = resolution?.item
         return if (!playable?.url.isNullOrBlank()) {
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "playback_resolve_success",
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "resolverPlatform" to resolution.resolverPlatform,
+                    "redirected" to resolution.redirected,
+                    "status" to "success",
+                    "durationMs" to elapsedMs(startedAt),
+                ),
+            )
             playable
         } else {
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "playback_resolve_failed",
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "status" to "failed",
+                    "reason" to "no_source",
+                    "durationMs" to elapsedMs(startedAt),
+                ),
+            )
             _errorEvents.emit("播放失败: 无法解析音源")
             null
         }
@@ -471,8 +553,17 @@ class PlayerController @Inject constructor(
         connectJob = scope.launch {
             runCatching {
                 connect()
-            }.onFailure { e ->
-                _errorEvents.emit("播放服务连接失败: ${e.message}")
+            }.onFailure { error ->
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "playback_failed",
+                    throwable = error,
+                    fields = mapOf(
+                        "status" to "failed",
+                        "reason" to "controller_connect_failed",
+                    ),
+                )
+                _errorEvents.emit("播放服务连接失败: ${error.message}")
                 return@launch
             }
 
@@ -597,6 +688,9 @@ class PlayerController @Inject constructor(
             currentIndex = playQueue.currentIndex,
         )
     }
+
+    private fun elapsedMs(startedAt: Long): Long =
+        (System.nanoTime() - startedAt) / 1_000_000
 
     companion object {
         private const val POSITION_UPDATE_INTERVAL_MS = 200L

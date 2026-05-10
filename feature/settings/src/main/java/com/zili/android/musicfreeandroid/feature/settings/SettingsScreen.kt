@@ -1,5 +1,8 @@
 package com.zili.android.musicfreeandroid.feature.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,16 +11,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zili.android.musicfreeandroid.core.navigation.SettingsType
@@ -26,6 +36,8 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
 
 @Composable
 fun SettingsScreen(
@@ -39,6 +51,53 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val basicState by viewModel.basicSettingsUiState.collectAsStateWithLifecycle()
+    val feedbackExportUiState by viewModel.feedbackExportUiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var showFeedbackConfirm by remember { mutableStateOf(false) }
+
+    LaunchedEffect(context, viewModel, feedbackExportUiState.pendingPackage) {
+        feedbackExportUiState.pendingPackage?.let { packageItem ->
+            val feedbackUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.feedback-files",
+                packageItem.file,
+            )
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                setType("application/zip")
+                putExtra(Intent.EXTRA_STREAM, feedbackUri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            try {
+                context.startActivity(Intent.createChooser(shareIntent, "分享日志包"))
+            } catch (error: ActivityNotFoundException) {
+                MfLog.error(
+                    LogCategory.FEEDBACK,
+                    "feedback_package_share_failed",
+                    error,
+                )
+                viewModel.onFeedbackExportError("未找到可用于分享日志包的应用")
+            } catch (error: RuntimeException) {
+                MfLog.error(
+                    LogCategory.FEEDBACK,
+                    "feedback_package_share_failed",
+                    error,
+                )
+                viewModel.onFeedbackExportError("分享日志包失败，请稍后重试")
+            } finally {
+                viewModel.onFeedbackPackageShared()
+            }
+        }
+    }
+
+    LaunchedEffect(context, viewModel, feedbackExportUiState.errorMessage) {
+        feedbackExportUiState.errorMessage?.let { errorMessage ->
+            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            viewModel.clearFeedbackError()
+        }
+    }
+
     MusicFreeScreenScaffold(
         title = type.title(),
         onBack = onBack,
@@ -50,11 +109,14 @@ fun SettingsScreen(
         when (type) {
             SettingsType.Basic -> BasicSettingsContent(
                 state = basicState,
+                feedbackExportState = feedbackExportUiState,
                 onMaxDownloadChange = viewModel::setMaxDownload,
                 onDefaultDownloadQualityChange = viewModel::setDefaultDownloadQuality,
                 onUseCellularDownloadChange = viewModel::setUseCellularDownload,
                 onLyricAutoSearchEnabledChange = viewModel::setLyricAutoSearchEnabled,
                 onNavigateToFileSelector = onNavigateToFileSelector,
+                onCreateFeedbackPackage = { showFeedbackConfirm = true },
+                onClearLogs = viewModel::clearLogs,
                 modifier = Modifier.padding(innerPadding),
             )
 
@@ -99,6 +161,44 @@ fun SettingsScreen(
             )
         }
     }
+
+    if (showFeedbackConfirm) {
+        FeedbackExportConfirmDialog(
+            onDismiss = { showFeedbackConfirm = false },
+            onConfirm = {
+                showFeedbackConfirm = false
+                viewModel.createFeedbackPackage()
+            },
+        )
+    }
+}
+
+@Composable
+private fun FeedbackExportConfirmDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "分享日志包")
+        },
+        text = {
+            Text(
+                text = "日志包可能包含搜索词、请求地址、插件返回内容以及设备信息。\n\n仅在需要排查问题时用于反馈。",
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = "继续")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "取消")
+            }
+        },
+    )
 }
 
 @Composable

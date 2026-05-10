@@ -38,6 +38,7 @@ kotlin {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":logging"))
 
     // Hilt
     implementation(libs.hilt.android)

@@ -1,8 +1,9 @@
 package com.zili.android.musicfreeandroid.plugin.engine
 
-import android.util.Log
 import com.dokar.quickjs.binding.asyncFunction
 import com.dokar.quickjs.binding.function
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.LogCategory
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback
@@ -31,9 +32,12 @@ import kotlin.coroutines.resumeWithException
  */
 object AxiosShim {
 
-    private const val TAG = "AxiosShim"
     private const val NETEASE_IMAGE_MAGIC = "3go8&$8*3*3h0k(2)2"
     private const val NETEASE_IMAGE_HOST = "https://p1.music.126.net"
+    private const val REQUEST_BODY_PREVIEW_CHARS = 200
+    private const val RESPONSE_BODY_PREVIEW_CHARS = 240
+    private const val HEADER_VALUE_PREVIEW_CHARS = 120
+    private const val HEADER_PREVIEW_CHARS = 600
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -90,7 +94,15 @@ object AxiosShim {
             val config = args.getOrNull(1) as? Map<*, *>
             performGet(url = url, config = config)
         } catch (e: Exception) {
-            Log.e(TAG, "axios.get failed", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "axios_request_failed",
+                throwable = e,
+                fields = mapOf(
+                    "method" to "GET",
+                    "status" to "failed",
+                ),
+            )
             buildErrorResponse(e.message ?: "Unknown error")
         }
     }
@@ -103,7 +115,15 @@ object AxiosShim {
             val config = args.getOrNull(2) as? Map<*, *>
             performPost(url = url, bodyArg = bodyArg, config = config)
         } catch (e: Exception) {
-            Log.e(TAG, "axios.post failed", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "axios_request_failed",
+                throwable = e,
+                fields = mapOf(
+                    "method" to "POST",
+                    "status" to "failed",
+                ),
+            )
             buildErrorResponse(e.message ?: "Unknown error")
         }
     }
@@ -123,7 +143,16 @@ object AxiosShim {
                 else -> buildErrorResponse("Unsupported method: $method")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "axios.request failed", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "axios_request_failed",
+                throwable = e,
+                fields = mapOf(
+                    "method" to method.uppercase(),
+                    "url" to url,
+                    "status" to "failed",
+                ),
+            )
             buildErrorResponse(e.message ?: "Unknown error")
         }
     }
@@ -132,12 +161,21 @@ object AxiosShim {
         val fullUrl = buildUrlWithParams(url, config)
         val requestBuilder = Request.Builder().url(fullUrl).get()
         applyHeaders(requestBuilder, config)
+        val headers = requestBuilder.build().headers
+        logRequest(method = "GET", url = fullUrl, headers = headers)
 
-        Log.i(TAG, "REQ GET  $fullUrl headers=${headersPreview(config)}")
+        val startedAt = System.currentTimeMillis()
         val response = client.newCall(requestBuilder.build()).await()
         return response.use {
             val body = readResponseBody(it)
-            logResponsePreview(method = "GET", url = fullUrl, status = it.code, body = body)
+            logResponse(
+                method = "GET",
+                url = fullUrl,
+                status = it.code,
+                headers = it.headers,
+                body = body,
+                durationMs = System.currentTimeMillis() - startedAt,
+            )
             buildResponse(it.code, body, it.headers)
         }
     }
@@ -165,12 +203,25 @@ object AxiosShim {
 
         val requestBuilder = Request.Builder().url(fullUrl).post(requestBody)
         applyHeaders(requestBuilder, config)
+        logRequest(
+            method = "POST",
+            url = fullUrl,
+            headers = requestBuilder.build().headers,
+            bodyPreview = bodyString.takePreview(REQUEST_BODY_PREVIEW_CHARS),
+        )
 
-        Log.i(TAG, "REQ POST $fullUrl headers=${headersPreview(config)} body=${bodyString.take(400)}")
+        val startedAt = System.currentTimeMillis()
         val response = client.newCall(requestBuilder.build()).await()
         return response.use {
             val body = readResponseBody(it)
-            logResponsePreview(method = "POST", url = fullUrl, status = it.code, body = body)
+            logResponse(
+                method = "POST",
+                url = fullUrl,
+                status = it.code,
+                headers = it.headers,
+                body = body,
+                durationMs = System.currentTimeMillis() - startedAt,
+            )
             buildResponse(it.code, body, it.headers)
         }
     }
@@ -217,7 +268,8 @@ object AxiosShim {
     }
 
     private fun readResponseBody(response: Response): String? {
-        val body = response.body ?: return null
+        val body: okhttp3.ResponseBody? = response.body
+        if (body == null) return null
         val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
         val bytes = body.bytes()
         if (bytes.isEmpty()) return ""
@@ -232,22 +284,72 @@ object AxiosShim {
                 else -> bytes
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to decode response body with Content-Encoding='$encoding'", e)
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "axios_response_decode_failed",
+                throwable = e,
+                fields = mapOf(
+                    "status" to response.code,
+                    "encoding" to encoding,
+                ),
+            )
             bytes
         }
         return decodedBytes.toString(charset)
     }
 
-    private fun logResponsePreview(method: String, url: String, status: Int, body: String?) {
-        val preview = body?.replace("\n", " ")?.replace("\r", " ")?.take(800) ?: ""
-        Log.i(TAG, "RES $method $url -> $status body=$preview")
+    private fun logRequest(method: String, url: String, headers: Headers, bodyPreview: String? = null) {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "axios_request",
+            fields = mapOf(
+                "method" to method,
+                "url" to url,
+                "status" to "start",
+                "headerPreview" to headersPreview(headers),
+            ) + (bodyPreview?.let { mapOf("bodyPreview" to it) }.orEmpty()),
+        )
     }
 
-    private fun headersPreview(config: Map<*, *>?): String {
-        val headers = config?.get("headers") as? Map<*, *> ?: return "{}"
-        return headers.entries.joinToString(",", "{", "}") { (k, v) ->
-            "${k}=${v.toString().take(80)}"
-        }
+    private fun logResponse(
+        method: String,
+        url: String,
+        status: Int,
+        headers: Headers,
+        body: String?,
+        durationMs: Long,
+    ) {
+        val preview = body
+            ?.replace("\n", " ")
+            ?.replace("\r", " ")
+            ?.takePreview(RESPONSE_BODY_PREVIEW_CHARS)
+            ?: ""
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "axios_response",
+            fields = mapOf(
+                "method" to method,
+                "url" to url,
+                "status" to status,
+                "durationMs" to durationMs,
+                "headerPreview" to headersPreview(headers),
+                "bodyPreview" to preview,
+            ),
+        )
+    }
+
+    private fun headersPreview(headers: Headers): String {
+        return headers.names().joinToString(",") { name ->
+            val values = headers.values(name)
+            val joined = values.joinToString("|") { value ->
+                value.takePreview(HEADER_VALUE_PREVIEW_CHARS)
+            }
+            "$name=$joined"
+        }.takePreview(HEADER_PREVIEW_CHARS)
+    }
+
+    private fun String.takePreview(maxChars: Int): String {
+        return if (length <= maxChars) this else "${take(maxChars)}..."
     }
 
     private fun buildUrlWithParams(baseUrl: String, config: Map<*, *>?): String {

@@ -16,6 +16,8 @@ import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.zili.android.musicfreeandroid.core.R as CoreR
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.player.R
 import com.zili.android.musicfreeandroid.player.source.HeaderInjectingDataSourceFactory
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,6 +36,14 @@ class PlaybackService : MediaSessionService() {
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
         ): MediaSession.ConnectionResult {
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "playback_session_connect",
+                fields = mapOf(
+                    "status" to "start",
+                    "controllerPackage" to controller.packageName,
+                ),
+            )
             val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
                 .buildUpon()
                 .add(PlaybackNotificationActions.SkipToPreviousCommand)
@@ -53,6 +63,15 @@ class PlaybackService : MediaSessionService() {
             customCommand: SessionCommand,
             args: android.os.Bundle,
         ): ListenableFuture<SessionResult> {
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "playback_custom_command",
+                fields = mapOf(
+                    "status" to "start",
+                    "command" to customCommand.customAction,
+                    "controllerPackage" to controller.packageName,
+                ),
+            )
             when (customCommand.customAction) {
                 PlaybackNotificationActions.ACTION_SKIP_TO_PREVIOUS -> {
                     PlaybackNotificationCommandHandler.skipToPrevious()
@@ -69,6 +88,13 @@ class PlaybackService : MediaSessionService() {
     @AndroidXOptIn(markerClass = [UnstableApi::class])
     override fun onCreate() {
         super.onCreate()
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "playback_service_created",
+            fields = mapOf(
+                "status" to "start",
+            ),
+        )
 
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider.Builder(this)
@@ -114,6 +140,13 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "playback_service_destroyed",
+            fields = mapOf(
+                "status" to "start",
+            ),
+        )
         mediaSession?.run {
             player.release()
             release()

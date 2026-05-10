@@ -36,6 +36,8 @@ import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayer
 import com.zili.android.musicfreeandroid.navigation.AndroidHomeSystemActionHandler
 import com.zili.android.musicfreeandroid.navigation.AppNavHost
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -50,6 +52,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+        MfLog.trace(LogCategory.APP, "main_activity_create_start")
         super.onCreate(savedInstanceState)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -68,13 +71,21 @@ class MainActivity : ComponentActivity() {
             }
         }
         enableEdgeToEdge()
+        MfLog.trace(LogCategory.APP, "edge_to_edge_enabled")
         setContent {
             MusicFreeTheme {
                 val notificationPermission = requiredNotificationPermission()
                 val notificationPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission(),
                 ) {
-                    // The permission state is also visible from Settings > 权限管理.
+                    MfLog.trace(
+                        LogCategory.APP,
+                        "notification_permission_result",
+                        mapOf(
+                            "permission" to (notificationPermission ?: "none"),
+                            "granted" to it,
+                        ),
+                    )
                 }
                 LaunchedEffect(notificationPermission) {
                     if (
@@ -85,6 +96,19 @@ class MainActivity : ComponentActivity() {
                         ) != PackageManager.PERMISSION_GRANTED
                     ) {
                         notificationPermissionLauncher.launch(notificationPermission)
+                    } else {
+                        MfLog.trace(
+                            LogCategory.APP,
+                            "notification_permission_result",
+                            mapOf(
+                                "permission" to (notificationPermission ?: "none"),
+                                "granted" to (notificationPermission == null ||
+                                    ContextCompat.checkSelfPermission(
+                                        this@MainActivity,
+                                        notificationPermission,
+                                    ) == PackageManager.PERMISSION_GRANTED),
+                            ),
+                        )
                     }
                 }
                 val navController = rememberNavController()

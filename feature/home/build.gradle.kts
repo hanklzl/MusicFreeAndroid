@@ -48,6 +48,7 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":player"))
     implementation(project(":data"))
+    implementation(project(":logging"))
     implementation(project(":plugin"))
     implementation(project(":downloader"))
     implementation(libs.androidx.activity.compose)

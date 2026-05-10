@@ -12,6 +12,8 @@ import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.logging.FeedbackLogExporterContract
+import com.zili.android.musicfreeandroid.logging.FeedbackPackage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -74,7 +76,7 @@ class SettingsScreenTest {
         type: SettingsType,
         onNavigateToPluginList: () -> Unit = {},
     ) {
-        val viewModel = SettingsViewModel(createAppPreferences())
+        val viewModel = SettingsViewModel(createAppPreferences(), FakeFeedbackLogExporter())
         composeRule.setContent {
             MusicFreeTheme {
                 SettingsScreen(
@@ -97,5 +99,20 @@ class SettingsScreenTest {
             produceFile = { tmpFolder.newFile("settings-screen-test.preferences_pb") },
         )
         return AppPreferences(dataStore)
+    }
+
+    private inner class FakeFeedbackLogExporter : FeedbackLogExporterContract {
+        override suspend fun createPackage(): FeedbackPackage {
+            val file = tmpFolder.newFile("settings-screen-feedback.zip")
+            return FeedbackPackage(file = file, fileName = file.name, sizeBytes = file.length())
+        }
+
+        override suspend fun clearLogs() {
+            // no-op
+        }
+
+        override suspend fun pruneLogs() {
+            // no-op
+        }
     }
 }
