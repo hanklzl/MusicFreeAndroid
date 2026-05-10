@@ -4,8 +4,8 @@
 > 适用范围：PlayerController 连接与状态、MediaSessionService 生命周期、播放器沉浸式 chrome、歌词跟随
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
-> 设计来源：[Dev Harness 基础设施设计](../../superpowers/specs/2026-05-09-dev-harness-foundation-design.md)、[播放器状态栏避让设计](../../superpowers/specs/2026-05-04-player-statusbar-inset-design.md)、[播放页歌词交互修正设计](../../superpowers/specs/2026-05-05-player-lyrics-interaction-fix-design.md)
-> 最后校验：2026-05-09
+> 设计来源：[Dev Harness 基础设施设计](../../superpowers/specs/2026-05-09-dev-harness-foundation-design.md)、[播放器状态栏避让设计](../../superpowers/specs/2026-05-04-player-statusbar-inset-design.md)、[播放页歌词交互修正设计](../../superpowers/specs/2026-05-05-player-lyrics-interaction-fix-design.md)、[歌词纯秒小数时间戳修复设计](../../superpowers/specs/2026-05-10-lyric-second-only-timestamp-fix-design.md)
+> 最后校验：2026-05-10
 
 ## 强制入口
 
@@ -40,3 +40,11 @@ implemented_by: INC-2026-0012
 
 - `PlaybackService` MUST 在 `onTaskRemoved`、`onDestroy` 中按 RN 行为停止当前播放或保留媒体通知（依现有实现，详见 `2026-05-04-playback-notification-design.md`）。
 - 不在本 rule 强制具体策略；只要求改动 PR 对照该 spec。
+
+## 歌词解析时间戳格式 {#rule-lyric-parser-supports-second-only-timestamp}
+
+implemented_by: INC-2026-0017
+
+- `LyricParser` MUST 接受 RN `timeReg=/\[[\d:.]+\]/g` 兼容的全部三档 LRC 时间戳：`[hh:mm:ss(.ff)?]`、`[mm:ss(.ff)?]`、`[s(.ff)?]`。
+- `LyricParser.parseTimestampMs` 与 `timestampTokenRegex`、`LyricDocument.lyricTimestampRegex` 必须使用一致的格式集合，禁止任一处单独收紧到要求 colon。
+- 任何放宽/收紧时间戳 regex 或 timestamp 解析的 PR MUST 跑 `:core:testDebugUnitTest --tests *LyricParserTest --tests *LyricTimingTest` 与 `:feature:player-ui:testDebugUnitTest --tests *LyricTimestampFormatContractTest`。

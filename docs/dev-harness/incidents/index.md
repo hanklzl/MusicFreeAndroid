@@ -38,3 +38,4 @@
 | INC-2026-0014 | plugin | userVariables 写入并发竞态 | [plugin/rules.md#rule-user-variable-serialization](../plugin/rules.md#rule-user-variable-serialization) | manual |
 | INC-2026-0015 | ui | Drawer / 浮层未让 status bar | [ui/rules.md#rule-overlay-respects-statusbar](../ui/rules.md#rule-overlay-respects-statusbar) | manual |
 | INC-2026-0016 | test | 测试 fixture 没跟生产 VM 构造器更新 | [test/rules.md#rule-test-fixture-must-track-vm-ctor](../test/rules.md#rule-test-fixture-must-track-vm-ctor) | ci-step |
+| INC-2026-0017 | player | 纯秒小数 LRC 时间戳 [s.ff] 未识别 | [player/rules.md#rule-lyric-parser-supports-second-only-timestamp](../player/rules.md#rule-lyric-parser-supports-second-only-timestamp) | contract-test |

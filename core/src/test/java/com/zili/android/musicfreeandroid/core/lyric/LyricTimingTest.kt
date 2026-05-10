@@ -87,4 +87,15 @@ class LyricTimingTest {
             ),
         )
     }
+
+    @Test
+    fun untimedLinesReturnNullCurrentIndex() {
+        val untimedLines = listOf(
+            ParsedLyricLine(index = 0, timeMs = 0L, text = "A"),
+            ParsedLyricLine(index = 1, timeMs = 0L, text = "B"),
+            ParsedLyricLine(index = 2, timeMs = 0L, text = "C"),
+        )
+
+        assertNull(LyricTiming.currentLineIndex(untimedLines, playbackPositionMs = 12_000L))
+    }
 }

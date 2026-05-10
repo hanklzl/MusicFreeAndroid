@@ -15,6 +15,6 @@ data class LyricDocument(
     val hasTranslation: Boolean get() = lines.any { !it.translation.isNullOrBlank() }
 }
 
-private val lyricTimestampRegex = Regex("\\[(?:\\d+:)?\\d+:\\d+(?:\\.\\d+)?]")
+private val lyricTimestampRegex = Regex("\\[(?:\\d+:){0,2}\\d+(?:\\.\\d+)?]")
 
 private fun String.containsValidTimestamp(): Boolean = lyricTimestampRegex.containsMatchIn(this)

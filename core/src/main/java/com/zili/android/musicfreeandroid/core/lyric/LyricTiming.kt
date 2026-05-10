@@ -11,6 +11,7 @@ object LyricTiming {
         metaOffsetMs: Long = 0L,
     ): Int? {
         if (lines.isEmpty()) return null
+        if (lines.size > 1 && lines.all { it.timeMs == 0L }) return null
 
         val lyricClockMs = playbackPositionMs + userOffsetMs - metaOffsetMs
         if (lyricClockMs < lines.first().timeMs) return null
