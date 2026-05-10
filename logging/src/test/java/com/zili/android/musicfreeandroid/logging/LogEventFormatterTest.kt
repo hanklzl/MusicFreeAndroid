@@ -60,6 +60,8 @@ class LogEventFormatterTest {
 
     @Test
     fun `formats supported field types`() {
+        assertEquals("success", LogFields.Result.SUCCESS)
+
         val line = LogEventFormatter.format(
             level = LogLevel.DETAIL,
             category = LogCategory.PLAYER,
