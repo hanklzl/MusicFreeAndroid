@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.zili.android.musicfreeandroid.core.model.StarredSheet
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
+import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -27,7 +28,7 @@ class StarredSheetRepositoryTest {
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
-        repository = StarredSheetRepository(db.starredSheetDao())
+        repository = StarredSheetRepository(db.starredSheetDao(), Converters())
     }
 
     @After

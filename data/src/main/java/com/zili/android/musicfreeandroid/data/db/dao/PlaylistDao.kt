@@ -30,6 +30,9 @@ interface PlaylistDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylist(playlist: PlaylistEntity)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPlaylistIgnore(playlist: PlaylistEntity): Long
+
     @Update
     suspend fun updatePlaylist(playlist: PlaylistEntity)
 

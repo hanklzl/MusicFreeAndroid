@@ -19,6 +19,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,12 +34,16 @@ class PlaylistRepository @Inject constructor(
 ) {
 
     fun observeAllPlaylists(): Flow<List<Playlist>> =
-        playlistDao.observeAllPlaylistsWithCount().map { rows ->
+        playlistDao.observeAllPlaylistsWithCount().onStart {
+            ensureFavoritePlaylist()
+        }.map { rows ->
             rows.map { it.playlist.toModel(worksNum = it.worksNum, legacyCoverResolver = ::resolveLegacyCoverUri) }
         }
 
     fun observePlaylist(id: String): Flow<Playlist?> =
-        playlistDao.observePlaylistWithCount(id).map { row ->
+        playlistDao.observePlaylistWithCount(id).onStart {
+            if (id == Playlist.DEFAULT_FAVORITE_ID) ensureFavoritePlaylist()
+        }.map { row ->
             row?.playlist?.toModel(worksNum = row.worksNum, legacyCoverResolver = ::resolveLegacyCoverUri)
         }
 
@@ -48,9 +53,12 @@ class PlaylistRepository @Inject constructor(
     fun observeFavorite(): Flow<Playlist?> = observePlaylist(Playlist.DEFAULT_FAVORITE_ID)
 
     fun isFavorite(item: MusicItem): Flow<Boolean> =
-        playlistDao.observeIsInPlaylist(Playlist.DEFAULT_FAVORITE_ID, item.id, item.platform)
+        playlistDao.observeIsInPlaylist(Playlist.DEFAULT_FAVORITE_ID, item.id, item.platform).onStart {
+            ensureFavoritePlaylist()
+        }
 
     suspend fun toggleFavorite(item: MusicItem) {
+        ensureFavoritePlaylist()
         val present = playlistDao.isInPlaylist(Playlist.DEFAULT_FAVORITE_ID, item.id, item.platform)
         if (present) removeMusicFromPlaylist(Playlist.DEFAULT_FAVORITE_ID, item)
         else addMusicToPlaylist(Playlist.DEFAULT_FAVORITE_ID, item)
@@ -183,6 +191,17 @@ class PlaylistRepository @Inject constructor(
         } else {
             null
         }
+
+    private suspend fun ensureFavoritePlaylist() {
+        val now = System.currentTimeMillis()
+        playlistDao.insertPlaylistIgnore(
+            Playlist(
+                id = Playlist.DEFAULT_FAVORITE_ID,
+                name = Playlist.DEFAULT_FAVORITE_NAME,
+                coverUri = null,
+            ).toEntity(createdAt = now, updatedAt = now),
+        )
+    }
 
     companion object { private const val LEGACY_COVER_PREFIX = PlaylistCoverStore.BASE_DIR_NAME + "/" }
 }

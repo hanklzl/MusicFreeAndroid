@@ -13,6 +13,10 @@ data class StarredSheetEntity(
     val artist: String?,
     val coverUri: String?,
     val sourceUrl: String?,
+    val description: String? = null,
+    val artwork: String? = null,
+    val worksNum: Int? = null,
+    val rawJson: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
 )
