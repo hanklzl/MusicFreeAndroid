@@ -9,6 +9,11 @@ object SeedFavoriteCallback : RoomDatabase.Callback() {
         seedFavoriteRow(db)
     }
 
+    override fun onOpen(db: SupportSQLiteDatabase) {
+        super.onOpen(db)
+        seedFavoriteRow(db)
+    }
+
     fun seedFavoriteRow(db: SupportSQLiteDatabase) {
         val now = System.currentTimeMillis()
         db.execSQL(

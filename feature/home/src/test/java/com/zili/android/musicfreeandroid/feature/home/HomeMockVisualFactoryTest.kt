@@ -50,9 +50,32 @@ class HomeMockVisualFactoryTest {
         ),
     )
 
+    private val fakeStarredRows = listOf(
+        HomeSheetUiModel(
+            id = "starred-sheet-1",
+            platform = "demo",
+            tab = HomeSheetTab.Starred,
+            title = "收藏歌单 A",
+            subtitle = "Demo Artist",
+            coverUri = "https://example.com/cover-a.jpg",
+        ),
+        HomeSheetUiModel(
+            id = "starred-sheet-2",
+            platform = "kuwo",
+            tab = HomeSheetTab.Starred,
+            title = "收藏歌单 B",
+            subtitle = "Kuwo Artist",
+            coverUri = "https://example.com/cover-b.jpg",
+        ),
+    )
+
     @Test
     fun `mine tab exposes passed-in playlist rows`() {
-        val uiModel = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine, mineRows = fakeMineRows)
+        val uiModel = buildHomeVisualUiModel(
+            selectedTab = HomeSheetTab.Mine,
+            mineRows = fakeMineRows,
+            starredRows = fakeStarredRows,
+        )
 
         assertEquals("点击这里开始搜索", uiModel.searchPlaceholder)
         assertEquals(
@@ -66,22 +89,29 @@ class HomeMockVisualFactoryTest {
         )
         assertEquals(HomeSheetTab.Mine, uiModel.playlistSection.selectedTab)
         assertEquals(4, uiModel.playlistSection.rows.size)
+        assertEquals(2, uiModel.playlistSection.starredCount)
         assertEquals(fakeMineRows.map { it.id }, uiModel.playlistSection.rows.map { it.id })
         assertTrue(uiModel.playlistSection.rows.all { it.subtitle.isNotBlank() })
     }
 
     @Test
-    fun `starred tab mock state swaps row set without changing header counts`() {
-        val mine = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine, mineRows = fakeMineRows)
-        val starred = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Starred, mineRows = fakeMineRows)
+    fun `starred tab exposes passed-in starred rows without mock fallback`() {
+        val mine = buildHomeVisualUiModel(
+            selectedTab = HomeSheetTab.Mine,
+            mineRows = fakeMineRows,
+            starredRows = fakeStarredRows,
+        )
+        val starred = buildHomeVisualUiModel(
+            selectedTab = HomeSheetTab.Starred,
+            mineRows = fakeMineRows,
+            starredRows = fakeStarredRows,
+        )
 
         assertEquals(mine.playlistSection.mineCount, starred.playlistSection.mineCount)
         assertEquals(mine.playlistSection.starredCount, starred.playlistSection.starredCount)
         assertEquals(4, mine.operations.size)
         assertEquals(4, starred.operations.size)
-        assertNotEquals(
-            mine.playlistSection.rows.map { it.id },
-            starred.playlistSection.rows.map { it.id },
-        )
+        assertNotEquals(mine.playlistSection.rows.map { it.id }, starred.playlistSection.rows.map { it.id })
+        assertEquals(fakeStarredRows.map { it.id }, starred.playlistSection.rows.map { it.id })
     }
 }

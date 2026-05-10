@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,6 +60,7 @@ fun PluginSheetDetailScreen(
     val scope = rememberCoroutineScope()
     val sheetState by viewModel.sheetState.collectAsState()
     val allPlaylists by viewModel.allPlaylists.collectAsState()
+    val isSheetStarred by viewModel.isSheetStarred.collectAsStateWithLifecycle()
     var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
     var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
     val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
@@ -66,6 +69,15 @@ fun PluginSheetDetailScreen(
         title = uiState.title,
         onBack = onBack,
         modifier = modifier.fillMaxSize(),
+        actions = {
+            IconButton(onClick = { viewModel.toggleSheetStarred() }) {
+                Icon(
+                    painter = painterResource(id = if (isSheetStarred) R.drawable.ic_heart else R.drawable.ic_heart_outline),
+                    contentDescription = if (isSheetStarred) "取消收藏歌单" else "收藏歌单",
+                    tint = if (isSheetStarred) MusicFreeTheme.colors.primary else MusicFreeTheme.colors.appBarText,
+                )
+            }
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier

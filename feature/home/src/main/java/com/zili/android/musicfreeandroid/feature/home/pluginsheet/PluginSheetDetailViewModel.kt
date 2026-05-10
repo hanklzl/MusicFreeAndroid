@@ -12,6 +12,7 @@ import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.data.repository.StarredSheetRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedResolver
@@ -35,6 +36,7 @@ class PluginSheetDetailViewModel @Inject constructor(
     private val pluginManager: PluginManager,
     private val playerController: PlayerController,
     private val playlistRepository: PlaylistRepository,
+    private val starredSheetRepository: StarredSheetRepository,
     private val appPreferences: AppPreferences,
     private val downloader: Downloader,
     private val mediaSourceResolver: MediaSourceResolver,
@@ -49,6 +51,10 @@ class PluginSheetDetailViewModel @Inject constructor(
 
     private var page = 0
     private var currentSheet: MusicSheetItemBase? = null
+
+    val isSheetStarred: StateFlow<Boolean> = starredSheetRepository
+        .observeIsStarred(route.sheetId, route.pluginPlatform)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     // ── Playlist / Favorite ──────────────────────────────────────────────────
 
@@ -87,6 +93,12 @@ class PluginSheetDetailViewModel @Inject constructor(
             playlistRepository.createPlaylist(Playlist(id = newId, name = name, coverUri = null))
             playlistRepository.addMusicToPlaylist(newId, item)
             hideAddToPlaylistSheet()
+        }
+    }
+
+    fun toggleSheetStarred() {
+        viewModelScope.launch {
+            starredSheetRepository.toggle((currentSheet ?: seedSheet()).toStarredSheet())
         }
     }
 

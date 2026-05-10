@@ -28,48 +28,14 @@ private val HOME_OPERATIONS = listOf(
     ),
 )
 
-private val STARRED_ROWS = listOf(
-    HomeSheetUiModel(
-        id = "mock-starred-neo",
-        platform = "neo",
-        tab = HomeSheetTab.Starred,
-        title = "Neo Wave",
-        subtitle = "Neo Artist",
-        coverUri = null,
-    ),
-    HomeSheetUiModel(
-        id = "mock-starred-midnight",
-        platform = "midnight",
-        tab = HomeSheetTab.Starred,
-        title = "Midnight Drive",
-        subtitle = "Night Crew",
-        coverUri = null,
-    ),
-    HomeSheetUiModel(
-        id = "mock-starred-summer",
-        platform = "summer",
-        tab = HomeSheetTab.Starred,
-        title = "Summer Tape",
-        subtitle = "Tape Club",
-        coverUri = null,
-    ),
-    HomeSheetUiModel(
-        id = "mock-starred-mountain",
-        platform = "mountain",
-        tab = HomeSheetTab.Starred,
-        title = "Mountain Echo",
-        subtitle = "Echo Lab",
-        coverUri = null,
-    ),
-)
-
 fun buildHomeVisualUiModel(
     selectedTab: HomeSheetTab,
     mineRows: List<HomeSheetUiModel>,
+    starredRows: List<HomeSheetUiModel> = emptyList(),
 ): HomeVisualUiModel {
     val rows = when (selectedTab) {
         HomeSheetTab.Mine -> mineRows
-        HomeSheetTab.Starred -> STARRED_ROWS
+        HomeSheetTab.Starred -> starredRows
     }
 
     return HomeVisualUiModel(
@@ -78,7 +44,7 @@ fun buildHomeVisualUiModel(
         playlistSection = HomePlaylistSectionUiModel(
             selectedTab = selectedTab,
             mineCount = mineRows.size,
-            starredCount = STARRED_ROWS.size,
+            starredCount = starredRows.size,
             rows = rows,
         ),
     )

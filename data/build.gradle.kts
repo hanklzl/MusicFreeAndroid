@@ -57,6 +57,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.room.testing)
     // Provide real org.json for JVM unit tests (Android stubs throw by default)
     testImplementation("org.json:json:20231013")
 

@@ -32,6 +32,7 @@ fun HomeScreen(
     onNavigateToPermissions: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
+    onNavigateToStarredSheet: (HomeSheetUiModel) -> Unit,
     homeSystemActionHandler: HomeSystemActionHandler,
     viewModel: HomeViewModel = hiltViewModel(),
     importViewModel: PlaylistImportViewModel = hiltViewModel(),
@@ -41,6 +42,7 @@ fun HomeScreen(
     val state = remember { HomeScreenState() }
     var selectedTab by rememberSaveable { mutableStateOf(HomeSheetTab.Mine) }
     val playlists by viewModel.playlists.collectAsState()
+    val starredSheets by viewModel.starredSheets.collectAsState()
 
     val mineRows = remember(playlists) {
         playlists.map { p ->
@@ -52,8 +54,12 @@ fun HomeScreen(
         }
     }
 
-    val visualUiModel = remember(selectedTab, mineRows) {
-        buildHomeVisualUiModel(selectedTab, mineRows)
+    val starredRows = remember(starredSheets) {
+        starredSheets.map(HomeSheetUiModel.Companion::fromStarredSheet)
+    }
+
+    val visualUiModel = remember(selectedTab, mineRows, starredRows) {
+        buildHomeVisualUiModel(selectedTab, mineRows, starredRows)
     }
 
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
@@ -109,7 +115,7 @@ fun HomeScreen(
         onCreateClick = { showCreateDialog = true },
         onImportClick = { importViewModel.openImportSheet() },
         onOpenMineSheet = { sheetId -> onNavigateToPlaylistDetail(sheetId) },
-        onOpenStarredSheet = { /* keep mock; Phase 4 spec leaves starred tab as TODO */ },
+        onOpenStarredSheet = onNavigateToStarredSheet,
     )
 
     if (showCreateDialog) {

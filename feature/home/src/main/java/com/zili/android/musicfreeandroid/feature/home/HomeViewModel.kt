@@ -8,6 +8,7 @@ import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.data.repository.StarredSheetRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
@@ -28,6 +29,7 @@ class HomeViewModel @Inject constructor(
     private val scanner: LocalMusicScanner,
     private val playerController: PlayerController,
     private val playlistRepository: PlaylistRepository,
+    private val starredSheetRepository: StarredSheetRepository,
     private val musicRepository: MusicRepository,
     private val appPreferences: AppPreferences,
     private val downloader: Downloader,
@@ -38,6 +40,9 @@ class HomeViewModel @Inject constructor(
 
     val playlists: StateFlow<List<Playlist>> = playlistRepository.observeAllPlaylists()
         .map { sortFavoriteFirst(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val starredSheets = starredSheetRepository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val downloadActiveCount: StateFlow<Int> = downloader.tasks

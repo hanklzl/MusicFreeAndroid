@@ -2,16 +2,20 @@ package com.zili.android.musicfreeandroid.feature.home
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.StarredSheet
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.data.repository.StarredSheetRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -33,6 +37,7 @@ class HomeViewModelTest {
     private val scanner: LocalMusicScanner = mock()
     private val playerController: PlayerController = mock()
     private val playlistRepository: PlaylistRepository = mock()
+    private val starredSheetRepository: StarredSheetRepository = mock()
     private val musicRepository: MusicRepository = mock()
     private val appPreferences: AppPreferences = mock()
     private val downloader: Downloader = mock()
@@ -41,6 +46,7 @@ class HomeViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         whenever(playlistRepository.observeAllPlaylists()).thenReturn(MutableStateFlow(emptyList()))
+        whenever(starredSheetRepository.observeAll()).thenReturn(MutableStateFlow(emptyList()))
         whenever(appPreferences.defaultDownloadQuality).thenReturn(flowOf(PlayQuality.STANDARD))
         whenever(downloader.tasks).thenReturn(MutableStateFlow(emptyList()))
         whenever(downloader.downloadedKeys).thenReturn(MutableStateFlow(emptySet()))
@@ -117,10 +123,32 @@ class HomeViewModelTest {
         verify(downloader).enqueue(listOf(item), PlayQuality.HIGH)
     }
 
+    @Test
+    fun `starredSheets exposes repository starred sheets`() = runTest {
+        val starred = listOf(
+            StarredSheet(
+                id = "sheet-1",
+                platform = "demo",
+                title = "Remote Sheet",
+                artist = "Demo Artist",
+                coverUri = null,
+                sourceUrl = null,
+            ),
+        )
+        whenever(starredSheetRepository.observeAll()).thenReturn(flowOf(starred))
+
+        val viewModel = createViewModel()
+        backgroundScope.launch { viewModel.starredSheets.collect() }
+        advanceUntilIdle()
+
+        assertEquals(starred, viewModel.starredSheets.value)
+    }
+
     private fun createViewModel(): HomeViewModel = HomeViewModel(
         scanner = scanner,
         playerController = playerController,
         playlistRepository = playlistRepository,
+        starredSheetRepository = starredSheetRepository,
         musicRepository = musicRepository,
         appPreferences = appPreferences,
         downloader = downloader,

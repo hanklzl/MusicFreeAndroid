@@ -83,6 +83,12 @@ class Converters {
         return json
     }
 
+    fun rawMapToJson(raw: Map<String, Any?>): String =
+        rawMapToJsonObject(raw).toString()
+
+    fun jsonToRawMap(json: String?): Map<String, Any?> =
+        if (json.isNullOrBlank()) emptyMap() else jsonObjectToMap(JSONObject(json))
+
     private fun Any?.toJsonValue(): Any {
         return when (this) {
             null -> JSONObject.NULL
