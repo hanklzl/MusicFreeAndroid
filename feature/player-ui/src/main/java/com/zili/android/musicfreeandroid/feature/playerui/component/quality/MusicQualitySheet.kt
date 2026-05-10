@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityInfo
+import com.zili.android.musicfreeandroid.core.model.fullLabel
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
 
@@ -31,13 +32,6 @@ enum class MusicQualitySheetMode { Play, Download }
 private val DISPLAY_ORDER: List<PlayQuality> = listOf(
     PlayQuality.LOW, PlayQuality.STANDARD, PlayQuality.HIGH, PlayQuality.SUPER,
 )
-
-private fun PlayQuality.label(): String = when (this) {
-    PlayQuality.LOW -> "低音质"
-    PlayQuality.STANDARD -> "标准音质"
-    PlayQuality.HIGH -> "高音质"
-    PlayQuality.SUPER -> "超高音质"
-}
 
 private fun formatSize(bytes: Long): String {
     val kb = bytes / 1024.0
@@ -68,10 +62,7 @@ fun MusicQualitySheet(
             current = current,
             mode = mode,
             availableQualities = availableQualities,
-            onSelect = {
-                onSelect(it)
-                onDismiss()
-            },
+            onSelect = onSelect,
         )
     }
 }
@@ -110,7 +101,7 @@ internal fun MusicQualitySheetContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = quality.label() + sizeText,
+                    text = quality.fullLabel() + sizeText,
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 if (current == quality) {

@@ -62,6 +62,7 @@ import coil3.compose.AsyncImage
 import com.zili.android.musicfreeandroid.core.R
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
+import com.zili.android.musicfreeandroid.core.model.shortLabel
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
@@ -610,7 +611,7 @@ internal fun PlayerOperationsBar(
             )
         }
         Text(
-            text = qualityLabel(currentQuality),
+            text = currentQuality.shortLabel(),
             color = Color.White.copy(alpha = 0.7f),
             fontSize = FontSizes.description,
             modifier = Modifier
@@ -882,13 +883,6 @@ private fun formatLyricOffset(offsetMs: Long): String {
         offsetMs < 0L -> "延后 ${seconds}s"
         else -> "0.0s"
     }
-}
-
-private fun qualityLabel(quality: PlayQuality): String = when (quality) {
-    PlayQuality.LOW -> "低音质"
-    PlayQuality.STANDARD -> "标准"
-    PlayQuality.HIGH -> "高音质"
-    PlayQuality.SUPER -> "超高"
 }
 
 private fun formatSpeedLabel(speed: Float): String =

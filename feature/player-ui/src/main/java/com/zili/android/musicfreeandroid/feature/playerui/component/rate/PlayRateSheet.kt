@@ -47,10 +47,7 @@ fun PlayRateSheet(
     ) {
         PlayRateSheetContent(
             current = current,
-            onSelect = {
-                onSelect(it)
-                onDismiss()
-            },
+            onSelect = onSelect,
         )
     }
 }
