@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
@@ -77,19 +78,28 @@ class PlayerOperationsBarTest {
     fun `cover operation callbacks remain wired`() {
         var favoriteClicks = 0
         var lyricClicks = 0
-        setContent(onToggleFav = { favoriteClicks++ }, onToggleLyrics = { lyricClicks++ })
+        var addToPlaylistClicks = 0
+        setContent(
+            onToggleFav = { favoriteClicks++ },
+            onAddToPlaylist = { addToPlaylistClicks++ },
+            onToggleLyrics = { lyricClicks++ },
+        )
 
         composeRule.onNodeWithContentDescription("收藏").performClick()
         composeRule.onNodeWithContentDescription("歌词").performClick()
+        composeRule.onNodeWithContentDescription("更多").performClick()
+        composeRule.onNodeWithText("加入歌单").performClick()
 
         composeRule.runOnIdle {
             assertEquals(1, favoriteClicks)
             assertEquals(1, lyricClicks)
+            assertEquals(1, addToPlaylistClicks)
         }
     }
 
     private fun setContent(
         onToggleFav: () -> Unit = {},
+        onAddToPlaylist: () -> Unit = {},
         onToggleLyrics: () -> Unit = {},
     ) {
         composeRule.setContent {
@@ -108,7 +118,7 @@ class PlayerOperationsBarTest {
                         isFav = false,
                         hasCurrentItem = true,
                         onToggleFav = onToggleFav,
-                        onAddToPlaylist = {},
+                        onAddToPlaylist = onAddToPlaylist,
                         onToggleLyrics = onToggleLyrics,
                     )
                 }
