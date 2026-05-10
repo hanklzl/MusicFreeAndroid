@@ -72,6 +72,22 @@ class StarredSheetRepositoryJvmTest {
         assertEquals(sheet.raw, restored.raw)
     }
 
+    @Test
+    fun `toggle persists album kind and same identity replaces sheet kind`() = runTest {
+        val album = StarredSheet(
+            id = "id-1", platform = "qq",
+            title = "AlbumOne", artist = null, coverUri = null, sourceUrl = null,
+            kind = com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+        )
+        repository.toggle(album)
+        assertEquals(com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+            repository.observeAll().first().single().kind)
+
+        val asSheet = album.copy(kind = com.zili.android.musicfreeandroid.core.model.StarredKind.SHEET)
+        repository.toggle(asSheet) // same (id, platform) ⇒ deletes
+        assertEquals(0, repository.observeAll().first().size)
+    }
+
     private fun starredSheet(
         description: String? = null,
         artwork: String? = null,

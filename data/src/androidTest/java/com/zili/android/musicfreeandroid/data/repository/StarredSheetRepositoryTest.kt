@@ -8,6 +8,7 @@ import com.zili.android.musicfreeandroid.core.model.StarredSheet
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -112,5 +113,21 @@ class StarredSheetRepositoryTest {
             assertEquals("kuwo", items.first().platform)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun starringAlbumThenUnstarPreservesAlbumKindThenRemovesRow() = runTest {
+        val albumModel = StarredSheet(
+            id = "alb-9", platform = "qq",
+            title = "AlbumNine", artist = "X", coverUri = null, sourceUrl = null,
+            kind = com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+        )
+        repository.toggle(albumModel)
+        val first = repository.observeAll().first()
+        assertEquals(1, first.size)
+        assertEquals(com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM, first.single().kind)
+
+        repository.toggle(albumModel)
+        assertEquals(0, repository.observeAll().first().size)
     }
 }
