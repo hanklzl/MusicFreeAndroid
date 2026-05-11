@@ -7,6 +7,9 @@ import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
 import com.zili.android.musicfreeandroid.data.mapper.LyricCache
 import com.zili.android.musicfreeandroid.data.repository.LyricRepository
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.plugin.api.LyricResult
 import com.zili.android.musicfreeandroid.plugin.api.musicItems
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -30,6 +33,11 @@ class PlayerLyricLoader @Inject constructor(
             return@flow
         }
 
+        MfLog.detail(
+            category = LogCategory.LYRICS,
+            event = "lyric_load_start",
+            fields = lyricFields(music, operation = "load"),
+        )
         var firstEmission = true
         lyricRepository.observeCache(music).collect { cache ->
             if (firstEmission) {
@@ -56,6 +64,13 @@ class PlayerLyricLoader @Inject constructor(
         val target = cache?.associatedMusic ?: music
 
         cachedDocument(music, target, cache)?.let {
+            MfLog.detail(
+                category = LogCategory.LYRICS,
+                event = "lyric_cache_hit",
+                fields = lyricFields(music, operation = "load") + mapOf(
+                    "result" to LogFields.Result.SUCCESS,
+                ),
+            )
             return LyricLoadState.Ready(music, it, userOffsetMs)
         }
 
@@ -77,6 +92,14 @@ class PlayerLyricLoader @Inject constructor(
                 }
         }
 
+        MfLog.detail(
+            category = LogCategory.LYRICS,
+            event = "lyric_no_lyric",
+            fields = lyricFields(music, operation = "load") + mapOf(
+                "result" to LogFields.Result.FAILURE,
+                "reason" to LogFields.Reason.NOT_FOUND,
+            ),
+        )
         return LyricLoadState.NoLyric(music)
     }
 
@@ -96,6 +119,16 @@ class PlayerLyricLoader @Inject constructor(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
+                    MfLog.error(
+                        category = LogCategory.LYRICS,
+                        event = "lyric_search_plugin_failed",
+                        throwable = error,
+                        fields = lyricFields(music, operation = "search_candidates") + mapOf(
+                            "sourcePlatform" to plugin.info.platform,
+                            "result" to LogFields.Result.FAILURE,
+                            "reason" to LogFields.Reason.UNKNOWN,
+                        ),
+                    )
                     LyricSearchGroup(
                         plugin.info,
                         emptyList(),
@@ -182,7 +215,17 @@ class PlayerLyricLoader @Inject constructor(
                 ?.takeIf { it.isUsableRemoteLyric() }
         } catch (error: CancellationException) {
             throw error
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            MfLog.error(
+                category = LogCategory.LYRICS,
+                event = "lyric_plugin_fetch_failed",
+                throwable = error,
+                fields = lyricFields(target, operation = "plugin_fetch") + mapOf(
+                    "source" to source::class.simpleName.orEmpty(),
+                    "result" to LogFields.Result.FAILURE,
+                    "reason" to LogFields.Reason.UNKNOWN,
+                ),
+            )
             null
         }
     }
@@ -216,7 +259,17 @@ class PlayerLyricLoader @Inject constructor(
                 plugin.getLyric(candidate.music)
             } catch (error: CancellationException) {
                 throw error
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                MfLog.error(
+                    category = LogCategory.LYRICS,
+                    event = "lyric_auto_search_fetch_failed",
+                    throwable = error,
+                    fields = lyricFields(candidate.music, operation = "auto_search_fetch") + mapOf(
+                        "sourcePlatform" to candidate.platform,
+                        "result" to LogFields.Result.FAILURE,
+                        "reason" to LogFields.Reason.UNKNOWN,
+                    ),
+                )
                 null
             }?.toPayload()
                 ?.takeIf { it.isUsableRemoteLyric() }
@@ -291,6 +344,14 @@ class PlayerLyricLoader @Inject constructor(
             payload = payload,
             source = source,
         )
+
+    private fun lyricFields(music: MusicItem, operation: String): Map<String, Any?> = mapOf(
+        "screen" to "player",
+        "operation" to operation,
+        "itemId" to music.id,
+        "itemName" to music.title,
+        "platform" to music.platform,
+    )
 }
 
 private fun LyricResult.toPayload(): RawLyricPayload = RawLyricPayload(

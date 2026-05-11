@@ -15,6 +15,10 @@ import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
 import com.zili.android.musicfreeandroid.data.mapper.toEntity
 import com.zili.android.musicfreeandroid.data.mapper.toModel
 import com.zili.android.musicfreeandroid.data.sort.applySort
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -59,84 +63,175 @@ class PlaylistRepository @Inject constructor(
         }
 
     suspend fun toggleFavorite(item: MusicItem) {
-        ensureFavoritePlaylist()
-        val present = playlistDao.isInPlaylist(Playlist.DEFAULT_FAVORITE_ID, item.id, item.platform)
-        if (present) removeMusicFromPlaylist(Playlist.DEFAULT_FAVORITE_ID, item)
-        else addMusicToPlaylist(Playlist.DEFAULT_FAVORITE_ID, item)
+        logDataWrite(
+            operation = "toggle_favorite",
+            fields = playlistFields(Playlist.DEFAULT_FAVORITE_ID) + item.logFields(),
+        ) {
+            ensureFavoritePlaylist()
+            val present = playlistDao.isInPlaylist(Playlist.DEFAULT_FAVORITE_ID, item.id, item.platform)
+            if (present) removeMusicFromPlaylist(Playlist.DEFAULT_FAVORITE_ID, item)
+            else addMusicToPlaylist(Playlist.DEFAULT_FAVORITE_ID, item)
+        }
     }
 
     suspend fun createPlaylist(playlist: Playlist) {
-        val now = System.currentTimeMillis()
-        val sortMode = if (playlist.id == Playlist.DEFAULT_FAVORITE_ID || playlist.sortMode != SortMode.Manual) {
-            playlist.sortMode
-        } else {
-            defaultSortProvider.defaultSortMode()
+        logDataWrite(
+            operation = "create_playlist",
+            fields = playlist.logFields(),
+        ) {
+            val now = System.currentTimeMillis()
+            val sortMode = if (playlist.id == Playlist.DEFAULT_FAVORITE_ID || playlist.sortMode != SortMode.Manual) {
+                playlist.sortMode
+            } else {
+                defaultSortProvider.defaultSortMode()
+            }
+            playlistDao.insertPlaylist(
+                playlist.copy(sortMode = sortMode).toEntity(createdAt = now, updatedAt = now),
+            )
         }
-        playlistDao.insertPlaylist(
-            playlist.copy(sortMode = sortMode).toEntity(createdAt = now, updatedAt = now),
-        )
     }
 
     suspend fun updatePlaylistInfo(id: String, name: String? = null, description: String? = null) {
         if (id == Playlist.DEFAULT_FAVORITE_ID && name != null) {
+            logDataSkipped(
+                operation = "update_playlist_info",
+                fields = playlistFields(id),
+                reason = "protected_default_playlist",
+            )
             throw IllegalArgumentException("Cannot rename the default favorite playlist")
         }
-        val entity = playlistDao.getPlaylistById(id) ?: return
-        playlistDao.updateNameDescription(
-            id = id,
-            name = name ?: entity.name,
-            description = description ?: entity.description,
-            updatedAt = System.currentTimeMillis(),
-        )
+        val entity = playlistDao.getPlaylistById(id) ?: run {
+            logDataSkipped(
+                operation = "update_playlist_info",
+                fields = playlistFields(id),
+                reason = LogFields.Reason.NOT_FOUND,
+            )
+            return
+        }
+        logDataWrite(
+            operation = "update_playlist_info",
+            fields = playlistFields(id) + mapOf("itemName" to (name ?: entity.name)),
+        ) {
+            playlistDao.updateNameDescription(
+                id = id,
+                name = name ?: entity.name,
+                description = description ?: entity.description,
+                updatedAt = System.currentTimeMillis(),
+            )
+        }
     }
 
     suspend fun setSortMode(id: String, mode: SortMode) {
-        playlistDao.setSortMode(id, mode.name, System.currentTimeMillis())
+        logDataWrite(
+            operation = "set_playlist_sort_mode",
+            fields = playlistFields(id) + mapOf("sortMode" to mode.name),
+        ) {
+            playlistDao.setSortMode(id, mode.name, System.currentTimeMillis())
+        }
     }
 
     suspend fun applyManualSortOrder(id: String, orderedItems: List<MusicItem>) {
-        orderedItems.forEachIndexed { index, item ->
-            playlistDao.setCrossRefSortOrder(id, item.id, item.platform, index)
+        if (orderedItems.isEmpty()) {
+            logDataSkipped(
+                operation = "apply_manual_sort_order",
+                fields = playlistFields(id) + mapOf("count" to 0),
+                reason = LogFields.Reason.EMPTY_INPUT,
+            )
+            return
+        }
+        logDataWrite(
+            operation = "apply_manual_sort_order",
+            fields = playlistFields(id) + mapOf("count" to orderedItems.size),
+        ) {
+            orderedItems.forEachIndexed { index, item ->
+                playlistDao.setCrossRefSortOrder(id, item.id, item.platform, index)
+            }
         }
     }
 
     suspend fun setCover(id: String, sourceUri: Uri?) {
-        val rel = if (sourceUri == null) {
-            coverStore.delete(id); null
-        } else {
-            coverStore.saveFromUri(id, sourceUri)
+        logDataWrite(
+            operation = if (sourceUri == null) "delete_playlist_cover" else "set_playlist_cover",
+            fields = playlistFields(id) + mapOf(
+                "pathType" to (sourceUri?.playlistPathType() ?: "file_uri"),
+                "sourceScheme" to sourceUri?.scheme.orEmpty(),
+            ),
+        ) {
+            val rel = if (sourceUri == null) {
+                coverStore.delete(id); null
+            } else {
+                coverStore.saveFromUri(id, sourceUri)
+            }
+            playlistDao.setCoverUri(id, rel, System.currentTimeMillis())
         }
-        playlistDao.setCoverUri(id, rel, System.currentTimeMillis())
     }
 
     suspend fun deletePlaylist(playlist: Playlist) {
         if (playlist.id == Playlist.DEFAULT_FAVORITE_ID) {
+            logDataSkipped(
+                operation = "delete_playlist",
+                fields = playlist.logFields(),
+                reason = "protected_default_playlist",
+            )
             throw IllegalStateException("Cannot delete the default favorite playlist")
         }
-        coverStore.delete(playlist.id)
-        playlistDao.deletePlaylistById(playlist.id)
+        logDataWrite(
+            operation = "delete_playlist",
+            fields = playlist.logFields(),
+            resultFields = { deletedRows -> mapOf("count" to deletedRows) },
+            skippedReason = { deletedRows -> if (deletedRows == 0) LogFields.Reason.NOT_FOUND else null },
+        ) {
+            coverStore.delete(playlist.id)
+            playlistDao.deletePlaylistById(playlist.id)
+        }
     }
 
     suspend fun addMusicToPlaylist(playlistId: String, item: MusicItem): Boolean =
-        addMusicToPlaylistWithCoverSync(playlistId, item)
+        logDataWrite(
+            operation = "add_music_to_playlist",
+            fields = playlistFields(playlistId) + item.logFields(),
+            resultFields = { added -> mapOf("count" to if (added) 1 else 0) },
+            skippedReason = { added -> if (!added) LogFields.Reason.DUPLICATE else null },
+        ) {
+            addMusicToPlaylistWithCoverSync(playlistId, item)
+        }
 
     suspend fun addMusicsToPlaylist(playlistId: String, items: List<MusicItem>): Int {
-        if (items.isEmpty()) return 0
-        val insertedItems = mutableListOf<MusicItem>()
-        val addedCount = db.withTransaction {
-            var addedCount = 0
-            for (item in items) {
-                if (addMusicToPlaylistNoCoverSync(playlistId, item)) {
-                    addedCount++
-                    insertedItems.add(item)
+        if (items.isEmpty()) {
+            logDataSkipped(
+                operation = "add_musics_to_playlist",
+                fields = playlistFields(playlistId) + mapOf("count" to 0),
+                reason = LogFields.Reason.EMPTY_INPUT,
+            )
+            return 0
+        }
+        return logDataWrite(
+            operation = "add_musics_to_playlist",
+            fields = playlistFields(playlistId) + mapOf("requestedCount" to items.size),
+            resultFields = { addedCount ->
+                mapOf(
+                    "count" to addedCount,
+                    "skippedCount" to items.size - addedCount,
+                )
+            },
+            skippedReason = { addedCount -> if (addedCount == 0) LogFields.Reason.DUPLICATE else null },
+        ) {
+            val insertedItems = mutableListOf<MusicItem>()
+            val addedCount = db.withTransaction {
+                var addedCount = 0
+                for (item in items) {
+                    if (addMusicToPlaylistNoCoverSync(playlistId, item)) {
+                        addedCount++
+                        insertedItems.add(item)
+                    }
                 }
+                addedCount
+            }
+            for (item in insertedItems) {
+                if (syncPlaylistCoverIfNeeded(playlistId, item)) break
             }
             addedCount
         }
-        for (item in insertedItems) {
-            if (syncPlaylistCoverIfNeeded(playlistId, item)) break
-        }
-        return addedCount
     }
 
     private suspend fun addMusicToPlaylistWithCoverSync(playlistId: String, item: MusicItem): Boolean {
@@ -177,7 +272,12 @@ class PlaylistRepository @Inject constructor(
     }
 
     suspend fun removeMusicFromPlaylist(playlistId: String, item: MusicItem) {
-        playlistDao.removeMusicFromPlaylist(playlistId, item.id, item.platform)
+        logDataWrite(
+            operation = "remove_music_from_playlist",
+            fields = playlistFields(playlistId) + item.logFields(),
+        ) {
+            playlistDao.removeMusicFromPlaylist(playlistId, item.id, item.platform)
+        }
     }
 
     fun observeMusicInPlaylist(playlistId: String): Flow<List<MusicItem>> =
@@ -210,6 +310,93 @@ class PlaylistRepository @Inject constructor(
             ).toEntity(createdAt = now, updatedAt = now),
         )
     }
+
+    private suspend fun <T> logDataWrite(
+        operation: String,
+        fields: Map<String, Any?> = emptyMap(),
+        resultFields: (T) -> Map<String, Any?> = { emptyMap() },
+        skippedReason: (T) -> String? = { null },
+        block: suspend () -> T,
+    ): T {
+        val baseFields = mapOf("operation" to operation) + fields
+        MfLog.detail(
+            category = LogCategory.DATA,
+            event = "data_write_start",
+            fields = baseFields,
+        )
+        val startedAt = System.nanoTime()
+        return try {
+            val result = block()
+            val reason = skippedReason(result)
+            val terminalFields = baseFields + resultFields(result) + mapOf(
+                "durationMs" to elapsedMs(startedAt),
+                "result" to if (reason == null) LogFields.Result.SUCCESS else LogFields.Result.SKIPPED,
+            ) + (reason?.let { mapOf("reason" to it) }.orEmpty())
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = if (reason == null) "data_write_success" else "data_write_skipped",
+                fields = terminalFields,
+            )
+            result
+        } catch (error: CancellationException) {
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = "data_write_cancelled",
+                fields = baseFields + mapOf(
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.CANCELLED,
+                    "reason" to LogFields.Reason.CANCELLED,
+                ),
+            )
+            throw error
+        } catch (error: Throwable) {
+            MfLog.error(
+                category = LogCategory.DATA,
+                event = "data_write_failed",
+                throwable = error,
+                fields = baseFields + mapOf(
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.FAILURE,
+                    "reason" to "exception",
+                ),
+            )
+            throw error
+        }
+    }
+
+    private fun logDataSkipped(operation: String, fields: Map<String, Any?>, reason: String) {
+        MfLog.detail(
+            category = LogCategory.DATA,
+            event = "data_write_skipped",
+            fields = mapOf(
+                "operation" to operation,
+                "result" to LogFields.Result.SKIPPED,
+                "reason" to reason,
+            ) + fields,
+        )
+    }
+
+    private fun Playlist.logFields(): Map<String, Any?> = playlistFields(id) + mapOf(
+        "itemName" to name,
+        "sortMode" to sortMode.name,
+    )
+
+    private fun MusicItem.logFields(): Map<String, Any?> = mapOf(
+        "itemId" to id,
+        "itemName" to title,
+        "platform" to platform,
+    )
+
+    private fun playlistFields(id: String): Map<String, Any?> = mapOf("playlistId" to id)
+
+    private fun Uri.playlistPathType(): String = when (scheme?.lowercase()) {
+        "content" -> "content_uri"
+        "file" -> "file_uri"
+        "http", "https" -> "remote_url"
+        else -> "unknown"
+    }
+
+    private fun elapsedMs(startedAt: Long): Long = (System.nanoTime() - startedAt) / 1_000_000
 
     companion object { private const val LEGACY_COVER_PREFIX = PlaylistCoverStore.BASE_DIR_NAME + "/" }
 }

@@ -17,6 +17,7 @@ import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.player.ext.defaultAlbumArtworkUri
 import com.zili.android.musicfreeandroid.player.ext.toMediaItem
@@ -29,6 +30,7 @@ import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationComm
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueueControls
 import com.zili.android.musicfreeandroid.player.service.PlaybackService
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -361,17 +363,65 @@ class PlayerController @Inject constructor(
         val expectedIndex = playQueue.currentIndex
         val savedPosition = mediaController?.currentPosition?.coerceAtLeast(0L) ?: 0L
         val wasPlaying = mediaController?.isPlaying == true
+        val qualityValue = quality.name.lowercase()
 
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val startedAt = System.nanoTime()
             if (!canPlayOverCurrentNetwork(item)) {
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "player_quality_change_failed",
+                    fields = qualityChangeFields(
+                        item = item,
+                        quality = qualityValue,
+                        startedAt = startedAt,
+                        reason = LogFields.Reason.CELLULAR_BLOCKED,
+                    ),
+                )
                 _errorEvents.emit("当前网络不允许播放，请在设置中开启移动网络播放")
                 return@launch
             }
-            val resolution = runCatching {
-                mediaSourceResolver.resolve(item, quality.name.lowercase())
-            }.getOrNull()
+            val resolution = try {
+                mediaSourceResolver.resolve(item, qualityValue)
+            } catch (error: CancellationException) {
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "player_quality_change_cancelled",
+                    fields = qualityChangeFields(
+                        item = item,
+                        quality = qualityValue,
+                        startedAt = startedAt,
+                        result = LogFields.Result.CANCELLED,
+                        reason = LogFields.Reason.CANCELLED,
+                    ),
+                )
+                throw error
+            } catch (error: Exception) {
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "player_quality_change_failed",
+                    throwable = error,
+                    fields = qualityChangeFields(
+                        item = item,
+                        quality = qualityValue,
+                        startedAt = startedAt,
+                        reason = "resolver_exception",
+                    ),
+                )
+                null
+            }
             val playable = resolution?.item
             if (playable == null || playable.url.isNullOrBlank()) {
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "player_quality_change_failed",
+                    fields = qualityChangeFields(
+                        item = item,
+                        quality = qualityValue,
+                        startedAt = startedAt,
+                        reason = "no_source",
+                    ),
+                )
                 _errorEvents.emit("当前歌曲不支持该音质")
                 return@launch
             }
@@ -387,6 +437,17 @@ class PlayerController @Inject constructor(
                     if (savedPosition > 0L) controller.seekTo(savedPosition)
                     if (wasPlaying) controller.play()
                 } catch (e: RuntimeException) {
+                    MfLog.error(
+                        category = LogCategory.PLAYER,
+                        event = "player_quality_change_failed",
+                        throwable = e,
+                        fields = qualityChangeFields(
+                            item = playable,
+                            quality = qualityValue,
+                            startedAt = startedAt,
+                            reason = "prepare_failed",
+                        ),
+                    )
                     _errorEvents.tryEmit("切换音质失败: ${e.message}")
                 }
             }
@@ -564,6 +625,23 @@ class PlayerController @Inject constructor(
         if (playbackRuntimeSettings.useCellularPlay()) return true
         return !networkStateProvider.currentState().isCellular
     }
+
+    private fun qualityChangeFields(
+        item: MusicItem,
+        quality: String,
+        startedAt: Long,
+        result: String = LogFields.Result.FAILURE,
+        reason: String,
+    ): Map<String, Any?> = mapOf(
+        "operation" to "change_quality",
+        "platform" to item.platform,
+        "itemId" to item.id,
+        "itemName" to item.title,
+        "quality" to quality,
+        "durationMs" to elapsedMs(startedAt),
+        "result" to result,
+        "reason" to reason,
+    )
 
     private fun MusicItem.isLocalPlaybackSource(): Boolean {
         if (platform.equals("local", ignoreCase = true)) return true

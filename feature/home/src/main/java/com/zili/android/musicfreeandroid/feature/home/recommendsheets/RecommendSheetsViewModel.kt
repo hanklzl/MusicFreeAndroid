@@ -4,9 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiModel
 import com.zili.android.musicfreeandroid.feature.home.pluginfeature.pluginsSupporting
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.timedSuspend
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -129,10 +134,29 @@ class RecommendSheetsViewModel @Inject constructor(
     }
 
     private suspend fun loadTagsAndFirstPage(platform: String, generation: Long) {
-        if (!isCurrentLoad(platform, generation)) return
+        val operation = "load_tags"
+        val flowId = newFlowId(operation, generation)
+        val startedAt = System.nanoTime()
+        if (!isCurrentLoad(platform, generation)) {
+            logStale(operation, flowId, generation, platform, startedAt)
+            return
+        }
         val plugin = pluginManager.getPlugin(platform)
         if (plugin == null) {
-            if (!isCurrentLoad(platform, generation)) return
+            if (!isCurrentLoad(platform, generation)) {
+                logStale(operation, flowId, generation, platform, startedAt)
+                return
+            }
+            logFailure(
+                event = "recommend_sheets_tags_failed",
+                throwable = null,
+                operation = operation,
+                flowId = flowId,
+                generation = generation,
+                platform = platform,
+                startedAt = startedAt,
+                fields = mapOf("reason" to "plugin_missing"),
+            )
             _uiState.value = RecommendSheetsUiState(
                 loading = false,
                 isEnd = true,
@@ -141,10 +165,56 @@ class RecommendSheetsViewModel @Inject constructor(
             return
         }
 
-        if (!isCurrentLoad(platform, generation)) return
+        if (!isCurrentLoad(platform, generation)) {
+            logStale(operation, flowId, generation, platform, startedAt)
+            return
+        }
         _uiState.value = RecommendSheetsUiState(loading = true)
-        val tagsResult = runCatching { plugin.getRecommendSheetTags() }.getOrNull()
-        if (!isCurrentLoad(platform, generation)) return
+        logStart(
+            event = "recommend_sheets_tags_start",
+            operation = operation,
+            flowId = flowId,
+            generation = generation,
+            platform = platform,
+        )
+        val tagsResult = runCatching {
+            timedSuspend { plugin.getRecommendSheetTags() }
+        }.onSuccess { (result, durationMs) ->
+            MfLog.detail(
+                LogCategory.HOME,
+                "recommend_sheets_tags_success",
+                baseFields(operation, flowId, generation, platform) + mapOf(
+                    "count" to ((result?.pinned?.size ?: 0) + result?.data.orEmpty().sumOf { it.data.size }),
+                    "durationMs" to durationMs,
+                    "result" to LogFields.Result.SUCCESS,
+                ),
+            )
+        }.onFailure { error ->
+            if (error is CancellationException) {
+                logCancelled(
+                    event = "recommend_sheets_tags_cancelled",
+                    operation = operation,
+                    flowId = flowId,
+                    generation = generation,
+                    platform = platform,
+                    startedAt = startedAt,
+                )
+                throw error
+            }
+            logFailure(
+                event = "recommend_sheets_tags_failed",
+                throwable = error,
+                operation = operation,
+                flowId = flowId,
+                generation = generation,
+                platform = platform,
+                startedAt = startedAt,
+            )
+        }.getOrNull()?.first
+        if (!isCurrentLoad(platform, generation)) {
+            logStale(operation, flowId, generation, platform, startedAt)
+            return
+        }
 
         val tags = buildTags(tagsResult?.pinned.orEmpty(), tagsResult?.data.orEmpty())
         val selected = tags.firstOrNull() ?: defaultTag()
@@ -164,10 +234,33 @@ class RecommendSheetsViewModel @Inject constructor(
         reset: Boolean,
         generation: Long,
     ) {
-        if (!isCurrentLoad(platform, generation)) return
+        val operation = if (reset) "load_initial" else "load_more"
+        val flowId = newFlowId(operation, generation)
+        val startedAt = System.nanoTime()
+        if (!isCurrentLoad(platform, generation)) {
+            logStale(operation, flowId, generation, platform, startedAt)
+            return
+        }
         val plugin = pluginManager.getPlugin(platform)
         if (plugin == null) {
-            if (!isCurrentLoad(platform, generation)) return
+            if (!isCurrentLoad(platform, generation)) {
+                logStale(operation, flowId, generation, platform, startedAt)
+                return
+            }
+            logFailure(
+                event = "recommend_sheets_load_failed",
+                throwable = null,
+                operation = operation,
+                flowId = flowId,
+                generation = generation,
+                platform = platform,
+                startedAt = startedAt,
+                fields = mapOf(
+                    "page" to if (reset) 1 else page + 1,
+                    "itemId" to tag.id,
+                    "reason" to "plugin_missing",
+                ),
+            )
             _uiState.value = _uiState.value.copy(
                 loading = false,
                 loadingMore = false,
@@ -177,7 +270,10 @@ class RecommendSheetsViewModel @Inject constructor(
         }
 
         val nextPage = if (reset) 1 else page + 1
-        if (!isCurrentLoad(platform, generation)) return
+        if (!isCurrentLoad(platform, generation)) {
+            logStale(operation, flowId, generation, platform, startedAt, mapOf("page" to nextPage))
+            return
+        }
         _uiState.value = _uiState.value.copy(
             loading = reset,
             loadingMore = !reset,
@@ -185,13 +281,38 @@ class RecommendSheetsViewModel @Inject constructor(
             emptyMessage = null,
         )
 
+        logStart(
+            event = "recommend_sheets_load_start",
+            operation = operation,
+            flowId = flowId,
+            generation = generation,
+            platform = platform,
+            fields = mapOf("page" to nextPage, "itemId" to tag.id),
+        )
         val result = runCatching {
-            plugin.getRecommendSheetsByTag(tag.payload, nextPage)
+            timedSuspend { plugin.getRecommendSheetsByTag(tag.payload, nextPage) }
         }
-        if (!isCurrentLoad(platform, generation)) return
+        if (!isCurrentLoad(platform, generation)) {
+            logStale(operation, flowId, generation, platform, startedAt, mapOf("page" to nextPage))
+            return
+        }
 
-        result.onSuccess { sheetsResult ->
+        result.onSuccess { (sheetsResult, durationMs) ->
             if (sheetsResult == null) {
+                logFailure(
+                    event = "recommend_sheets_load_failed",
+                    throwable = null,
+                    operation = operation,
+                    flowId = flowId,
+                    generation = generation,
+                    platform = platform,
+                    startedAt = startedAt,
+                    fields = mapOf(
+                        "page" to nextPage,
+                        "itemId" to tag.id,
+                        "reason" to LogFields.Reason.UNKNOWN,
+                    ),
+                )
                 _uiState.value = _uiState.value.copy(
                     loading = false,
                     loadingMore = false,
@@ -204,6 +325,18 @@ class RecommendSheetsViewModel @Inject constructor(
                 if (item.platform.isBlank()) item.copy(platform = platform) else item
             }
             val merged = if (reset) incoming else _uiState.value.sheets + incoming
+            MfLog.detail(
+                LogCategory.HOME,
+                "recommend_sheets_load_success",
+                baseFields(operation, flowId, generation, platform) + mapOf(
+                    "page" to nextPage,
+                    "itemId" to tag.id,
+                    "count" to incoming.size,
+                    "isEnd" to sheetsResult.isEnd,
+                    "durationMs" to durationMs,
+                    "result" to LogFields.Result.SUCCESS,
+                ),
+            )
             _uiState.value = _uiState.value.copy(
                 sheets = merged,
                 loading = false,
@@ -212,6 +345,28 @@ class RecommendSheetsViewModel @Inject constructor(
                 errorMessage = null,
             )
         }.onFailure { e ->
+            if (e is CancellationException) {
+                logCancelled(
+                    event = "recommend_sheets_load_cancelled",
+                    operation = operation,
+                    flowId = flowId,
+                    generation = generation,
+                    platform = platform,
+                    startedAt = startedAt,
+                    fields = mapOf("page" to nextPage, "itemId" to tag.id),
+                )
+                throw e
+            }
+            logFailure(
+                event = "recommend_sheets_load_failed",
+                throwable = e,
+                operation = operation,
+                flowId = flowId,
+                generation = generation,
+                platform = platform,
+                startedAt = startedAt,
+                fields = mapOf("page" to nextPage, "itemId" to tag.id),
+            )
             _uiState.value = _uiState.value.copy(
                 loading = false,
                 loadingMore = false,
@@ -231,6 +386,99 @@ class RecommendSheetsViewModel @Inject constructor(
 
     private fun isCurrentLoad(platform: String, generation: Long): Boolean =
         loadGeneration == generation && _selectedPlugin.value == platform
+
+    private fun logStart(
+        event: String,
+        operation: String,
+        flowId: String,
+        generation: Long,
+        platform: String,
+        fields: Map<String, Any?> = emptyMap(),
+    ) {
+        MfLog.detail(
+            LogCategory.HOME,
+            event,
+            baseFields(operation, flowId, generation, platform) + fields,
+        )
+    }
+
+    private fun logFailure(
+        event: String,
+        throwable: Throwable?,
+        operation: String,
+        flowId: String,
+        generation: Long,
+        platform: String,
+        startedAt: Long,
+        fields: Map<String, Any?> = emptyMap(),
+    ) {
+        MfLog.error(
+            LogCategory.HOME,
+            event,
+            throwable,
+            baseFields(operation, flowId, generation, platform) + fields + mapOf(
+                "durationMs" to elapsedMs(startedAt),
+                "result" to LogFields.Result.FAILURE,
+            ),
+        )
+    }
+
+    private fun logStale(
+        operation: String,
+        flowId: String,
+        generation: Long,
+        platform: String,
+        startedAt: Long,
+        fields: Map<String, Any?> = emptyMap(),
+    ) {
+        MfLog.detail(
+            LogCategory.HOME,
+            "recommend_sheets_load_stale",
+            baseFields(operation, flowId, generation, platform) + fields + mapOf(
+                "durationMs" to elapsedMs(startedAt),
+                "result" to LogFields.Result.STALE,
+                "reason" to LogFields.Reason.STALE_GENERATION,
+            ),
+        )
+    }
+
+    private fun logCancelled(
+        event: String,
+        operation: String,
+        flowId: String,
+        generation: Long,
+        platform: String,
+        startedAt: Long,
+        fields: Map<String, Any?> = emptyMap(),
+    ) {
+        MfLog.detail(
+            LogCategory.HOME,
+            event,
+            baseFields(operation, flowId, generation, platform) + fields + mapOf(
+                "durationMs" to elapsedMs(startedAt),
+                "result" to LogFields.Result.CANCELLED,
+                "reason" to LogFields.Reason.CANCELLED,
+            ),
+        )
+    }
+
+    private fun baseFields(
+        operation: String,
+        flowId: String,
+        generation: Long,
+        platform: String,
+    ): Map<String, Any?> = mapOf(
+        "screen" to "recommend_sheets",
+        "operation" to operation,
+        "flowId" to flowId,
+        "generation" to generation,
+        "platform" to platform,
+    )
+
+    private fun newFlowId(operation: String, generation: Long): String =
+        "recommend_sheets:$operation:$generation"
+
+    private fun elapsedMs(startedAt: Long): Long = (System.nanoTime() - startedAt) / 1_000_000
 
     private fun buildTags(
         pinned: List<MusicSheetItemBase>,

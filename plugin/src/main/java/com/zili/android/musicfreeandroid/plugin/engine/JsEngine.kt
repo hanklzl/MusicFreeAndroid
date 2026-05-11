@@ -6,6 +6,7 @@ import com.dokar.quickjs.binding.define
 import com.dokar.quickjs.binding.function
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
 import kotlinx.coroutines.Dispatchers
 
 /**
@@ -64,7 +65,34 @@ class JsEngine private constructor(
      * Supports top-level `await` — Promises are automatically resolved.
      */
     suspend inline fun <reified T> evaluate(code: String): T {
-        return quickJs.evaluate<T>(code)
+        val startedAt = System.nanoTime()
+        return try {
+            val result = quickJs.evaluate<T>(code)
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "js_evaluate_success",
+                fields = mapOf(
+                    "operation" to "evaluate",
+                    "result" to LogFields.Result.SUCCESS,
+                    "durationMs" to elapsedMs(startedAt),
+                    "scriptLength" to code.length,
+                ),
+            )
+            result
+        } catch (e: Exception) {
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "js_evaluate_failed",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "evaluate",
+                    "result" to LogFields.Result.FAILURE,
+                    "durationMs" to elapsedMs(startedAt),
+                    "scriptLength" to code.length,
+                ),
+            )
+            throw e
+        }
     }
 
     /**
@@ -72,16 +100,31 @@ class JsEngine private constructor(
      * Returns null for JS `undefined` and `null`.
      */
     suspend fun evaluateOrNull(code: String): Any? {
+        val startedAt = System.nanoTime()
         return try {
-            quickJs.evaluate<Any?>(code)
+            val result = quickJs.evaluate<Any?>(code)
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "js_evaluate_success",
+                fields = mapOf(
+                    "operation" to "evaluate_or_null",
+                    "result" to LogFields.Result.SUCCESS,
+                    "durationMs" to elapsedMs(startedAt),
+                    "scriptLength" to code.length,
+                ),
+            )
+            result
         } catch (e: Exception) {
             MfLog.error(
                 category = LogCategory.PLUGIN,
-                event = "plugin_error",
+                event = "js_evaluate_failed",
                 throwable = e,
                 fields = mapOf(
-                    "operation" to "evaluateOrNull",
+                    "operation" to "evaluate_or_null",
                     "status" to "failed",
+                    "result" to LogFields.Result.FAILURE,
+                    "durationMs" to elapsedMs(startedAt),
+                    "scriptLength" to code.length,
                 ),
             )
             null
@@ -135,3 +178,7 @@ class JsEngine private constructor(
 
     val isClosed: Boolean get() = quickJs.isClosed
 }
+
+@PublishedApi
+internal fun elapsedMs(startedAt: Long): Long =
+    (System.nanoTime() - startedAt) / 1_000_000

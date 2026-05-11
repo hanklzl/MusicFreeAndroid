@@ -3,6 +3,9 @@ package com.zili.android.musicfreeandroid.plugin.meta
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.MfLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,9 +29,12 @@ class PluginMetaStoreTest {
     private lateinit var scope: CoroutineScope
     private lateinit var dataStore: DataStore<Preferences>
     private lateinit var store: PluginMetaStore
+    private lateinit var logger: RecordingLogger
 
     @Before
     fun setup() {
+        logger = RecordingLogger()
+        MfLog.install(logger)
         scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         dataStore = PreferenceDataStoreFactory.create(scope = scope) {
             tmpFolder.newFile("test_plugin_meta.preferences_pb")
@@ -38,6 +44,7 @@ class PluginMetaStoreTest {
 
     @After
     fun tearDown() {
+        MfLog.resetForTest()
         scope.cancel()
     }
 
@@ -78,6 +85,11 @@ class PluginMetaStoreTest {
         val order = listOf("qq", "netease", "kugou")
         store.setPluginOrder(order)
         assertEquals(order, store.pluginOrder.first())
+
+        val event = logger.events.single { it.event == "plugin_metadata_write_success" }
+        assertEquals("set_plugin_order", event.fields["operation"])
+        assertEquals("success", event.fields["result"])
+        assertEquals(3, event.fields["count"])
     }
 
     @Test
@@ -114,6 +126,12 @@ class PluginMetaStoreTest {
         val vars = mapOf("cookie" to "abc123", "token" to "xyz")
         store.setUserVariables("netease", vars)
         assertEquals(vars, store.getUserVariables("netease").first())
+
+        val event = logger.events.single { it.event == "plugin_metadata_write_success" }
+        assertEquals("set_user_variables", event.fields["operation"])
+        assertEquals("success", event.fields["result"])
+        assertEquals("netease", event.fields["platform"])
+        assertEquals(2, event.fields["count"])
     }
 
     @Test
@@ -170,5 +188,34 @@ class PluginMetaStoreTest {
         store.addSubscription("源A", "https://a.com/p.json")
         store.removeSubscription(5)
         assertEquals(1, store.subscriptions.first().size)
+    }
+
+    private data class RecordedEvent(
+        val category: LogCategory,
+        val event: String,
+        val fields: Map<String, Any?>,
+    )
+
+    private class RecordingLogger : MfLogger {
+        val events = mutableListOf<RecordedEvent>()
+
+        override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+            events += RecordedEvent(category, event, fields)
+        }
+
+        override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+            events += RecordedEvent(category, event, fields)
+        }
+
+        override fun error(
+            category: LogCategory,
+            event: String,
+            throwable: Throwable?,
+            fields: Map<String, Any?>,
+        ) {
+            events += RecordedEvent(category, event, fields)
+        }
+
+        override fun flush() = Unit
     }
 }

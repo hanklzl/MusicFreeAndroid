@@ -4,6 +4,8 @@ import com.dokar.quickjs.binding.asyncFunction
 import com.dokar.quickjs.binding.function
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback
@@ -88,41 +90,53 @@ object AxiosShim {
     }
 
     private suspend fun handleGet(args: Array<Any?>): String {
+        val url = args.getOrNull(0)?.toString()
         return try {
-            val url = args.getOrNull(0)?.toString()
-                ?: return buildErrorResponse("URL is required")
+            if (url.isNullOrBlank()) {
+                logRequestFailed(
+                    method = "GET",
+                    url = url,
+                    reason = LogFields.Reason.INVALID_URL,
+                )
+                return buildErrorResponse("URL is required")
+            }
             val config = args.getOrNull(1) as? Map<*, *>
             performGet(url = url, config = config)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            MfLog.error(
-                category = LogCategory.PLUGIN,
-                event = "axios_request_failed",
+            logRequestFailed(
+                method = "GET",
+                url = url,
+                reason = "request_failed",
                 throwable = e,
-                fields = mapOf(
-                    "method" to "GET",
-                    "status" to "failed",
-                ),
             )
             buildErrorResponse(e.message ?: "Unknown error")
         }
     }
 
     private suspend fun handlePost(args: Array<Any?>): String {
+        val url = args.getOrNull(0)?.toString()
         return try {
-            val url = args.getOrNull(0)?.toString()
-                ?: return buildErrorResponse("URL is required")
+            if (url.isNullOrBlank()) {
+                logRequestFailed(
+                    method = "POST",
+                    url = url,
+                    reason = LogFields.Reason.INVALID_URL,
+                )
+                return buildErrorResponse("URL is required")
+            }
             val bodyArg = args.getOrNull(1)
             val config = args.getOrNull(2) as? Map<*, *>
             performPost(url = url, bodyArg = bodyArg, config = config)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            MfLog.error(
-                category = LogCategory.PLUGIN,
-                event = "axios_request_failed",
+            logRequestFailed(
+                method = "POST",
+                url = url,
+                reason = "request_failed",
                 throwable = e,
-                fields = mapOf(
-                    "method" to "POST",
-                    "status" to "failed",
-                ),
             )
             buildErrorResponse(e.message ?: "Unknown error")
         }
@@ -130,28 +144,47 @@ object AxiosShim {
 
     private suspend fun handleRequest(args: Array<Any?>): String {
         val config = args.getOrNull(0) as? Map<*, *>
-            ?: return buildErrorResponse("Config object is required")
+            ?: run {
+                logRequestFailed(
+                    method = "GET",
+                    url = null,
+                    reason = "request_build_failed",
+                )
+                return buildErrorResponse("Config object is required")
+            }
 
         val method = config["method"]?.toString()?.lowercase().orEmpty().ifBlank { "get" }
         val url = config["url"]?.toString()
-            ?: return buildErrorResponse("Config.url is required")
+            ?: run {
+                logRequestFailed(
+                    method = method.uppercase(),
+                    url = null,
+                    reason = LogFields.Reason.INVALID_URL,
+                )
+                return buildErrorResponse("Config.url is required")
+            }
 
         return try {
             when (method) {
                 "post" -> performPost(url = url, bodyArg = config["data"], config = config)
                 "get" -> performGet(url = url, config = config)
-                else -> buildErrorResponse("Unsupported method: $method")
+                else -> {
+                    logRequestFailed(
+                        method = method.uppercase(),
+                        url = url,
+                        reason = "unsupported_method",
+                    )
+                    buildErrorResponse("Unsupported method: $method")
+                }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            MfLog.error(
-                category = LogCategory.PLUGIN,
-                event = "axios_request_failed",
+            logRequestFailed(
+                method = method.uppercase(),
+                url = url,
+                reason = "request_failed",
                 throwable = e,
-                fields = mapOf(
-                    "method" to method.uppercase(),
-                    "url" to url,
-                    "status" to "failed",
-                ),
             )
             buildErrorResponse(e.message ?: "Unknown error")
         }
@@ -159,13 +192,30 @@ object AxiosShim {
 
     private suspend fun performGet(url: String, config: Map<*, *>?): String {
         val fullUrl = buildUrlWithParams(url, config)
-        val requestBuilder = Request.Builder().url(fullUrl).get()
-        applyHeaders(requestBuilder, config)
-        val headers = requestBuilder.build().headers
-        logRequest(method = "GET", url = fullUrl, headers = headers)
+        val request = buildRequestOrNull(method = "GET", url = fullUrl, bodyString = null, config = config)
+            ?: return buildErrorResponse("Invalid request")
+        logRequest(method = "GET", url = fullUrl, headers = request.headers)
 
         val startedAt = System.currentTimeMillis()
-        val response = client.newCall(requestBuilder.build()).await()
+        val response = try {
+            client.newCall(request).await()
+        } catch (e: CancellationException) {
+            logRequestCancelled(
+                method = "GET",
+                url = fullUrl,
+                durationMs = System.currentTimeMillis() - startedAt,
+            )
+            throw e
+        } catch (e: Exception) {
+            logRequestFailed(
+                method = "GET",
+                url = fullUrl,
+                reason = "network_error",
+                throwable = e,
+                durationMs = System.currentTimeMillis() - startedAt,
+            )
+            return buildErrorResponse(e.message ?: "Unknown error")
+        }
         return response.use {
             val body = readResponseBody(it)
             logResponse(
@@ -201,17 +251,43 @@ object AxiosShim {
         }
         val requestBody = bodyString.toRequestBody(contentType.toMediaTypeOrNull())
 
-        val requestBuilder = Request.Builder().url(fullUrl).post(requestBody)
-        applyHeaders(requestBuilder, config)
+        val request = buildRequestOrNull(
+            method = "POST",
+            url = fullUrl,
+            bodyString = bodyString,
+            requestBody = requestBody,
+            config = config,
+        )
+            ?: return buildErrorResponse("Invalid request")
         logRequest(
             method = "POST",
             url = fullUrl,
-            headers = requestBuilder.build().headers,
-            bodyPreview = bodyString.takePreview(REQUEST_BODY_PREVIEW_CHARS),
+            headers = request.headers,
+            bodyPreview = bodyString,
         )
 
         val startedAt = System.currentTimeMillis()
-        val response = client.newCall(requestBuilder.build()).await()
+        val response = try {
+            client.newCall(request).await()
+        } catch (e: CancellationException) {
+            logRequestCancelled(
+                method = "POST",
+                url = fullUrl,
+                durationMs = System.currentTimeMillis() - startedAt,
+                bodyLength = bodyString.length,
+            )
+            throw e
+        } catch (e: Exception) {
+            logRequestFailed(
+                method = "POST",
+                url = fullUrl,
+                reason = "network_error",
+                throwable = e,
+                durationMs = System.currentTimeMillis() - startedAt,
+                bodyLength = bodyString.length,
+            )
+            return buildErrorResponse(e.message ?: "Unknown error")
+        }
         return response.use {
             val body = readResponseBody(it)
             logResponse(
@@ -290,7 +366,10 @@ object AxiosShim {
                 throwable = e,
                 fields = mapOf(
                     "status" to response.code,
+                    "statusCode" to response.code,
                     "encoding" to encoding,
+                    "result" to LogFields.Result.FAILURE,
+                    "reason" to "response_decode_failed",
                 ),
             )
             bytes
@@ -298,16 +377,59 @@ object AxiosShim {
         return decodedBytes.toString(charset)
     }
 
+    private fun buildRequestOrNull(
+        method: String,
+        url: String,
+        bodyString: String?,
+        requestBody: okhttp3.RequestBody? = null,
+        config: Map<*, *>?,
+    ): Request? {
+        return try {
+            val builder = Request.Builder().url(url)
+            if (method == "POST") {
+                builder.post(requestBody ?: (bodyString ?: "").toRequestBody(resolveContentType(config, bodyString).toMediaTypeOrNull()))
+            } else {
+                builder.get()
+            }
+            applyHeaders(builder, config)
+            builder.build()
+        } catch (e: IllegalArgumentException) {
+            logRequestFailed(
+                method = method,
+                url = url,
+                reason = LogFields.Reason.INVALID_URL,
+                throwable = e,
+                bodyLength = bodyString?.length ?: 0,
+            )
+            null
+        } catch (e: Exception) {
+            logRequestFailed(
+                method = method,
+                url = url,
+                reason = "request_build_failed",
+                throwable = e,
+                bodyLength = bodyString?.length ?: 0,
+            )
+            null
+        }
+    }
+
     private fun logRequest(method: String, url: String, headers: Headers, bodyPreview: String? = null) {
+        val headerPreview = headersPreview(headers)
+        val sanitizedPreview = bodyPreview?.takePreview(REQUEST_BODY_PREVIEW_CHARS)
         MfLog.detail(
             category = LogCategory.PLUGIN,
             event = "axios_request",
             fields = mapOf(
                 "method" to method,
                 "url" to url,
+                "host" to LogFields.host(url),
                 "status" to "start",
-                "headerPreview" to headersPreview(headers),
-            ) + (bodyPreview?.let { mapOf("bodyPreview" to it) }.orEmpty()),
+                "headerCount" to headers.size,
+                "headerPreviewLength" to headerPreview.length,
+                "headerPreview" to headerPreview,
+                "bodyLength" to (bodyPreview?.length ?: 0),
+            ) + (sanitizedPreview?.let { mapOf("bodyPreview" to it) }.orEmpty()),
         )
     }
 
@@ -324,16 +446,70 @@ object AxiosShim {
             ?.replace("\r", " ")
             ?.takePreview(RESPONSE_BODY_PREVIEW_CHARS)
             ?: ""
+        val headerPreview = headersPreview(headers)
+        val successful = status in 200..299
         MfLog.detail(
             category = LogCategory.PLUGIN,
             event = "axios_response",
             fields = mapOf(
                 "method" to method,
                 "url" to url,
+                "host" to LogFields.host(url),
                 "status" to status,
+                "statusCode" to status,
                 "durationMs" to durationMs,
-                "headerPreview" to headersPreview(headers),
+                "result" to if (successful) LogFields.Result.SUCCESS else LogFields.Result.FAILURE,
+                "headerCount" to headers.size,
+                "headerPreviewLength" to headerPreview.length,
+                "headerPreview" to headerPreview,
+                "responseLength" to (body?.length ?: 0),
                 "bodyPreview" to preview,
+            ) + if (successful) emptyMap() else mapOf("reason" to "http_status"),
+        )
+    }
+
+    private fun logRequestFailed(
+        method: String,
+        url: String?,
+        reason: String,
+        throwable: Throwable? = null,
+        durationMs: Long? = null,
+        bodyLength: Int = 0,
+    ) {
+        MfLog.error(
+            category = LogCategory.PLUGIN,
+            event = "axios_request_failed",
+            throwable = throwable,
+            fields = mapOf(
+                "method" to method,
+                "url" to url.orEmpty(),
+                "host" to LogFields.host(url),
+                "status" to "failed",
+                "result" to LogFields.Result.FAILURE,
+                "reason" to reason,
+                "bodyLength" to bodyLength,
+            ) + (durationMs?.let { mapOf("durationMs" to it) }.orEmpty()),
+        )
+    }
+
+    private fun logRequestCancelled(
+        method: String,
+        url: String?,
+        durationMs: Long,
+        bodyLength: Int = 0,
+    ) {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "axios_request_cancelled",
+            fields = mapOf(
+                "method" to method,
+                "url" to url.orEmpty(),
+                "host" to LogFields.host(url),
+                "status" to "cancelled",
+                "result" to LogFields.Result.CANCELLED,
+                "reason" to LogFields.Reason.CANCELLED,
+                "durationMs" to durationMs,
+                "bodyLength" to bodyLength,
             ),
         )
     }
