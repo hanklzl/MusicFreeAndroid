@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import com.zili.android.musicfreeandroid.core.R as CoreR
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
@@ -33,6 +34,26 @@ class PlayerOperationsBarTest {
     val composeRule = createComposeRule()
 
     private lateinit var expectedSizes: OperationExpectedSizes
+
+    @Test
+    fun `quality operation image follows current quality`() {
+        assertEquals(CoreR.drawable.ic_quality_low, playerQualityImage(PlayQuality.LOW))
+        assertEquals(CoreR.drawable.ic_quality_standard, playerQualityImage(PlayQuality.STANDARD))
+        assertEquals(CoreR.drawable.ic_quality_high, playerQualityImage(PlayQuality.HIGH))
+        assertEquals(CoreR.drawable.ic_quality_super, playerQualityImage(PlayQuality.SUPER))
+    }
+
+    @Test
+    fun `rate operation image follows current speed`() {
+        assertEquals(CoreR.drawable.ic_rate_050, playerRateImage(0.5f))
+        assertEquals(CoreR.drawable.ic_rate_075, playerRateImage(0.75f))
+        assertEquals(CoreR.drawable.ic_rate_100, playerRateImage(1.0f))
+        assertEquals(CoreR.drawable.ic_rate_125, playerRateImage(1.25f))
+        assertEquals(CoreR.drawable.ic_rate_150, playerRateImage(1.5f))
+        assertEquals(CoreR.drawable.ic_rate_175, playerRateImage(1.75f))
+        assertEquals(CoreR.drawable.ic_rate_200, playerRateImage(2.0f))
+        assertEquals(CoreR.drawable.ic_rate_100, playerRateImage(1.1f))
+    }
 
     @Test
     fun `cover operation row uses RN height and six fixed slots`() {

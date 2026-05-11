@@ -435,6 +435,31 @@ internal fun playerModeDescription(playbackMode: PlaybackMode): String = when (p
     PlaybackMode.Queue -> "列表循环"
 }
 
+@DrawableRes
+internal fun playerQualityImage(quality: PlayQuality): Int = when (quality) {
+    PlayQuality.LOW -> R.drawable.ic_quality_low
+    PlayQuality.STANDARD -> R.drawable.ic_quality_standard
+    PlayQuality.HIGH -> R.drawable.ic_quality_high
+    PlayQuality.SUPER -> R.drawable.ic_quality_super
+}
+
+@DrawableRes
+internal fun playerRateImage(speed: Float): Int = when {
+    speed.matchesPlayerRate(0.5f) -> R.drawable.ic_rate_050
+    speed.matchesPlayerRate(0.75f) -> R.drawable.ic_rate_075
+    speed.matchesPlayerRate(1.0f) -> R.drawable.ic_rate_100
+    speed.matchesPlayerRate(1.25f) -> R.drawable.ic_rate_125
+    speed.matchesPlayerRate(1.5f) -> R.drawable.ic_rate_150
+    speed.matchesPlayerRate(1.75f) -> R.drawable.ic_rate_175
+    speed.matchesPlayerRate(2.0f) -> R.drawable.ic_rate_200
+    else -> R.drawable.ic_rate_100
+}
+
+private fun Float.matchesPlayerRate(target: Float): Boolean =
+    kotlin.math.abs(this - target) <= PlayerRateImageTolerance
+
+private const val PlayerRateImageTolerance = 0.001f
+
 @Composable
 internal fun PlayerContentLayer(
     modifier: Modifier = Modifier,
@@ -670,7 +695,7 @@ internal fun PlayerOperationsBar(
             contentDescription = "音质",
         ) {
             PlayerOperationImage(
-                image = R.drawable.ic_quality_standard,
+                image = playerQualityImage(currentQuality),
             )
         }
         PlayerOperationSlot(
@@ -689,7 +714,7 @@ internal fun PlayerOperationsBar(
             contentDescription = "倍速",
         ) {
             PlayerOperationImage(
-                image = R.drawable.ic_rate_100,
+                image = playerRateImage(currentSpeed),
             )
         }
         PlayerOperationSlot(
