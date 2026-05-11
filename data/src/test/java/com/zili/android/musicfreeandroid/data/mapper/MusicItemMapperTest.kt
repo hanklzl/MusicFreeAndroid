@@ -27,6 +27,11 @@ class MusicItemMapperTest {
                 PlayQuality.HIGH to QualityInfo("https://example.com/high.mp3", 8_000_000L),
                 PlayQuality.LOW to QualityInfo("https://example.com/low.mp3", 3_000_000L),
             ),
+            raw = mapOf(
+                "traceId" to "abc",
+                "nested" to mapOf("token" to "secret", "page" to 3),
+                "flags" to listOf("album", true),
+            ),
         )
         val entity = model.toEntity(converters)
         val roundTripped = entity.toModel(converters)

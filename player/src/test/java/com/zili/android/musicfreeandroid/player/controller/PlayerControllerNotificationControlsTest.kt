@@ -5,6 +5,7 @@ import com.zili.android.musicfreeandroid.core.media.MediaSourceResolution
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.player.source.TrackHeaderRegistry
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -51,7 +52,7 @@ class PlayerControllerNotificationControlsTest {
         val controller = PlayerController(context, resolver)
 
         try {
-            controller.playQueue(
+            controller.playQueue.setQueue(
                 listOf(
                     testItem("1"),
                     testItem("2").copy(url = null),
@@ -77,7 +78,7 @@ class PlayerControllerNotificationControlsTest {
         val controller = PlayerController(context, resolver)
 
         try {
-            controller.playQueue(
+            controller.playQueue.setQueue(
                 listOf(
                     testItem("1"),
                     testItem("2").copy(url = null),
@@ -97,20 +98,69 @@ class PlayerControllerNotificationControlsTest {
     }
 
     @Test
-    fun `playItem reuses queued item when matching item is already resolved`() {
+    fun `playItem refreshes remote item that already has stale url before playback`() {
         val resolver = RecordingResolver(
-            resolvedUrl = "https://cdn.example.test/1.mp3",
+            resolvedUrl = "https://cdn.example.test/fresh.mp3",
+        )
+        val controller = PlayerController(context, resolver)
+
+        try {
+            controller.playItem(testItem("1").copy(url = "https://cdn.example.test/stale.mp3"))
+
+            waitUntil("current item is refreshed") {
+                controller.playQueue.currentItem?.url == "https://cdn.example.test/fresh.mp3"
+            }
+            assertEquals(listOf("1"), resolver.requestedIds)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `playItem refreshes queued item when matching item already has url`() {
+        val resolver = RecordingResolver(
+            resolvedUrl = "https://cdn.example.test/fresh.mp3",
         )
         val controller = PlayerController(context, resolver)
         val queued = testItem("1").copy(url = "https://queue.example.test/1.mp3")
 
         try {
-            controller.playQueue(listOf(queued), startIndex = 0)
+            controller.playQueue.setQueue(listOf(queued), startIndex = 0)
 
             controller.playItem(testItem("1").copy(url = null))
 
-            assertEquals("https://queue.example.test/1.mp3", controller.playQueue.currentItem?.url)
-            assertEquals(emptyList<String>(), resolver.requestedIds)
+            waitUntil("queued item is refreshed") {
+                controller.playQueue.currentItem?.url == "https://cdn.example.test/fresh.mp3"
+            }
+            assertEquals(listOf("1"), resolver.requestedIds)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `playItem registers resolver headers for refreshed source`() {
+        val registry = TrackHeaderRegistry()
+        val resolver = RecordingResolver(
+            resolvedUrl = "https://cdn.example.test/fresh.mp3",
+            headers = mapOf("Referer" to "https://music.example.test"),
+            userAgent = "MusicFreeAndroidTest/1.0",
+        )
+        val controller = PlayerController(
+            context = context,
+            mediaSourceResolver = resolver,
+            trackHeaderRegistry = registry,
+        )
+
+        try {
+            controller.playItem(testItem("1").copy(url = "https://cdn.example.test/stale.mp3"))
+
+            waitUntil("headers are registered") {
+                registry.get("https://cdn.example.test/fresh.mp3") != null
+            }
+            val entry = registry.get("https://cdn.example.test/fresh.mp3")!!
+            assertEquals("https://music.example.test", entry.headers["Referer"])
+            assertEquals("MusicFreeAndroidTest/1.0", entry.userAgent)
         } finally {
             controller.release()
         }
@@ -143,6 +193,8 @@ class PlayerControllerNotificationControlsTest {
 
     private class RecordingResolver(
         private val resolvedUrl: String,
+        private val headers: Map<String, String>? = null,
+        private val userAgent: String? = null,
     ) : MediaSourceResolver {
         val requestedIds = mutableListOf<String>()
 
@@ -153,8 +205,8 @@ class PlayerControllerNotificationControlsTest {
             requestedIds += item.id
             val source = MediaSourceResult(
                 url = resolvedUrl,
-                headers = null,
-                userAgent = null,
+                headers = headers,
+                userAgent = userAgent,
                 quality = null,
             )
             return MediaSourceResolution(

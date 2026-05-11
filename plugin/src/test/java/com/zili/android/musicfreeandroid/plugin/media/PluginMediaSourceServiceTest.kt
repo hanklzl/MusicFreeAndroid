@@ -57,6 +57,16 @@ class PluginMediaSourceServiceTest {
     }
 
     @Test
+    fun `resolves plugin item even when it already has stale url`() = runTest {
+        val source = plugin("source", supportsMedia = true, url = "https://source.example/fresh.mp3")
+        val service = service(plugins = listOf(source), alternatives = emptyMap())
+
+        val result = service.resolve(item("source").copy(url = "https://source.example/stale.mp3"))!!
+
+        assertEquals("https://source.example/fresh.mp3", result.item.url)
+    }
+
+    @Test
     fun `ignores disabled alternative plugin`() = runTest {
         val source = plugin("source", supportsMedia = true, url = "https://source.example/1.mp3")
         val target = plugin("target", supportsMedia = true, url = "https://target.example/1.mp3")

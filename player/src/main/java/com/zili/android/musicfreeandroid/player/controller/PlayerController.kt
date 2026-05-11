@@ -28,6 +28,7 @@ import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueueControls
 import com.zili.android.musicfreeandroid.player.service.PlaybackService
+import com.zili.android.musicfreeandroid.player.source.TrackHeaderRegistry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -59,6 +60,7 @@ class PlayerController @Inject constructor(
     private val mediaSourceResolver: MediaSourceResolver = EmptyMediaSourceResolver,
     private val playbackRuntimeSettings: PlaybackRuntimeSettings = PlaybackRuntimeSettings.Defaults,
     private val networkStateProvider: PlaybackNetworkStateProvider = PlaybackNetworkStateProvider.AlwaysAllowed,
+    private val trackHeaderRegistry: TrackHeaderRegistry = TrackHeaderRegistry(),
 ) : PlaybackNotificationQueueControls {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val connectionMutex = Mutex()
@@ -493,7 +495,7 @@ class PlayerController @Inject constructor(
             return null
         }
 
-        if (!item.url.isNullOrBlank()) return item
+        if (item.isLocalPlaybackSource()) return item
 
         val startedAt = System.nanoTime()
         val resolution = runCatching {
@@ -528,7 +530,16 @@ class PlayerController @Inject constructor(
             return null
         }
 
-        return if (playable != null && !playable.url.isNullOrBlank()) {
+        val resolvedUrl = playable?.url
+        return if (playable != null && !resolvedUrl.isNullOrBlank()) {
+            val source = resolution.source
+            if (!source.headers.isNullOrEmpty() || !source.userAgent.isNullOrBlank()) {
+                trackHeaderRegistry.put(
+                    resolvedUrl,
+                    source.headers.orEmpty(),
+                    source.userAgent,
+                )
+            }
             MfLog.detail(
                 category = LogCategory.PLAYER,
                 event = "playback_resolve_success",
@@ -542,6 +553,18 @@ class PlayerController @Inject constructor(
                 ),
             )
             playable
+        } else if (!item.url.isNullOrBlank()) {
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "playback_resolve_fallback_original_url",
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "status" to "fallback",
+                    "durationMs" to elapsedMs(startedAt),
+                ),
+            )
+            item
         } else {
             MfLog.error(
                 category = LogCategory.PLAYER,
