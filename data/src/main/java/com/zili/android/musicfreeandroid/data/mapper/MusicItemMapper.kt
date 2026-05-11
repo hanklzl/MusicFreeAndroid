@@ -16,6 +16,7 @@ fun MusicItem.toEntity(converters: Converters): MusicItemEntity = MusicItemEntit
     url = url,
     artwork = artwork,
     qualitiesJson = converters.qualitiesToJson(qualities),
+    rawJson = converters.rawMapToJson(raw),
 )
 
 fun MusicItemEntity.toModel(converters: Converters, addedAt: Long = 0L): MusicItem = MusicItem(
@@ -28,6 +29,7 @@ fun MusicItemEntity.toModel(converters: Converters, addedAt: Long = 0L): MusicIt
     url = url,
     artwork = artwork,
     qualities = converters.jsonToQualities(qualitiesJson),
+    raw = converters.jsonToRawMap(rawJson),
     addedAt = addedAt,
 )
 

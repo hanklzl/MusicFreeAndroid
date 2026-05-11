@@ -34,7 +34,7 @@ import com.zili.android.musicfreeandroid.data.db.entity.StarredSheetEntity
         DownloadTaskEntity::class,
         DownloadedTrackEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

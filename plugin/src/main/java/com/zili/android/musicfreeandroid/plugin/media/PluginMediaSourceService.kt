@@ -22,9 +22,6 @@ class PluginMediaSourceService @Inject constructor(
         item: MusicItem,
         quality: String?,
     ): MediaSourceResolution? {
-        if (!item.url.isNullOrBlank()) {
-            return null
-        }
         val sourcePlugin = pluginManager.getPlugin(item.platform) ?: return null
         val disabled = pluginManager.pluginMetaStore.disabledPlugins.first()
         val alternatives = pluginManager.pluginMetaStore.alternativePlugins.first()
