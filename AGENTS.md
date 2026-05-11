@@ -52,6 +52,7 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - 创建本地 worktree 前必须确认 `.worktrees/` 已被忽略，避免 worktree 内容进入版本控制。
 - 若用户未指定分支名，使用与任务语义一致的简短分支名。
 - 文档、脚本和说明中引用 worktree 路径时使用相对路径，避免写入 `/Users/...` 绝对路径。
+- worktree 分支合并回 `main` 时必须使用 `git merge --squash`，把分支上所有 commit 压成单个 commit。Commit message 使用 conventional commits 格式（`feat(scope): ...`、`fix(scope): ...`、`docs(scope): ...` 等）简要说明变更类型与范围；正文可补一两句"做了什么、为什么"，不要把每一步过程写进 message。
 
 ## 构建命令
 
