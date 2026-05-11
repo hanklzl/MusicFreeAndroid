@@ -61,6 +61,7 @@
 | [docs/superpowers/specs/2026-05-10-settings-runtime-integration-design.md](./superpowers/specs/2026-05-10-settings-runtime-integration-design.md) | 当前规范（基本设置运行态接入） | 是（作为实现计划输入） | 基本设置中历史条数、点击播放策略、播放详情默认页/常亮、播放/下载音质回退与移动网络播放的运行态接入设计 |
 | [docs/superpowers/specs/2026-05-10-local-music-rn-parity-design.md](./superpowers/specs/2026-05-10-local-music-rn-parity-design.md) | 当前规范（本地音乐 RN 对齐） | 是（作为实现计划输入） | 本地音乐 AppBar 主题色、搜索/扫描/批量编辑/下载列表入口与持久本地曲库链路设计 |
 | [docs/superpowers/specs/2026-05-10-favorite-starred-playlists-design.md](./superpowers/specs/2026-05-10-favorite-starred-playlists-design.md) | 当前规范（默认我喜欢与收藏歌单修复） | 是（作为实现计划输入） | 默认 `我喜欢` 歌单自动恢复、首页收藏歌单真实数据、插件歌单详情 heart 收藏入口设计 |
+| [docs/superpowers/specs/2026-05-11-wy-recommend-toplist-detail-fix.md](./superpowers/specs/2026-05-11-wy-recommend-toplist-detail-fix.md) | 当前规范（网易推荐歌单与榜单详情修复） | 是（作为实现计划输入） | 插件返回数值型整数 ID 时规范化为无 `.0` 字符串，避免网易歌单/榜单详情调用失败 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |
 | [docs/superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md](./superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md) | 当前参考（首页 mock 专项） | 否 | 首页主界面与底部 mini player 的第一阶段 mock 对齐设计 |

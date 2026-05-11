@@ -384,7 +384,7 @@ class LoadedPlugin(
         ) {
             val result = engine.evaluate<Any?>("await __plugin.getTopLists()")
             val list = result as? List<*> ?: return@executeApiCall emptyList()
-            JsBridge.parseTopListGroups(list)
+            JsBridge.parseTopListGroups(list, fallbackPlatform = info.platform)
         }
     }
 

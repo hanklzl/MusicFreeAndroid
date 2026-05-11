@@ -18,6 +18,7 @@ import com.zili.android.musicfreeandroid.plugin.api.RecommendSheetTagsResult
 import com.zili.android.musicfreeandroid.plugin.api.PluginSearchItem
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.api.TopListDetailResult
+import java.math.BigDecimal
 
 object JsBridge {
     private val LrcRegex = Regex("\\[(\\d{1,2}):(\\d{1,2})(?:\\.(\\d{1,3}))?]([^\\n]*)")
@@ -68,7 +69,7 @@ object JsBridge {
     fun toMusicItem(map: Map<String, Any?>, fallbackPlatform: String? = null): MusicItem {
         val durationRaw = (map["duration"] as? Number)?.toDouble() ?: 0.0
         return MusicItem(
-            id = map["id"]?.toString() ?: "",
+            id = normalizedId(map["id"]),
             platform = normalizedPlatform(
                 rawPlatform = map["platform"],
                 fallbackPlatform = fallbackPlatform,
@@ -216,7 +217,7 @@ object JsBridge {
         val resolvedArtwork = firstImageUrl(map, MusicImageFieldKeys)
         val resolvedCover = firstImageUrl(map, SheetImageFieldKeys) ?: resolvedArtwork
         return MusicSheetItemBase(
-            id = map["id"]?.toString() ?: "",
+            id = normalizedId(map["id"]),
             platform = normalizedPlatform(
                 rawPlatform = map["platform"],
                 fallbackPlatform = fallbackPlatform,
@@ -236,7 +237,7 @@ object JsBridge {
         fallbackPlatform: String? = null,
     ): AlbumItemBase {
         return AlbumItemBase(
-            id = map["id"]?.toString() ?: "",
+            id = normalizedId(map["id"]),
             platform = normalizedPlatform(
                 rawPlatform = map["platform"],
                 fallbackPlatform = fallbackPlatform,
@@ -269,7 +270,7 @@ object JsBridge {
         fallbackPlatform: String? = null,
     ): ArtistItemBase {
         return ArtistItemBase(
-            id = map["id"]?.toString() ?: "",
+            id = normalizedId(map["id"]),
             platform = normalizedPlatform(
                 rawPlatform = map["platform"],
                 fallbackPlatform = fallbackPlatform,
@@ -309,11 +310,16 @@ object JsBridge {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun parseTopListGroups(list: List<*>): List<MusicSheetGroupItem> {
+    fun parseTopListGroups(
+        list: List<*>,
+        fallbackPlatform: String? = null,
+    ): List<MusicSheetGroupItem> {
         return list.mapNotNull { group ->
             val groupMap = group as? Map<String, Any?> ?: return@mapNotNull null
             val data = (groupMap["data"] as? List<*>)?.mapNotNull { entry ->
-                (entry as? Map<String, Any?>)?.let(::toMusicSheetItemBase)
+                (entry as? Map<String, Any?>)?.let {
+                    toMusicSheetItemBase(it, fallbackPlatform = fallbackPlatform)
+                }
             } ?: emptyList()
 
             MusicSheetGroupItem(
@@ -428,7 +434,7 @@ object JsBridge {
             (entry as? Map<String, Any?>)?.let(::toMusicComment)
         } ?: emptyList()
         return MusicComment(
-            id = map["id"]?.toString(),
+            id = normalizedNullableId(map["id"]),
             nickName = map["nickName"]?.toString() ?: map["name"]?.toString().orEmpty(),
             avatar = map["avatar"]?.toString(),
             comment = map["comment"]?.toString() ?: map["content"]?.toString().orEmpty(),
@@ -469,6 +475,32 @@ object JsBridge {
             ?.toString()
             ?.takeIf { it.isNotBlank() }
             ?: fallbackPlatform.orEmpty()
+    }
+
+    private fun normalizedId(rawId: Any?): String =
+        normalizedNullableId(rawId).orEmpty()
+
+    private fun normalizedNullableId(rawId: Any?): String? {
+        return when (rawId) {
+            null -> null
+            is String -> rawId
+            is Byte,
+            is Short,
+            is Int,
+            is Long -> rawId.toString()
+            is Float,
+            is Double -> {
+                val value = rawId.toDouble()
+                if (value.isFinite()) {
+                    BigDecimal.valueOf(value).stripTrailingZeros().toPlainString()
+                } else {
+                    rawId.toString()
+                }
+            }
+            is BigDecimal -> rawId.stripTrailingZeros().toPlainString()
+            is Number -> rawId.toString()
+            else -> rawId.toString()
+        }
     }
 
     private fun firstImageUrl(map: Map<String, Any?>, keys: List<String>): String? {

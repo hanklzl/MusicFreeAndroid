@@ -184,6 +184,48 @@ class JsBridgeTest {
     }
 
     @Test
+    fun `toMusicSheetItemBase normalizes integral numeric ids for detail round trip`() {
+        val item = JsBridge.toMusicSheetItemBase(
+            mapOf(
+                "id" to 987654321.0,
+                "platform" to "demo",
+                "title" to "WY Sheet",
+            ),
+        )
+
+        assertEquals("987654321", item.id)
+        assertEquals("987654321", JsBridge.musicSheetItemToMap(item)["id"])
+    }
+
+    @Test
+    fun `toMusicSheetItemBase preserves string ids with leading zeros`() {
+        val item = JsBridge.toMusicSheetItemBase(
+            mapOf(
+                "id" to "000123",
+                "platform" to "demo",
+                "title" to "Padded Sheet",
+            ),
+        )
+
+        assertEquals("000123", item.id)
+        assertEquals("000123", JsBridge.musicSheetItemToMap(item)["id"])
+    }
+
+    @Test
+    fun `plugin item ids normalize integral numbers across item types`() {
+        assertEquals("306948", JsBridge.toMusicItem(mapOf("id" to 306948.0)).id)
+        assertEquals("10101", JsBridge.toAlbumItemBase(mapOf("id" to 10101.0)).id)
+        assertEquals("20202", JsBridge.toArtistItemBase(mapOf("id" to 20202.0)).id)
+        assertEquals("30303", JsBridge.parseMusicCommentsResult(
+            mapOf(
+                "data" to listOf(
+                    mapOf("id" to 30303.0, "nickName" to "User", "comment" to "Text"),
+                ),
+            ),
+        ).data.single().id)
+    }
+
+    @Test
     fun `toMusicSheetItemBase falls back to image aliases and normalizes protocol relative url`() {
         val map = mapOf<String, Any?>(
             "id" to "sheet-1",
@@ -211,6 +253,24 @@ class JsBridgeTest {
         assertEquals(1, groups.size)
         assertEquals("官方榜", groups[0].title)
         assertEquals("sheet-1", groups[0].data[0].id)
+    }
+
+    @Test
+    fun `parseTopListGroups backfills blank platforms from loaded plugin`() {
+        val list = listOf(
+            mapOf(
+                "title" to "官方榜",
+                "data" to listOf(
+                    mapOf("id" to 1.0, "platform" to "", "title" to "热歌榜"),
+                    mapOf("id" to 2.0, "title" to "飙升榜"),
+                ),
+            ),
+        )
+
+        val groups = JsBridge.parseTopListGroups(list, fallbackPlatform = "网易")
+
+        assertEquals(listOf("网易", "网易"), groups.single().data.map { it.platform })
+        assertEquals(listOf("1", "2"), groups.single().data.map { it.id })
     }
 
     @Test
