@@ -7,7 +7,6 @@ import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
-import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.lyric.LyricTiming
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
