@@ -1,5 +1,9 @@
 package com.zili.android.musicfreeandroid.downloader.io
 
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.MfLogger
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
@@ -18,14 +22,18 @@ class OkHttpDownloaderTest {
     private lateinit var server: MockWebServer
     private lateinit var subject: OkHttpDownloader
     private lateinit var workDir: File
+    private lateinit var logger: CapturingLogger
 
     @Before fun setup() {
         server = MockWebServer().apply { start() }
         subject = OkHttpDownloader(OkHttpClient())
         workDir = Files.createTempDirectory("dl").toFile()
+        logger = CapturingLogger()
+        MfLog.install(logger)
     }
 
     @After fun teardown() {
+        MfLog.resetForTest()
         server.shutdown()
         workDir.deleteRecursively()
     }
@@ -50,16 +58,58 @@ class OkHttpDownloaderTest {
         assertEquals(expected.size.toLong(), target.length())
         assertEquals(expected.size.toLong(), emissions.last().downloaded)
         assertEquals(expected.size.toLong(), emissions.last().total)
+        val success = logger.events.single { it.event == "download_http_success" }
+        assertEquals(LogCategory.DOWNLOAD, success.category)
+        assertEquals(200, success.fields["statusCode"])
+        assertEquals(expected.size.toLong(), success.fields["bytes"])
+        assertEquals(LogFields.Result.SUCCESS, success.fields["result"])
     }
 
-    @Test(expected = HttpDownloadException::class)
+    @Test
     fun http500BubblesAsHttpDownloadException() = runTest {
         server.enqueue(MockResponse().setResponseCode(500))
-        subject.download(
-            url = server.url("/x").toString(),
-            headers = emptyMap(),
-            target = File(workDir, "x.mp3"),
-            onProgress = {},
-        )
+        try {
+            subject.download(
+                url = server.url("/x").toString(),
+                headers = emptyMap(),
+                target = File(workDir, "x.mp3"),
+                onProgress = {},
+            )
+            throw AssertionError("Expected HttpDownloadException")
+        } catch (_: HttpDownloadException) {
+            val failure = logger.events.single { it.event == "download_http_failed" }
+            assertEquals(LogCategory.DOWNLOAD, failure.category)
+            assertEquals(500, failure.fields["statusCode"])
+            assertEquals(LogFields.Result.FAILURE, failure.fields["result"])
+        }
     }
+}
+
+private data class CapturedLogEvent(
+    val category: LogCategory,
+    val event: String,
+    val fields: Map<String, Any?>,
+)
+
+private class CapturingLogger : MfLogger {
+    val events = mutableListOf<CapturedLogEvent>()
+
+    override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += CapturedLogEvent(category, event, fields)
+    }
+
+    override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += CapturedLogEvent(category, event, fields)
+    }
+
+    override fun error(
+        category: LogCategory,
+        event: String,
+        throwable: Throwable?,
+        fields: Map<String, Any?>,
+    ) {
+        events += CapturedLogEvent(category, event, fields + ("throwable" to throwable))
+    }
+
+    override fun flush() = Unit
 }

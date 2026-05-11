@@ -12,11 +12,16 @@ import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
 import com.zili.android.musicfreeandroid.core.model.SortMode
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.MfLogger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
@@ -34,6 +39,7 @@ class AppPreferencesTest {
 
     private lateinit var dataStore: DataStore<Preferences>
     private lateinit var prefs: AppPreferences
+    private lateinit var logger: CapturingLogger
 
     @Before
     fun setup() {
@@ -42,6 +48,13 @@ class AppPreferencesTest {
             produceFile = { tmpFolder.newFile("test_prefs.preferences_pb") },
         )
         prefs = AppPreferences(dataStore)
+        logger = CapturingLogger()
+        MfLog.install(logger)
+    }
+
+    @After
+    fun teardown() {
+        MfLog.resetForTest()
     }
 
     @Test
@@ -120,6 +133,17 @@ class AppPreferencesTest {
         prefs.setStorageDirectoryUri(null)
 
         assertNull(prefs.storageDirectoryUri.first())
+    }
+
+    @Test
+    fun `runtime setting writes emit settings_write diagnostics`() = testScope.runTest {
+        prefs.setMaxDownload(20)
+
+        val event = logger.events.single { it.event == "settings_write" }
+        assertEquals(LogCategory.SETTINGS, event.category)
+        assertEquals("max_download", event.fields["key"])
+        assertEquals(10, event.fields["value"])
+        assertEquals(LogFields.Result.SUCCESS, event.fields["result"])
     }
 
     @Test
@@ -214,4 +238,33 @@ class AppPreferencesTest {
             prefs.searchHistory.first(),
         )
     }
+}
+
+private data class CapturedLogEvent(
+    val category: LogCategory,
+    val event: String,
+    val fields: Map<String, Any?>,
+)
+
+private class CapturingLogger : MfLogger {
+    val events = mutableListOf<CapturedLogEvent>()
+
+    override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += CapturedLogEvent(category, event, fields)
+    }
+
+    override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += CapturedLogEvent(category, event, fields)
+    }
+
+    override fun error(
+        category: LogCategory,
+        event: String,
+        throwable: Throwable?,
+        fields: Map<String, Any?>,
+    ) {
+        events += CapturedLogEvent(category, event, fields + ("throwable" to throwable))
+    }
+
+    override fun flush() = Unit
 }

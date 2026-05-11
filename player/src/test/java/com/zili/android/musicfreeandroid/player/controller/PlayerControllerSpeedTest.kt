@@ -6,6 +6,10 @@ import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.MfLogger
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -33,6 +37,7 @@ class PlayerControllerSpeedTest {
 
     @After
     fun tearDown() {
+        MfLog.resetForTest()
         PlaybackNotificationCommandHandler.detachAllForTest()
     }
 
@@ -134,4 +139,74 @@ class PlayerControllerSpeedTest {
             controller.release()
         }
     }
+
+    @Test
+    fun `changeQuality logs failure with quality and item fields when resolver returns null`() {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val nullResolver = object : MediaSourceResolver {
+            override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution? = null
+        }
+        val controller = PlayerController(context, nullResolver)
+        try {
+            val item = MusicItem(
+                id = "quality-log",
+                platform = "demo",
+                title = "Quality Track",
+                artist = "A",
+                album = null,
+                duration = 1L,
+                url = null,
+                artwork = null,
+                qualities = null,
+            )
+            controller.playQueue.setQueue(listOf(item), startIndex = 0)
+
+            controller.changeQuality(PlayQuality.HIGH)
+            Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+
+            val event = logger.events.single { it.event == "player_quality_change_failed" }
+            assertEquals(LogCategory.PLAYER, event.category)
+            assertEquals("change_quality", event.fields["operation"])
+            assertEquals(LogFields.Result.FAILURE, event.fields["result"])
+            assertEquals("high", event.fields["quality"])
+            assertEquals("quality-log", event.fields["itemId"])
+            assertEquals("Quality Track", event.fields["itemName"])
+            assertEquals("demo", event.fields["platform"])
+            assertEquals("no_source", event.fields["reason"])
+        } finally {
+            controller.release()
+        }
+    }
+}
+
+private data class RecordedLogEvent(
+    val level: String,
+    val category: LogCategory,
+    val event: String,
+    val fields: Map<String, Any?>,
+    val throwable: Throwable? = null,
+)
+
+private class RecordingLogger : MfLogger {
+    val events = mutableListOf<RecordedLogEvent>()
+
+    override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += RecordedLogEvent("trace", category, event, fields)
+    }
+
+    override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += RecordedLogEvent("detail", category, event, fields)
+    }
+
+    override fun error(
+        category: LogCategory,
+        event: String,
+        throwable: Throwable?,
+        fields: Map<String, Any?>,
+    ) {
+        events += RecordedLogEvent("error", category, event, fields, throwable)
+    }
+
+    override fun flush() = Unit
 }

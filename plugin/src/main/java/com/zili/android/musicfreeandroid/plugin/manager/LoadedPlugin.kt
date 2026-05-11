@@ -4,6 +4,7 @@ import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.timedSuspend
 import com.zili.android.musicfreeandroid.plugin.api.AlbumInfoResult
@@ -69,13 +70,11 @@ class LoadedPlugin(
         resultFields: (T) -> Map<String, Any?> = { emptyMap() },
         block: suspend () -> T,
     ): T {
+        val baseFields = apiBaseFields(method)
         MfLog.detail(
             category = LogCategory.PLUGIN,
             event = "plugin_api_call_start",
-            fields = mapOf(
-                "platform" to info.platform,
-                "method" to method,
-            ) + inputFields,
+            fields = baseFields + inputFields,
         )
 
         return withTimeout(TIMEOUT_MS) {
@@ -85,12 +84,11 @@ class LoadedPlugin(
                 MfLog.detail(
                     category = LogCategory.PLUGIN,
                     event = "plugin_api_call_success",
-                    fields = mapOf(
-                        "platform" to info.platform,
-                        "method" to method,
+                    fields = baseFields + mapOf(
                         "status" to "success",
+                        "result" to LogFields.Result.SUCCESS,
                         "durationMs" to durationMs,
-                    ) + inputFields + resultFields(result),
+                    ) + countField(result) + inputFields + resultFields(result),
                 )
                 result
             } catch (error: Exception) {
@@ -99,13 +97,11 @@ class LoadedPlugin(
                     category = LogCategory.PLUGIN,
                     event = "plugin_api_call_failed",
                     throwable = error,
-                    fields = mapOf(
-                        "platform" to info.platform,
-                        "method" to method,
+                    fields = baseFields + mapOf(
                         "status" to "failed",
                         "errorClass" to error::class.java.name,
                         "durationMs" to elapsedMs(startedAt),
-                        "result" to "failure",
+                        "result" to LogFields.Result.FAILURE,
                     ) + inputFields,
                 )
                 onFailure()
@@ -115,6 +111,14 @@ class LoadedPlugin(
 
     override suspend fun search(query: String, page: Int, type: String): SearchResult {
         if (!hasMethod("search")) {
+            logApiCallSkipped(
+                method = "search",
+                inputFields = mapOf(
+                    "query" to query,
+                    "page" to page,
+                    "type" to type,
+                ),
+            )
             return SearchResult(isEnd = true, data = emptyList())
         }
 
@@ -158,7 +162,16 @@ class LoadedPlugin(
     }
 
     private suspend fun getMediaSourceWithRetry(musicItem: MusicItem, quality: String): MediaSourceResult? {
-        if (!hasMethod("getMediaSource")) return fallbackQuality(musicItem, quality)
+        if (!hasMethod("getMediaSource")) {
+            logApiCallSkipped(
+                method = "getMediaSource",
+                inputFields = mapOf(
+                    "musicItemId" to musicItem.id,
+                    "quality" to quality,
+                ),
+            )
+            return fallbackQuality(musicItem, quality)
+        }
 
         return try {
             doGetMediaSource(musicItem, quality) ?: fallbackQuality(musicItem, quality)
@@ -170,10 +183,13 @@ class LoadedPlugin(
                 throwable = firstError,
                 fields = mapOf(
                     "platform" to info.platform,
+                    "pluginVersion" to info.version,
                     "method" to "getMediaSource",
+                    "operation" to "plugin_api_call",
                     "musicItemId" to musicItem.id,
                     "quality" to quality,
                     "status" to "failed",
+                    "result" to LogFields.Result.FAILURE,
                     "reason" to "first_attempt_failed",
                 ),
             )
@@ -186,15 +202,18 @@ class LoadedPlugin(
                     category = LogCategory.PLUGIN,
                     event = "plugin_api_call_failed",
                     throwable = secondError,
-                    fields = mapOf(
-                        "platform" to info.platform,
-                        "method" to "getMediaSource",
-                        "musicItemId" to musicItem.id,
-                        "quality" to quality,
-                        "status" to "failed",
-                        "reason" to "retry_failed",
-                    ),
-                )
+                        fields = mapOf(
+                            "platform" to info.platform,
+                            "pluginVersion" to info.version,
+                            "method" to "getMediaSource",
+                            "operation" to "plugin_api_call",
+                            "musicItemId" to musicItem.id,
+                            "quality" to quality,
+                            "status" to "failed",
+                            "result" to LogFields.Result.FAILURE,
+                            "reason" to "retry_failed",
+                        ),
+                    )
                 fallbackQuality(musicItem, quality)
             }
         }
@@ -222,7 +241,10 @@ class LoadedPlugin(
     }
 
     override suspend fun getMusicInfo(musicItem: MusicItem): MusicItem? {
-        if (!hasMethod("getMusicInfo")) return null
+        if (!hasMethod("getMusicInfo")) {
+            logApiCallSkipped("getMusicInfo", mapOf("musicItemId" to musicItem.id))
+            return null
+        }
         return executeApiCall(
             method = "getMusicInfo",
             inputFields = mapOf("musicItemId" to musicItem.id),
@@ -236,7 +258,10 @@ class LoadedPlugin(
     }
 
     override suspend fun getLyric(musicItem: MusicItem): LyricResult? {
-        if (!hasMethod("getLyric")) return null
+        if (!hasMethod("getLyric")) {
+            logApiCallSkipped("getLyric", mapOf("musicItemId" to musicItem.id))
+            return null
+        }
         return executeApiCall(
             method = "getLyric",
             inputFields = mapOf("musicItemId" to musicItem.id),
@@ -250,7 +275,16 @@ class LoadedPlugin(
     }
 
     override suspend fun getAlbumInfo(albumItem: AlbumItemBase, page: Int): AlbumInfoResult? {
-        if (!hasMethod("getAlbumInfo")) return null
+        if (!hasMethod("getAlbumInfo")) {
+            logApiCallSkipped(
+                "getAlbumInfo",
+                mapOf(
+                    "albumItemId" to albumItem.id,
+                    "page" to page,
+                ),
+            )
+            return null
+        }
         return executeApiCall(
             method = "getAlbumInfo",
             inputFields = mapOf(
@@ -271,7 +305,17 @@ class LoadedPlugin(
         page: Int,
         type: String,
     ): ArtistWorksResult? {
-        if (!hasMethod("getArtistWorks")) return null
+        if (!hasMethod("getArtistWorks")) {
+            logApiCallSkipped(
+                "getArtistWorks",
+                mapOf(
+                    "artistItemId" to artistItem.id,
+                    "page" to page,
+                    "type" to type,
+                ),
+            )
+            return null
+        }
         return executeApiCall(
             method = "getArtistWorks",
             inputFields = mapOf(
@@ -291,7 +335,10 @@ class LoadedPlugin(
     }
 
     override suspend fun importMusicSheet(urlLike: String): List<MusicItem>? {
-        if (!hasMethod("importMusicSheet")) return null
+        if (!hasMethod("importMusicSheet")) {
+            logApiCallSkipped("importMusicSheet", mapOf("urlLike" to urlLike))
+            return null
+        }
         return executeApiCall(
             method = "importMusicSheet",
             inputFields = mapOf("urlLike" to urlLike),
@@ -308,7 +355,10 @@ class LoadedPlugin(
     }
 
     override suspend fun importMusicItem(urlLike: String): MusicItem? {
-        if (!hasMethod("importMusicItem")) return null
+        if (!hasMethod("importMusicItem")) {
+            logApiCallSkipped("importMusicItem", mapOf("urlLike" to urlLike))
+            return null
+        }
         return executeApiCall(
             method = "importMusicItem",
             inputFields = mapOf("urlLike" to urlLike),
@@ -323,7 +373,10 @@ class LoadedPlugin(
     }
 
     override suspend fun getTopLists(): List<MusicSheetGroupItem> {
-        if (!hasMethod("getTopLists")) return emptyList()
+        if (!hasMethod("getTopLists")) {
+            logApiCallSkipped("getTopLists")
+            return emptyList()
+        }
         return executeApiCall(
             method = "getTopLists",
             onFailure = { emptyList() },
@@ -339,7 +392,16 @@ class LoadedPlugin(
         topListItem: MusicSheetItemBase,
         page: Int,
     ): TopListDetailResult? {
-        if (!hasMethod("getTopListDetail")) return null
+        if (!hasMethod("getTopListDetail")) {
+            logApiCallSkipped(
+                "getTopListDetail",
+                mapOf(
+                    "musicSheetId" to topListItem.id,
+                    "page" to page,
+                ),
+            )
+            return null
+        }
         return executeApiCall(
             method = "getTopListDetail",
             inputFields = mapOf(
@@ -364,7 +426,16 @@ class LoadedPlugin(
         sheetItem: MusicSheetItemBase,
         page: Int,
     ): MusicSheetInfoResult? {
-        if (!hasMethod("getMusicSheetInfo")) return null
+        if (!hasMethod("getMusicSheetInfo")) {
+            logApiCallSkipped(
+                "getMusicSheetInfo",
+                mapOf(
+                    "musicSheetId" to sheetItem.id,
+                    "page" to page,
+                ),
+            )
+            return null
+        }
         return executeApiCall(
             method = "getMusicSheetInfo",
             inputFields = mapOf(
@@ -389,7 +460,10 @@ class LoadedPlugin(
     }
 
     override suspend fun getRecommendSheetTags(): RecommendSheetTagsResult? {
-        if (!hasMethod("getRecommendSheetTags")) return null
+        if (!hasMethod("getRecommendSheetTags")) {
+            logApiCallSkipped("getRecommendSheetTags")
+            return null
+        }
         return executeApiCall(
             method = "getRecommendSheetTags",
             onFailure = { null },
@@ -411,7 +485,13 @@ class LoadedPlugin(
         tag: Map<String, Any?>,
         page: Int,
     ): PaginationResult<MusicSheetItemBase>? {
-        if (!hasMethod("getRecommendSheetsByTag")) return null
+        if (!hasMethod("getRecommendSheetsByTag")) {
+            logApiCallSkipped(
+                "getRecommendSheetsByTag",
+                mapOf("page" to page),
+            )
+            return null
+        }
         return executeApiCall(
             method = "getRecommendSheetsByTag",
             inputFields = mapOf("page" to page),
@@ -436,7 +516,16 @@ class LoadedPlugin(
         musicItem: MusicItem,
         page: Int,
     ): PaginationResult<MusicComment>? {
-        if (!hasMethod("getMusicComments")) return null
+        if (!hasMethod("getMusicComments")) {
+            logApiCallSkipped(
+                "getMusicComments",
+                mapOf(
+                    "musicItemId" to musicItem.id,
+                    "page" to page,
+                ),
+            )
+            return null
+        }
         return executeApiCall(
             method = "getMusicComments",
             inputFields = mapOf(
@@ -478,6 +567,44 @@ class LoadedPlugin(
             rethrowIfExternalCancellation(error)
             false
         }
+    }
+
+    private fun logApiCallSkipped(
+        method: String,
+        inputFields: Map<String, Any?> = emptyMap(),
+    ) {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_api_call_skipped",
+            fields = apiBaseFields(method) + mapOf(
+                "result" to LogFields.Result.SKIPPED,
+                "reason" to LogFields.Reason.UNSUPPORTED,
+            ) + inputFields,
+        )
+    }
+
+    private fun apiBaseFields(method: String): Map<String, Any?> =
+        mapOf(
+            "platform" to info.platform,
+            "pluginVersion" to info.version.orEmpty(),
+            "method" to method,
+            "operation" to "plugin_api_call",
+        )
+
+    private fun countField(result: Any?): Map<String, Any?> {
+        val count = when (result) {
+            is List<*> -> result.size
+            is SearchResult -> result.data.size
+            is PaginationResult<*> -> result.data.size
+            is TopListDetailResult -> result.musicList.size
+            is MusicSheetInfoResult -> result.musicList.size
+            is AlbumInfoResult -> result.musicList.size
+            is ArtistWorksResult -> result.musicList.size
+            is RecommendSheetTagsResult -> result.pinned.size + result.data.sumOf { it.data.size }
+            is LyricResult -> result.lines.size
+            else -> null
+        }
+        return count?.let { mapOf("count" to it) }.orEmpty()
     }
 
     private fun rethrowIfExternalCancellation(error: Exception) {

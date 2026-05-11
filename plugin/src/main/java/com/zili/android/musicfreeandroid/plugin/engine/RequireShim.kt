@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.plugin.engine
 import android.content.Context
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
 
 /**
  * Registers CommonJS-like `require()` support in QuickJs for built-in plugin dependencies.
@@ -60,7 +61,10 @@ object RequireShim {
                     event = "require_module_register_success",
                     fields = mapOf(
                         "module" to moduleName,
+                        "moduleName" to moduleName,
+                        "assetPath" to moduleAssetPaths[moduleName].orEmpty(),
                         "status" to "success",
+                        "result" to LogFields.Result.SUCCESS,
                     ),
                 )
             } catch (e: Exception) {
@@ -70,10 +74,28 @@ object RequireShim {
                     throwable = e,
                     fields = mapOf(
                         "module" to moduleName,
+                        "moduleName" to moduleName,
+                        "assetPath" to moduleAssetPaths[moduleName].orEmpty(),
                         "status" to "failed",
+                        "result" to LogFields.Result.FAILURE,
+                        "reason" to "register_failed",
                     ),
                 )
             }
+        }
+
+        engine.function<Unit>("__log_require_missing") { args ->
+            val moduleName = args.getOrNull(0)?.toString().orEmpty()
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "require_module_missing",
+                fields = mapOf(
+                    "module" to moduleName,
+                    "moduleName" to moduleName,
+                    "result" to LogFields.Result.SKIPPED,
+                    "reason" to LogFields.Reason.UNSUPPORTED,
+                ),
+            )
         }
 
         // Define __require as a pure JS function that reads from cache
@@ -85,6 +107,11 @@ object RequireShim {
               var cache = globalThis.__requireCache;
               globalThis.__require = function(name) {
                 if (cache[name] !== undefined) return cache[name];
+                try {
+                  if (typeof globalThis.__log_require_missing === "function") {
+                    globalThis.__log_require_missing(name);
+                  }
+                } catch (_ignored) {}
                 console.warn("require('" + name + "') not supported, returning empty object");
                 return {};
               };
@@ -109,8 +136,10 @@ object RequireShim {
                         event = "require_module_asset_read_success",
                         fields = mapOf(
                             "module" to moduleName,
+                            "moduleName" to moduleName,
                             "assetPath" to assetPath,
                             "status" to "success",
+                            "result" to LogFields.Result.SUCCESS,
                         ),
                     )
                 } catch (e: Exception) {
@@ -120,8 +149,11 @@ object RequireShim {
                         throwable = e,
                         fields = mapOf(
                             "module" to moduleName,
+                            "moduleName" to moduleName,
                             "assetPath" to assetPath,
                             "status" to "failed",
+                            "result" to LogFields.Result.FAILURE,
+                            "reason" to "asset_read_failed",
                         ),
                     )
                 }

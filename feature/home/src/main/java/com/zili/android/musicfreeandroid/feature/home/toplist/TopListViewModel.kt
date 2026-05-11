@@ -4,9 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiModel
 import com.zili.android.musicfreeandroid.feature.home.pluginfeature.pluginsSupporting
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.timedSuspend
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -101,18 +106,57 @@ class TopListViewModel @Inject constructor(
     }
 
     private fun loadTopLists(plugin: LoadedPlugin, generation: Long) {
-        if (!isCurrentLoad(plugin, generation)) return
+        val operation = "load_top_lists"
+        val flowId = newFlowId(operation, generation)
+        if (!isCurrentLoad(plugin, generation)) {
+            logStale(plugin, operation, flowId, generation, System.nanoTime())
+            return
+        }
         viewModelScope.launch {
-            if (!isCurrentLoad(plugin, generation)) return@launch
-            _uiState.value = TopListUiState.Loading
-            val result = runCatching {
-                plugin.getTopLists()
+            val startedAt = System.nanoTime()
+            if (!isCurrentLoad(plugin, generation)) {
+                logStale(plugin, operation, flowId, generation, startedAt)
+                return@launch
             }
-            if (!isCurrentLoad(plugin, generation)) return@launch
+            _uiState.value = TopListUiState.Loading
+            MfLog.detail(
+                LogCategory.HOME,
+                "top_list_load_start",
+                baseFields(plugin, operation, flowId, generation),
+            )
+            val result = runCatching {
+                timedSuspend { plugin.getTopLists() }
+            }
+            if (!isCurrentLoad(plugin, generation)) {
+                logStale(plugin, operation, flowId, generation, startedAt)
+                return@launch
+            }
 
-            result.onSuccess { groups ->
+            result.onSuccess { (groups, durationMs) ->
+                MfLog.detail(
+                    LogCategory.HOME,
+                    "top_list_load_success",
+                    baseFields(plugin, operation, flowId, generation) + mapOf(
+                        "count" to groups.sumOf { it.data.size },
+                        "durationMs" to durationMs,
+                        "result" to LogFields.Result.SUCCESS,
+                    ),
+                )
                 _uiState.value = TopListUiState.Success(groups)
             }.onFailure { e ->
+                if (e is CancellationException) {
+                    logCancelled(plugin, operation, flowId, generation, startedAt)
+                    throw e
+                }
+                MfLog.error(
+                    LogCategory.HOME,
+                    "top_list_load_failed",
+                    e,
+                    baseFields(plugin, operation, flowId, generation) + mapOf(
+                        "durationMs" to elapsedMs(startedAt),
+                        "result" to LogFields.Result.FAILURE,
+                    ),
+                )
                 _uiState.value = TopListUiState.Error(e.message ?: "加载榜单失败")
             }
         }
@@ -131,6 +175,60 @@ class TopListViewModel @Inject constructor(
         loadGeneration == generation &&
             selectedPluginInstance === plugin &&
             _selectedPlugin.value == plugin.info.platform.trim()
+
+    private fun logStale(
+        plugin: LoadedPlugin,
+        operation: String,
+        flowId: String,
+        generation: Long,
+        startedAt: Long,
+    ) {
+        MfLog.detail(
+            LogCategory.HOME,
+            "top_list_load_stale",
+            baseFields(plugin, operation, flowId, generation) + mapOf(
+                "durationMs" to elapsedMs(startedAt),
+                "result" to LogFields.Result.STALE,
+                "reason" to LogFields.Reason.STALE_GENERATION,
+            ),
+        )
+    }
+
+    private fun logCancelled(
+        plugin: LoadedPlugin,
+        operation: String,
+        flowId: String,
+        generation: Long,
+        startedAt: Long,
+    ) {
+        MfLog.detail(
+            LogCategory.HOME,
+            "top_list_load_cancelled",
+            baseFields(plugin, operation, flowId, generation) + mapOf(
+                "durationMs" to elapsedMs(startedAt),
+                "result" to LogFields.Result.CANCELLED,
+                "reason" to LogFields.Reason.CANCELLED,
+            ),
+        )
+    }
+
+    private fun baseFields(
+        plugin: LoadedPlugin,
+        operation: String,
+        flowId: String,
+        generation: Long,
+    ): Map<String, Any?> = mapOf(
+        "screen" to "top_list",
+        "operation" to operation,
+        "flowId" to flowId,
+        "generation" to generation,
+        "platform" to plugin.info.platform.trim(),
+    )
+
+    private fun newFlowId(operation: String, generation: Long): String =
+        "top_list:$operation:$generation"
+
+    private fun elapsedMs(startedAt: Long): Long = (System.nanoTime() - startedAt) / 1_000_000
 
     private fun currentSelectedPlugin(): LoadedPlugin? {
         val current = selectedPluginInstance

@@ -48,6 +48,7 @@ kotlin {
 dependencies {
     implementation(project(":core"))
     implementation(project(":data"))
+    implementation(project(":logging"))
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

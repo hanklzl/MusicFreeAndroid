@@ -12,6 +12,10 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginSearchItem
 import com.zili.android.musicfreeandroid.plugin.api.SearchResult
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.MfLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -51,6 +56,11 @@ class PlayerLyricLoaderTest {
     }
 
     private fun loader() = PlayerLyricLoader(lyricRepository, pluginManager, appPreferences)
+
+    @After
+    fun tearDown() {
+        MfLog.resetForTest()
+    }
 
     @Test
     fun nullTrackEmitsNoTrack() = runTest {
@@ -124,6 +134,35 @@ class PlayerLyricLoaderTest {
         assertEquals(LyricSourceInfo.Cache, state.document.source)
         verify(pluginManager, never()).getPlugin(any())
         verify(lyricRepository, never()).saveRemoteLyric(any(), any(), any())
+    }
+
+    @Test
+    fun observeLyricsLogsLoadStartAndCacheHit() = runTest {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val loader = loader()
+        val music = music("cached-log", "demo")
+        val cache = lyricCache(
+            music = music,
+            remotePayload = RawLyricPayload(rawLrc = "[00:01.00]Cached Lyric"),
+            remoteSourcePlatform = "demo",
+            remoteSourceMusicId = "cached-log",
+        )
+        whenever(lyricRepository.observeCache(music)).thenReturn(flowOf(cache))
+
+        loader.observeLyrics(music).firstReady()
+
+        val start = logger.events.single { it.event == "lyric_load_start" }
+        assertEquals(LogCategory.LYRICS, start.category)
+        assertEquals("load", start.fields["operation"])
+        assertEquals("player", start.fields["screen"])
+        assertEquals("cached-log", start.fields["itemId"])
+        assertEquals("demo", start.fields["platform"])
+
+        val cacheHit = logger.events.single { it.event == "lyric_cache_hit" }
+        assertEquals(LogFields.Result.SUCCESS, cacheHit.fields["result"])
+        assertEquals("cached-log", cacheHit.fields["itemId"])
+        assertEquals("demo", cacheHit.fields["platform"])
     }
 
     @Test
@@ -352,6 +391,37 @@ class PlayerLyricLoaderTest {
         val states = loader.observeLyrics(music).toList()
 
         assertTrue(states.any { it is LyricLoadState.NoLyric })
+    }
+
+    @Test
+    fun observeLyricsLogsPluginFetchFailureAndNoLyric() = runTest {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val loader = loader()
+        val music = music("plugin-failure-log", "demo")
+        val failingPlugin = plugin(platform = "demo", lyric = null)
+        lyricAutoSearchEnabledFlow.value = false
+        whenever(pluginManager.getPlugin("demo")).thenReturn(failingPlugin)
+        whenever(lyricRepository.observeCache(music)).thenReturn(flowOf(null))
+        runBlocking {
+            whenever(failingPlugin.getLyric(any())).thenThrow(RuntimeException("boom"))
+        }
+
+        val states = loader.observeLyrics(music).toList()
+
+        assertTrue(states.any { it is LyricLoadState.NoLyric })
+        val failed = logger.events.single { it.event == "lyric_plugin_fetch_failed" }
+        assertEquals(LogCategory.LYRICS, failed.category)
+        assertEquals("plugin_fetch", failed.fields["operation"])
+        assertEquals(LogFields.Result.FAILURE, failed.fields["result"])
+        assertEquals(LogFields.Reason.UNKNOWN, failed.fields["reason"])
+        assertEquals("plugin-failure-log", failed.fields["itemId"])
+        assertEquals("demo", failed.fields["platform"])
+
+        val noLyric = logger.events.single { it.event == "lyric_no_lyric" }
+        assertEquals("load", noLyric.fields["operation"])
+        assertEquals(LogFields.Result.FAILURE, noLyric.fields["result"])
+        assertEquals(LogFields.Reason.NOT_FOUND, noLyric.fields["reason"])
     }
 
     @Test
@@ -598,4 +668,35 @@ private fun plugin(
         whenever(plugin.getLyric(any())).thenReturn(lyric)
     }
     return plugin
+}
+
+private data class RecordedLogEvent(
+    val level: String,
+    val category: LogCategory,
+    val event: String,
+    val fields: Map<String, Any?>,
+    val throwable: Throwable? = null,
+)
+
+private class RecordingLogger : MfLogger {
+    val events = mutableListOf<RecordedLogEvent>()
+
+    override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += RecordedLogEvent("trace", category, event, fields)
+    }
+
+    override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += RecordedLogEvent("detail", category, event, fields)
+    }
+
+    override fun error(
+        category: LogCategory,
+        event: String,
+        throwable: Throwable?,
+        fields: Map<String, Any?>,
+    ) {
+        events += RecordedLogEvent("error", category, event, fields, throwable)
+    }
+
+    override fun flush() = Unit
 }

@@ -9,8 +9,10 @@ import com.zili.android.musicfreeandroid.plugin.engine.RequireShim
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
 import com.zili.android.musicfreeandroid.logging.timedSuspend
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -167,19 +169,55 @@ class PluginManager @Inject constructor(
     /**
      * Install a plugin from a local file by copying it to the plugins directory.
      */
-    suspend fun installFromFile(sourceFile: File): LoadedPlugin? = mutex.withLock {
-        withContext(Dispatchers.IO) {
-            installFromFileLocked(sourceFile)
+    suspend fun installFromFile(sourceFile: File): LoadedPlugin? {
+        val flowId = newFlowId()
+        val operation = "install_from_file"
+        logOperationStart(
+            flowId = flowId,
+            operation = operation,
+            targetCount = 1,
+            extraFields = mapOf("fileName" to sourceFile.name),
+        )
+        val plugin = mutex.withLock {
+            withContext(Dispatchers.IO) {
+                installFromFileLocked(sourceFile)
+            }
         }
+        logSinglePluginResult(
+            flowId = flowId,
+            operation = operation,
+            plugin = plugin,
+            extraFields = mapOf("fileName" to sourceFile.name),
+        )
+        return plugin
     }
 
     /**
      * Install a plugin by downloading it from a URL.
      */
-    suspend fun installFromUrl(url: String, fileName: String): LoadedPlugin? = mutex.withLock {
-        withContext(Dispatchers.IO) {
-            installFromUrlLocked(url = url, fileName = fileName)
+    suspend fun installFromUrl(url: String, fileName: String): LoadedPlugin? {
+        val flowId = newFlowId()
+        val operation = "install_from_url"
+        logOperationStart(
+            flowId = flowId,
+            operation = operation,
+            url = url,
+            targetCount = 1,
+            extraFields = mapOf("fileName" to fileName),
+        )
+        val plugin = mutex.withLock {
+            withContext(Dispatchers.IO) {
+                installFromUrlLocked(url = url, fileName = fileName)
+            }
         }
+        logSinglePluginResult(
+            flowId = flowId,
+            operation = operation,
+            url = url,
+            plugin = plugin,
+            extraFields = mapOf("fileName" to fileName),
+        )
+        return plugin
     }
 
     /**
@@ -190,10 +228,27 @@ class PluginManager @Inject constructor(
      */
     suspend fun installFromNetworkUrl(url: String): PluginOperationResult = mutex.withLock {
         withContext(Dispatchers.IO) {
+            val flowId = newFlowId()
+            val operation = "install_from_network_url"
             val startedAt = System.currentTimeMillis()
             val trimmed = url.trim()
+            logOperationStart(
+                flowId = flowId,
+                operation = operation,
+                url = trimmed,
+                targetCount = 1,
+            )
+            fun finish(result: PluginOperationResult): PluginOperationResult {
+                logPluginOperationResult(
+                    flowId = flowId,
+                    operation = operation,
+                    url = trimmed,
+                    result = result,
+                )
+                return result
+            }
             if (trimmed.isBlank()) {
-                return@withContext PluginOperationResult(
+                return@withContext finish(PluginOperationResult(
                     operationType = PluginOperationType.ADD,
                     targetPlugins = emptyList(),
                     successCount = 0,
@@ -207,13 +262,13 @@ class PluginManager @Inject constructor(
                     ),
                     startedAtEpochMs = startedAt,
                     finishedAtEpochMs = startedAt,
-                )
+                ))
             }
 
             val normalizedPath = trimmed.substringBefore("#").substringBefore("?")
             if (normalizedPath.endsWith(".json", ignoreCase = true)) {
                 val rawJson = downloadUrlBytes(trimmed)
-                    ?: return@withContext PluginOperationResult(
+                    ?: return@withContext finish(PluginOperationResult(
                         operationType = PluginOperationType.ADD,
                         targetPlugins = listOf(trimmed),
                         successCount = 0,
@@ -227,11 +282,11 @@ class PluginManager @Inject constructor(
                         ),
                         startedAtEpochMs = startedAt,
                         finishedAtEpochMs = System.currentTimeMillis(),
-                    )
+                    ))
 
                 val parsed = SubscriptionParser.parse(rawJson.toString(StandardCharsets.UTF_8))
                 if (parsed.isMalformed) {
-                    return@withContext PluginOperationResult(
+                    return@withContext finish(PluginOperationResult(
                         operationType = PluginOperationType.ADD,
                         targetPlugins = listOf(trimmed),
                         successCount = 0,
@@ -245,11 +300,11 @@ class PluginManager @Inject constructor(
                         ),
                         startedAtEpochMs = startedAt,
                         finishedAtEpochMs = System.currentTimeMillis(),
-                    )
+                    ))
                 }
 
                 val targets = parsed.installableEntries.map { it.url }
-                return@withContext updateSubscriptionEntriesLocked(
+                return@withContext finish(updateSubscriptionEntriesLocked(
                     subscriptionUrl = trimmed,
                     entries = parsed.installableEntries,
                     totalEntries = parsed.totalEntries,
@@ -257,13 +312,13 @@ class PluginManager @Inject constructor(
                     targets = targets,
                     operationType = PluginOperationType.ADD,
                     installSourceType = PluginInstallSourceType.SUBSCRIPTION_URL,
-                )
+                ))
             }
 
             val fileName = SubscriptionFileNames.networkPluginFileName(trimmed)
             val bytes = downloadUrlBytes(trimmed)
             if (bytes == null) {
-                return@withContext PluginOperationResult(
+                return@withContext finish(PluginOperationResult(
                     operationType = PluginOperationType.ADD,
                     targetPlugins = listOf(trimmed),
                     successCount = 0,
@@ -277,7 +332,7 @@ class PluginManager @Inject constructor(
                     ),
                     startedAtEpochMs = startedAt,
                     finishedAtEpochMs = System.currentTimeMillis(),
-                )
+                ))
             }
 
             val installed = installFromBytesLocked(
@@ -290,7 +345,7 @@ class PluginManager @Inject constructor(
             )
 
             if (installed != null) {
-                PluginOperationResult(
+                finish(PluginOperationResult(
                     operationType = PluginOperationType.ADD,
                     targetPlugins = listOf(installed.info.platform),
                     successCount = 1,
@@ -298,9 +353,9 @@ class PluginManager @Inject constructor(
                     failures = emptyList(),
                     startedAtEpochMs = startedAt,
                     finishedAtEpochMs = System.currentTimeMillis(),
-                )
+                ))
             } else {
-                PluginOperationResult(
+                finish(PluginOperationResult(
                     operationType = PluginOperationType.ADD,
                     targetPlugins = listOf(trimmed),
                     successCount = 0,
@@ -314,7 +369,7 @@ class PluginManager @Inject constructor(
                     ),
                     startedAtEpochMs = startedAt,
                     finishedAtEpochMs = System.currentTimeMillis(),
-                )
+                ))
             }
         }
     }
@@ -322,55 +377,87 @@ class PluginManager @Inject constructor(
     /**
      * Install plugins listed in a subscription JSON URL.
      */
-    suspend fun installFromSubscriptionUrl(subscriptionUrl: String): SubscriptionInstallResult = mutex.withLock {
-        withContext(Dispatchers.IO) {
-            installFromSubscriptionUrlLocked(subscriptionUrl)
+    suspend fun installFromSubscriptionUrl(subscriptionUrl: String): SubscriptionInstallResult {
+        val flowId = newFlowId()
+        val operation = "install_from_subscription"
+        logOperationStart(
+            flowId = flowId,
+            operation = operation,
+            url = subscriptionUrl,
+            targetCount = 1,
+        )
+        val result = mutex.withLock {
+            withContext(Dispatchers.IO) {
+                installFromSubscriptionUrlLocked(subscriptionUrl)
+            }
         }
+        logSubscriptionInstallResult(
+            flowId = flowId,
+            operation = operation,
+            url = subscriptionUrl,
+            result = result,
+        )
+        return result
     }
 
     /**
      * Update a single installed plugin using its source URL.
      */
-    suspend fun updatePlugin(platform: String): PluginOperationResult = mutex.withLock {
-        withContext(Dispatchers.IO) {
-            val startedAt = System.currentTimeMillis()
-            val plugin = _plugins.value.find { it.info.platform == platform }
-                ?: return@withContext PluginOperationResult(
-                    operationType = PluginOperationType.UPDATE_SINGLE,
-                    targetPlugins = listOf(platform),
-                    successCount = 0,
-                    failureCount = 1,
-                    failures = listOf(
-                        PluginOperationFailure(
-                            targetPlugin = platform,
-                            errorCode = PluginOperationErrorCode.INTERNAL_ERROR,
-                            message = "插件未找到",
+    suspend fun updatePlugin(platform: String): PluginOperationResult {
+        val flowId = newFlowId()
+        val operation = "update_plugin"
+        logOperationStart(flowId = flowId, operation = operation, platform = platform, targetCount = 1)
+        val result = mutex.withLock {
+            withContext(Dispatchers.IO) {
+                val startedAt = System.currentTimeMillis()
+                val plugin = _plugins.value.find { it.info.platform == platform }
+                    ?: return@withContext PluginOperationResult(
+                        operationType = PluginOperationType.UPDATE_SINGLE,
+                        targetPlugins = listOf(platform),
+                        successCount = 0,
+                        failureCount = 1,
+                        failures = listOf(
+                            PluginOperationFailure(
+                                targetPlugin = platform,
+                                errorCode = PluginOperationErrorCode.INTERNAL_ERROR,
+                                message = "插件未找到",
+                            ),
                         ),
-                    ),
-                    startedAtEpochMs = startedAt,
-                    finishedAtEpochMs = startedAt,
-                )
+                        startedAtEpochMs = startedAt,
+                        finishedAtEpochMs = startedAt,
+                    )
 
-            updateInstalledPluginLocked(
-                targetPlugin = plugin,
-                operationType = PluginOperationType.UPDATE_SINGLE,
-                startedAt = startedAt,
-            )
+                updateInstalledPluginLocked(
+                    targetPlugin = plugin,
+                    operationType = PluginOperationType.UPDATE_SINGLE,
+                    startedAt = startedAt,
+                )
+            }
         }
+        logPluginOperationResult(flowId = flowId, operation = operation, platform = platform, result = result)
+        return result
     }
 
     /**
      * Update all installed plugins that expose an update source.
      */
-    suspend fun updateAllPlugins(): PluginOperationResult = mutex.withLock {
-        withContext(Dispatchers.IO) {
-            val startedAt = System.currentTimeMillis()
-            updateInstalledPluginsLocked(
-                targets = _plugins.value.toList(),
-                operationType = PluginOperationType.UPDATE_ALL,
-                startedAt = startedAt,
-            )
+    suspend fun updateAllPlugins(): PluginOperationResult {
+        val flowId = newFlowId()
+        val operation = "update_all_plugins"
+        val targetCount = _plugins.value.size
+        logOperationStart(flowId = flowId, operation = operation, targetCount = targetCount)
+        val result = mutex.withLock {
+            withContext(Dispatchers.IO) {
+                val startedAt = System.currentTimeMillis()
+                updateInstalledPluginsLocked(
+                    targets = _plugins.value.toList(),
+                    operationType = PluginOperationType.UPDATE_ALL,
+                    startedAt = startedAt,
+                )
+            }
         }
+        logPluginOperationResult(flowId = flowId, operation = operation, result = result)
+        return result
     }
 
     /**
@@ -378,9 +465,26 @@ class PluginManager @Inject constructor(
      */
     suspend fun updateFromSubscriptionUrl(subscriptionUrl: String): PluginOperationResult = mutex.withLock {
         withContext(Dispatchers.IO) {
+            val flowId = newFlowId()
+            val operation = "update_from_subscription"
             val startedAt = System.currentTimeMillis()
+            logOperationStart(
+                flowId = flowId,
+                operation = operation,
+                url = subscriptionUrl,
+                targetCount = 1,
+            )
+            fun finish(result: PluginOperationResult): PluginOperationResult {
+                logPluginOperationResult(
+                    flowId = flowId,
+                    operation = operation,
+                    url = subscriptionUrl,
+                    result = result,
+                )
+                return result
+            }
             if (subscriptionUrl.isBlank()) {
-                return@withContext PluginOperationResult(
+                return@withContext finish(PluginOperationResult(
                     operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
                     targetPlugins = emptyList(),
                     successCount = 0,
@@ -394,11 +498,11 @@ class PluginManager @Inject constructor(
                     ),
                     startedAtEpochMs = startedAt,
                     finishedAtEpochMs = startedAt,
-                )
+                ))
             }
 
             val rawJson = downloadUrlBytes(subscriptionUrl)
-                ?: return@withContext PluginOperationResult(
+                ?: return@withContext finish(PluginOperationResult(
                     operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
                     targetPlugins = listOf(subscriptionUrl),
                     successCount = 0,
@@ -412,11 +516,11 @@ class PluginManager @Inject constructor(
                     ),
                     startedAtEpochMs = startedAt,
                     finishedAtEpochMs = System.currentTimeMillis(),
-                )
+                ))
 
             val parsed = SubscriptionParser.parse(rawJson.toString(StandardCharsets.UTF_8))
             if (parsed.isMalformed) {
-                return@withContext PluginOperationResult(
+                return@withContext finish(PluginOperationResult(
                     operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
                     targetPlugins = listOf(subscriptionUrl),
                     successCount = 0,
@@ -430,25 +534,29 @@ class PluginManager @Inject constructor(
                     ),
                     startedAtEpochMs = startedAt,
                     finishedAtEpochMs = System.currentTimeMillis(),
-                )
+                ))
             }
 
             val targets = parsed.installableEntries.map { it.url }
-            updateSubscriptionEntriesLocked(
+            finish(updateSubscriptionEntriesLocked(
                 subscriptionUrl = subscriptionUrl,
                 entries = parsed.installableEntries,
                 totalEntries = parsed.totalEntries,
                 startedAt = startedAt,
                 targets = targets,
-            )
+            ))
         }
     }
 
     /**
      * Uninstall a plugin by platform name.
      */
-    suspend fun uninstall(platform: String) = mutex.withLock {
-        withContext(Dispatchers.IO) {
+    suspend fun uninstall(platform: String) {
+        val flowId = newFlowId()
+        val operation = "uninstall"
+        logOperationStart(flowId = flowId, operation = operation, platform = platform, targetCount = 1)
+        mutex.withLock {
+            withContext(Dispatchers.IO) {
             val current = _plugins.value.toMutableList()
             val plugin = current.find { it.info.platform == platform }
             MfLog.detail(
@@ -456,6 +564,7 @@ class PluginManager @Inject constructor(
                 event = "plugin_uninstall_start",
                 fields = mapOf(
                     "operation" to "uninstall",
+                    "flowId" to flowId,
                     "status" to "start",
                     "platform" to platform,
                 ),
@@ -472,22 +581,50 @@ class PluginManager @Inject constructor(
                         event = "plugin_uninstall_success",
                         fields = mapOf(
                             "operation" to "uninstall",
+                            "flowId" to flowId,
                             "status" to "success",
                             "platform" to platform,
                             "fileName" to plugin.filePath.substringAfterLast('/'),
+                            "successCount" to 1,
+                            "failureCount" to 0,
+                            "targetCount" to 1,
+                            "result" to LogFields.Result.SUCCESS,
                         ),
                     )
                 } else {
-                    MfLog.error(
+                    MfLog.detail(
                         category = LogCategory.PLUGIN,
-                        event = "plugin_uninstall_failed",
+                        event = "plugin_uninstall_skipped",
                         fields = mapOf(
                             "operation" to "uninstall",
-                            "status" to "failed",
+                            "flowId" to flowId,
+                            "status" to "skipped",
                             "platform" to platform,
+                            "successCount" to 0,
+                            "failureCount" to 0,
+                            "targetCount" to 1,
+                            "result" to LogFields.Result.SKIPPED,
+                            "reason" to LogFields.Reason.NOT_FOUND,
                         ),
                     )
                 }
+            } catch (e: CancellationException) {
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_uninstall_cancelled",
+                    fields = mapOf(
+                        "operation" to "uninstall",
+                        "flowId" to flowId,
+                        "status" to "cancelled",
+                        "platform" to platform,
+                        "successCount" to 0,
+                        "failureCount" to 0,
+                        "targetCount" to 1,
+                        "result" to LogFields.Result.CANCELLED,
+                        "reason" to LogFields.Reason.CANCELLED,
+                    ),
+                )
+                throw e
             } catch (e: Exception) {
                 MfLog.error(
                     category = LogCategory.PLUGIN,
@@ -495,10 +632,17 @@ class PluginManager @Inject constructor(
                     throwable = e,
                     fields = mapOf(
                         "operation" to "uninstall",
+                        "flowId" to flowId,
                         "status" to "failed",
                         "platform" to platform,
+                        "successCount" to 0,
+                        "failureCount" to 1,
+                        "targetCount" to 1,
+                        "result" to LogFields.Result.FAILURE,
+                        "reason" to "internal_error",
                     ),
                 )
+            }
             }
         }
     }
@@ -548,26 +692,355 @@ class PluginManager @Inject constructor(
 
     // Convenience delegates to PluginMetaStore
     suspend fun setPluginEnabled(platform: String, enabled: Boolean) {
-        pluginMetaStore.setPluginEnabled(platform, enabled)
+        val flowId = newFlowId()
+        val operation = "set_plugin_enabled"
+        logOperationStart(
+            flowId = flowId,
+            operation = operation,
+            platform = platform,
+            targetCount = 1,
+            extraFields = mapOf("enabled" to enabled),
+        )
+        try {
+            pluginMetaStore.setPluginEnabled(platform, enabled)
+            logOperationSuccess(
+                flowId = flowId,
+                operation = operation,
+                platform = platform,
+                targetCount = 1,
+                extraFields = mapOf("enabled" to enabled),
+            )
+        } catch (e: CancellationException) {
+            logOperationCancelled(
+                flowId = flowId,
+                operation = operation,
+                platform = platform,
+                targetCount = 1,
+                extraFields = mapOf("enabled" to enabled),
+            )
+            throw e
+        } catch (e: Exception) {
+            logOperationFailure(
+                flowId = flowId,
+                operation = operation,
+                throwable = e,
+                platform = platform,
+                targetCount = 1,
+                reason = "metadata_write_failed",
+                extraFields = mapOf("enabled" to enabled),
+            )
+            throw e
+        }
     }
 
     suspend fun setPluginOrder(order: List<String>) {
-        pluginMetaStore.setPluginOrder(order)
+        val flowId = newFlowId()
+        val operation = "set_plugin_order"
+        logOperationStart(flowId = flowId, operation = operation, targetCount = order.size)
+        try {
+            pluginMetaStore.setPluginOrder(order)
+            logOperationSuccess(
+                flowId = flowId,
+                operation = operation,
+                targetCount = order.size,
+                extraFields = mapOf("count" to order.size),
+            )
+        } catch (e: CancellationException) {
+            logOperationCancelled(
+                flowId = flowId,
+                operation = operation,
+                targetCount = order.size,
+                extraFields = mapOf("count" to order.size),
+            )
+            throw e
+        } catch (e: Exception) {
+            logOperationFailure(
+                flowId = flowId,
+                operation = operation,
+                throwable = e,
+                targetCount = order.size,
+                reason = "metadata_write_failed",
+            )
+            throw e
+        }
     }
 
     suspend fun setUserVariables(platform: String, variables: Map<String, String>) {
-        mutex.withLock {
-            _plugins.value.firstOrNull { it.info.platform == platform }
-                ?.updateUserVariables(variables)
-            pluginMetaStore.setUserVariables(platform, variables)
+        val flowId = newFlowId()
+        val operation = "set_user_variables"
+        logOperationStart(
+            flowId = flowId,
+            operation = operation,
+            platform = platform,
+            targetCount = 1,
+            extraFields = mapOf("count" to variables.size),
+        )
+        try {
+            mutex.withLock {
+                _plugins.value.firstOrNull { it.info.platform == platform }
+                    ?.updateUserVariables(variables)
+                pluginMetaStore.setUserVariables(platform, variables)
+            }
+            logOperationSuccess(
+                flowId = flowId,
+                operation = operation,
+                platform = platform,
+                targetCount = 1,
+                extraFields = mapOf("count" to variables.size),
+            )
+        } catch (e: CancellationException) {
+            logOperationCancelled(
+                flowId = flowId,
+                operation = operation,
+                platform = platform,
+                targetCount = 1,
+                extraFields = mapOf("count" to variables.size),
+            )
+            throw e
+        } catch (e: Exception) {
+            logOperationFailure(
+                flowId = flowId,
+                operation = operation,
+                throwable = e,
+                platform = platform,
+                targetCount = 1,
+                reason = "user_variables_write_failed",
+                extraFields = mapOf("count" to variables.size),
+            )
+            throw e
         }
     }
 
     suspend fun uninstallAllPlugins() {
+        val flowId = newFlowId()
         val platforms = _plugins.value.map { it.info.platform }
-        for (platform in platforms) {
-            uninstall(platform)
+        logOperationStart(
+            flowId = flowId,
+            operation = "uninstall_all_plugins",
+            targetCount = platforms.size,
+        )
+        try {
+            for (platform in platforms) {
+                uninstall(platform)
+            }
+            logOperationSuccess(
+                flowId = flowId,
+                operation = "uninstall_all_plugins",
+                targetCount = platforms.size,
+                extraFields = mapOf("successCount" to platforms.size),
+            )
+        } catch (e: CancellationException) {
+            logOperationCancelled(
+                flowId = flowId,
+                operation = "uninstall_all_plugins",
+                targetCount = platforms.size,
+            )
+            throw e
         }
+    }
+
+    private fun newFlowId(): String = UUID.randomUUID().toString()
+
+    private fun logOperationStart(
+        flowId: String,
+        operation: String,
+        platform: String? = null,
+        url: String? = null,
+        targetCount: Int? = null,
+        extraFields: Map<String, Any?> = emptyMap(),
+    ) {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_operation_start",
+            fields = pluginOperationFields(
+                flowId = flowId,
+                operation = operation,
+                platform = platform,
+                url = url,
+                targetCount = targetCount,
+                result = null,
+                extraFields = extraFields,
+            ),
+        )
+    }
+
+    private fun logOperationSuccess(
+        flowId: String,
+        operation: String,
+        platform: String? = null,
+        targetCount: Int? = null,
+        extraFields: Map<String, Any?> = emptyMap(),
+    ) {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_operation_success",
+            fields = pluginOperationFields(
+                flowId = flowId,
+                operation = operation,
+                platform = platform,
+                targetCount = targetCount,
+                result = LogFields.Result.SUCCESS,
+                extraFields = extraFields,
+            ),
+        )
+    }
+
+    private fun logOperationFailure(
+        flowId: String,
+        operation: String,
+        throwable: Throwable,
+        platform: String? = null,
+        targetCount: Int? = null,
+        reason: String = LogFields.Reason.UNKNOWN,
+        extraFields: Map<String, Any?> = emptyMap(),
+    ) {
+        MfLog.error(
+            category = LogCategory.PLUGIN,
+            event = "plugin_operation_failed",
+            throwable = throwable,
+            fields = pluginOperationFields(
+                flowId = flowId,
+                operation = operation,
+                platform = platform,
+                targetCount = targetCount,
+                result = LogFields.Result.FAILURE,
+                reason = reason,
+                extraFields = extraFields,
+            ),
+        )
+    }
+
+    private fun logOperationCancelled(
+        flowId: String,
+        operation: String,
+        platform: String? = null,
+        targetCount: Int? = null,
+        extraFields: Map<String, Any?> = emptyMap(),
+    ) {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_operation_cancelled",
+            fields = pluginOperationFields(
+                flowId = flowId,
+                operation = operation,
+                platform = platform,
+                targetCount = targetCount,
+                result = LogFields.Result.CANCELLED,
+                reason = LogFields.Reason.CANCELLED,
+                extraFields = extraFields,
+            ),
+        )
+    }
+
+    private fun logSinglePluginResult(
+        flowId: String,
+        operation: String,
+        url: String? = null,
+        plugin: LoadedPlugin?,
+        extraFields: Map<String, Any?> = emptyMap(),
+    ) {
+        val fields = pluginOperationFields(
+            flowId = flowId,
+            operation = operation,
+            platform = plugin?.info?.platform,
+            url = url,
+            targetCount = 1,
+            result = if (plugin != null) LogFields.Result.SUCCESS else LogFields.Result.FAILURE,
+            reason = if (plugin == null) LogFields.Reason.UNKNOWN else null,
+            extraFields = extraFields,
+        )
+        if (plugin != null) {
+            MfLog.detail(LogCategory.PLUGIN, "plugin_operation_success", fields)
+        } else {
+            MfLog.error(LogCategory.PLUGIN, "plugin_operation_failed", fields = fields)
+        }
+    }
+
+    private fun logSubscriptionInstallResult(
+        flowId: String,
+        operation: String,
+        url: String,
+        result: SubscriptionInstallResult,
+    ) {
+        val isSuccess = result.failedInstalls == 0 && result.errorMessage == null
+        val fields = pluginOperationFields(
+            flowId = flowId,
+            operation = operation,
+            url = url,
+            targetCount = result.totalEntries,
+            result = if (isSuccess) LogFields.Result.SUCCESS else LogFields.Result.FAILURE,
+            reason = if (isSuccess) null else LogFields.Reason.UNKNOWN,
+            extraFields = mapOf(
+                "successCount" to result.successfulInstalls,
+                "failureCount" to result.failedInstalls,
+                "errorMessage" to result.errorMessage,
+            ),
+        )
+        if (isSuccess) {
+            MfLog.detail(LogCategory.PLUGIN, "plugin_operation_success", fields)
+        } else {
+            MfLog.error(LogCategory.PLUGIN, "plugin_operation_failed", fields = fields)
+        }
+    }
+
+    private fun logPluginOperationResult(
+        flowId: String,
+        operation: String,
+        platform: String? = null,
+        url: String? = null,
+        result: PluginOperationResult,
+    ) {
+        val firstFailure = result.failures.firstOrNull()
+        val isSuccess = result.isSuccess
+        val fields = pluginOperationFields(
+            flowId = flowId,
+            operation = operation,
+            platform = platform ?: firstFailure?.targetPlugin,
+            url = url ?: firstFailure?.sourceRef,
+            targetCount = result.targetPlugins.size,
+            result = if (isSuccess) LogFields.Result.SUCCESS else LogFields.Result.FAILURE,
+            reason = if (isSuccess) null else firstFailure?.errorCode?.name?.lowercase().orEmpty()
+                .ifBlank { LogFields.Reason.UNKNOWN },
+            extraFields = mapOf(
+                "operationType" to result.operationType.name.lowercase(),
+                "successCount" to result.successCount,
+                "failureCount" to result.failureCount,
+                "durationMs" to (result.finishedAtEpochMs - result.startedAtEpochMs).coerceAtLeast(0),
+                "firstFailureMessage" to firstFailure?.message,
+                "targetPlugins" to result.targetPlugins.take(8),
+            ),
+        )
+        if (isSuccess) {
+            MfLog.detail(LogCategory.PLUGIN, "plugin_operation_success", fields)
+        } else {
+            MfLog.error(LogCategory.PLUGIN, "plugin_operation_failed", fields = fields)
+        }
+    }
+
+    private fun pluginOperationFields(
+        flowId: String,
+        operation: String,
+        platform: String? = null,
+        url: String? = null,
+        targetCount: Int? = null,
+        result: String? = null,
+        reason: String? = null,
+        extraFields: Map<String, Any?> = emptyMap(),
+    ): Map<String, Any?> {
+        val fields = linkedMapOf<String, Any?>(
+            "flowId" to flowId,
+            "operation" to operation,
+        )
+        if (!platform.isNullOrBlank()) fields["platform"] = platform
+        if (!url.isNullOrBlank()) {
+            fields["url"] = url
+            fields["host"] = LogFields.host(url)
+        }
+        if (targetCount != null) fields["targetCount"] = targetCount
+        if (result != null) fields["result"] = result
+        if (reason != null) fields["reason"] = reason
+        fields.putAll(extraFields.filterValues { it != null })
+        return fields
     }
 
     private suspend fun installFromFileLocked(sourceFile: File): LoadedPlugin? {
@@ -927,7 +1400,7 @@ class PluginManager @Inject constructor(
                         "durationMs" to System.currentTimeMillis() - startedAt,
                     ),
                 )
-                response.body?.bytes()
+                response.body.bytes()
             }
         } catch (e: Exception) {
             MfLog.error(

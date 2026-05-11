@@ -19,6 +19,10 @@ import com.zili.android.musicfreeandroid.downloader.model.MediaKey
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricSearchGroup
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.MfLogger
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.player.model.PlayerState
 import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
@@ -93,6 +97,7 @@ class PlayerViewModelTest {
 
     @After
     fun tearDown() {
+        MfLog.resetForTest()
         Dispatchers.resetMain()
     }
 
@@ -141,6 +146,28 @@ class PlayerViewModelTest {
 
         viewModel.togglePlayPause()
         verify(playerController).play()
+    }
+
+    @Test
+    fun `togglePlayPause logs play action with current item fields`() = runTest {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val item = MusicItem(id = "play-log", platform = "demo", title = "Song", artist = "A", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item, isPlaying = false, position = 1_234L)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.togglePlayPause()
+
+        val event = logger.events.single { it.event == "player_play" }
+        assertEquals(LogCategory.PLAYER, event.category)
+        assertEquals("player", event.fields["screen"])
+        assertEquals("play", event.fields["operation"])
+        assertEquals(LogFields.Result.SUCCESS, event.fields["result"])
+        assertEquals("play-log", event.fields["itemId"])
+        assertEquals("Song", event.fields["itemName"])
+        assertEquals("demo", event.fields["platform"])
+        assertEquals(1_234L, event.fields["positionMs"])
     }
 
     @Test
@@ -377,6 +404,29 @@ class PlayerViewModelTest {
 
         assertEquals(groups, viewModel.lyricSearchResults.value)
         assertFalse(viewModel.lyricSearchLoading.value)
+    }
+
+    @Test
+    fun `searchLyrics logs failure with lyrics category`() = runTest {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val item = MusicItem(id = "lyric-failure", platform = "demo", title = "Song", artist = "A", album = null, duration = 0L, url = null, artwork = null, qualities = null)
+        whenever(playerLyricLoader.searchCandidates(item)).thenThrow(RuntimeException("boom"))
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+
+        val viewModel = createViewModel()
+        viewModel.searchLyrics()
+        advanceUntilIdle()
+
+        val event = logger.events.single { it.event == "lyric_search_failed" }
+        assertEquals(LogCategory.LYRICS, event.category)
+        assertEquals("player", event.fields["screen"])
+        assertEquals("search", event.fields["operation"])
+        assertEquals(LogFields.Result.FAILURE, event.fields["result"])
+        assertEquals(LogFields.Reason.UNKNOWN, event.fields["reason"])
+        assertEquals("lyric-failure", event.fields["itemId"])
+        assertEquals("Song", event.fields["itemName"])
+        assertEquals("demo", event.fields["platform"])
     }
 
     @Test
@@ -711,3 +761,34 @@ private fun pluginInfo(platform: String) = PluginInfo(
     srcUrl = null,
     supportedSearchType = listOf("lyric"),
 )
+
+private data class RecordedLogEvent(
+    val level: String,
+    val category: LogCategory,
+    val event: String,
+    val fields: Map<String, Any?>,
+    val throwable: Throwable? = null,
+)
+
+private class RecordingLogger : MfLogger {
+    val events = mutableListOf<RecordedLogEvent>()
+
+    override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += RecordedLogEvent("trace", category, event, fields)
+    }
+
+    override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += RecordedLogEvent("detail", category, event, fields)
+    }
+
+    override fun error(
+        category: LogCategory,
+        event: String,
+        throwable: Throwable?,
+        fields: Map<String, Any?>,
+    ) {
+        events += RecordedLogEvent("error", category, event, fields, throwable)
+    }
+
+    override fun flush() = Unit
+}

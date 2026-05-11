@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.data.datastore
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -15,6 +16,10 @@ import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
 import com.zili.android.musicfreeandroid.core.model.SortMode
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -80,7 +85,7 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setStorageDirectoryUri(uri: String?) {
-        dataStore.edit {
+        writeRuntimeSetting(KEY_STORAGE_DIRECTORY_URI, uri) {
             if (uri == null) {
                 it.remove(KEY_STORAGE_DIRECTORY_URI)
             } else {
@@ -110,7 +115,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setLyricAutoSearchEnabled(enabled: Boolean) {
-        dataStore.edit { it[KEY_LYRIC_AUTO_SEARCH_ENABLED] = enabled }
+        writeRuntimeSetting(KEY_LYRIC_AUTO_SEARCH_ENABLED, enabled) {
+            it[KEY_LYRIC_AUTO_SEARCH_ENABLED] = enabled
+        }
     }
 
     // ── Search History ──
@@ -120,7 +127,10 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setMaxSearchHistoryLength(value: Int) {
-        dataStore.edit { it[KEY_MAX_SEARCH_HISTORY_LENGTH] = value.coerceIn(1, 500) }
+        val coerced = value.coerceIn(1, 500)
+        writeRuntimeSetting(KEY_MAX_SEARCH_HISTORY_LENGTH, coerced) {
+            it[KEY_MAX_SEARCH_HISTORY_LENGTH] = coerced
+        }
     }
 
     val searchHistory: Flow<List<String>> = dataStore.data.map { prefs ->
@@ -160,7 +170,10 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setMaxDownload(value: Int) {
-        dataStore.edit { it[KEY_MAX_DOWNLOAD] = value.coerceIn(1, 10) }
+        val coerced = value.coerceIn(1, 10)
+        writeRuntimeSetting(KEY_MAX_DOWNLOAD, coerced) {
+            it[KEY_MAX_DOWNLOAD] = coerced
+        }
     }
 
     val useCellularDownload: Flow<Boolean> = dataStore.data.map { prefs ->
@@ -168,7 +181,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setUseCellularDownload(value: Boolean) {
-        dataStore.edit { it[KEY_USE_CELLULAR_DOWNLOAD] = value }
+        writeRuntimeSetting(KEY_USE_CELLULAR_DOWNLOAD, value) {
+            it[KEY_USE_CELLULAR_DOWNLOAD] = value
+        }
     }
 
     val defaultDownloadQuality: Flow<PlayQuality> = dataStore.data.map { prefs ->
@@ -177,7 +192,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setDefaultDownloadQuality(quality: PlayQuality) {
-        dataStore.edit { it[KEY_DEFAULT_DOWNLOAD_QUALITY] = quality.name }
+        writeRuntimeSetting(KEY_DEFAULT_DOWNLOAD_QUALITY, quality.name) {
+            it[KEY_DEFAULT_DOWNLOAD_QUALITY] = quality.name
+        }
     }
 
     val downloadQualityOrder: Flow<QualityFallbackOrder> = dataStore.data.map { prefs ->
@@ -185,7 +202,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setDownloadQualityOrder(order: QualityFallbackOrder) {
-        dataStore.edit { it[KEY_DOWNLOAD_QUALITY_ORDER] = order.name }
+        writeRuntimeSetting(KEY_DOWNLOAD_QUALITY_ORDER, order.name) {
+            it[KEY_DOWNLOAD_QUALITY_ORDER] = order.name
+        }
     }
 
     val downloadDirRelative: Flow<String> = dataStore.data.map { prefs ->
@@ -193,7 +212,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setDownloadDirRelative(value: String) {
-        dataStore.edit { it[KEY_DOWNLOAD_DIR_RELATIVE] = value }
+        writeRuntimeSetting(KEY_DOWNLOAD_DIR_RELATIVE, value) {
+            it[KEY_DOWNLOAD_DIR_RELATIVE] = value
+        }
     }
 
     // ── Basic Settings ──
@@ -203,7 +224,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setMusicDetailDefaultPage(value: MusicDetailDefaultPage) {
-        dataStore.edit { it[KEY_MUSIC_DETAIL_DEFAULT_PAGE] = value.name }
+        writeRuntimeSetting(KEY_MUSIC_DETAIL_DEFAULT_PAGE, value.name) {
+            it[KEY_MUSIC_DETAIL_DEFAULT_PAGE] = value.name
+        }
     }
 
     val musicDetailAwake: Flow<Boolean> = dataStore.data.map { prefs ->
@@ -211,7 +234,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setMusicDetailAwake(value: Boolean) {
-        dataStore.edit { it[KEY_MUSIC_DETAIL_AWAKE] = value }
+        writeRuntimeSetting(KEY_MUSIC_DETAIL_AWAKE, value) {
+            it[KEY_MUSIC_DETAIL_AWAKE] = value
+        }
     }
 
     val clickMusicInSearch: Flow<SearchResultClickAction> = dataStore.data.map { prefs ->
@@ -219,7 +244,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setClickMusicInSearch(value: SearchResultClickAction) {
-        dataStore.edit { it[KEY_CLICK_MUSIC_IN_SEARCH] = value.name }
+        writeRuntimeSetting(KEY_CLICK_MUSIC_IN_SEARCH, value.name) {
+            it[KEY_CLICK_MUSIC_IN_SEARCH] = value.name
+        }
     }
 
     val clickMusicInAlbum: Flow<AlbumMusicClickAction> = dataStore.data.map { prefs ->
@@ -227,7 +254,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setClickMusicInAlbum(value: AlbumMusicClickAction) {
-        dataStore.edit { it[KEY_CLICK_MUSIC_IN_ALBUM] = value.name }
+        writeRuntimeSetting(KEY_CLICK_MUSIC_IN_ALBUM, value.name) {
+            it[KEY_CLICK_MUSIC_IN_ALBUM] = value.name
+        }
     }
 
     val musicOrderInLocalSheet: Flow<SortMode> = dataStore.data.map { prefs ->
@@ -235,7 +264,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setMusicOrderInLocalSheet(value: SortMode) {
-        dataStore.edit { it[KEY_MUSIC_ORDER_IN_LOCAL_SHEET] = value.name }
+        writeRuntimeSetting(KEY_MUSIC_ORDER_IN_LOCAL_SHEET, value.name) {
+            it[KEY_MUSIC_ORDER_IN_LOCAL_SHEET] = value.name
+        }
     }
 
     val defaultPlayQuality: Flow<PlayQuality> = dataStore.data.map { prefs ->
@@ -243,7 +274,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setDefaultPlayQuality(quality: PlayQuality) {
-        dataStore.edit { it[KEY_DEFAULT_PLAY_QUALITY] = quality.name }
+        writeRuntimeSetting(KEY_DEFAULT_PLAY_QUALITY, quality.name) {
+            it[KEY_DEFAULT_PLAY_QUALITY] = quality.name
+        }
     }
 
     val playQualityOrder: Flow<QualityFallbackOrder> = dataStore.data.map { prefs ->
@@ -251,7 +284,9 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setPlayQualityOrder(order: QualityFallbackOrder) {
-        dataStore.edit { it[KEY_PLAY_QUALITY_ORDER] = order.name }
+        writeRuntimeSetting(KEY_PLAY_QUALITY_ORDER, order.name) {
+            it[KEY_PLAY_QUALITY_ORDER] = order.name
+        }
     }
 
     val useCellularPlay: Flow<Boolean> = dataStore.data.map { prefs ->
@@ -259,8 +294,59 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun setUseCellularPlay(value: Boolean) {
-        dataStore.edit { it[KEY_USE_CELLULAR_PLAY] = value }
+        writeRuntimeSetting(KEY_USE_CELLULAR_PLAY, value) {
+            it[KEY_USE_CELLULAR_PLAY] = value
+        }
     }
+
+    private suspend fun writeRuntimeSetting(
+        key: Preferences.Key<*>,
+        value: Any?,
+        block: (MutablePreferences) -> Unit,
+    ) {
+        val startedAt = System.nanoTime()
+        try {
+            dataStore.edit { prefs -> block(prefs) }
+            MfLog.detail(
+                category = LogCategory.SETTINGS,
+                event = "settings_write",
+                fields = mapOf(
+                    "key" to key.name,
+                    "value" to value,
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.SUCCESS,
+                ),
+            )
+        } catch (error: CancellationException) {
+            MfLog.detail(
+                category = LogCategory.SETTINGS,
+                event = "settings_write",
+                fields = mapOf(
+                    "key" to key.name,
+                    "value" to value,
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.CANCELLED,
+                    "reason" to LogFields.Reason.CANCELLED,
+                ),
+            )
+            throw error
+        } catch (error: Throwable) {
+            MfLog.error(
+                category = LogCategory.SETTINGS,
+                event = "settings_write",
+                throwable = error,
+                fields = mapOf(
+                    "key" to key.name,
+                    "value" to value,
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.FAILURE,
+                ),
+            )
+            throw error
+        }
+    }
+
+    private fun elapsedMs(startedAt: Long): Long = (System.nanoTime() - startedAt) / 1_000_000
 
     private companion object {
         val KEY_REPEAT_MODE = stringPreferencesKey("repeat_mode")
