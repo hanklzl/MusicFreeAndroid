@@ -25,7 +25,7 @@ fun PlayQueueSheet(
             onPlayIndex = viewModel::playQueueIndex,
             onRemove = viewModel::removeFromQueue,
             onClear = viewModel::clearQueue,
-            onCycleRepeatMode = viewModel::cycleRepeatMode,
+            onCyclePlaybackMode = viewModel::cyclePlaybackMode,
         )
     }
 }

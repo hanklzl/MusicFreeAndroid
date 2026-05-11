@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.lyric.LyricTiming
@@ -77,7 +78,10 @@ class PlayerViewModel @Inject constructor(
         PlayQueueUiModel(
             items = snapshot.items,
             currentIndex = snapshot.currentIndex,
-            repeatMode = player.repeatMode,
+            playbackMode = PlaybackMode.from(
+                shuffleEnabled = player.shuffleEnabled,
+                repeatMode = player.repeatMode,
+            ),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayQueueUiModel.EMPTY)
 
