@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.playerui
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
@@ -124,12 +125,29 @@ class PlayerViewModelQueueTest {
     }
 
     @Test
-    fun `queueUiModel includes repeatMode from playerState`() = runTest(testDispatcher) {
+    fun `queueUiModel derives playbackMode from playerState`() = runTest(testDispatcher) {
         val vm = viewModel()
         val collector = backgroundScope.launch { vm.queueUiModel.collect { } }
-        playerStateFlow.value = PlayerState.EMPTY.copy(repeatMode = RepeatMode.ONE)
+        playerStateFlow.value = PlayerState.EMPTY.copy(
+            shuffleEnabled = true,
+            repeatMode = RepeatMode.OFF,
+        )
         advanceUntilIdle()
-        assertEquals(RepeatMode.ONE, vm.queueUiModel.value.repeatMode)
+        assertEquals(PlaybackMode.Shuffle, vm.queueUiModel.value.playbackMode)
+
+        playerStateFlow.value = PlayerState.EMPTY.copy(
+            shuffleEnabled = false,
+            repeatMode = RepeatMode.ONE,
+        )
+        advanceUntilIdle()
+        assertEquals(PlaybackMode.Single, vm.queueUiModel.value.playbackMode)
+
+        playerStateFlow.value = PlayerState.EMPTY.copy(
+            shuffleEnabled = false,
+            repeatMode = RepeatMode.ALL,
+        )
+        advanceUntilIdle()
+        assertEquals(PlaybackMode.Queue, vm.queueUiModel.value.playbackMode)
         collector.cancel()
     }
 

@@ -10,7 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import org.junit.Assert.assertEquals
@@ -36,8 +36,8 @@ class PlayQueueSheetContentTest {
     private fun ui(
         items: List<MusicItem> = listOf(item("1"), item("2"), item("3")),
         currentIndex: Int = 1,
-        repeatMode: RepeatMode = RepeatMode.OFF,
-    ) = PlayQueueUiModel(items = items, currentIndex = currentIndex, repeatMode = repeatMode)
+        playbackMode: PlaybackMode = PlaybackMode.Queue,
+    ) = PlayQueueUiModel(items = items, currentIndex = currentIndex, playbackMode = playbackMode)
 
     @Test
     fun `header shows count`() {
@@ -45,7 +45,7 @@ class PlayQueueSheetContentTest {
             MusicFreeTheme {
                 PlayQueueSheetContent(
                     uiModel = ui(),
-                    onPlayIndex = {}, onRemove = {}, onClear = {}, onCycleRepeatMode = {},
+                    onPlayIndex = {}, onRemove = {}, onClear = {}, onCyclePlaybackMode = {},
                 )
             }
         }
@@ -59,7 +59,7 @@ class PlayQueueSheetContentTest {
             MusicFreeTheme {
                 PlayQueueSheetContent(
                     uiModel = ui(currentIndex = 0),
-                    onPlayIndex = {}, onRemove = {}, onClear = {}, onCycleRepeatMode = {},
+                    onPlayIndex = {}, onRemove = {}, onClear = {}, onCyclePlaybackMode = {},
                 )
             }
         }
@@ -77,7 +77,7 @@ class PlayQueueSheetContentTest {
                 PlayQueueSheetContent(
                     uiModel = ui(currentIndex = 0),
                     onPlayIndex = { clickedIndex = it },
-                    onRemove = {}, onClear = {}, onCycleRepeatMode = {},
+                    onRemove = {}, onClear = {}, onCyclePlaybackMode = {},
                 )
             }
         }
@@ -93,7 +93,7 @@ class PlayQueueSheetContentTest {
                 PlayQueueSheetContent(
                     uiModel = ui(currentIndex = 0),
                     onPlayIndex = {}, onRemove = { removedIndex = it },
-                    onClear = {}, onCycleRepeatMode = {},
+                    onClear = {}, onCyclePlaybackMode = {},
                 )
             }
         }
@@ -109,7 +109,7 @@ class PlayQueueSheetContentTest {
                 PlayQueueSheetContent(
                     uiModel = ui(),
                     onPlayIndex = {}, onRemove = {},
-                    onClear = { clearCount++ }, onCycleRepeatMode = {},
+                    onClear = { clearCount++ }, onCyclePlaybackMode = {},
                 )
             }
         }
@@ -118,14 +118,14 @@ class PlayQueueSheetContentTest {
     }
 
     @Test
-    fun `clicking repeat mode button calls onCycleRepeatMode`() {
+    fun `clicking playback mode button calls onCyclePlaybackMode`() {
         var cycleCount = 0
         composeRule.setContent {
             MusicFreeTheme {
                 PlayQueueSheetContent(
                     uiModel = ui(),
                     onPlayIndex = {}, onRemove = {}, onClear = {},
-                    onCycleRepeatMode = { cycleCount++ },
+                    onCyclePlaybackMode = { cycleCount++ },
                 )
             }
         }
@@ -134,16 +134,42 @@ class PlayQueueSheetContentTest {
     }
 
     @Test
-    fun `repeat mode label updates with mode`() {
+    fun `playback mode label shows shuffle`() {
         composeRule.setContent {
             MusicFreeTheme {
                 PlayQueueSheetContent(
-                    uiModel = ui(repeatMode = RepeatMode.ONE),
-                    onPlayIndex = {}, onRemove = {}, onClear = {}, onCycleRepeatMode = {},
+                    uiModel = ui(playbackMode = PlaybackMode.Shuffle),
+                    onPlayIndex = {}, onRemove = {}, onClear = {}, onCyclePlaybackMode = {},
+                )
+            }
+        }
+        composeRule.onAllNodesWithText("随机播放").onFirst().assertIsDisplayed()
+    }
+
+    @Test
+    fun `playback mode label shows single repeat`() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                PlayQueueSheetContent(
+                    uiModel = ui(playbackMode = PlaybackMode.Single),
+                    onPlayIndex = {}, onRemove = {}, onClear = {}, onCyclePlaybackMode = {},
                 )
             }
         }
         composeRule.onAllNodesWithText("单曲循环").onFirst().assertIsDisplayed()
+    }
+
+    @Test
+    fun `playback mode label shows queue repeat`() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                PlayQueueSheetContent(
+                    uiModel = ui(playbackMode = PlaybackMode.Queue),
+                    onPlayIndex = {}, onRemove = {}, onClear = {}, onCyclePlaybackMode = {},
+                )
+            }
+        }
+        composeRule.onAllNodesWithText("列表循环").onFirst().assertIsDisplayed()
     }
 
     @Test
@@ -152,7 +178,7 @@ class PlayQueueSheetContentTest {
             MusicFreeTheme {
                 PlayQueueSheetContent(
                     uiModel = PlayQueueUiModel.EMPTY,
-                    onPlayIndex = {}, onRemove = {}, onClear = {}, onCycleRepeatMode = {},
+                    onPlayIndex = {}, onRemove = {}, onClear = {}, onCyclePlaybackMode = {},
                 )
             }
         }

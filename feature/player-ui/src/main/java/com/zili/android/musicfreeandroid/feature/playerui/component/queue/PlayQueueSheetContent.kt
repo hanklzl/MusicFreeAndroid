@@ -29,12 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import com.zili.android.musicfreeandroid.core.R
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.feature.playerui.playerModeDescription
+import com.zili.android.musicfreeandroid.feature.playerui.playerModeIcon
 
 @Composable
 fun PlayQueueSheetContent(
@@ -42,7 +43,7 @@ fun PlayQueueSheetContent(
     onPlayIndex: (Int) -> Unit,
     onRemove: (Int) -> Unit,
     onClear: () -> Unit,
-    onCycleRepeatMode: () -> Unit,
+    onCyclePlaybackMode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -53,8 +54,8 @@ fun PlayQueueSheetContent(
     ) {
         QueueHeader(
             count = uiModel.count,
-            repeatMode = uiModel.repeatMode,
-            onCycleRepeatMode = onCycleRepeatMode,
+            playbackMode = uiModel.playbackMode,
+            onCyclePlaybackMode = onCyclePlaybackMode,
             onClear = onClear,
         )
         if (uiModel.isEmpty) {
@@ -72,8 +73,8 @@ fun PlayQueueSheetContent(
 @Composable
 private fun QueueHeader(
     count: Int,
-    repeatMode: RepeatMode,
-    onCycleRepeatMode: () -> Unit,
+    playbackMode: PlaybackMode,
+    onCyclePlaybackMode: () -> Unit,
     onClear: () -> Unit,
 ) {
     Row(
@@ -98,9 +99,9 @@ private fun QueueHeader(
             )
         }
         IconTextButton(
-            iconPainter = painterResource(repeatModeIcon(repeatMode)),
-            label = repeatModeLabel(repeatMode),
-            onClick = onCycleRepeatMode,
+            iconPainter = painterResource(playerModeIcon(playbackMode)),
+            label = playerModeDescription(playbackMode),
+            onClick = onCyclePlaybackMode,
             modifier = Modifier.testTag(FidelityAnchors.Player.Queue.RepeatModeButton),
         )
         Spacer(Modifier.size(rpx(16)))
@@ -195,15 +196,4 @@ private fun IconTextButton(
             fontSize = FontSizes.description,
         )
     }
-}
-
-private fun repeatModeIcon(mode: RepeatMode): Int = when (mode) {
-    RepeatMode.OFF, RepeatMode.ALL -> R.drawable.ic_repeat_song
-    RepeatMode.ONE -> R.drawable.ic_repeat_song_1
-}
-
-private fun repeatModeLabel(mode: RepeatMode): String = when (mode) {
-    RepeatMode.OFF -> "顺序播放"
-    RepeatMode.ALL -> "列表循环"
-    RepeatMode.ONE -> "单曲循环"
 }
