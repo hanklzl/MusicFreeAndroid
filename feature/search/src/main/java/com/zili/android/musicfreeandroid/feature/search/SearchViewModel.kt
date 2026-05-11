@@ -59,6 +59,7 @@ class SearchViewModel @Inject constructor(
 
     private var pluginsReady = false
     private var searchablePluginsMediaType: SearchMediaType? = null
+    private var initialAutofocusConsumed = false
 
     private data class PendingSearch(
         val query: String,
@@ -91,6 +92,12 @@ class SearchViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun isFavoriteFlow(item: MusicItem): Flow<Boolean> = playlistRepository.isFavorite(item)
+
+    fun consumeInitialAutofocusRequest(): Boolean {
+        if (initialAutofocusConsumed) return false
+        initialAutofocusConsumed = true
+        return true
+    }
 
     fun toggleFavorite(item: MusicItem) {
         viewModelScope.launch { playlistRepository.toggleFavorite(item) }

@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -75,6 +76,15 @@ class SearchViewModelTest {
         downloader = downloader,
         mediaSourceResolver,
     )
+
+    @Test
+    fun `initial autofocus request is consumed once per view model instance`() = runTest {
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
+        val viewModel = createViewModel()
+
+        assertTrue(viewModel.consumeInitialAutofocusRequest())
+        assertFalse(viewModel.consumeInitialAutofocusRequest())
+    }
 
     @Test
     fun `filters searchable plugins and auto-selects first`() = runTest {

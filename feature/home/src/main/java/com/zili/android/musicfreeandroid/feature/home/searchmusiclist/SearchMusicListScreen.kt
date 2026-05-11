@@ -61,6 +61,7 @@ fun SearchMusicListScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
+        if (!viewModel.consumeInitialAutofocusRequest()) return@LaunchedEffect
         withFrameNanos { }
         searchFocusRequester.requestFocus()
         keyboardController?.show()

@@ -32,6 +32,7 @@ class SearchMusicListViewModel internal constructor(
     )
 
     private val query = MutableStateFlow("")
+    private var initialAutofocusConsumed = false
 
     val uiState = combine(
         query,
@@ -46,6 +47,12 @@ class SearchMusicListViewModel internal constructor(
         started = SharingStarted.Eagerly,
         initialValue = SearchMusicListUiState(),
     )
+
+    fun consumeInitialAutofocusRequest(): Boolean {
+        if (initialAutofocusConsumed) return false
+        initialAutofocusConsumed = true
+        return true
+    }
 
     fun updateQuery(value: String) {
         query.value = value

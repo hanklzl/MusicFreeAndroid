@@ -124,6 +124,7 @@ fun SearchScreen(
         }
     }
     LaunchedEffect(Unit) {
+        if (!viewModel.consumeInitialAutofocusRequest()) return@LaunchedEffect
         withFrameNanos { }
         searchFocusRequester.requestFocus()
         keyboardController?.show()

@@ -1,7 +1,11 @@
 package com.zili.android.musicfreeandroid.feature.home.searchmusiclist
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -30,19 +34,7 @@ class SearchMusicListScreenFocusTest {
 
     @Test
     fun `search music list input is focused on entry`() {
-        val playerController = mock<PlayerController>()
-        val musicRepository = mock<MusicRepository>()
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
-            .thenReturn(MutableStateFlow(emptyList()))
-        val viewModel = SearchMusicListViewModel(
-            route = SearchMusicListRoute.localLibrary(),
-            sourceLoader = SearchMusicListSourceLoader(
-                playlistRepository = mock<PlaylistRepository>(),
-                playerController = playerController,
-                musicRepository = musicRepository,
-            ),
-            playerController = playerController,
-        )
+        val viewModel = createViewModel()
 
         composeRule.setContent {
             MusicFreeTheme {
@@ -57,6 +49,53 @@ class SearchMusicListScreenFocusTest {
         waitUntilFocused(FidelityAnchors.SearchMusicList.Input)
         composeRule.onNodeWithTag(FidelityAnchors.SearchMusicList.Input, useUnmergedTree = true)
             .assertIsFocused()
+    }
+
+    @Test
+    fun `search music list input does not refocus when screen re-enters with same view model`() {
+        val viewModel = createViewModel()
+        var showScreen by mutableStateOf(true)
+
+        composeRule.setContent {
+            MusicFreeTheme {
+                if (showScreen) {
+                    SearchMusicListScreen(
+                        onBack = {},
+                        onNavigateToPlayer = {},
+                        viewModel = viewModel,
+                    )
+                }
+            }
+        }
+
+        waitUntilFocused(FidelityAnchors.SearchMusicList.Input)
+        composeRule.runOnIdle {
+            showScreen = false
+        }
+        composeRule.waitForIdle()
+        composeRule.runOnIdle {
+            showScreen = true
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(FidelityAnchors.SearchMusicList.Input, useUnmergedTree = true)
+            .assertIsNotFocused()
+    }
+
+    private fun createViewModel(): SearchMusicListViewModel {
+        val playerController = mock<PlayerController>()
+        val musicRepository = mock<MusicRepository>()
+        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+            .thenReturn(MutableStateFlow(emptyList()))
+        return SearchMusicListViewModel(
+            route = SearchMusicListRoute.localLibrary(),
+            sourceLoader = SearchMusicListSourceLoader(
+                playlistRepository = mock<PlaylistRepository>(),
+                playerController = playerController,
+                musicRepository = musicRepository,
+            ),
+            playerController = playerController,
+        )
     }
 
     private fun waitUntilFocused(tag: String) {
