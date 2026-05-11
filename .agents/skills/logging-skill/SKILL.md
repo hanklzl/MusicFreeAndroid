@@ -1,6 +1,6 @@
 ---
 name: logging
-description: Use for any MusicFreeAndroid change that touches ViewModels, Repository/DAO-facing writes, plugin operations, QuickJS/JsBridge, network requests, playback, lyrics, download, file IO, feedback export, import/export flows, or any catch block that swallows, degrades, or converts errors to UI state. Ensures key logic uses the repository logging module with structured MfLog events.
+description: "Use for MusicFreeAndroid changes to key business logic that can fail after release: ViewModel async/user operations, Repository/DAO-facing writes, plugin operations, QuickJS/JsBridge, network requests, playback, lyrics, download, file IO, feedback export, import/export flows, or catch blocks that swallow, degrade, or convert errors to UI state. Ensures critical paths use structured MfLog events."
 ---
 
 # Logging Skill

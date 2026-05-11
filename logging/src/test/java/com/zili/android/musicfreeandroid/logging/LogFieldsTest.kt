@@ -26,6 +26,34 @@ class LogFieldsTest {
     }
 
     @Test
+    fun `reason helpers use stable values`() {
+        assertEquals("cancelled", LogFields.Reason.CANCELLED)
+        assertEquals("stale_generation", LogFields.Reason.STALE_GENERATION)
+        assertEquals("empty_input", LogFields.Reason.EMPTY_INPUT)
+        assertEquals("not_found", LogFields.Reason.NOT_FOUND)
+        assertEquals("duplicate", LogFields.Reason.DUPLICATE)
+        assertEquals("network_unavailable", LogFields.Reason.NETWORK_UNAVAILABLE)
+        assertEquals("cellular_blocked", LogFields.Reason.CELLULAR_BLOCKED)
+        assertEquals("unsupported", LogFields.Reason.UNSUPPORTED)
+        assertEquals("invalid_url", LogFields.Reason.INVALID_URL)
+        assertEquals("unknown", LogFields.Reason.UNKNOWN)
+    }
+
+    @Test
+    fun `field helpers produce stable keys`() {
+        assertEquals("operation" to "load_initial", LogFields.operation("load_initial"))
+        assertEquals("screen" to "player", LogFields.screen("player"))
+        assertEquals("result" to "success", LogFields.result(LogFields.Result.SUCCESS))
+        assertEquals("reason" to "not_found", LogFields.reason(LogFields.Reason.NOT_FOUND))
+        assertEquals("platform" to "netease", LogFields.platform("netease"))
+        assertEquals("platform" to "", LogFields.platform(null))
+        assertEquals(
+            mapOf("itemId" to "song-1", "itemName" to "Song"),
+            LogFields.item("song-1", "Song"),
+        )
+    }
+
+    @Test
     fun `host extracts only network host`() {
         assertEquals("example.com", LogFields.host("https://example.com/path?q=1"))
         assertEquals("example.com", LogFields.host("http://example.com:8080/path"))
@@ -37,8 +65,12 @@ class LogFieldsTest {
     fun `trimmed preview preserves short input and marks truncation`() {
         assertEquals("short", LogFields.preview("short", maxLength = 8))
         val long = LogFields.preview("abcdefghijklmnop", maxLength = 8)
-        assertTrue(long.startsWith("abcdefgh"))
+        assertEquals(8, long.length)
+        assertTrue(long.startsWith("abcde"))
         assertTrue(long.endsWith("..."))
         assertFalse(long.contains("ijklmnop"))
+        assertEquals("", LogFields.preview("abc", maxLength = 0))
+        assertEquals("", LogFields.preview("abc", maxLength = -1))
+        assertEquals("..", LogFields.preview("abcdef", maxLength = 2))
     }
 }

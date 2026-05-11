@@ -46,7 +46,11 @@ object LogFields {
 
     fun preview(value: String?, maxLength: Int = 256): String {
         if (value.isNullOrEmpty()) return ""
+        if (maxLength <= 0) return ""
         if (value.length <= maxLength) return value
-        return value.take(maxLength) + "..."
+        if (maxLength <= ELLIPSIS.length) return ELLIPSIS.take(maxLength)
+        return value.take(maxLength - ELLIPSIS.length) + ELLIPSIS
     }
+
+    private const val ELLIPSIS = "..."
 }
