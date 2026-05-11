@@ -1,0 +1,162 @@
+package com.zili.android.musicfreeandroid.bootstrap
+
+import androidx.annotation.VisibleForTesting
+import com.zili.android.musicfreeandroid.di.ApplicationScope
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.plugin.manager.PluginInstallSourceType
+import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class DefaultPluginsBootstrapper @Inject constructor(
+    private val pluginManager: PluginManager,
+    private val pluginMetaStore: PluginMetaStore,
+    @ApplicationScope private val applicationScope: CoroutineScope,
+) {
+    fun start() {
+        if (DefaultPlugins.subscriptionUrls.isEmpty() && DefaultPlugins.pluginUrls.isEmpty()) {
+            return
+        }
+        applicationScope.launch(Dispatchers.IO) {
+            reconcile(
+                subscriptionUrls = DefaultPlugins.subscriptionUrls,
+                pluginUrls = DefaultPlugins.pluginUrls,
+            )
+        }
+    }
+
+    @VisibleForTesting
+    internal suspend fun reconcile(
+        subscriptionUrls: List<String>,
+        pluginUrls: List<String>,
+    ) {
+        if (subscriptionUrls.isEmpty() && pluginUrls.isEmpty()) return
+
+        val reconcileStartedAt = System.currentTimeMillis()
+        var installedSubscriptionCount = 0
+        var installedPluginCount = 0
+        var skippedCount = 0
+        var failedCount = 0
+
+        pluginManager.ensurePluginsLoaded()
+        val installedPlugins = pluginManager.plugins.value
+
+        val existingSubscriptionUrls =
+            pluginMetaStore.subscriptions.first().map { it.url.trim() }.toSet() +
+                installedPlugins
+                    .filter { it.installSource.type == PluginInstallSourceType.SUBSCRIPTION_URL }
+                    .mapNotNull { it.installSource.value?.trim() }
+                    .filter { it.isNotEmpty() }
+                    .toSet()
+
+        for (raw in subscriptionUrls) {
+            val url = raw.trim()
+            if (url.isEmpty()) continue
+            if (url in existingSubscriptionUrls) {
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "default_plugin_bootstrap_subscription_skipped",
+                    fields = mapOf("url" to url),
+                )
+                skippedCount++
+                continue
+            }
+            val startedAt = System.currentTimeMillis()
+            runCatching { pluginManager.installFromSubscriptionUrl(url) }
+                .onSuccess { result ->
+                    installedSubscriptionCount++
+                    MfLog.detail(
+                        category = LogCategory.PLUGIN,
+                        event = "default_plugin_bootstrap_subscription",
+                        fields = mapOf(
+                            "url" to url,
+                            "successCount" to result.successfulInstalls,
+                            "failureCount" to result.failedInstalls,
+                            "durationMs" to (System.currentTimeMillis() - startedAt),
+                        ),
+                    )
+                }
+                .onFailure { t ->
+                    failedCount++
+                    MfLog.error(
+                        category = LogCategory.PLUGIN,
+                        event = "default_plugin_bootstrap_failed",
+                        throwable = t,
+                        fields = mapOf(
+                            "stage" to "subscription",
+                            "url" to url,
+                            "errorClass" to t::class.java.name,
+                        ),
+                    )
+                }
+        }
+
+        if (pluginUrls.isNotEmpty()) {
+            val existingPluginUrls = installedPlugins
+                .mapNotNull { it.installSource.value?.trim() }
+                .filter { it.isNotEmpty() }
+                .toSet()
+
+            for (raw in pluginUrls) {
+                val url = raw.trim()
+                if (url.isEmpty()) continue
+                if (url in existingPluginUrls) {
+                    MfLog.detail(
+                        category = LogCategory.PLUGIN,
+                        event = "default_plugin_bootstrap_plugin_skipped",
+                        fields = mapOf("url" to url),
+                    )
+                    skippedCount++
+                    continue
+                }
+                val startedAt = System.currentTimeMillis()
+                runCatching { pluginManager.installFromNetworkUrl(url) }
+                    .onSuccess { result ->
+                        installedPluginCount++
+                        MfLog.detail(
+                            category = LogCategory.PLUGIN,
+                            event = "default_plugin_bootstrap_plugin",
+                            fields = mapOf(
+                                "url" to url,
+                                "successCount" to result.successCount,
+                                "failureCount" to result.failureCount,
+                                "durationMs" to (System.currentTimeMillis() - startedAt),
+                            ),
+                        )
+                    }
+                    .onFailure { t ->
+                        failedCount++
+                        MfLog.error(
+                            category = LogCategory.PLUGIN,
+                            event = "default_plugin_bootstrap_failed",
+                            throwable = t,
+                            fields = mapOf(
+                                "stage" to "plugin",
+                                "url" to url,
+                                "errorClass" to t::class.java.name,
+                            ),
+                        )
+                    }
+            }
+        }
+
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "default_plugin_bootstrap_completed",
+            fields = mapOf(
+                "installedSubscriptionCount" to installedSubscriptionCount,
+                "installedPluginCount" to installedPluginCount,
+                "skippedCount" to skippedCount,
+                "failedCount" to failedCount,
+                "totalDurationMs" to (System.currentTimeMillis() - reconcileStartedAt),
+            ),
+        )
+    }
+}

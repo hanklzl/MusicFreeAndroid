@@ -1,13 +1,18 @@
 package com.zili.android.musicfreeandroid
 
 import android.app.Application
+import com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapper
 import com.zili.android.musicfreeandroid.logging.LoggingConfig
 import com.zili.android.musicfreeandroid.logging.LoggingInitializer
 import dagger.hilt.android.HiltAndroidApp
 import java.io.File
+import javax.inject.Inject
 
 @HiltAndroidApp
 class MusicFreeApplication : Application() {
+
+    @Inject lateinit var defaultPluginsBootstrapper: DefaultPluginsBootstrapper
+
     override fun onCreate() {
         super.onCreate()
 
@@ -25,5 +30,7 @@ class MusicFreeApplication : Application() {
                 buildType = BuildConfig.BUILD_TYPE,
             ),
         )
+
+        defaultPluginsBootstrapper.start()
     }
 }
