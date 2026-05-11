@@ -18,14 +18,14 @@
 
 本文件是 Screen 切换动画、普通 AppBar、状态栏沉浸式处理的唯一当前规则来源。`docs/superpowers/plans/*.md` 中出现的旧动画时长、旧 AppBar 写法、旧状态栏做法均视为历史执行快照，不可作为当前规范。
 
-## Screen 切换动画 {#rule-nav-animation-100ms}
+## Screen 切换动画 {#rule-nav-animation-rn-android}
 
 implemented_by: INC-2026-0006
 
 - 普通页面 MUST 使用全局默认 `slide_from_right` 动画。
 - 普通页面前进动画 MUST 为新页面从右向左进入、旧页面向左退出。
 - 普通页面返回动画 MUST 为上一页从左侧回入、当前页向右退出。
-- 普通页面默认动画时长 MUST 为 `100ms`，对齐 RN 原版 `src/entry/index.tsx` 中的 `animationDuration: 100`；RN 仓库位置按 [AGENTS](../../../AGENTS.md) 的同级目录 `../MusicFree` 约定解析。
+- 普通页面默认动画时长 MUST 为 `400ms`，按 RN Android 实际生效链路对齐 `slide_from_right` 的 `@android:integer/config_mediumAnimTime` 口径。
 - `AppNavHost` MUST 引用集中 transition helper（`MusicFreeNavTransitions.kt`），MUST NOT 在 `NavHost` 参数里手写 `tween(250)` 或其他局部时长。
 - Screen 内部 MUST NOT 用局部 `AnimatedContent`、`AnimatedVisibility` 或自定义 offset 动画伪装页面切换。
 - 特殊页面若需要不同页面切换动画，MUST 在 route/destination 注册处显式覆盖，并在本文件“特殊 Chrome 页面”中登记原因。

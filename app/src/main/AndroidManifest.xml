@@ -16,8 +16,9 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:usesCleartextTraffic="true"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
+        android:enableOnBackInvokedCallback="false"
         android:theme="@style/Theme.MusicFreeAndroid">
         <provider
             android:name="androidx.core.content.FileProvider"

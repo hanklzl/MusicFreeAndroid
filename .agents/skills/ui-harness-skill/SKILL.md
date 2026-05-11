@@ -37,7 +37,7 @@ with the public Compose harness.
 - 直接手写 `TopAppBar(colors = TopAppBarDefaults.topAppBarColors(...))`。
 - `MainActivity` 在 Scaffold contentWindowInsets 中加 `WindowInsetsSides.Top`。
 - 在 Screen 内用 `AnimatedContent` 伪装页面切换。
-- 修改导航动画时长偏离 100ms。
+- 修改导航动画时长偏离 400ms，或绕过 `MusicFreeNavTransitions.kt` 在局部写动画时长。
 
 ## References
 

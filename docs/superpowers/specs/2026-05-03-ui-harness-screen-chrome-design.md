@@ -4,14 +4,14 @@
 > 适用范围：适用于 Screen 切换动画、普通 AppBar 页面、沉浸式状态栏和后续 AI Coding 规则入口设计。
 > 直接执行：是（作为实现计划输入；具体代码改动需先生成 implementation plan）
 > 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md)、[AGENTS](../../../AGENTS.md)
-> 最后校验：2026-05-03
+> 最后校验：2026-05-11
 
 ## 背景
 
 当前仓库的 Screen 切换动画和 AppBar/状态栏处理已经出现分叉：
 
 - `AppNavHost` 中有全局 slide 动画，但当前时长为 `250ms`。
-- 原版 RN 在 `../MusicFree/src/entry/index.tsx` 中使用 `animation: "slide_from_right"` 和 `animationDuration: 100`。
+- 原版 RN 在 `../MusicFree/src/entry/index.tsx` 中使用 `animation: "slide_from_right"`；Android 实际时长按 `react-native-screens` 的系统 medium animation 资源生效，而不是 JS `animationDuration` 字面值。
 - `MainActivity` 当前对多数页面统一补顶部 safe inset，同时排除搜索页和播放器页。
 - 多个普通 Screen 直接手写 Material3 `TopAppBar` 和 `TopAppBarDefaults.topAppBarColors(...)`。
 - `SearchScreen` 自行用 `WindowInsets.statusBars` 处理沉浸式顶部区域。
@@ -75,7 +75,7 @@
 
 导航动画采用分层规则：
 
-- 普通页面默认对齐 RN：`slide_from_right`，时长 `100ms`。
+- 普通页面默认对齐 RN Android 实际行为：`slide_from_right`，时长 `400ms`。
 - 前进时，新页面从右向左进入，旧页面向左退出。
 - 返回时，上一页从左侧回入，当前页向右退出。
 - `HomeRoute` 作为 start destination 不额外做首次进入动画。
@@ -174,7 +174,7 @@
 
 运行态验收应覆盖：
 
-- 普通页面从首页进入时使用 `100ms slide_from_right`。
+- 普通页面从首页进入时使用 `400ms slide_from_right`。
 - 返回时方向正确。
 - 普通 AppBar 页面状态栏区域显示 `appBar` 色，不出现额外顶部空白或双重 inset。
 - Search、Player、Home 特殊页面没有被普通 AppBar 容器错误包裹。

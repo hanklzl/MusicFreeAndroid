@@ -5,7 +5,7 @@ import org.junit.Test
 
 class MusicFreeNavTransitionsTest {
     @Test
-    fun ordinaryScreenTransitionDurationMatchesRn() {
-        assertEquals(100, MusicFreeScreenTransitionDurationMillis)
+    fun ordinaryScreenTransitionDurationMatchesRnAndroidMediumAnimation() {
+        assertEquals(400, MusicFreeScreenTransitionDurationMillis)
     }
 }

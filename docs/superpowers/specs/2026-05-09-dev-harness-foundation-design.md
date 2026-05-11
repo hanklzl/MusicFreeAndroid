@@ -3,7 +3,7 @@
 适用范围：跨 AI 工具 / 跨开发者的开发守门入口、错误库、核心域 AI skills 与测试约束
 直接执行：是（作为 writing-plans 的输入）
 入口：[AGENTS.md](../../../AGENTS.md)
-最后校验：2026-05-09
+最后校验：2026-05-11
 ---
 
 # Dev Harness 基础设施设计
@@ -230,7 +230,7 @@ ViewModel 单测里同时出现 `runBlocking` 与 `Flow.first { ... }` 自旋谓
 | INC-2026-0003 | test | mergeExtDexDebugAndroidTest D8 OOM | test/rules.md#rule-gradle-jvmargs-baseline | grep |
 | INC-2026-0004 | test | DataStore multiple active 同文件 | test/rules.md#rule-datastore-per-instance-isolation | contract-test |
 | INC-2026-0005 | test | feature module 缺 androidTest runner | test/rules.md#rule-feature-androidtest-baseline | contract-test |
-| INC-2026-0006 | ui | 顶部导航动画 250ms 偏离 RN 100ms | ui/rules.md#rule-nav-animation-100ms | contract-test |
+| INC-2026-0006 | ui | 顶部导航动画误按 RN JS 100ms 建守门 | ui/rules.md#rule-nav-animation-rn-android | contract-test |
 | INC-2026-0007 | ui | 散落的 TopAppBarDefaults.topAppBarColors 手写 | ui/rules.md#rule-no-raw-material3-topappbar | grep |
 | INC-2026-0008 | ui | MainActivity 隐式补顶部 inset 白名单 | ui/rules.md#rule-mainactivity-no-implicit-top-inset | grep + manual |
 | INC-2026-0009 | plugin | QuickJS 跨线程访问 runtime 崩溃 | plugin/rules.md#rule-quickjs-single-thread | manual |

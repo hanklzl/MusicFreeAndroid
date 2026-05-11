@@ -88,13 +88,13 @@ manual 部分用于审查 `MainActivity` 替代写法（例如自定义 modifier
 
 普通 AppBar 走 `MusicFreeScreenScaffold` 或 `MusicFreeTopAppBar`；自定义 chrome 走 `MusicFreeStatusBarChrome` 等价实现。
 
-## INC-2026-0006 — 顶部导航动画 250ms 偏离 RN 100ms
+## INC-2026-0006 — 顶部导航动画误按 RN JS 100ms 建守门
 
 - id: INC-2026-0006
 - area: ui
 - date: 2026-05-03
 - status: active
-- rule_ref: docs/dev-harness/ui/rules.md#rule-nav-animation-100ms
+- rule_ref: docs/dev-harness/ui/rules.md#rule-nav-animation-rn-android
 - guard:
     type: contract-test
     target: app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/UiNavAnimationDurationContractTest.kt
@@ -102,12 +102,12 @@ manual 部分用于审查 `MainActivity` 替代写法（例如自定义 modifier
 
 ### 根因
 
-旧 `AppNavHost` 使用 `tween(250)` 全局动画，与 RN 原版 `animationDuration: 100` 不一致。原 plan 文件中残留 250ms 写法，新人/AI 复制旧示例。
+旧 `AppNavHost` 使用 `tween(250)` 全局动画，初次修正时只读取 RN JS 入口 `animationDuration: 100` 字面值，未继续核对 RN Android 实际生效链路。Android 上 `transitionDuration` setter 是 no-op，`slide_from_right` 最终使用系统 medium animation 资源。
 
 ### 复发条件
 
-`MusicFreeScreenTransitionDurationMillis` 常量值偏离 100；`NavHost` 中手写 `tween(<其他值>)`。
+`MusicFreeScreenTransitionDurationMillis` 常量值偏离 400；`NavHost` 中手写 `tween(<其他值>)`，或新文档继续把 RN JS `animationDuration` 当成 Android 实际时长。
 
 ### 教训
 
-集中入口 `MusicFreeNavTransitions.kt` 是唯一 transition builder；常量值锁定 100，由 contract test 守门。
+不要只读取 RN JS `animationDuration` 字面值；Android 上 `transitionDuration` setter 是 no-op，`slide_from_right` 使用系统 medium animation 资源。集中入口 `MusicFreeNavTransitions.kt` 是唯一 transition builder；常量值锁定 400，由 contract test 守门。

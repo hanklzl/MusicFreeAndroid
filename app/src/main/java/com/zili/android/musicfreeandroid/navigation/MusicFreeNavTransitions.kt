@@ -7,7 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavBackStackEntry
 
-internal const val MusicFreeScreenTransitionDurationMillis = 100
+internal const val MusicFreeScreenTransitionDurationMillis = 400
 
 private val musicFreeScreenTransitionSpec = tween<IntOffset>(
     durationMillis = MusicFreeScreenTransitionDurationMillis,

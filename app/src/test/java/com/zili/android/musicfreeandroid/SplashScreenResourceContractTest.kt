@@ -77,6 +77,14 @@ class SplashScreenResourceContractTest {
     }
 
     @Test
+    fun `manifest disables predictive back at application level`() {
+        val manifest = parseXml(appMain.resolve("AndroidManifest.xml"))
+        val application = manifest.firstElement("application")
+
+        assertAndroidAttribute(application, "enableOnBackInvokedCallback", "false")
+    }
+
+    @Test
     fun `splash themes match the AndroidX and RN visual contract`() {
         val baseTheme = appMain.resolve("res/values/themes.xml")
         val v31Theme = appMain.resolve("res/values-v31/themes.xml")

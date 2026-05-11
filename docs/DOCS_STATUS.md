@@ -38,6 +38,7 @@
 | [docs/superpowers/specs/2026-05-05-player-lyrics-interaction-fix-design.md](./superpowers/specs/2026-05-05-player-lyrics-interaction-fix-design.md) | 当前规范（播放页歌词交互修正） | 是（作为实现计划输入） | 播放页歌词加载态闪烁、进入页定位、平滑跟随、点击切封面与手动滑动跳转 overlay 的修正设计 |
 | [docs/superpowers/specs/2026-05-09-player-detail-controls-design.md](./superpowers/specs/2026-05-09-player-detail-controls-design.md) | 当前规范（播放详情页控制区对齐） | 是（作为实现计划输入） | 播放详情页封面页功能栏贴近进度条、播放模式随机/单曲/列表三态循环与歌词页返回封面验收设计 |
 | [docs/superpowers/specs/2026-05-10-player-operation-buttons-rn-align-design.md](./superpowers/specs/2026-05-10-player-operation-buttons-rn-align-design.md) | 当前规范（播放页操作按钮 RN 尺寸对齐） | 是（作为实现计划输入） | 播放详情页封面页与歌词页进度条上方操作按钮行的 RN 尺寸、资源和结构对齐设计 |
+| [docs/superpowers/specs/2026-05-11-nav-transition-rn-android-design.md](./superpowers/specs/2026-05-11-nav-transition-rn-android-design.md) | 当前规范（页面切换动画 RN Android 对齐） | 是（作为实现计划输入） | 普通页面切换动画对齐 RN Android 实际 medium animation 口径，并禁用 predictive back 的设计 |
 | [docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md](./superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md) | 当前规范（UI Harness 设计） | 是（作为实现计划输入） | Screen 切换动画、普通 AppBar、沉浸式状态栏和 AI Coding 规则入口设计 |
 | [docs/superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md](./superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md) | 当前规范（启动视觉专项） | 是（仅 SplashScreen 与 launcher icon 专项） | AndroidX SplashScreen 接入与 RN 启动图标资源对齐设计 |
 | [docs/dev-harness/INDEX.md](./dev-harness/INDEX.md) | 当前规范（Dev Harness 总入口） | 是 | UI / 插件 / 播放器 / 测试 四域规则、错误库、AI skills 关联入口 |

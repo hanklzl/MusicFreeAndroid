@@ -27,7 +27,7 @@
 | INC-2026-0003 | test | mergeExtDexDebugAndroidTest D8 OOM | [test/rules.md#rule-gradle-jvmargs-baseline](../test/rules.md#rule-gradle-jvmargs-baseline) | grep |
 | INC-2026-0004 | test | DataStore multiple active 同文件 | [test/rules.md#rule-datastore-per-instance-isolation](../test/rules.md#rule-datastore-per-instance-isolation) | contract-test |
 | INC-2026-0005 | test | feature 模块缺 androidTest runner 基线 | [test/rules.md#rule-feature-androidtest-baseline](../test/rules.md#rule-feature-androidtest-baseline) | contract-test |
-| INC-2026-0006 | ui | 顶部导航动画 250ms 偏离 RN 100ms | [ui/rules.md#rule-nav-animation-100ms](../ui/rules.md#rule-nav-animation-100ms) | contract-test |
+| INC-2026-0006 | ui | 顶部导航动画误按 RN JS 100ms 建守门 | [ui/rules.md#rule-nav-animation-rn-android](../ui/rules.md#rule-nav-animation-rn-android) | contract-test |
 | INC-2026-0007 | ui | 散落的 TopAppBarDefaults.topAppBarColors 手写 | [ui/rules.md#rule-no-raw-material3-topappbar](../ui/rules.md#rule-no-raw-material3-topappbar) | grep |
 | INC-2026-0008 | ui | MainActivity 隐式补顶部 inset 白名单 | [ui/rules.md#rule-mainactivity-no-implicit-top-inset](../ui/rules.md#rule-mainactivity-no-implicit-top-inset) | grep + manual |
 | INC-2026-0009 | plugin | QuickJS 跨线程访问 runtime 崩溃 | [plugin/rules.md#rule-quickjs-single-thread](../plugin/rules.md#rule-quickjs-single-thread) | manual |
