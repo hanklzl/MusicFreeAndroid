@@ -151,7 +151,7 @@ com.zili.android.musicfreeandroid.debug
 步骤：
 
 1. 从首页点击搜索入口。
-2. 输入固定关键词，例如 `周杰伦`。
+2. 输入固定 ASCII 关键词，例如 `jay`。Maestro Android `inputText` 不稳定支持非 ASCII 输入，中文关键词留给手工验收或后续专用输入方案。
 3. 点击“搜索”或提交输入法搜索。
 4. 等待搜索结果或错误状态。
 5. 点击首个单曲结果。
