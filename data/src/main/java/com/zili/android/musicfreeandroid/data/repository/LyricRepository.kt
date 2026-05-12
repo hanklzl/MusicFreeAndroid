@@ -130,6 +130,10 @@ class LyricRepository @Inject constructor(
         }
     }
 
+    suspend fun deleteByPlatform(platform: String) {
+        lyricCacheDao.deleteByPlatform(platform)
+    }
+
     private suspend fun ensureRow(music: MusicItem) {
         lyricCacheDao.insertIgnore(baseEntity(music))
     }

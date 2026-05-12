@@ -5,6 +5,7 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
+import com.zili.android.musicfreeandroid.data.repository.MediaCacheRepository
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
@@ -137,7 +138,11 @@ class PluginMediaSourceServiceTest {
         whenever(metaStore.alternativePlugins).thenReturn(flowOf(alternatives))
         whenever(metaStore.disabledPlugins).thenReturn(flowOf(disabled))
         whenever(manager.pluginMetaStore).thenReturn(metaStore)
-        return PluginMediaSourceService(manager, settings)
+        // These existing tests don't declare cacheControl on their plugins, so
+        // they fall into the default `no-cache` policy (which never reads cache).
+        // A null-stubbed mock is sufficient.
+        val cache = mock<MediaCacheRepository>()
+        return PluginMediaSourceService(manager, cache, settings)
     }
 
     private suspend fun plugin(platform: String, supportsMedia: Boolean, url: String): LoadedPlugin {

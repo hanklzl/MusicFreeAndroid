@@ -2,7 +2,34 @@
 
 > 文档状态：当前规范（Dev Harness — Plugin Incidents）
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [Incidents Index](../incidents/index.md) ｜ [plugin/rules.md](./rules.md)
-> 最后校验：2026-05-10
+> 最后校验：2026-05-12
+
+## INC-2026-0018 — 插件加载失败被静默吞掉，UI 无法定位
+
+- id: INC-2026-0018
+- area: plugin
+- date: 2026-05-12
+- status: active
+- rule_ref: docs/dev-harness/plugin/rules.md#rule-plugin-failure-must-surface
+- guard:
+    type: manual
+- fix_ref: docs/superpowers/plans/2026-05-11-plugin-engine-alignment-plan.md §Phase C
+
+### 根因
+
+插件安装 / 加载路径 `catch (e) { return null }` 把版本不匹配、解析失败、缺 platform 字段等错误吞掉，UI 只看到"插件没了"无法定位。
+
+### 复发条件
+
+`:plugin/manager/PluginManager.kt` 中新加 catch block 后只 `return null` / 不写 `PluginEntry.state = Failed`。
+
+### 教训
+
+所有失败路径都必须 `recordFailedEntry(filePath, reason, detail)` 写 Failed entry，让 UI 徽章 + 错误面板能展示原因，让用户能重试或卸载。
+
+### 备注
+
+guard 当前 manual：升级触发条件 = 再次出现一次相关 incident 即升级为 contract-test（静态扫 `:plugin/manager` 内的 `catch (e: Exception) { return null }` 形态）。
 
 ## INC-2026-0014 — userVariables 写入并发竞态
 

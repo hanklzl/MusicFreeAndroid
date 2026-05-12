@@ -16,4 +16,5 @@ data class MusicItem(
     val qualities: Map<PlayQuality, QualityInfo>?,
     val raw: Map<String, Any?> = emptyMap(),
     val addedAt: Long = 0L,
+    val localPath: String? = null,
 )

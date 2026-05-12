@@ -76,3 +76,12 @@ fallback 到原 `item.url` 时没有新的 `MediaSourceResult`，因此不注册
   - `./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.controller.PlayerControllerNotificationControlsTest`
   - `./gradlew :player:testDebugUnitTest`
   - `./gradlew :app:assembleDebug`
+
+## 后续修订
+
+本设计中的 “**不新增 URL 过期时间字段或媒体缓存淘汰策略**” 非目标，在
+[`2026-05-11-plugin-engine-alignment-design.md`](2026-05-11-plugin-engine-alignment-design.md) §5.7
+被替换为**基于播放失败的失败驱动 eviction**（不基于时间）。后者实施后，
+`PluginMediaSourceService` 重新按 `cacheControl` 读 cache，但
+`PlayerController` 监听 ExoPlayer `ERROR_CODE_IO_BAD_HTTP_STATUS` 触发 evict +
+`resolveFresh`，对单条目单次播放设 1 次重试上限。

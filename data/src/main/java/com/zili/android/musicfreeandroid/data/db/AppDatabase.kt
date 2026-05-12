@@ -11,6 +11,7 @@ import com.zili.android.musicfreeandroid.data.db.dao.MediaCacheDao
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
+import com.zili.android.musicfreeandroid.data.db.dao.PluginMetadataCacheDao
 import com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDao
 import com.zili.android.musicfreeandroid.data.db.entity.DownloadTaskEntity
 import com.zili.android.musicfreeandroid.data.db.entity.DownloadedTrackEntity
@@ -20,6 +21,7 @@ import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
 import com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity
 import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
 import com.zili.android.musicfreeandroid.data.db.entity.PlayQueueEntity
+import com.zili.android.musicfreeandroid.data.db.entity.PluginMetadataCacheEntity
 import com.zili.android.musicfreeandroid.data.db.entity.StarredSheetEntity
 
 @Database(
@@ -33,6 +35,7 @@ import com.zili.android.musicfreeandroid.data.db.entity.StarredSheetEntity
         MediaCacheEntity::class,
         DownloadTaskEntity::class,
         DownloadedTrackEntity::class,
+        PluginMetadataCacheEntity::class,
     ],
     version = 8,
     exportSchema = true,
@@ -47,4 +50,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun mediaCacheDao(): MediaCacheDao
     abstract fun downloadTaskDao(): DownloadTaskDao
     abstract fun downloadedTrackDao(): DownloadedTrackDao
+    abstract fun pluginMetadataCacheDao(): PluginMetadataCacheDao
 }

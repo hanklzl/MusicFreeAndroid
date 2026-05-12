@@ -21,6 +21,9 @@ object RequireShim {
         "he" to "jslibs/he.js",
         "dayjs" to "jslibs/dayjs.min.js",
         "big-integer" to "jslibs/BigInteger.min.js",
+        // Minimal `webdav` shim — only createClient / getFileContents / putFileContents.
+        // Backed by WebDavShim.register's `__webdav_get` / `__webdav_put` globals.
+        "webdav" to "jslibs/webdav.js",
     )
 
     private val sourceLock = Any()

@@ -1,7 +1,7 @@
 # 插件引擎与 RN 原版对齐设计
 
 **日期**: 2026-05-11
-**状态**: 设计完成，待实施
+**状态**: 已实施（2026-05-12，见 §18 实施记录）
 **作者**: brainstorming 会话结论
 **关联**:
 
@@ -836,3 +836,24 @@ PR6  MusicItemBridgeProjector + $ key 防御        Section 6
 - **`PluginState` UI 曝露**：全做（徽章 + 错误面板 + Toast） —— 2026-05-11
 - **Hash 冲突**：静默幂等返回 success（RN 行为） —— 2026-05-11
 - **音源缓存**：RN 完整语义（按 cacheControl 读 cache + ExoPlayer 失败时 evict + 重解析），单首歌单次播放重试上限 1 次；超过 `2026-05-11-stale-media-source-playback-design.md` 的非目标，需在该设计加 forward link —— 2026-05-11
+
+## 18. 实施记录
+
+- 实施日期：2026-05-11 → 2026-05-12
+- Plan: `docs/superpowers/plans/2026-05-11-plugin-engine-alignment-plan.md`
+- 涉及 commits（按 phase 顺序）：
+  - Phase A: `2f1e979` cacheControl + failure-driven eviction
+  - Phase B: `30d8ac1` LocalFilePlugin / LoadedPlugin 接口拆分
+  - Phase C: `1511569` 状态机 + 错误 UI + hash 静默幂等
+  - Phase D: `383e571` runtime compat (axios / process / URL / webdav)
+  - Phase E: `3ff107f` appVersion gate + 元数据缓存 + lazyLoad
+  - Phase F: `b96ed25` MusicItem bridge boundary + projector
+  - Phase G: `bf7625e` harness rules + 实施记录
+- 实施期间发现的 spec 偏离 / 修正：
+  - §5.2 概念实体 `MediaMetaCacheEntity` / `MediaExtraEntity` 实际复用现存 `MediaCacheEntity` / `LyricCacheEntity` / `DownloadedTrackEntity`（详见 plan §0 Storage Mapping）。
+  - §10.1 `LoadedPlugin` 原计划为 `sealed interface`，因 Mockito 5 拒绝 mock sealed 类，落地为普通 interface。语义等价。
+  - §9.2 `lazyLoadPlugin` 落地为"cache hit → Loading entry → 后台协程 mount"的保守版本，避免改 `getPlugin` API 为 suspend；用户感知一致。
+- 已知 follow-up（非阻塞）：
+  - Alt-plugin 缓存遮蔽：cache hit 短路 alt-plugin lookup，user 切 alt 后 cache 仍返回旧 platform 结果。已在 `PluginMediaSourceService.kt` 标 inline TODO。
+  - `:data` 不依赖 `:logging`，malformed JSON 路径未结构化日志，仅静默兜底；I3 deferred TODO 已在 `MediaCacheRepository.kt`。
+  - `process.versions.node` 等 Node 风格字段未提供（RN 插件极少用）。

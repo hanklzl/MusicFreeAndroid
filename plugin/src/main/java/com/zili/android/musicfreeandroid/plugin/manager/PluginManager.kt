@@ -1,19 +1,38 @@
 package com.zili.android.musicfreeandroid.plugin.manager
 
 import android.content.Context
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
+import com.zili.android.musicfreeandroid.data.repository.CachedPluginMetadata
+import com.zili.android.musicfreeandroid.data.repository.LyricRepository
+import com.zili.android.musicfreeandroid.data.repository.MediaCacheRepository
+import com.zili.android.musicfreeandroid.data.repository.PluginMetadataCacheGateway
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.PluginUserVariable
 import com.zili.android.musicfreeandroid.plugin.engine.AxiosShim
+import com.zili.android.musicfreeandroid.plugin.engine.BootstrapShim
 import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
+import com.zili.android.musicfreeandroid.plugin.engine.MusicItemBridgeProjector
 import com.zili.android.musicfreeandroid.plugin.engine.RequireShim
+import com.zili.android.musicfreeandroid.plugin.engine.WebDavShim
+import com.zili.android.musicfreeandroid.plugin.di.PluginModule
+import com.zili.android.musicfreeandroid.plugin.local.LocalFilePlugin
+import com.zili.android.musicfreeandroid.plugin.local.LocalFilePluginConstants
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.zili.android.musicfreeandroid.plugin.runtime.PluginAppVersionGate
+import com.zili.android.musicfreeandroid.plugin.runtime.PluginErrorReason
+import com.zili.android.musicfreeandroid.plugin.runtime.PluginState
+import com.zili.android.musicfreeandroid.plugin.runtime.PluginStateKeys
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.LogFields
 import com.zili.android.musicfreeandroid.logging.timedSuspend
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +40,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -41,6 +62,7 @@ import java.util.Properties
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 
 /**
@@ -51,6 +73,14 @@ import javax.inject.Singleton
 class PluginManager @Inject constructor(
     @ApplicationContext private val context: Context,
     val pluginMetaStore: PluginMetaStore,
+    private val mediaCacheRepository: MediaCacheRepository,
+    private val lyricRepository: LyricRepository,
+    private val downloadedTrackDao: DownloadedTrackDao,
+    private val localFilePlugin: LocalFilePlugin,
+    private val appVersionGate: PluginAppVersionGate,
+    @Named(PluginModule.APP_VERSION_NAMED) private val currentAppVersion: String,
+    private val metadataCache: PluginMetadataCacheGateway,
+    private val appPreferences: AppPreferences,
 ) {
 
     companion object {
@@ -74,12 +104,47 @@ class PluginManager @Inject constructor(
         )
     }
 
-    private val pluginsDir: File by lazy {
+    internal val pluginsDir: File by lazy {
         File(context.filesDir, PLUGINS_DIR_NAME).also { it.mkdirs() }
     }
 
+    /**
+     * Phase F bridge: every [JsLoadedPlugin] built by this manager shares a
+     * single [MusicItemBridgeProjector] instance so DownloadedTrack / LyricCache
+     * state is consistently layered onto plugin-bound MusicItem maps. Built
+     * from the existing DAO + repository fields to avoid widening the
+     * constructor signature (and the dozen test fixtures that mirror it).
+     */
+    private val bridgeProjector: MusicItemBridgeProjector by lazy {
+        MusicItemBridgeProjector(
+            downloadedTrackDao = downloadedTrackDao,
+            lyricRepository = lyricRepository,
+        )
+    }
+
+    /**
+     * Scope for the background coroutines that evaluate cached plugins after a
+     * lazy-load cold start. Uses [SupervisorJob] so one failing background load
+     * doesn't cancel the rest, and [Dispatchers.IO] because the actual work is
+     * a JS evaluation (QuickJS itself dispatches onto its own
+     * single-thread context internally — see [JsEngine.create]).
+     */
+    private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val _plugins = MutableStateFlow<List<LoadedPlugin>>(emptyList())
     val plugins: StateFlow<List<LoadedPlugin>> = _plugins.asStateFlow()
+
+    /**
+     * Source of truth for plugin lifecycle state. Each row identifies one
+     * file on disk (or the built-in local entry) plus its current
+     * [PluginState]. [plugins] is a backwards-compatible projection that
+     * includes only Mounted entries' [LoadedPlugin]s.
+     *
+     * Phase C invariant: every mutation MUST update [_plugins] AND
+     * [_entries] together (see [mutatePlugins]).
+     */
+    private val _entries = MutableStateFlow<List<PluginEntry>>(emptyList())
+    val allEntries: StateFlow<List<PluginEntry>> = _entries.asStateFlow()
 
     private val mutex = Mutex()
     private val _loaded = AtomicBoolean(false)
@@ -101,16 +166,68 @@ class PluginManager @Inject constructor(
     }
 
     /**
-     * Load all .js plugin files from the plugins directory.
+     * Load all .js plugin files from the plugins directory and register the
+     * built-in "本地" plugin (see [buildLocalEntry]).
+     *
+     * Phase E lazy-load:
+     *  - When `lazyLoadPlugins=true` (default) AND a metadata-cache row matches
+     *    the on-disk file's mtime AND current app version, the entry is added
+     *    as [PluginState.Loading] with the cached [PluginInfo]; the actual JS
+     *    evaluation runs on [backgroundScope] and transitions the entry to
+     *    Mounted (or Failed). Cache misses still load synchronously.
+     *  - When `lazyLoadPlugins=false`, all plugins load synchronously (the
+     *    pre-Phase-E behaviour).
      */
     suspend fun loadAllPlugins() = mutex.withLock {
         withContext(Dispatchers.IO) {
-            // Destroy any previously loaded plugins
+            // Destroy any previously loaded plugins (the local entry is a no-op).
             _plugins.value.forEach { it.destroy() }
 
-            val loaded = mutableListOf<LoadedPlugin>()
+            val lazy = appPreferences.lazyLoadPlugins.first()
+            val cacheByPath = if (lazy) {
+                metadataCache.getAll().associateBy { it.filePath }
+            } else {
+                emptyMap()
+            }
+
+            val loadedPlugins = mutableListOf<LoadedPlugin>()
+            val newEntries = mutableListOf<PluginEntry>()
+            val backgroundLoads = mutableListOf<PluginEntry>()
             val files = pluginsDir.listFiles { _, name -> name.endsWith(".js") } ?: emptyArray()
             for (file in files) {
+                val installSource = readInstallMetadata(file)
+                val cached = cacheByPath[file.absolutePath]
+
+                // Cache hit: emit a Loading entry from the cached metadata so
+                // the UI has something to show, then queue the JS evaluation
+                // to run on the background scope.
+                if (cached != null && isCacheFresh(cached, file)) {
+                    val info = cached.toPluginInfo()
+                    val loadingEntry = PluginEntry(
+                        filePath = file.absolutePath,
+                        state = PluginState.Loading,
+                        info = info,
+                        loaded = null,
+                        installSource = installSource,
+                        attemptedPlatform = info.platform,
+                    )
+                    newEntries.add(loadingEntry)
+                    backgroundLoads.add(loadingEntry)
+                    MfLog.detail(
+                        category = LogCategory.PLUGIN,
+                        event = "plugin_load_cache_hit",
+                        fields = mapOf(
+                            "operation" to "load",
+                            "status" to "deferred",
+                            "fileName" to file.name,
+                            "platform" to info.platform,
+                            "state" to PluginStateKeys.STATE_LOADING,
+                        ),
+                    )
+                    continue
+                }
+
+                // Cache miss / lazy disabled / stale cache: load synchronously.
                 MfLog.detail(
                     category = LogCategory.PLUGIN,
                     event = "plugin_load_start",
@@ -122,10 +239,23 @@ class PluginManager @Inject constructor(
                 )
                 try {
                     val (plugin, durationMs) = timedSuspend {
-                        loadPluginFromFile(file, readInstallMetadata(file))
+                        loadPluginFromFile(file, installSource)
                     }
                     if (plugin != null) {
-                        loaded.add(plugin)
+                        loadedPlugins.add(plugin)
+                        newEntries.add(
+                            PluginEntry(
+                                filePath = plugin.filePath,
+                                state = PluginState.Mounted,
+                                info = plugin.info,
+                                loaded = plugin,
+                                installSource = plugin.installSource,
+                                attemptedPlatform = plugin.info.platform,
+                            ),
+                        )
+                        // Phase E: persist the freshly-loaded metadata so the
+                        // next cold start can skip JS evaluation.
+                        upsertCacheRow(file, plugin.info)
                         MfLog.detail(
                             category = LogCategory.PLUGIN,
                             event = "plugin_load_success",
@@ -135,9 +265,23 @@ class PluginManager @Inject constructor(
                                 "platform" to plugin.info.platform,
                                 "fileName" to file.name,
                                 "durationMs" to durationMs,
+                                "state" to PluginStateKeys.STATE_MOUNTED,
                             ),
                         )
                     } else {
+                        newEntries.add(
+                            PluginEntry(
+                                filePath = file.absolutePath,
+                                state = PluginState.Failed(
+                                    PluginErrorReason.CannotParse,
+                                    "loadPluginFromFile returned null",
+                                ),
+                                info = null,
+                                loaded = null,
+                                installSource = installSource,
+                                attemptedPlatform = null,
+                            ),
+                        )
                         MfLog.error(
                             category = LogCategory.PLUGIN,
                             event = "plugin_load_failed",
@@ -145,10 +289,25 @@ class PluginManager @Inject constructor(
                                 "operation" to "load",
                                 "status" to "failed",
                                 "fileName" to file.name,
+                                "state" to PluginStateKeys.STATE_FAILED,
+                                "reason" to PluginStateKeys.REASON_CANNOT_PARSE,
                             ),
                         )
                     }
                 } catch (e: Exception) {
+                    newEntries.add(
+                        PluginEntry(
+                            filePath = file.absolutePath,
+                            state = PluginState.Failed(
+                                PluginErrorReason.CannotParse,
+                                e.message ?: e::class.qualifiedName,
+                            ),
+                            info = null,
+                            loaded = null,
+                            installSource = installSource,
+                            attemptedPlatform = null,
+                        ),
+                    )
                     MfLog.error(
                         category = LogCategory.PLUGIN,
                         event = "plugin_load_failed",
@@ -157,13 +316,271 @@ class PluginManager @Inject constructor(
                             "operation" to "load",
                             "status" to "failed",
                             "fileName" to file.name,
+                            "state" to PluginStateKeys.STATE_FAILED,
+                            "reason" to PluginStateKeys.REASON_CANNOT_PARSE,
                         ),
                     )
                 }
             }
-            _plugins.value = loaded
+            val local = buildLocalEntry()
+            loadedPlugins += local
+            newEntries += PluginEntry(
+                filePath = null,
+                state = PluginState.Mounted,
+                info = local.info,
+                loaded = local,
+                installSource = null,
+                attemptedPlatform = LocalFilePluginConstants.PLATFORM,
+            )
+            _plugins.value = loadedPlugins
+            _entries.value = newEntries
             _loaded.set(true)
+
+            // Phase E: schedule background evaluation for any cache-hit entries
+            // we emitted as Loading. The coroutine acquires [mutex] again so it
+            // doesn't race with concurrent install/uninstall.
+            backgroundLoads.forEach { entry ->
+                backgroundScope.launch {
+                    completeLazyLoad(entry)
+                }
+            }
         }
+    }
+
+    /**
+     * Returns true when the cached metadata is safe to use for a quick cold
+     * start: the on-disk file's mtime matches what we recorded AND the host
+     * app version hasn't changed since we wrote the cache row.
+     */
+    private fun isCacheFresh(cached: CachedPluginMetadata, file: File): Boolean {
+        return cached.sourceMtimeMs == file.lastModified() &&
+            cached.cachedAtAppVersion == currentAppVersion
+    }
+
+    /**
+     * Background evaluation of a [PluginState.Loading] entry created from a
+     * cache hit. Transitions to Mounted on success, Failed on any error. If
+     * the entry has been replaced (e.g. user re-installed or uninstalled while
+     * the JS evaluation was in flight), the result is dropped.
+     */
+    private suspend fun completeLazyLoad(entry: PluginEntry) {
+        val filePath = entry.filePath ?: return
+        val file = File(filePath)
+        if (!file.exists()) {
+            replaceEntryIfStillThere(entry) {
+                it.copy(
+                    state = PluginState.Failed(
+                        PluginErrorReason.CannotParse,
+                        "file not found: $filePath",
+                    ),
+                    loaded = null,
+                )
+            }
+            return
+        }
+        val installSource = entry.installSource ?: readInstallMetadata(file)
+        val startedAt = System.currentTimeMillis()
+        try {
+            val plugin = loadPluginFromFile(file, installSource)
+            if (plugin == null) {
+                replaceEntryIfStillThere(entry) {
+                    it.copy(
+                        state = PluginState.Failed(
+                            PluginErrorReason.CannotParse,
+                            "loadPluginFromFile returned null",
+                        ),
+                        loaded = null,
+                    )
+                }
+                return
+            }
+            // Re-run the appVersion gate in case the cached metadata was
+            // written against an older app version that satisfied a constraint
+            // the new app version no longer satisfies.
+            val versionRejection = appVersionGate.evaluate(
+                constraint = plugin.info.appVersion,
+                appVersion = currentAppVersion,
+            )
+            if (versionRejection != null) {
+                plugin.destroy()
+                replaceEntryIfStillThere(entry) {
+                    it.copy(
+                        state = PluginState.Failed(
+                            PluginErrorReason.VersionNotMatch,
+                            versionRejection.detail,
+                        ),
+                        loaded = null,
+                    )
+                }
+                return
+            }
+            mutex.withLock {
+                // Defensive: only attach the LoadedPlugin if our entry is still
+                // present in the source-of-truth list and still Loading.
+                val current = _entries.value
+                val idx = current.indexOfFirst { it.filePath == filePath && it.state is PluginState.Loading }
+                if (idx < 0) {
+                    plugin.destroy()
+                    return@withLock
+                }
+                _plugins.value = _plugins.value + plugin
+                _entries.value = current.mapIndexed { i, e ->
+                    if (i == idx) {
+                        e.copy(
+                            state = PluginState.Mounted,
+                            info = plugin.info,
+                            loaded = plugin,
+                            installSource = plugin.installSource,
+                            attemptedPlatform = plugin.info.platform,
+                        )
+                    } else {
+                        e
+                    }
+                }
+                upsertCacheRow(file, plugin.info)
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_load_success",
+                    fields = mapOf(
+                        "operation" to "load_lazy",
+                        "status" to "success",
+                        "platform" to plugin.info.platform,
+                        "fileName" to file.name,
+                        "durationMs" to System.currentTimeMillis() - startedAt,
+                        "state" to PluginStateKeys.STATE_MOUNTED,
+                    ),
+                )
+            }
+        } catch (e: Exception) {
+            replaceEntryIfStillThere(entry) {
+                it.copy(
+                    state = PluginState.Failed(
+                        PluginErrorReason.CannotParse,
+                        e.message ?: e::class.qualifiedName,
+                    ),
+                    loaded = null,
+                )
+            }
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_load_failed",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "load_lazy",
+                    "status" to "failed",
+                    "fileName" to file.name,
+                    "state" to PluginStateKeys.STATE_FAILED,
+                ),
+            )
+        }
+    }
+
+    /**
+     * Atomic in-place replacement of [original] inside [_entries] iff a row
+     * with the same filePath is still present. No-op when the row has been
+     * removed (uninstalled while the background eval was in flight).
+     */
+    private suspend fun replaceEntryIfStillThere(
+        original: PluginEntry,
+        mutator: (PluginEntry) -> PluginEntry,
+    ) {
+        mutex.withLock {
+            _entries.update { current ->
+                current.map {
+                    if (it.filePath == original.filePath && it.state is PluginState.Loading) {
+                        mutator(it)
+                    } else {
+                        it
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun upsertCacheRow(file: File, info: PluginInfo) {
+        try {
+            metadataCache.upsert(
+                CachedPluginMetadata(
+                    filePath = file.absolutePath,
+                    platform = info.platform,
+                    version = info.version,
+                    hash = info.hash.orEmpty(),
+                    srcUrl = info.srcUrl,
+                    appVersion = info.appVersion,
+                    supportedMethods = info.supportedMethods,
+                    supportedSearchTypes = info.supportedSearchType,
+                    userVariableKeys = info.userVariables.map { it.key },
+                    sourceMtimeMs = file.lastModified(),
+                    cachedAtAppVersion = currentAppVersion,
+                ),
+            )
+        } catch (e: Exception) {
+            // Cache writes are best-effort: a failure here only means the next
+            // cold start re-evaluates the plugin (correctness-preserving).
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_cache_upsert_failed",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "metadata_cache_upsert",
+                    "status" to "failed",
+                    "platform" to info.platform,
+                    "fileName" to file.name,
+                ),
+            )
+        }
+    }
+
+    /**
+     * Materialise the cached metadata row into a [PluginInfo] consumable by
+     * the UI list. `supportedSearchTypeDeclared` is set to the same condition
+     * used by [extractPluginInfo] (a non-empty supportedSearchType means the
+     * plugin declared the field).
+     */
+    private fun CachedPluginMetadata.toPluginInfo(): PluginInfo = PluginInfo(
+        platform = platform,
+        version = version,
+        author = null,
+        description = null,
+        srcUrl = srcUrl,
+        supportedSearchType = supportedSearchTypes,
+        supportedSearchTypeDeclared = supportedSearchTypes.isNotEmpty(),
+        appVersion = appVersion,
+        primaryKey = null,
+        defaultSearchType = null,
+        cacheControl = null,
+        hints = null,
+        supportedMethods = supportedMethods,
+        userVariables = userVariableKeys.map {
+            com.zili.android.musicfreeandroid.plugin.api.PluginUserVariable(key = it)
+        },
+        hash = hash.takeIf { it.isNotEmpty() },
+    )
+
+    /**
+     * Constructs the singleton in-process "本地" plugin entry. The plugin
+     * declares the four PluginApi methods that [LocalFilePlugin] supports
+     * (getMusicInfo / getLyric / importMusicItem / getMediaSource) and uses
+     * `cacheControl = "no-store"` because local file URLs are always fresh.
+     *
+     * `supportedSearchType = emptyList()` with `supportedSearchTypeDeclared = true`
+     * means the plugin opts OUT of any search type — so it does not appear in
+     * search/lyric-search candidate lists.
+     */
+    private fun buildLocalEntry(): LoadedPlugin {
+        val info = PluginInfo(
+            platform = LocalFilePluginConstants.PLATFORM,
+            version = null,
+            author = null,
+            description = null,
+            srcUrl = null,
+            supportedSearchType = emptyList(),
+            supportedSearchTypeDeclared = true,
+            cacheControl = "no-store",
+            supportedMethods = LocalFilePluginConstants.SUPPORTED_METHODS,
+            hash = LocalFilePluginConstants.HASH,
+        )
+        return LocalLoadedPlugin(info = info, delegate = localFilePlugin)
     }
 
     /**
@@ -316,8 +733,21 @@ class PluginManager @Inject constructor(
             }
 
             val fileName = SubscriptionFileNames.networkPluginFileName(trimmed)
+            val installSource = PluginInstallSource(
+                type = PluginInstallSourceType.PLUGIN_URL,
+                value = trimmed,
+            )
             val bytes = downloadUrlBytes(trimmed)
             if (bytes == null) {
+                // Phase C: record a structured Failed entry so the UI can
+                // surface the download failure with reason DownloadFailed.
+                recordFailedEntry(
+                    targetPath = File(pluginsDir, fileName).absolutePath,
+                    reason = PluginErrorReason.DownloadFailed,
+                    detail = "HTTP/IO download failed for $trimmed",
+                    installSource = installSource,
+                    attemptedPlatform = null,
+                )
                 return@withContext finish(PluginOperationResult(
                     operationType = PluginOperationType.ADD,
                     targetPlugins = listOf(trimmed),
@@ -338,10 +768,7 @@ class PluginManager @Inject constructor(
             val installed = installFromBytesLocked(
                 bytes = bytes,
                 fileName = fileName,
-                installSource = PluginInstallSource(
-                    type = PluginInstallSourceType.PLUGIN_URL,
-                    value = trimmed,
-                ),
+                installSource = installSource,
             )
 
             if (installed != null) {
@@ -355,6 +782,10 @@ class PluginManager @Inject constructor(
                     finishedAtEpochMs = System.currentTimeMillis(),
                 ))
             } else {
+                val errorCode = inferFailureErrorCode(
+                    targetPath = File(pluginsDir, fileName).absolutePath,
+                )
+                val message = errorCode.toUiMessage()
                 finish(PluginOperationResult(
                     operationType = PluginOperationType.ADD,
                     targetPlugins = listOf(trimmed),
@@ -363,8 +794,8 @@ class PluginManager @Inject constructor(
                     failures = listOf(
                         PluginOperationFailure(
                             sourceRef = trimmed,
-                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
-                            message = "插件格式无效",
+                            errorCode = errorCode,
+                            message = message,
                         ),
                     ),
                     startedAtEpochMs = startedAt,
@@ -439,18 +870,21 @@ class PluginManager @Inject constructor(
     }
 
     /**
-     * Update all installed plugins that expose an update source.
+     * Update all installed plugins that expose an update source. The built-in
+     * "本地" plugin is excluded because it has no source URL.
      */
     suspend fun updateAllPlugins(): PluginOperationResult {
         val flowId = newFlowId()
         val operation = "update_all_plugins"
-        val targetCount = _plugins.value.size
-        logOperationStart(flowId = flowId, operation = operation, targetCount = targetCount)
+        val initialTargets = _plugins.value
+            .filter { it.info.platform != LocalFilePluginConstants.PLATFORM }
+        logOperationStart(flowId = flowId, operation = operation, targetCount = initialTargets.size)
         val result = mutex.withLock {
             withContext(Dispatchers.IO) {
                 val startedAt = System.currentTimeMillis()
                 updateInstalledPluginsLocked(
-                    targets = _plugins.value.toList(),
+                    targets = _plugins.value
+                        .filter { it.info.platform != LocalFilePluginConstants.PLATFORM },
                     operationType = PluginOperationType.UPDATE_ALL,
                     startedAt = startedAt,
                 )
@@ -549,7 +983,8 @@ class PluginManager @Inject constructor(
     }
 
     /**
-     * Uninstall a plugin by platform name.
+     * Uninstall a plugin by platform name. The built-in "本地" plugin cannot be
+     * uninstalled — calls for it are silently ignored (no log, no cache cleanup).
      */
     suspend fun uninstall(platform: String) {
         val flowId = newFlowId()
@@ -557,6 +992,12 @@ class PluginManager @Inject constructor(
         logOperationStart(flowId = flowId, operation = operation, platform = platform, targetCount = 1)
         mutex.withLock {
             withContext(Dispatchers.IO) {
+                if (platform == LocalFilePluginConstants.PLATFORM) {
+                    // Built-in plugin: defensive no-op. Plugin management UI
+                    // already filters this platform out, so this branch is just
+                    // belt-and-braces.
+                    return@withContext
+                }
             val current = _plugins.value.toMutableList()
             val plugin = current.find { it.info.platform == platform }
             MfLog.detail(
@@ -572,10 +1013,24 @@ class PluginManager @Inject constructor(
             try {
                 if (plugin != null) {
                     plugin.destroy()
-                    File(plugin.filePath).delete()
-                    deleteInstallMetadata(File(plugin.filePath))
+                    val filePath = plugin.filePath
+                    if (filePath != null) {
+                        val file = File(filePath)
+                        file.delete()
+                        deleteInstallMetadata(file)
+                    }
                     current.remove(plugin)
                     _plugins.value = current
+                    // Phase C: also drop the matching PluginEntry so the new
+                    // state machine reflects the uninstall. Match on platform
+                    // (primary) OR filePath (defensive fallback).
+                    _entries.update { existing ->
+                        existing.filterNot {
+                            it.info?.platform == platform ||
+                                it.attemptedPlatform == platform ||
+                                (filePath != null && it.filePath == filePath)
+                        }
+                    }
                     MfLog.detail(
                         category = LogCategory.PLUGIN,
                         event = "plugin_uninstall_success",
@@ -584,13 +1039,50 @@ class PluginManager @Inject constructor(
                             "flowId" to flowId,
                             "status" to "success",
                             "platform" to platform,
-                            "fileName" to plugin.filePath.substringAfterLast('/'),
+                            "fileName" to (filePath?.substringAfterLast('/') ?: ""),
                             "successCount" to 1,
                             "failureCount" to 0,
                             "targetCount" to 1,
                             "result" to LogFields.Result.SUCCESS,
                         ),
                     )
+                    // Clean platform-keyed caches (media cache, lyric cache, downloaded track rows)
+                    // so a re-install of the same platform starts with a clean slate.
+                    val cleanupStartedAt = System.currentTimeMillis()
+                    runCatching {
+                        mediaCacheRepository.deleteByPlatform(platform)
+                        lyricRepository.deleteByPlatform(platform)
+                        downloadedTrackDao.deleteByPlatform(platform)
+                        // Phase E: drop any cached metadata snapshot so a
+                        // re-install with different bytes doesn't pick up the
+                        // stale row by file path.
+                        if (filePath != null) {
+                            metadataCache.deleteByPath(filePath)
+                        }
+                    }.onSuccess {
+                        MfLog.detail(
+                            category = LogCategory.PLUGIN,
+                            event = "plugin_uninstall_cache_cleared",
+                            fields = mapOf(
+                                "operation" to "uninstall",
+                                "status" to "success",
+                                "platform" to platform,
+                                "durationMs" to System.currentTimeMillis() - cleanupStartedAt,
+                            ),
+                        )
+                    }.onFailure { error ->
+                        MfLog.error(
+                            category = LogCategory.PLUGIN,
+                            event = "plugin_uninstall_cache_cleanup_failed",
+                            throwable = error,
+                            fields = mapOf(
+                                "operation" to "uninstall",
+                                "status" to "failed",
+                                "platform" to platform,
+                                "durationMs" to System.currentTimeMillis() - cleanupStartedAt,
+                            ),
+                        )
+                    }
                 } else {
                     MfLog.detail(
                         category = LogCategory.PLUGIN,
@@ -655,9 +1147,29 @@ class PluginManager @Inject constructor(
     }
 
     /**
+     * Force a reload — destroy currently mounted plugins and reset the
+     * `_loaded` flag so the next call to [ensurePluginsLoaded] re-runs
+     * [loadAllPlugins]. Used by the "lazy load plugins" settings toggle in
+     * `feature/settings` so flipping the switch takes effect immediately.
+     */
+    suspend fun reload() {
+        mutex.withLock {
+            _plugins.value.forEach { it.destroy() }
+            _plugins.value = emptyList()
+            _entries.value = emptyList()
+            _loaded.set(false)
+        }
+        loadAllPlugins()
+    }
+
+    /**
      * Sorted list of enabled plugins. Combines loaded plugins with
      * disabled set and order from [PluginMetaStore].
      * Plugins not in the order list are appended at the end.
+     *
+     * The built-in "本地" plugin is filtered out here: it should not appear
+     * in any user-facing enabled-plugins list (plugin management, sort order,
+     * searchable candidates). Direct lookup via [getPlugin] still returns it.
      */
     fun getSortedEnabledPlugins(): Flow<List<LoadedPlugin>> =
         combine(
@@ -665,7 +1177,10 @@ class PluginManager @Inject constructor(
             pluginMetaStore.disabledPlugins,
             pluginMetaStore.pluginOrder,
         ) { allPlugins, disabled, order ->
-            val enabled = allPlugins.filter { it.info.platform !in disabled }
+            val enabled = allPlugins.filter {
+                it.info.platform !in disabled &&
+                    it.info.platform != LocalFilePluginConstants.PLATFORM
+            }
             if (order.isEmpty()) return@combine enabled
             val orderMap = order.withIndex().associate { (i, p) -> p to i }
             enabled.sortedBy { orderMap[it.info.platform] ?: Int.MAX_VALUE }
@@ -813,7 +1328,11 @@ class PluginManager @Inject constructor(
 
     suspend fun uninstallAllPlugins() {
         val flowId = newFlowId()
-        val platforms = _plugins.value.map { it.info.platform }
+        // The built-in "本地" plugin is skipped by [uninstall], but filter here
+        // too to avoid the unnecessary mutex round-trip and noisy logs.
+        val platforms = _plugins.value
+            .map { it.info.platform }
+            .filter { it != LocalFilePluginConstants.PLATFORM }
         logOperationStart(
             flowId = flowId,
             operation = "uninstall_all_plugins",
@@ -837,6 +1356,219 @@ class PluginManager @Inject constructor(
             )
             throw e
         }
+    }
+
+    /**
+     * Retry a previously Failed entry by re-loading its file from disk.
+     *
+     * Transitions: Failed → Loading → (Mounted | Failed). If [filePath] is
+     * not present in [allEntries] the call returns a structured failure
+     * without touching state. On success the returned [PluginOperationResult]
+     * has `successCount = 1`; on failure the failure list carries either
+     * MISSING_PLATFORM (when the JS lacked a `platform` field) or
+     * SOURCE_INVALID (catch-all for parse / engine errors).
+     */
+    suspend fun retryEntry(filePath: String): PluginOperationResult = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            val startedAt = System.currentTimeMillis()
+            val entry = _entries.value.firstOrNull { it.filePath == filePath }
+            if (entry == null) {
+                return@withContext PluginOperationResult(
+                    operationType = PluginOperationType.ADD,
+                    targetPlugins = listOf(filePath),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            sourceRef = filePath,
+                            errorCode = PluginOperationErrorCode.INTERNAL_ERROR,
+                            message = "Entry not found",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = System.currentTimeMillis(),
+                )
+            }
+
+            val file = File(filePath)
+            if (!file.exists()) {
+                replaceEntry(filePath) {
+                    it.copy(
+                        state = PluginState.Failed(
+                            PluginErrorReason.CannotParse,
+                            "file not found: $filePath",
+                        ),
+                        loaded = null,
+                    )
+                }
+                return@withContext PluginOperationResult(
+                    operationType = PluginOperationType.ADD,
+                    targetPlugins = listOf(filePath),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            sourceRef = filePath,
+                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                            message = "插件文件已不存在",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = System.currentTimeMillis(),
+                )
+            }
+
+            replaceEntry(filePath) { it.copy(state = PluginState.Loading, loaded = null) }
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "plugin_state_transition",
+                fields = mapOf(
+                    "operation" to "retry_entry",
+                    "filePath" to filePath,
+                    "to" to PluginStateKeys.STATE_LOADING,
+                ),
+            )
+
+            val installSource = entry.installSource ?: readInstallMetadata(file)
+            return@withContext try {
+                val plugin = loadPluginFromFile(file, installSource)
+                if (plugin == null) {
+                    replaceEntry(filePath) {
+                        it.copy(
+                            state = PluginState.Failed(
+                                PluginErrorReason.CannotParse,
+                                "loadPluginFromFile returned null",
+                            ),
+                            loaded = null,
+                        )
+                    }
+                    PluginOperationResult(
+                        operationType = PluginOperationType.ADD,
+                        targetPlugins = listOf(filePath),
+                        successCount = 0,
+                        failureCount = 1,
+                        failures = listOf(
+                            PluginOperationFailure(
+                                sourceRef = filePath,
+                                errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                                message = "插件加载失败",
+                            ),
+                        ),
+                        startedAtEpochMs = startedAt,
+                        finishedAtEpochMs = System.currentTimeMillis(),
+                    )
+                } else {
+                    addOrReplacePlugin(plugin)
+                    PluginOperationResult(
+                        operationType = PluginOperationType.ADD,
+                        targetPlugins = listOf(plugin.info.platform),
+                        successCount = 1,
+                        failureCount = 0,
+                        failures = emptyList(),
+                        startedAtEpochMs = startedAt,
+                        finishedAtEpochMs = System.currentTimeMillis(),
+                    )
+                }
+            } catch (e: MissingPlatformException) {
+                replaceEntry(filePath) {
+                    it.copy(
+                        state = PluginState.Failed(
+                            PluginErrorReason.MissingPlatform,
+                            e.message ?: "platform field is blank",
+                        ),
+                        loaded = null,
+                    )
+                }
+                PluginOperationResult(
+                    operationType = PluginOperationType.ADD,
+                    targetPlugins = listOf(filePath),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            sourceRef = filePath,
+                            errorCode = PluginOperationErrorCode.MISSING_PLATFORM,
+                            message = "插件缺少 platform 字段",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = System.currentTimeMillis(),
+                )
+            } catch (e: Exception) {
+                replaceEntry(filePath) {
+                    it.copy(
+                        state = PluginState.Failed(
+                            PluginErrorReason.CannotParse,
+                            e.message ?: e::class.qualifiedName,
+                        ),
+                        loaded = null,
+                    )
+                }
+                PluginOperationResult(
+                    operationType = PluginOperationType.ADD,
+                    targetPlugins = listOf(filePath),
+                    successCount = 0,
+                    failureCount = 1,
+                    failures = listOf(
+                        PluginOperationFailure(
+                            sourceRef = filePath,
+                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                            message = e.message ?: "插件加载失败",
+                        ),
+                    ),
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = System.currentTimeMillis(),
+                )
+            }
+        }
+    }
+
+    /**
+     * Lookup a [LoadedPlugin] in [_plugins] (i.e., a Mounted entry) by its
+     * source byte hash. Used by the install pipeline to silently dedup
+     * idempotent re-installs (Phase C5).
+     */
+    private fun findMountedByHash(hash: String): LoadedPlugin? {
+        if (hash.isEmpty()) return null
+        return _plugins.value.firstOrNull { it.info.hash == hash }
+    }
+
+    /**
+     * Push a [PluginState.Failed] entry into `_entries`, replacing any prior
+     * row with the same `filePath`. Used by every install/load failure branch
+     * so the UI can render the error and offer retry/uninstall actions.
+     *
+     * Failed entries are NOT added to `_plugins` — only Mounted ones are.
+     */
+    private fun recordFailedEntry(
+        targetPath: String,
+        reason: PluginErrorReason,
+        detail: String?,
+        installSource: PluginInstallSource?,
+        attemptedPlatform: String?,
+    ) {
+        _entries.update { existing ->
+            val withoutPrior = existing.filterNot { it.filePath == targetPath }
+            withoutPrior + PluginEntry(
+                filePath = targetPath,
+                state = PluginState.Failed(reason, detail),
+                info = null,
+                loaded = null,
+                installSource = installSource,
+                attemptedPlatform = attemptedPlatform,
+            )
+        }
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_state_transition",
+            fields = mapOf(
+                "operation" to "record_failed_entry",
+                "filePath" to targetPath,
+                "to" to PluginStateKeys.STATE_FAILED,
+                "reason" to PluginStateKeys.reasonKey(reason),
+                "detail" to (detail ?: ""),
+            ),
+        )
     }
 
     private fun newFlowId(): String = UUID.randomUUID().toString()
@@ -1043,6 +1775,50 @@ class PluginManager @Inject constructor(
         return fields
     }
 
+    /**
+     * Map the most-recently recorded Failed entry at [targetPath] to a
+     * [PluginOperationErrorCode] suitable for the install-pipeline result. Used
+     * by [installFromNetworkUrl] (and helpers) which only see a nullable
+     * [LoadedPlugin] from [installWithStagedFile] and would otherwise have to
+     * report every failure as the generic SOURCE_INVALID. Defaults to
+     * SOURCE_INVALID when no matching Failed entry is found.
+     */
+    private fun inferFailureErrorCode(targetPath: String): PluginOperationErrorCode {
+        val failedEntry = _entries.value
+            .lastOrNull { it.filePath == targetPath && it.state is PluginState.Failed }
+            ?: return PluginOperationErrorCode.SOURCE_INVALID
+        val reason = (failedEntry.state as PluginState.Failed).reason
+        return when (reason) {
+            PluginErrorReason.VersionNotMatch -> PluginOperationErrorCode.VERSION_REJECTED
+            PluginErrorReason.MissingPlatform -> PluginOperationErrorCode.MISSING_PLATFORM
+            PluginErrorReason.DownloadFailed -> PluginOperationErrorCode.SOURCE_UNREACHABLE
+            PluginErrorReason.CannotParse -> PluginOperationErrorCode.SOURCE_INVALID
+            PluginErrorReason.UserVariableSyncFailed -> PluginOperationErrorCode.INTERNAL_ERROR
+        }
+    }
+
+    private fun PluginOperationErrorCode.toUiMessage(): String = when (this) {
+        PluginOperationErrorCode.VERSION_REJECTED -> "插件不兼容当前应用版本"
+        PluginOperationErrorCode.MISSING_PLATFORM -> "插件缺少 platform 字段"
+        PluginOperationErrorCode.SOURCE_UNREACHABLE -> "下载失败"
+        PluginOperationErrorCode.SOURCE_INVALID -> "插件格式无效"
+        PluginOperationErrorCode.MISSING_UPDATE_SOURCE -> "没有更新源"
+        PluginOperationErrorCode.VERSION_NOT_UPGRADABLE -> "版本不可升级"
+        @Suppress("DEPRECATION")
+        PluginOperationErrorCode.DUPLICATE_PLUGIN -> "插件已存在"
+        PluginOperationErrorCode.INTERNAL_ERROR -> "未知错误"
+    }
+
+    /**
+     * Atomic in-place replacement of a single entry. Used by [retryEntry] for
+     * transitions like Failed → Loading → Mounted/Failed.
+     */
+    private fun replaceEntry(filePath: String, mutator: (PluginEntry) -> PluginEntry) {
+        _entries.update { existing ->
+            existing.map { if (it.filePath == filePath) mutator(it) else it }
+        }
+    }
+
     private suspend fun installFromFileLocked(sourceFile: File): LoadedPlugin? {
         MfLog.detail(
             category = LogCategory.PLUGIN,
@@ -1053,16 +1829,41 @@ class PluginManager @Inject constructor(
                 "fileName" to sourceFile.name,
             ),
         )
+        val installSource = PluginInstallSource(
+            type = PluginInstallSourceType.LOCAL_FILE,
+            value = sourceFile.absolutePath,
+        )
         return try {
+            val sourceBytes = sourceFile.readBytes()
+            val sourceHash = sha256Hex(sourceBytes)
+
+            // Phase C5: hash-collision silent idempotent. If a mounted plugin
+            // with this exact byte hash exists, do not re-install — return the
+            // existing entry. This matches RN's installPlugin behaviour where
+            // duplicate installs are a no-op rather than a "DUPLICATE" error.
+            val existing = findMountedByHash(sourceHash)
+            if (existing != null) {
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_install_idempotent",
+                    fields = mapOf(
+                        "operation" to "install_from_file",
+                        "status" to "success",
+                        "platform" to existing.info.platform,
+                        "fileName" to sourceFile.name,
+                        "hash" to sourceHash,
+                    ),
+                )
+                return existing
+            }
+
             val (plugin, durationMs) = timedSuspend {
                 installWithStagedFile(
                     fileName = sourceFile.name,
-                    installSource = PluginInstallSource(
-                        type = PluginInstallSourceType.LOCAL_FILE,
-                        value = sourceFile.absolutePath,
-                    ),
+                    installSource = installSource,
+                    sourceHash = sourceHash,
                 ) { stagedFile ->
-                    sourceFile.copyTo(stagedFile, overwrite = true)
+                    stagedFile.writeBytes(sourceBytes)
                     true
                 }
             }
@@ -1092,6 +1893,13 @@ class PluginManager @Inject constructor(
             }
             plugin
         } catch (e: Exception) {
+            recordFailedEntry(
+                targetPath = File(pluginsDir, sourceFile.name).absolutePath,
+                reason = PluginErrorReason.CannotParse,
+                detail = e.message ?: e::class.qualifiedName,
+                installSource = installSource,
+                attemptedPlatform = null,
+            )
             MfLog.error(
                 category = LogCategory.PLUGIN,
                 event = "plugin_install_failed",
@@ -1100,6 +1908,8 @@ class PluginManager @Inject constructor(
                     "operation" to "install_from_file",
                     "status" to "failed",
                     "fileName" to sourceFile.name,
+                    "state" to PluginStateKeys.STATE_FAILED,
+                    "reason" to PluginStateKeys.REASON_CANNOT_PARSE,
                 ),
             )
             null
@@ -1126,7 +1936,33 @@ class PluginManager @Inject constructor(
         )
 
         return try {
-            val bytes = downloadUrlBytes(url) ?: return null
+            val bytes = downloadUrlBytes(url)
+            if (bytes == null) {
+                // Phase C: download failure is now a structured Failed entry
+                // (DownloadFailed). The download function itself already logged
+                // the underlying HTTP/IO error, so we don't duplicate stack
+                // traces — we only surface the state transition.
+                recordFailedEntry(
+                    targetPath = File(pluginsDir, fileName).absolutePath,
+                    reason = PluginErrorReason.DownloadFailed,
+                    detail = "HTTP/IO download failed for $url",
+                    installSource = installSource,
+                    attemptedPlatform = null,
+                )
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_install_failed",
+                    fields = mapOf(
+                        "operation" to "install_from_url",
+                        "status" to "failed",
+                        "url" to url,
+                        "fileName" to fileName,
+                        "state" to PluginStateKeys.STATE_FAILED,
+                        "reason" to PluginStateKeys.REASON_DOWNLOAD_FAILED,
+                    ),
+                )
+                return null
+            }
             val (plugin, durationMs) = timedSuspend {
                 installFromBytesLocked(bytes, fileName, installSource)
             }
@@ -1157,6 +1993,13 @@ class PluginManager @Inject constructor(
             }
             plugin
         } catch (e: Exception) {
+            recordFailedEntry(
+                targetPath = File(pluginsDir, fileName).absolutePath,
+                reason = PluginErrorReason.CannotParse,
+                detail = e.message ?: e::class.qualifiedName,
+                installSource = installSource,
+                attemptedPlatform = null,
+            )
             MfLog.error(
                 category = LogCategory.PLUGIN,
                 event = "plugin_install_failed",
@@ -1166,6 +2009,8 @@ class PluginManager @Inject constructor(
                     "status" to "failed",
                     "url" to url,
                     "fileName" to fileName,
+                    "state" to PluginStateKeys.STATE_FAILED,
+                    "reason" to PluginStateKeys.REASON_CANNOT_PARSE,
                 ),
             )
             null
@@ -1177,7 +2022,31 @@ class PluginManager @Inject constructor(
         fileName: String,
         installSource: PluginInstallSource,
     ): LoadedPlugin? {
-        return installWithStagedFile(fileName = fileName, installSource = installSource) { stagedFile ->
+        val sourceHash = sha256Hex(bytes)
+
+        // Phase C5: hash-collision silent idempotent. Return existing if
+        // bytes already correspond to a mounted plugin.
+        val existing = findMountedByHash(sourceHash)
+        if (existing != null) {
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "plugin_install_idempotent",
+                fields = mapOf(
+                    "operation" to "install_from_bytes",
+                    "status" to "success",
+                    "platform" to existing.info.platform,
+                    "fileName" to fileName,
+                    "hash" to sourceHash,
+                ),
+            )
+            return existing
+        }
+
+        return installWithStagedFile(
+            fileName = fileName,
+            installSource = installSource,
+            sourceHash = sourceHash,
+        ) { stagedFile ->
             stagedFile.writeBytes(bytes)
             true
         }
@@ -1291,8 +2160,9 @@ class PluginManager @Inject constructor(
     private suspend fun installWithStagedFile(
         fileName: String,
         installSource: PluginInstallSource,
+        sourceHash: String?,
         populateStagedFile: (File) -> Boolean,
-    ): LoadedPlugin? {
+    ): JsLoadedPlugin? {
         MfLog.detail(
             category = LogCategory.PLUGIN,
             event = "plugin_replace_file_start",
@@ -1320,10 +2190,77 @@ class PluginManager @Inject constructor(
                         "message" to "staged_file_population_failed",
                     ),
                 )
+                recordFailedEntry(
+                    targetPath = targetFile.absolutePath,
+                    reason = PluginErrorReason.CannotParse,
+                    detail = "staged_file_population_failed",
+                    installSource = installSource,
+                    attemptedPlatform = null,
+                )
                 return null
             }
 
-            val plugin = loadPluginFromFile(stagedFile, installSource) ?: return null
+            val plugin = try {
+                loadPluginFromFile(stagedFile, installSource)
+            } catch (e: MissingPlatformException) {
+                // Phase C: record structured Failed entry so UI can show the
+                // MissingPlatform reason and offer retry/uninstall actions.
+                recordFailedEntry(
+                    targetPath = targetFile.absolutePath,
+                    reason = PluginErrorReason.MissingPlatform,
+                    detail = e.message ?: "platform field is blank in $fileName",
+                    installSource = installSource,
+                    attemptedPlatform = null,
+                )
+                return null
+            }
+
+            if (plugin == null) {
+                recordFailedEntry(
+                    targetPath = targetFile.absolutePath,
+                    reason = PluginErrorReason.CannotParse,
+                    detail = "loadPluginFromFile returned null for $fileName",
+                    installSource = installSource,
+                    attemptedPlatform = null,
+                )
+                return null
+            }
+
+            // Phase E: appVersion semver gate. Plugin declared `appVersion` must
+            // be satisfied by the host's versionName, otherwise we refuse to
+            // install — destroy the engine that just got built up, record a
+            // Failed(VersionNotMatch) entry and DO NOT atomically move the
+            // staged file into pluginsDir (no littering of dead .js plugin files).
+            val versionRejection = appVersionGate.evaluate(
+                constraint = plugin.info.appVersion,
+                appVersion = currentAppVersion,
+            )
+            if (versionRejection != null) {
+                plugin.destroy()
+                recordFailedEntry(
+                    targetPath = targetFile.absolutePath,
+                    reason = PluginErrorReason.VersionNotMatch,
+                    detail = versionRejection.detail,
+                    installSource = installSource,
+                    attemptedPlatform = plugin.info.platform,
+                )
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_install_failed",
+                    fields = mapOf(
+                        "operation" to "appversion_gate",
+                        "status" to "failed",
+                        "fileName" to fileName,
+                        "platform" to plugin.info.platform,
+                        "requiredAppVersion" to plugin.info.appVersion.orEmpty(),
+                        "currentAppVersion" to currentAppVersion,
+                        "state" to PluginStateKeys.STATE_FAILED,
+                        "reason" to PluginStateKeys.REASON_VERSION_NOT_MATCH,
+                    ),
+                )
+                return null
+            }
+
             val replaced = replaceFileAtomically(source = stagedFile, target = targetFile)
             if (!replaced) {
                 plugin.destroy()
@@ -1335,6 +2272,13 @@ class PluginManager @Inject constructor(
                         "status" to "failed",
                         "fileName" to fileName,
                     ),
+                )
+                recordFailedEntry(
+                    targetPath = targetFile.absolutePath,
+                    reason = PluginErrorReason.CannotParse,
+                    detail = "atomic_replace_failed",
+                    installSource = installSource,
+                    attemptedPlatform = plugin.info.platform,
                 )
                 return null
             }
@@ -1351,10 +2295,16 @@ class PluginManager @Inject constructor(
                     "platform" to plugin.info.platform,
                     "fileName" to fileName,
                     "durationMs" to System.currentTimeMillis() - startedAt,
+                    "state" to PluginStateKeys.STATE_MOUNTED,
+                    "hash" to (sourceHash ?: plugin.info.hash ?: ""),
                 ),
             )
             return plugin
         } finally {
+            // Staged file is always cleaned up — covers BOTH success path
+            // (already moved by replaceFileAtomically) and failure paths
+            // (download succeeded but parse/missing-platform failed; we must
+            // not leave a half-installed file on disk per Phase C5 contract).
             if (stagedFile.exists()) {
                 stagedFile.delete()
             }
@@ -1418,17 +2368,26 @@ class PluginManager @Inject constructor(
         }
     }
 
-    private suspend fun addOrReplacePlugin(plugin: LoadedPlugin) {
+    private suspend fun addOrReplacePlugin(plugin: JsLoadedPlugin) {
         val current = _plugins.value.toMutableList()
+        // JS plugin replacement compares platform name or file path. The
+        // built-in local plugin has filePath == null, so the filePath
+        // equality check below is gated on non-null values.
         val replaced = current.filter {
-            it.info.platform == plugin.info.platform || it.filePath == plugin.filePath
+            it.info.platform == plugin.info.platform ||
+                (it.filePath != null && it.filePath == plugin.filePath)
         }
 
+        val replacedFilePaths = mutableSetOf<String>()
         replaced.forEach { existing ->
             existing.destroy()
             current.remove(existing)
-            if (existing.filePath != plugin.filePath) {
-                val existingFile = File(existing.filePath)
+            val existingPath = existing.filePath
+            if (existingPath != null) {
+                replacedFilePaths += existingPath
+            }
+            if (existingPath != null && existingPath != plugin.filePath) {
+                val existingFile = File(existingPath)
                 existingFile.delete()
                 deleteInstallMetadata(existingFile)
             }
@@ -1436,6 +2395,48 @@ class PluginManager @Inject constructor(
 
         current += plugin
         _plugins.value = current
+
+        // Phase C: mirror the same change in `_entries` (source of truth for
+        // the new state machine). Drop entries whose filePath/platform was
+        // replaced, and also drop any pre-existing Failed entry whose
+        // attemptedPlatform now corresponds to the freshly-mounted plugin
+        // (otherwise the UI would still show the prior error badge).
+        val newPath = plugin.filePath
+        _entries.update { existing ->
+            val filtered = existing.filter { entry ->
+                val byFilePath = entry.filePath != null &&
+                    (entry.filePath in replacedFilePaths || entry.filePath == newPath)
+                val byPlatform = (entry.info?.platform == plugin.info.platform) ||
+                    (entry.attemptedPlatform == plugin.info.platform)
+                !(byFilePath || byPlatform)
+            }
+            filtered + PluginEntry(
+                filePath = plugin.filePath,
+                state = PluginState.Mounted,
+                info = plugin.info,
+                loaded = plugin,
+                installSource = plugin.installSource,
+                attemptedPlatform = plugin.info.platform,
+            )
+        }
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_state_transition",
+            fields = mapOf(
+                "operation" to "add_or_replace_plugin",
+                "platform" to plugin.info.platform,
+                "filePath" to (plugin.filePath ?: ""),
+                "to" to PluginStateKeys.STATE_MOUNTED,
+            ),
+        )
+        // Phase E: persist the freshly-mounted plugin's metadata so the next
+        // cold start can render it from cache without re-evaluating the JS.
+        // Done after the StateFlow mutations so a cache write failure (which
+        // we tolerate) does not interrupt the install pipeline.
+        val pluginFilePath = plugin.filePath
+        if (pluginFilePath != null) {
+            upsertCacheRow(File(pluginFilePath), plugin.info)
+        }
     }
 
     private suspend fun updateInstalledPluginLocked(
@@ -1445,6 +2446,29 @@ class PluginManager @Inject constructor(
     ): PluginOperationResult {
         val sourceUrl = targetPlugin.info.srcUrl?.trim().orEmpty()
         if (sourceUrl.isBlank()) {
+            return PluginOperationResult(
+                operationType = operationType,
+                targetPlugins = listOf(targetPlugin.info.platform),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        targetPlugin = targetPlugin.info.platform,
+                        errorCode = PluginOperationErrorCode.MISSING_UPDATE_SOURCE,
+                        message = "没有更新源",
+                    ),
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            )
+        }
+
+        // Built-in plugins (LocalLoadedPlugin) have no filePath; they should
+        // never reach this branch because they are filtered out of update
+        // candidate lists, but we still treat a null filePath as a missing
+        // update source defensively.
+        val targetFilePath = targetPlugin.filePath
+        if (targetFilePath == null) {
             return PluginOperationResult(
                 operationType = operationType,
                 targetPlugins = listOf(targetPlugin.info.platform),
@@ -1484,7 +2508,7 @@ class PluginManager @Inject constructor(
 
         val updated = installFromBytesLocked(
             bytes = bytes,
-            fileName = File(targetPlugin.filePath).name,
+            fileName = File(targetFilePath).name,
             installSource = PluginInstallSource(
                 type = operationType.toInstallSourceType(),
                 value = sourceUrl,
@@ -1770,12 +2794,13 @@ class PluginManager @Inject constructor(
      * 2. Create a JsEngine and register shims (axios, require, console)
      * 3. Wrap the plugin code in a CommonJS-style module wrapper
      * 4. Extract plugin metadata from `__plugin`
-     * 5. Return a [LoadedPlugin]
+     * 5. Return a [JsLoadedPlugin] (always a JS-backed plugin; the built-in
+     *    local plugin is registered separately by [buildLocalEntry]).
      */
     private suspend fun loadPluginFromFile(
         file: File,
         installSource: PluginInstallSource,
-    ): LoadedPlugin? {
+    ): JsLoadedPlugin? {
         MfLog.detail(
             category = LogCategory.PLUGIN,
             event = "plugin_load_parse_start",
@@ -1786,27 +2811,43 @@ class PluginManager @Inject constructor(
             ),
         )
 
-        val jsCode = file.readText()
+        val jsBytes = file.readBytes()
+        val jsCode = String(jsBytes, StandardCharsets.UTF_8)
+        val sourceHash = sha256Hex(jsBytes)
         val engine = JsEngine.create()
 
-        // Gather env values
-        val appVersion = try {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "unknown"
-        } catch (e: Exception) { "unknown" }
-        val lang = java.util.Locale.getDefault().toLanguageTag()
+        // Gather env values.
+        // `lang` is hardcoded to "zh-CN" to match RN MusicFree behavior — many
+        // plugins branch on `env.lang === "zh-CN"` and previously misbehaved when
+        // we passed through `Locale.getDefault().toLanguageTag()` (e.g.
+        // `zh-Hans-CN` on some emulators). See plugin-engine-alignment design §8.2.
+        // [currentAppVersion] is injected so tests can override it.
+        val appVersion = currentAppVersion
+        val lang = "zh-CN"
 
         val info = try {
+            // Bootstrap polyfills (must run before user code or require shim).
+            BootstrapShim.register(appContext = context, engine = engine)
+
             // Register shims
             AxiosShim.register(engine)
+            WebDavShim.register(engine)
             RequireShim.register(appContext = context, engine = engine)
 
-            // Inject env object
+            // Inject env object + process global.
+            // `process.platform` / `process.env` mirrors Node.js conventions that RN
+            // plugins (and shared libraries like `axios`) probe on entry.
             engine.evaluate<Any?>("""
                 globalThis.__env = {
                     os: 'android',
                     appVersion: '${appVersion.escapeForJsString()}',
                     lang: '${lang.escapeForJsString()}',
                     getUserVariables: function() { return globalThis.__userVariables || {}; }
+                };
+                globalThis.process = {
+                    platform: 'android',
+                    version: globalThis.__env.appVersion,
+                    env: globalThis.__env
                 };
             """.trimIndent())
 
@@ -1838,10 +2879,30 @@ class PluginManager @Inject constructor(
                 return null
             }
 
-            // Extract metadata from __plugin
+            // Extract metadata from __plugin. MissingPlatformException is
+            // propagated to the outer catch so callers can classify it as
+            // PluginErrorReason.MissingPlatform rather than the generic
+            // CannotParse bucket.
             try {
-                extractPluginInfo(engine)
+                extractPluginInfo(engine, sourceHash)
             } catch (e: Exception) {
+                if (e is MissingPlatformException) {
+                    MfLog.error(
+                        category = LogCategory.PLUGIN,
+                        event = "plugin_error",
+                        throwable = e,
+                        fields = mapOf(
+                            "operation" to "load",
+                            "status" to "failed",
+                            "fileName" to file.name,
+                            "phase" to "extract_metadata",
+                            "state" to PluginStateKeys.STATE_FAILED,
+                            "reason" to PluginStateKeys.REASON_MISSING_PLATFORM,
+                        ),
+                    )
+                    engine.close()
+                    throw e
+                }
                 MfLog.error(
                     category = LogCategory.PLUGIN,
                     event = "plugin_error",
@@ -1857,6 +2918,10 @@ class PluginManager @Inject constructor(
                 return null
             }
         } catch (e: Exception) {
+            if (e is MissingPlatformException) {
+                // Already closed engine + logged inside inner catch.
+                throw e
+            }
             MfLog.error(
                 category = LogCategory.PLUGIN,
                 event = "plugin_error",
@@ -1889,18 +2954,23 @@ class PluginManager @Inject constructor(
             ),
         )
 
-        return LoadedPlugin(
+        return JsLoadedPlugin(
             info = info,
             engine = engine,
             filePath = file.absolutePath,
+            projector = bridgeProjector,
             installSource = installSource,
         )
     }
 
     /**
      * Extract [PluginInfo] from the loaded `__plugin` global object.
+     *
+     * @param sourceHash SHA-256 hex of the plugin's raw JS bytes, used by the
+     *   install pipeline for idempotent dedup (Phase C5). Null for sources
+     *   where bytes are unavailable.
      */
-    private suspend fun extractPluginInfo(engine: JsEngine): PluginInfo {
+    private suspend fun extractPluginInfo(engine: JsEngine, sourceHash: String?): PluginInfo {
         suspend fun prop(name: String): String? {
             val result = engine.evaluate<Any?>("__plugin.$name")
             val str = result?.toString()
@@ -1932,7 +3002,9 @@ class PluginManager @Inject constructor(
         }
 
         val platform = prop("platform")
-            ?: throw IllegalStateException("Plugin missing required 'platform' property")
+            ?: throw MissingPlatformException(
+                "platform field is blank or missing on module.exports",
+            )
 
         val supportedSearchTypeStr = prop("supportedSearchType")
         val supportedSearchTypeDeclared = !supportedSearchTypeStr.isNullOrBlank()
@@ -1976,9 +3048,35 @@ class PluginManager @Inject constructor(
             hints = hintsJson,
             supportedMethods = supportedMethods(),
             userVariables = userVariables(),
+            hash = sourceHash,
         )
     }
+
+    /**
+     * SHA-256 of the given bytes, hex-encoded lowercase. Used by the install
+     * pipeline to compute [PluginInfo.hash] and for the hash-collision
+     * silent-idempotent check (Phase C5).
+     */
+    private fun sha256Hex(bytes: ByteArray): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+        val builder = StringBuilder(digest.size * 2)
+        for (byte in digest) {
+            val v = byte.toInt() and 0xFF
+            builder.append(HEX_CHARS[v ushr 4])
+            builder.append(HEX_CHARS[v and 0x0F])
+        }
+        return builder.toString()
+    }
 }
+
+private val HEX_CHARS = "0123456789abcdef".toCharArray()
+
+/**
+ * Thrown by [PluginManager.extractPluginInfo] when `module.exports.platform` is
+ * blank or missing. Distinguishes a structural-parse problem from a JS runtime
+ * error so the install pipeline can map it to [PluginErrorReason.MissingPlatform].
+ */
+internal class MissingPlatformException(message: String) : RuntimeException(message)
 
 private fun PluginInfo.supportsSearchType(type: String): Boolean =
     type in supportedSearchType || !supportedSearchTypeDeclared

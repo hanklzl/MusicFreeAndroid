@@ -1,8 +1,15 @@
 package com.zili.android.musicfreeandroid.plugin.manager
 
 import android.content.Context
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
+import com.zili.android.musicfreeandroid.data.repository.LyricRepository
+import com.zili.android.musicfreeandroid.data.repository.MediaCacheRepository
+import com.zili.android.musicfreeandroid.data.repository.PluginMetadataCacheGateway
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.plugin.local.LocalFilePlugin
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.zili.android.musicfreeandroid.plugin.runtime.PluginAppVersionGate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -89,7 +96,20 @@ class PluginManagerUserVariablesTest {
         val context = mock<Context>()
         whenever(context.filesDir).thenReturn(tempFolder.root)
         whenever(context.packageName).thenReturn("com.test")
-        return PluginManager(context, metaStore)
+        val appPreferences = mock<AppPreferences>()
+        whenever(appPreferences.lazyLoadPlugins).thenReturn(flowOf(false))
+        return PluginManager(
+            context,
+            metaStore,
+            mock<MediaCacheRepository>(),
+            mock<LyricRepository>(),
+            mock<DownloadedTrackDao>(),
+            mock<LocalFilePlugin>(),
+            PluginAppVersionGate(),
+            "1.0.0",
+            mock<PluginMetadataCacheGateway>(),
+            appPreferences,
+        )
     }
 
     @Suppress("UNCHECKED_CAST")

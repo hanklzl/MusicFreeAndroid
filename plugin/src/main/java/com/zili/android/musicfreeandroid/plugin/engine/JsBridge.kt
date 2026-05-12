@@ -66,35 +66,65 @@ object JsBridge {
     )
     private val AllImageFieldKeys = (MusicImageFieldKeys + SheetImageFieldKeys).toSet()
 
+    /**
+     * Keys reserved for cross-process / internal bridge state that MUST NOT
+     * round-trip through the JS plugin sandbox or be derived from JS-returned
+     * maps.
+     *
+     * - `"$"` mirrors the RN MusicFree internal marker some legacy plugin
+     *   payloads still emit; allowing it through would leak persisted Android
+     *   state (localPath, downloaded flag, lyricOffset, …) into JS or, worse,
+     *   let a malicious plugin masquerade as having those fields.
+     * - `"internal"` is reserved for future use by [MusicItemBridgeProjector].
+     *
+     * See `docs/dev-harness/plugin/rules.md` (MUST: no `$` key in bridge map).
+     */
+    internal val BRIDGE_RESERVED_KEYS: Set<String> = setOf("\$", "internal")
+
     fun toMusicItem(map: Map<String, Any?>, fallbackPlatform: String? = null): MusicItem {
-        val durationRaw = (map["duration"] as? Number)?.toDouble() ?: 0.0
+        // Phase F: defensively drop internal keys before parsing so a JS plugin
+        // can't smuggle its own `"$"` field back through the bridge and
+        // override the projector-supplied DownloadedTrack / LyricCache state
+        // (or claim fields it never had access to).
+        val filtered = map.filterKeys { it !in BRIDGE_RESERVED_KEYS }
+        val durationRaw = (filtered["duration"] as? Number)?.toDouble() ?: 0.0
         return MusicItem(
-            id = normalizedId(map["id"]),
+            id = normalizedId(filtered["id"]),
             platform = normalizedPlatform(
-                rawPlatform = map["platform"],
+                rawPlatform = filtered["platform"],
                 fallbackPlatform = fallbackPlatform,
             ),
-            title = map["title"]?.toString() ?: "",
-            artist = map["artist"]?.toString() ?: "",
-            album = map["album"]?.toString(),
+            title = filtered["title"]?.toString() ?: "",
+            artist = filtered["artist"]?.toString() ?: "",
+            album = filtered["album"]?.toString(),
             duration = (durationRaw * 1000).toLong(),
-            url = map["url"]?.toString(),
-            artwork = firstImageUrl(map, MusicImageFieldKeys),
+            url = filtered["url"]?.toString(),
+            artwork = firstImageUrl(filtered, MusicImageFieldKeys),
             qualities = null,
-            raw = map.toMap(),
+            raw = filtered.toMap(),
         )
     }
 
-    fun musicItemToMap(item: MusicItem): Map<String, Any?> = item.raw + mapOf(
-        "id" to item.id,
-        "platform" to item.platform,
-        "title" to item.title,
-        "artist" to item.artist,
-        "album" to item.album,
-        "duration" to (item.duration / 1000.0),
-        "url" to item.url,
-        "artwork" to item.artwork,
-    )
+    /**
+     * Serialize a [MusicItem] to a JSON-friendly bridge map. Internal/reserved
+     * keys (see [BRIDGE_RESERVED_KEYS]) are stripped from [MusicItem.raw] before
+     * merging so they never reach the JS sandbox even if a previous bridge
+     * round-trip somehow re-introduced them. Use [MusicItemBridgeProjector] for
+     * the JsLoadedPlugin call path; this helper is the lower-level primitive.
+     */
+    fun musicItemToMap(item: MusicItem): Map<String, Any?> {
+        val sanitizedRaw = item.raw.filterKeys { it !in BRIDGE_RESERVED_KEYS }
+        return sanitizedRaw + mapOf(
+            "id" to item.id,
+            "platform" to item.platform,
+            "title" to item.title,
+            "artist" to item.artist,
+            "album" to item.album,
+            "duration" to (item.duration / 1000.0),
+            "url" to item.url,
+            "artwork" to item.artwork,
+        )
+    }
 
     fun parseSearchResult(
         map: Map<String, Any?>,
@@ -136,6 +166,10 @@ object JsBridge {
             quality = map["quality"]?.toString()?.let {
                 runCatching { PlayQuality.valueOf(it.uppercase()) }.getOrNull()
             },
+            // Phase F: optional MIME hint from the plugin. Blank string is
+            // treated as "no hint" so we never propagate empty-string content
+            // types into downstream ExoPlayer / cache logic.
+            contentType = map["contentType"]?.toString()?.takeIf { it.isNotBlank() },
         )
     }
 

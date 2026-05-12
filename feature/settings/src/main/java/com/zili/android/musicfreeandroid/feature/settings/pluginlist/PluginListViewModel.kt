@@ -4,13 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.plugin.local.LocalFilePluginConstants
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationFailure
 import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationResult
 import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationType
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.zili.android.musicfreeandroid.plugin.runtime.PluginState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
 import java.util.UUID
@@ -35,6 +38,20 @@ data class PluginUiItem(
     val canImportMusicItem: Boolean,
     val canImportMusicSheet: Boolean,
     val canEditUserVariables: Boolean,
+)
+
+/**
+ * UI projection of one [com.zili.android.musicfreeandroid.plugin.manager.PluginEntry]
+ * row. Surfaces the runtime state machine so the list can show a status badge
+ * (Mounted / Loading / Failed) per row, and lets the error panel address the
+ * entry by [filePath] for `retryEntry` / uninstall.
+ */
+data class PluginUiEntry(
+    val filePath: String?,
+    val platform: String,
+    val version: String?,
+    val state: PluginState,
+    val detail: String?,
 )
 
 sealed interface InstallState {
@@ -97,11 +114,48 @@ sealed interface UserVariableSaveUiState {
 class PluginListViewModel @Inject constructor(
     private val pluginManager: PluginManager,
     private val playlistRepository: PlaylistRepository,
+    private val appPreferences: AppPreferences,
 ) : ViewModel() {
 
     private val metaStore: PluginMetaStore = pluginManager.pluginMetaStore
     private var userVariableSaveRequestId = 0L
     private var targetImportInProgress = false
+
+    /**
+     * State-machine projection of every plugin entry (Mounted / Loading /
+     * Failed), excluding the built-in `本地` plugin. Drives the status badge
+     * per row and the error-panel retry/copy/uninstall actions for Failed
+     * entries.
+     */
+    val uiEntries: StateFlow<List<PluginUiEntry>> = pluginManager.allEntries
+        .map { list ->
+            list
+                .filter { it.info?.platform != LocalFilePluginConstants.PLATFORM }
+                .filter { entry ->
+                    // Built-in entries with null filePath that aren't `本地`
+                    // shouldn't exist, but be defensive: only show entries
+                    // that either have a filePath or are Mounted with info.
+                    entry.filePath != null ||
+                        entry.state == PluginState.Mounted
+                }
+                .map { entry ->
+                    PluginUiEntry(
+                        filePath = entry.filePath,
+                        platform = entry.info?.platform
+                            ?: entry.attemptedPlatform
+                            ?: entry.filePath?.let { File(it).nameWithoutExtension }
+                            ?: "(unknown)",
+                        version = entry.info?.version,
+                        state = entry.state,
+                        detail = (entry.state as? PluginState.Failed)?.detail,
+                    )
+                }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList(),
+        )
 
     val pluginItems: StateFlow<List<PluginUiItem>> = combine(
         pluginManager.plugins.map { list -> list.map { it.info } },
@@ -153,6 +207,26 @@ class PluginListViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList(),
         )
+
+    /**
+     * Phase E "懒加载插件" preference. Surfaces [AppPreferences.lazyLoadPlugins]
+     * to the plugin-management screen so the user can flip between lazy / eager
+     * load. Toggling it via [setLazyLoadPlugins] also triggers a manager reload
+     * so the change takes effect on the same screen instance.
+     */
+    val lazyLoadPlugins: StateFlow<Boolean> = appPreferences.lazyLoadPlugins
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
+        )
+
+    fun setLazyLoadPlugins(enabled: Boolean) {
+        viewModelScope.launch {
+            appPreferences.setLazyLoadPlugins(enabled)
+            pluginManager.reload()
+        }
+    }
 
     init {
         viewModelScope.launch {
@@ -402,6 +476,52 @@ class PluginListViewModel @Inject constructor(
     fun uninstallPlugin(platform: String) {
         viewModelScope.launch {
             pluginManager.uninstall(platform)
+        }
+    }
+
+    /**
+     * Retry a previously Failed entry. Surfaces a [PluginOperationUiState]
+     * derived from [PluginManager.retryEntry] so the existing operation banner
+     * shows success / partial / failure with details.
+     */
+    fun retryEntry(filePath: String) {
+        performOperation(label = "重试加载") {
+            val result = pluginManager.retryEntry(filePath)
+            PluginOperationUiState.fromResult(
+                successMessage = "重新加载成功",
+                partialMessage = "部分重试失败",
+                failureMessage = "重试失败",
+                result = result,
+            )
+        }
+    }
+
+    /**
+     * Uninstall a Failed entry that never reached Mounted. Falls back to
+     * deleting the plugin file directly when no platform is known yet
+     * (e.g. CannotParse / MissingPlatform before any metadata was extracted),
+     * because [PluginManager.uninstall] addresses entries by platform name.
+     */
+    fun uninstallEntry(filePath: String?, platform: String?) {
+        if (filePath == null && platform == null) return
+        viewModelScope.launch {
+            if (!platform.isNullOrBlank() &&
+                platform != LocalFilePluginConstants.PLATFORM
+            ) {
+                pluginManager.uninstall(platform)
+                return@launch
+            }
+            // No platform => bypass platform-keyed uninstall; just remove
+            // the file on disk so a subsequent loadAllPlugins() forgets it.
+            // The Failed PluginEntry is removed indirectly via the next
+            // loadAllPlugins() cycle.
+            if (filePath != null) {
+                runCatching {
+                    val file = File(filePath)
+                    if (file.exists()) file.delete()
+                }
+                pluginManager.loadAllPlugins()
+            }
         }
     }
 

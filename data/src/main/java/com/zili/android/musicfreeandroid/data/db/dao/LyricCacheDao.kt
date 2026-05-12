@@ -102,4 +102,7 @@ interface LyricCacheDao {
         """,
     )
     suspend fun setOffset(platform: String, id: String, offsetMs: Long, updatedAt: Long)
+
+    @Query("DELETE FROM lyric_cache WHERE musicPlatform = :platform")
+    suspend fun deleteByPlatform(platform: String)
 }

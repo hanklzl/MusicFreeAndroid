@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zili.android.musicfreeandroid.plugin.api.musicItems
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.zili.android.musicfreeandroid.plugin.runtime.PluginAppVersionGate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,7 +41,22 @@ class PluginRuntimeLocalIntegrationTest {
             scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-runtime-local-it") },
         )
-        pluginManager = PluginManager(appContext, PluginMetaStore(dataStore))
+        val prefsDataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { testPreferencesFile("plugin-runtime-local-it-prefs") },
+        )
+        pluginManager = PluginManager(
+            appContext,
+            PluginMetaStore(dataStore),
+            stubMediaCacheRepository(),
+            stubLyricRepository(),
+            stubDownloadedTrackDao(),
+            stubLocalFilePlugin(),
+            PluginAppVersionGate(),
+            "1.0.0",
+            InMemoryPluginMetadataCacheGateway(),
+            com.zili.android.musicfreeandroid.data.datastore.AppPreferences(prefsDataStore),
+        )
         clearPluginStorage()
     }
 

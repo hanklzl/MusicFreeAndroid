@@ -5,7 +5,7 @@
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
 > 设计来源：[Dev Harness 基础设施设计](../../superpowers/specs/2026-05-09-dev-harness-foundation-design.md)、[QuickJS 线程修复设计](../../superpowers/specs/2026-04-19-quickjs-threading-fix-design.md)、[Android 测试稳定性设计](../../superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md)
-> 最后校验：2026-05-09
+> 最后校验：2026-05-12
 
 ## 强制入口
 
@@ -57,3 +57,11 @@ implemented_by: INC-2026-0014
 - MUST NOT：不得在该文件中引入按 buildType / BuildConfig 切换的"自动剥离"逻辑——保留"必须手动改 + 人工 review 一次"的语义，避免把策略埋进 gradle。
 - 适用范围：`:app/bootstrap/`、`MusicFreeApplication.onCreate()`、任何调用 `DefaultPluginsBootstrapper.start()` 的入口。
 - 关联设计：`docs/superpowers/specs/2026-05-11-default-bootstrap-plugins-design.md`。
+
+## 插件失败必须可见 {#rule-plugin-failure-must-surface}
+
+implemented_by: INC-2026-0018
+
+- `:plugin/manager/PluginManager.kt` 中 install / load 路径捕获到失败 MUST 通过 `recordFailedEntry(...)` 写入 `PluginEntry.state = Failed(reason, detail)`；MUST NOT 在 catch 后仅 `return null` 而不更新 `allEntries`。
+- `:plugin/runtime/` 中 PluginState 状态变更日志 MUST 通过 `PluginStateKeys.stateKey(...)` / `reasonKey(...)` 写入字段；MUST NOT 直接 `state::class.simpleName` 或 `enum.name`（R8 minify 后不稳定）。
+- 复发条件 + 升级触发：再次出现 `catch (e: Exception) { return null }` 形态而未写 `PluginEntry.state = Failed` 的修复 commit，则升级为 contract-test guard。

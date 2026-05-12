@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.settings.pluginlist
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
@@ -67,8 +68,11 @@ class PluginListViewModelTest {
                 invocation.getArgument<List<MusicItem>>(1).size
             }
         }
+        val appPreferences = mock<AppPreferences> {
+            on { lazyLoadPlugins } doReturn MutableStateFlow(true)
+        }
         return Fixture(
-            viewModel = PluginListViewModel(pluginManager, playlistRepository),
+            viewModel = PluginListViewModel(pluginManager, playlistRepository, appPreferences),
             pluginManager = pluginManager,
             metaStore = metaStore,
             playlistRepository = playlistRepository,

@@ -51,8 +51,8 @@ class DefaultPluginsBootstrapper @Inject constructor(
         val existingSubscriptionUrls =
             pluginMetaStore.subscriptions.first().map { it.url.trim() }.toSet() +
                 installedPlugins
-                    .filter { it.installSource.type == PluginInstallSourceType.SUBSCRIPTION_URL }
-                    .mapNotNull { it.installSource.value?.trim() }
+                    .filter { it.installSource?.type == PluginInstallSourceType.SUBSCRIPTION_URL }
+                    .mapNotNull { it.installSource?.value?.trim() }
                     .filter { it.isNotEmpty() }
                     .toSet()
 
@@ -100,7 +100,7 @@ class DefaultPluginsBootstrapper @Inject constructor(
 
         if (pluginUrls.isNotEmpty()) {
             val existingPluginUrls = installedPlugins
-                .mapNotNull { it.installSource.value?.trim() }
+                .mapNotNull { it.installSource?.value?.trim() }
                 .filter { it.isNotEmpty() }
                 .toSet()
 

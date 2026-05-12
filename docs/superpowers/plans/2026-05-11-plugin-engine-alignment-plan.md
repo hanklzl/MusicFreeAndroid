@@ -12,6 +12,8 @@
 
 **Harness 强制入口:** [`docs/dev-harness/plugin/rules.md`](../../dev-harness/plugin/rules.md)、[`docs/dev-harness/test/rules.md`](../../dev-harness/test/rules.md)
 
+**实施状态（2026-05-12）**：Phase A–G 全部完成。最终 HEAD = `bf7625e`。详见 spec §18 实施记录。
+
 ---
 
 ## §0 Storage Mapping（spec 概念 → 现存实体）
@@ -1265,17 +1267,13 @@ data class MusicItem(
 
 **Plan 决策：思路一**（抽接口），原因：spec §10 还会再分化（State Machine 把 `PluginEntry.loaded` 改为可空 `LoadedPlugin?`，与状态机配合需要清晰的多态边界）。
 
-把 `LoadedPlugin` 重构为 `sealed interface`：
+把 `LoadedPlugin` 重构为 `interface`（**实施落地：纯接口，非 sealed**；详见 Phase B-2 实施备注）：
 
 ```kotlin
-sealed interface LoadedPlugin {
-    val info: PluginInfo
-    suspend fun search(query: String, page: Int, type: String): SearchResult
-    suspend fun getMediaSource(item: MusicItem, quality: String): MediaSourceResult?
-    suspend fun getLyric(item: MusicItem): LyricResult?
-    suspend fun getMusicInfo(item: MusicItem): MusicItem?
-    suspend fun getAlbumInfo(albumItem: AlbumItemBase, page: Int): AlbumInfoResult?
-    // ... 其他 14 个方法
+interface LoadedPlugin : PluginApi {
+    val filePath: String?
+    val installSource: PluginInstallSource?
+    suspend fun updateUserVariables(values: Map<String, String>)
     suspend fun destroy()
 }
 
@@ -1297,13 +1295,15 @@ class LocalLoadedPlugin(
 
 **这是一个 chunky refactor。** 实施步骤：
 
-- B4.1：把 `LoadedPlugin` 改为 `sealed interface`，原实现重命名 `JsLoadedPlugin` 实现该接口。先空跑测试，保证现有 `:plugin:testDebugUnitTest` 全过。
+- B4.1：把 `LoadedPlugin` 改为 `interface`（非 sealed，见下），原实现重命名 `JsLoadedPlugin` 实现该接口。先空跑测试，保证现有 `:plugin:testDebugUnitTest` 全过。
 - B4.2：新增 `LocalLoadedPlugin`，实现接口，所有非 supported 方法 return null / empty。
-- B4.3：在 `PluginManager.setup()` 末尾构造 `LocalLoadedPlugin` 加入 plugins list。
-- B4.4：在 `getEnabledPlugins()`、`getSortedEnabledPlugins()` 加 `filter { it.info.hash != "local-plugin-hash" }`。
-- B4.5：写 `PluginManagerLocalRegistrationTest`，覆盖注册 + 过滤。
+- B4.3：在 `PluginManager.loadAllPlugins()` 末尾构造 `LocalLoadedPlugin` 加入 plugins list。
+- B4.4：在 `getSortedEnabledPlugins()`（cascade 到 `getSearchablePlugins` / `getLyricSearchablePlugins`）加 `filter { it.info.platform != LocalFilePluginConstants.PLATFORM }`。Phase B-2 阶段 `PluginInfo.hash` 还未引入，按 platform 名过滤；Phase C/E 引入 hash 后可再切换。
+- B4.5：写 `PluginManagerLocalRegistrationTest`，覆盖注册 + 过滤 + uninstall no-op。
 
 每个 sub-step 写完后跑全量测试 `:plugin:testDebugUnitTest`，红了立刻修。
+
+> **Phase B-2 实施备注（2026-05-12）**：原计划写的是 `sealed interface`，但 Mockito 5 明确不支持 mock 任何 `sealed interface`（即使开启 mock-maker-inline）。`:plugin` 及 `:feature/*` 现存大量 `mock<LoadedPlugin>()`，因此 B4.1 实际落地为普通 `interface`。语义不变（仍是多态边界），损失的是 `when` 穷举检查；目前没有依赖 `when (it) is LoadedPlugin` 的代码。日后 spec §10 状态机若需要 sealed，再统一切到 fake 实现 + drop `sealed`，但当前不抢这个 refactor 工作量。
 
 - [ ] **Step 3: PluginInfo 加 `hash` 字段（如未有）**
 

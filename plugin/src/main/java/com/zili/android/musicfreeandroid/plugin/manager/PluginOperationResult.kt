@@ -12,7 +12,28 @@ enum class PluginOperationErrorCode {
     SOURCE_INVALID,
     MISSING_UPDATE_SOURCE,
     VERSION_NOT_UPGRADABLE,
+
+    /**
+     * Hash collision with an already-installed plugin.
+     *
+     * As of Phase C5 the install pipeline NO LONGER emits this code: hash
+     * collisions are now silently idempotent and report a structured
+     * "success" result, matching RN behaviour. The enum value is preserved
+     * for backwards-compatible deserialization of any persisted operation
+     * logs and for downstream code that still pattern-matches on it.
+     */
+    @Deprecated(
+        message = "Hash collisions are now silently idempotent; pipeline emits success instead.",
+        level = DeprecationLevel.WARNING,
+    )
     DUPLICATE_PLUGIN,
+
+    /** Plugin missing required `platform` field on `module.exports`. */
+    MISSING_PLATFORM,
+
+    /** Plugin `appVersion` does not satisfy the host (Phase E will populate). */
+    VERSION_REJECTED,
+
     INTERNAL_ERROR,
 }
 

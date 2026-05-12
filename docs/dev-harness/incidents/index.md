@@ -4,7 +4,7 @@
 > 适用范围：跨域 incident ID 唯一性、状态汇总、guard 类型反查
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
-> 最后校验：2026-05-10
+> 最后校验：2026-05-12
 
 ## 编号规则
 
@@ -39,3 +39,4 @@
 | INC-2026-0015 | ui | Drawer / 浮层未让 status bar | [ui/rules.md#rule-overlay-respects-statusbar](../ui/rules.md#rule-overlay-respects-statusbar) | manual |
 | INC-2026-0016 | test | 测试 fixture 没跟生产 VM 构造器更新 | [test/rules.md#rule-test-fixture-must-track-vm-ctor](../test/rules.md#rule-test-fixture-must-track-vm-ctor) | ci-step |
 | INC-2026-0017 | player | 纯秒小数 LRC 时间戳 [s.ff] 未识别 | [player/rules.md#rule-lyric-parser-supports-second-only-timestamp](../player/rules.md#rule-lyric-parser-supports-second-only-timestamp) | contract-test |
+| INC-2026-0018 | plugin | 插件加载失败被静默吞掉，UI 无法定位 | [plugin/rules.md#rule-plugin-failure-must-surface](../plugin/rules.md#rule-plugin-failure-must-surface) | manual |

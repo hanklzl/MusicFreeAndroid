@@ -25,4 +25,10 @@ interface MediaCacheDao {
         """,
     )
     suspend fun deleteOldest(n: Int)
+
+    @Query("DELETE FROM media_cache WHERE platform = :platform")
+    suspend fun deleteByPlatform(platform: String)
+
+    @Query("DELETE FROM media_cache WHERE platform = :platform AND id = :id")
+    suspend fun delete(platform: String, id: String)
 }

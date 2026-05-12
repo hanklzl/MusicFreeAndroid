@@ -17,17 +17,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,8 +56,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -61,6 +68,9 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.feature.settings.components.SettingSectionCard
+import com.zili.android.musicfreeandroid.feature.settings.components.SettingSwitchRow
+import com.zili.android.musicfreeandroid.plugin.runtime.PluginState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -73,11 +83,17 @@ fun PluginListScreen(
     viewModel: PluginListViewModel = hiltViewModel(),
 ) {
     val pluginItems by viewModel.pluginItems.collectAsStateWithLifecycle()
+    val uiEntries by viewModel.uiEntries.collectAsStateWithLifecycle()
     val operationState by viewModel.operationState.collectAsStateWithLifecycle()
     val userVariableSaveState by viewModel.userVariableSaveState.collectAsStateWithLifecycle()
     val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
     val playlists by viewModel.allPlaylists.collectAsStateWithLifecycle()
+    val lazyLoadPlugins by viewModel.lazyLoadPlugins.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    val failedEntries = remember(uiEntries) {
+        uiEntries.filter { it.state is PluginState.Failed }
+    }
 
     var showMenu by remember { mutableStateOf(false) }
     var showInstallUrlDialog by remember { mutableStateOf(false) }
@@ -85,6 +101,7 @@ fun PluginListScreen(
     var showFabMenu by remember { mutableStateOf(false) }
     var showUninstallAllConfirm by remember { mutableStateOf(false) }
     var failureDialog by remember { mutableStateOf<List<FailureDetail>?>(null) }
+    var errorPanelTarget by remember { mutableStateOf<PluginUiEntry?>(null) }
     var alternativeTarget by remember { mutableStateOf<PluginUiItem?>(null) }
     var importMusicItemTarget by remember { mutableStateOf<PluginUiItem?>(null) }
     var importMusicSheetTarget by remember { mutableStateOf<PluginUiItem?>(null) }
@@ -182,44 +199,70 @@ fun PluginListScreen(
                 PluginOperationUiState.Idle -> {}
             }
 
-            if (pluginItems.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("暂无已安装插件", style = MaterialTheme.typography.bodyLarge)
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = rpx(24), vertical = rpx(16)),
-                    verticalArrangement = Arrangement.spacedBy(rpx(16)),
-                ) {
-                    items(pluginItems, key = { it.info.platform }) { item ->
-                        PluginCard(
-                            item = item,
-                            onToggleEnabled = { enabled ->
-                                viewModel.togglePluginEnabled(item.info.platform, enabled)
-                            },
-                            onUpdate = { viewModel.updatePlugin(item.info.platform) },
-                            onShare = {
-                                item.info.srcUrl?.let { url ->
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("插件URL", url))
-                                    Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            onUninstall = { uninstallTarget = item },
-                            onSetAlternative = { alternativeTarget = item },
-                            onImportMusicItem = { importMusicItemTarget = item },
-                            onImportMusicSheet = { importMusicSheetTarget = item },
-                            onEditUserVariables = {
-                                activeUserVariableSaveRequestId = null
-                                viewModel.resetUserVariableSaveState()
-                                userVariablesTarget = item
-                            },
-                            onShowDescription = { descriptionTarget = item },
+            LazyColumn(
+                contentPadding = PaddingValues(horizontal = rpx(24), vertical = rpx(16)),
+                verticalArrangement = Arrangement.spacedBy(rpx(16)),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                item("lazy_load_settings") {
+                    SettingSectionCard(title = "运行选项") {
+                        SettingSwitchRow(
+                            title = "懒加载插件",
+                            checked = lazyLoadPlugins,
+                            enabled = true,
+                            onCheckedChange = viewModel::setLazyLoadPlugins,
                         )
                     }
+                }
+
+                if (pluginItems.isEmpty() && failedEntries.isEmpty()) {
+                    item("empty") {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().height(rpx(240)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text("暂无已安装插件", style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+
+                items(
+                    items = failedEntries,
+                    key = { "failed:${it.filePath ?: it.platform}" },
+                ) { entry ->
+                    FailedPluginCard(
+                        entry = entry,
+                        onShowError = { errorPanelTarget = entry },
+                        onRetry = {
+                            entry.filePath?.let { viewModel.retryEntry(it) }
+                        },
+                    )
+                }
+                items(pluginItems, key = { "mounted:${it.info.platform}" }) { item ->
+                    PluginCard(
+                        item = item,
+                        onToggleEnabled = { enabled ->
+                            viewModel.togglePluginEnabled(item.info.platform, enabled)
+                        },
+                        onUpdate = { viewModel.updatePlugin(item.info.platform) },
+                        onShare = {
+                            item.info.srcUrl?.let { url ->
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("插件URL", url))
+                                Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onUninstall = { uninstallTarget = item },
+                        onSetAlternative = { alternativeTarget = item },
+                        onImportMusicItem = { importMusicItemTarget = item },
+                        onImportMusicSheet = { importMusicSheetTarget = item },
+                        onEditUserVariables = {
+                            activeUserVariableSaveRequestId = null
+                            viewModel.resetUserVariableSaveState()
+                            userVariablesTarget = item
+                        },
+                        onShowDescription = { descriptionTarget = item },
+                    )
                 }
             }
         }
@@ -362,6 +405,39 @@ fun PluginListScreen(
         )
     }
 
+    errorPanelTarget?.let { entry ->
+        PluginErrorPanel(
+            entry = entry,
+            onDismiss = { errorPanelTarget = null },
+            onRetry = {
+                entry.filePath?.let { viewModel.retryEntry(it) }
+            },
+            onUninstall = {
+                // Failed entries usually have no platform (parse/missing-platform
+                // failed before metadata extraction). Use filePath fallback.
+                viewModel.uninstallEntry(
+                    filePath = entry.filePath,
+                    platform = entry.platform.takeIf { it.isNotBlank() },
+                )
+            },
+            onCopyError = {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val text = buildString {
+                    append(reasonLabel(entry.state))
+                    appendLine()
+                    append(entry.platform)
+                    entry.filePath?.let { appendLine(); append(it) }
+                    entry.detail?.takeIf { it.isNotBlank() }?.let {
+                        appendLine()
+                        append(it)
+                    }
+                }
+                clipboard.setPrimaryClip(ClipData.newPlainText("插件错误", text))
+                Toast.makeText(context, "已复制错误信息到剪贴板", Toast.LENGTH_SHORT).show()
+            },
+        )
+    }
+
     if (sheetState.visible) {
         ModalBottomSheet(
             onDismissRequest = {
@@ -459,6 +535,99 @@ private fun FailureDetailDialog(
     )
 }
 
+/**
+ * Status badge for one plugin row. Mounted shows a green check; Loading /
+ * Initializing show a spinner; Failed shows a clickable red error icon that
+ * opens [PluginErrorPanel] via [onShowError].
+ *
+ * Use stable contentDescription strings so the values survive R8 minification
+ * and are stable for accessibility / instrumentation locators.
+ */
+@Composable
+private fun PluginStatusBadge(
+    state: PluginState,
+    onShowError: () -> Unit,
+) {
+    Box(
+        modifier = Modifier.width(rpx(48)),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (state) {
+            PluginState.Mounted -> Icon(
+                imageVector = Icons.Filled.CheckCircle,
+                contentDescription = "已加载",
+                tint = Color(0xFF4CAF50),
+                modifier = Modifier.size(rpx(28)),
+            )
+            PluginState.Initializing, PluginState.Loading -> CircularProgressIndicator(
+                modifier = Modifier.size(rpx(28)),
+                strokeWidth = rpx(3),
+            )
+            is PluginState.Failed -> IconButton(onClick = onShowError) {
+                Icon(
+                    imageVector = Icons.Filled.Error,
+                    contentDescription = "加载失败",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(rpx(28)),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Compact card for a Failed plugin entry. Surfaces the platform name (best
+ * effort, derived from the file name if metadata extraction never succeeded),
+ * the localized error reason, and a clickable status badge that opens the
+ * [PluginErrorPanel].
+ */
+@Composable
+private fun FailedPluginCard(
+    entry: PluginUiEntry,
+    onShowError: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onShowError),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(rpx(16)),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.platform,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = reasonLabel(entry.state),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = rpx(4)),
+                )
+                entry.detail?.takeIf { it.isNotBlank() }?.let { detail ->
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = rpx(4)),
+                    )
+                }
+                if (entry.filePath != null) {
+                    Row(modifier = Modifier.padding(top = rpx(8))) {
+                        AssistChip(onClick = onRetry, label = { Text("重试") })
+                    }
+                }
+            }
+            PluginStatusBadge(state = entry.state, onShowError = onShowError)
+        }
+    }
+}
+
 @Composable
 private fun PluginCard(
     item: PluginUiItem,
@@ -489,6 +658,9 @@ private fun PluginCard(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
+                // Mounted entries always show the green check (this card is
+                // only rendered for items already in pluginItems = Mounted).
+                PluginStatusBadge(state = PluginState.Mounted, onShowError = {})
                 Switch(
                     checked = item.enabled,
                     onCheckedChange = onToggleEnabled,

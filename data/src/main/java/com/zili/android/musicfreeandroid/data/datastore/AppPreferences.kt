@@ -299,6 +299,25 @@ class AppPreferences @Inject constructor(
         }
     }
 
+    // ── Plugin Lazy Load (Phase E) ──
+
+    /**
+     * When true (default), `PluginManager.loadAllPlugins()` seeds the entry list
+     * from the [PluginMetadataCacheGateway] snapshot and defers JS evaluation
+     * to a background coroutine — cold-start cost is bounded by file metadata
+     * read instead of N × QuickJS context creation. When false, plugins load
+     * synchronously like the pre-Phase-E behaviour.
+     */
+    val lazyLoadPlugins: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_LAZY_LOAD_PLUGINS] ?: true
+    }
+
+    suspend fun setLazyLoadPlugins(value: Boolean) {
+        writeRuntimeSetting(KEY_LAZY_LOAD_PLUGINS, value) {
+            it[KEY_LAZY_LOAD_PLUGINS] = value
+        }
+    }
+
     private suspend fun writeRuntimeSetting(
         key: Preferences.Key<*>,
         value: Any?,
@@ -375,6 +394,7 @@ class AppPreferences @Inject constructor(
         val KEY_DEFAULT_PLAY_QUALITY = stringPreferencesKey("default_play_quality")
         val KEY_PLAY_QUALITY_ORDER = stringPreferencesKey("play_quality_order")
         val KEY_USE_CELLULAR_PLAY = booleanPreferencesKey("use_cellular_play")
+        val KEY_LAZY_LOAD_PLUGINS = booleanPreferencesKey("pref_lazy_load_plugins")
     }
 }
 

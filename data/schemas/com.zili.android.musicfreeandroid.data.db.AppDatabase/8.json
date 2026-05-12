@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 8,
-    "identityHash": "e44addb992cf1999876040ab33e1cba2",
+    "identityHash": "5ace58c4f09c6c75c620b3f6417df3a6",
     "entities": [
       {
         "tableName": "music_items",
@@ -677,11 +677,86 @@
             "platform"
           ]
         }
+      },
+      {
+        "tableName": "plugin_metadata_cache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`filePath` TEXT NOT NULL, `platform` TEXT NOT NULL, `version` TEXT, `hash` TEXT NOT NULL, `srcUrl` TEXT, `appVersion` TEXT, `supportedMethodsJson` TEXT NOT NULL, `supportedSearchTypesJson` TEXT NOT NULL, `userVariableKeysJson` TEXT NOT NULL, `sourceMtimeMs` INTEGER NOT NULL, `cachedAtAppVersion` TEXT NOT NULL, PRIMARY KEY(`filePath`))",
+        "fields": [
+          {
+            "fieldPath": "filePath",
+            "columnName": "filePath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "platform",
+            "columnName": "platform",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "hash",
+            "columnName": "hash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "srcUrl",
+            "columnName": "srcUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "appVersion",
+            "columnName": "appVersion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "supportedMethodsJson",
+            "columnName": "supportedMethodsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supportedSearchTypesJson",
+            "columnName": "supportedSearchTypesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userVariableKeysJson",
+            "columnName": "userVariableKeysJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceMtimeMs",
+            "columnName": "sourceMtimeMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cachedAtAppVersion",
+            "columnName": "cachedAtAppVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "filePath"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e44addb992cf1999876040ab33e1cba2')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5ace58c4f09c6c75c620b3f6417df3a6')"
     ]
   }
 }

@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import com.zili.android.musicfreeandroid.core.local.Mp3MetadataReader
 import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
@@ -17,10 +18,14 @@ import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
+import com.zili.android.musicfreeandroid.data.db.dao.PluginMetadataCacheDao
 import com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDao
 import com.zili.android.musicfreeandroid.data.datastore.AppPlaybackRuntimeSettings
+import com.zili.android.musicfreeandroid.data.local.Mp3MetadataReaderImpl
 import com.zili.android.musicfreeandroid.data.repository.AppPlaylistDefaultSortProvider
 import com.zili.android.musicfreeandroid.data.repository.PlaylistDefaultSortProvider
+import com.zili.android.musicfreeandroid.data.repository.PluginMetadataCacheGateway
+import com.zili.android.musicfreeandroid.data.repository.PluginMetadataCacheRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -67,6 +72,10 @@ object DataModule {
     fun provideDownloadedTrackDao(db: AppDatabase): DownloadedTrackDao = db.downloadedTrackDao()
 
     @Provides
+    fun providePluginMetadataCacheDao(db: AppDatabase): PluginMetadataCacheDao =
+        db.pluginMetadataCacheDao()
+
+    @Provides
     @Singleton
     fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
         context.dataStore
@@ -91,4 +100,16 @@ object DataModule {
     fun providePlaylistDefaultSortProvider(
         provider: AppPlaylistDefaultSortProvider,
     ): PlaylistDefaultSortProvider = provider
+
+    @Provides
+    @Singleton
+    fun provideMp3MetadataReader(
+        impl: Mp3MetadataReaderImpl,
+    ): Mp3MetadataReader = impl
+
+    @Provides
+    @Singleton
+    fun providePluginMetadataCacheGateway(
+        impl: PluginMetadataCacheRepository,
+    ): PluginMetadataCacheGateway = impl
 }

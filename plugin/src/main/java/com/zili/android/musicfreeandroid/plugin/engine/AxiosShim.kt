@@ -9,6 +9,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -41,13 +43,40 @@ object AxiosShim {
     private const val HEADER_VALUE_PREVIEW_CHARS = 120
     private const val HEADER_PREVIEW_CHARS = 600
 
-    private val client: OkHttpClient by lazy {
+    /**
+     * Default per-call HTTP timeout in milliseconds.
+     *
+     * Aligned with RN MusicFree's `axios` default (2000ms). Plugin code that needs
+     * more headroom MUST pass `config.timeout` per-call; we never relax this default.
+     */
+    internal const val DEFAULT_TIMEOUT_MS = 2000L
+
+    /**
+     * Shared base client — connection pool / dispatcher are reused across calls.
+     * Per-call we derive a `.newBuilder()` copy with the requested timeout to avoid
+     * GC churn on every plugin request.
+     */
+    private val baseClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
             .followRedirects(true)
             .build()
+    }
+
+    private fun clientFor(timeoutMs: Long): OkHttpClient {
+        return baseClient.newBuilder()
+            .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .writeTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .build()
+    }
+
+    private fun resolveTimeoutMs(config: Map<*, *>?): Long {
+        val raw = config?.get("timeout") ?: return DEFAULT_TIMEOUT_MS
+        return when (raw) {
+            is Number -> raw.toLong().takeIf { it > 0 } ?: DEFAULT_TIMEOUT_MS
+            is String -> raw.toLongOrNull()?.takeIf { it > 0 } ?: DEFAULT_TIMEOUT_MS
+            else -> DEFAULT_TIMEOUT_MS
+        }
     }
 
     /**
@@ -190,12 +219,20 @@ object AxiosShim {
         }
     }
 
-    private suspend fun performGet(url: String, config: Map<*, *>?): String {
-        val fullUrl = buildUrlWithParams(url, config)
-        val request = buildRequestOrNull(method = "GET", url = fullUrl, bodyString = null, config = config)
-            ?: return buildErrorResponse("Invalid request")
+    internal suspend fun performGet(url: String, config: Map<*, *>?): String {
+        val mutableHeaders = extractMutableHeaders(config)
+        val authedUrl = normalizeRequest(url, mutableHeaders)
+        val fullUrl = buildUrlWithParams(authedUrl, config)
+        val request = buildRequestOrNull(
+            method = "GET",
+            url = fullUrl,
+            bodyString = null,
+            headers = mutableHeaders,
+        ) ?: return buildErrorResponse("Invalid request")
         logRequest(method = "GET", url = fullUrl, headers = request.headers)
 
+        val timeoutMs = resolveTimeoutMs(config)
+        val client = clientFor(timeoutMs)
         val startedAt = System.currentTimeMillis()
         val response = try {
             client.newCall(request).await()
@@ -230,13 +267,15 @@ object AxiosShim {
         }
     }
 
-    private suspend fun performPost(
+    internal suspend fun performPost(
         url: String,
         bodyArg: Any?,
         config: Map<*, *>?,
     ): String {
-        val fullUrl = buildUrlWithParams(url, config)
-        val contentType = resolveContentType(config, bodyArg)
+        val mutableHeaders = extractMutableHeaders(config)
+        val authedUrl = normalizeRequest(url, mutableHeaders)
+        val fullUrl = buildUrlWithParams(authedUrl, config)
+        val contentType = resolveContentType(mutableHeaders, bodyArg)
         val bodyString = when (bodyArg) {
             is Map<*, *> -> {
                 if (contentType.contains("application/x-www-form-urlencoded", ignoreCase = true)) {
@@ -256,9 +295,8 @@ object AxiosShim {
             url = fullUrl,
             bodyString = bodyString,
             requestBody = requestBody,
-            config = config,
-        )
-            ?: return buildErrorResponse("Invalid request")
+            headers = mutableHeaders,
+        ) ?: return buildErrorResponse("Invalid request")
         logRequest(
             method = "POST",
             url = fullUrl,
@@ -266,6 +304,8 @@ object AxiosShim {
             bodyPreview = bodyString,
         )
 
+        val timeoutMs = resolveTimeoutMs(config)
+        val client = clientFor(timeoutMs)
         val startedAt = System.currentTimeMillis()
         val response = try {
             client.newCall(request).await()
@@ -302,6 +342,55 @@ object AxiosShim {
         }
     }
 
+    /**
+     * Lift `user:pass@host` URL credentials into an `Authorization: Basic <…>`
+     * header, then strip them from the returned URL. RN MusicFree relies on this
+     * behavior — OkHttp does NOT auto-promote URL userinfo into a header (it
+     * fails with `IllegalArgumentException` if you keep it inline).
+     *
+     * Returns the original URL untouched when:
+     * - the URL cannot be parsed by OkHttp (e.g. exotic schemes),
+     * - the URL carries no userinfo,
+     * - or the caller already provided an `Authorization` header (case-insensitive).
+     */
+    internal fun normalizeRequest(
+        originalUrl: String,
+        headers: MutableMap<String, String>,
+    ): String {
+        val parsed: HttpUrl = originalUrl.toHttpUrlOrNull() ?: return originalUrl
+        val username = parsed.username
+        val password = parsed.password
+        if (username.isEmpty() && password.isEmpty()) {
+            return originalUrl
+        }
+        val hasAuth = headers.keys.any { it.equals("Authorization", ignoreCase = true) }
+        if (!hasAuth) {
+            // OkHttp decodes `parsed.username` / `parsed.password` from percent
+            // encoding (matching whatwg URL semantics), so special chars round-trip
+            // correctly into the Basic credential.
+            val token = Base64.getEncoder().encodeToString(
+                "$username:$password".toByteArray(Charsets.UTF_8),
+            )
+            headers["Authorization"] = "Basic $token"
+        }
+        return parsed.newBuilder()
+            .username("")
+            .password("")
+            .build()
+            .toString()
+    }
+
+    private fun extractMutableHeaders(config: Map<*, *>?): MutableMap<String, String> {
+        val headers = config?.get("headers") as? Map<*, *> ?: return mutableMapOf()
+        val result = LinkedHashMap<String, String>(headers.size)
+        for ((k, v) in headers) {
+            val key = k?.toString() ?: continue
+            val value = v?.toString() ?: continue
+            result[key] = value
+        }
+        return result
+    }
+
     // -- OkHttp suspend extension --
 
     private suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
@@ -316,8 +405,10 @@ object AxiosShim {
         cont.invokeOnCancellation { cancel() }
     }
 
-    private fun resolveContentType(config: Map<*, *>?, bodyArg: Any?): String {
-        val explicitContentType = getHeaderIgnoreCase(config, "content-type")
+    private fun resolveContentType(headers: Map<String, String>, bodyArg: Any?): String {
+        val explicitContentType = headers.entries.firstOrNull { (k, _) ->
+            k.equals("content-type", ignoreCase = true)
+        }?.value
         if (!explicitContentType.isNullOrBlank()) {
             return explicitContentType
         }
@@ -326,13 +417,6 @@ object AxiosShim {
             is Map<*, *> -> "application/json; charset=utf-8"
             else -> "text/plain; charset=utf-8"
         }
-    }
-
-    private fun getHeaderIgnoreCase(config: Map<*, *>?, key: String): String? {
-        val headers = config?.get("headers") as? Map<*, *> ?: return null
-        return headers.entries.firstOrNull { (k, _) ->
-            k.toString().equals(key, ignoreCase = true)
-        }?.value?.toString()
     }
 
     private fun toFormUrlEncoded(data: Map<*, *>): String {
@@ -382,16 +466,16 @@ object AxiosShim {
         url: String,
         bodyString: String?,
         requestBody: okhttp3.RequestBody? = null,
-        config: Map<*, *>?,
+        headers: Map<String, String>,
     ): Request? {
         return try {
             val builder = Request.Builder().url(url)
             if (method == "POST") {
-                builder.post(requestBody ?: (bodyString ?: "").toRequestBody(resolveContentType(config, bodyString).toMediaTypeOrNull()))
+                builder.post(requestBody ?: (bodyString ?: "").toRequestBody(resolveContentType(headers, bodyString).toMediaTypeOrNull()))
             } else {
                 builder.get()
             }
-            applyHeaders(builder, config)
+            applyHeaders(builder, headers)
             builder.build()
         } catch (e: IllegalArgumentException) {
             logRequestFailed(
@@ -542,12 +626,8 @@ object AxiosShim {
         return "$baseUrl$separator${queryParts.joinToString("&")}"
     }
 
-    private fun applyHeaders(builder: Request.Builder, config: Map<*, *>?) {
-        if (config == null) return
-        val headers = config["headers"] as? Map<*, *> ?: return
-        for ((key, value) in headers) {
-            val k = key?.toString() ?: continue
-            val v = value?.toString() ?: continue
+    private fun applyHeaders(builder: Request.Builder, headers: Map<String, String>) {
+        for ((k, v) in headers) {
             builder.addHeader(k, v)
         }
     }
