@@ -30,8 +30,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -80,11 +78,11 @@ import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
+import com.zili.android.musicfreeandroid.feature.playerui.component.more.PlayerMoreOptionsSheet
 import com.zili.android.musicfreeandroid.feature.playerui.component.quality.MusicQualitySheet
 import com.zili.android.musicfreeandroid.feature.playerui.component.quality.MusicQualitySheetMode
 import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueSheet
 import com.zili.android.musicfreeandroid.feature.playerui.component.rate.PlayRateSheet
-import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricMoreDialog
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricSearchSheet
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsContent
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsOperations
@@ -114,7 +112,7 @@ fun PlayerScreen(
     var defaultPageApplied by remember { mutableStateOf(false) }
     var showLyricSearchSheet by remember { mutableStateOf(false) }
     var showLyricOffsetDialog by remember { mutableStateOf(false) }
-    var showLyricMoreDialog by remember { mutableStateOf(false) }
+    var showMoreOptionsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
     var qualitySheetMode by remember { mutableStateOf<MusicQualitySheetMode?>(null) }
     var showRateSheet by remember { mutableStateOf(false) }
@@ -222,13 +220,13 @@ fun PlayerScreen(
                         isDownloaded = isDownloaded,
                         currentSpeed = currentSpeed,
                         onToggleFav = { viewModel.toggleCurrentFavorite() },
-                        onAddToPlaylist = { viewModel.showAddToPlaylistSheet() },
                         onToggleLyrics = { contentPage = PlayerContentPage.Lyrics },
                         onQualityClick = { qualitySheetMode = MusicQualitySheetMode.Play },
                         onDownloadClick = {
                             if (!isDownloaded) qualitySheetMode = MusicQualitySheetMode.Download
                         },
                         onSpeedClick = { showRateSheet = true },
+                        onMoreClick = { showMoreOptionsSheet = true },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -259,7 +257,7 @@ fun PlayerScreen(
                         onToggleTranslation = {
                             viewModel.setLyricShowTranslation(!lyricsUiState.showTranslation)
                         },
-                        onMore = { showLyricMoreDialog = true },
+                        onMore = { showMoreOptionsSheet = true },
                     )
 
                     PlayerLyricsOperationsBottomSpacer()
@@ -337,28 +335,32 @@ fun PlayerScreen(
             )
         }
 
-        if (showLyricMoreDialog) {
-            PlayerLyricMoreDialog(
-                onDismiss = { showLyricMoreDialog = false },
-                onImportRaw = {
-                    showLyricMoreDialog = false
+        if (showMoreOptionsSheet && currentItem != null) {
+            PlayerMoreOptionsSheet(
+                item = currentItem,
+                desktopLyricEnabled = false,
+                onDismiss = { showMoreOptionsSheet = false },
+                onToggleDesktopLyric = {
+                    showMoreOptionsSheet = false
+                    Toast.makeText(context, "桌面歌词暂未接入", Toast.LENGTH_SHORT).show()
+                },
+                onImportRawLyric = {
+                    showMoreOptionsSheet = false
                     pendingImportKind = LocalLyricKind.Raw
                     openLyricDocument.launch(arrayOf("text/*", "application/octet-stream"))
                 },
-                onImportTranslation = {
-                    showLyricMoreDialog = false
+                onImportTranslatedLyric = {
+                    showMoreOptionsSheet = false
                     pendingImportKind = LocalLyricKind.Translation
                     openLyricDocument.launch(arrayOf("text/*", "application/octet-stream"))
                 },
-                onDeleteLocal = {
+                onDeleteLocalLyric = {
                     viewModel.deleteLocalLyric()
-                    showLyricMoreDialog = false
+                    showMoreOptionsSheet = false
                     Toast.makeText(context, "已删除本地歌词", Toast.LENGTH_SHORT).show()
                 },
-                onClearAssociated = {
-                    viewModel.clearAssociatedLyric()
-                    showLyricMoreDialog = false
-                    Toast.makeText(context, "已解除关联歌词", Toast.LENGTH_SHORT).show()
+                onInfoCopied = {
+                    Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
                 },
             )
         }
@@ -574,11 +576,11 @@ internal fun PlayerCoverPageContent(
     isDownloaded: Boolean,
     currentSpeed: Float,
     onToggleFav: () -> Unit,
-    onAddToPlaylist: () -> Unit,
     onToggleLyrics: () -> Unit,
     onQualityClick: () -> Unit,
     onDownloadClick: () -> Unit,
     onSpeedClick: () -> Unit,
+    onMoreClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -612,11 +614,11 @@ internal fun PlayerCoverPageContent(
                 isDownloaded = isDownloaded,
                 currentSpeed = currentSpeed,
                 onToggleFav = onToggleFav,
-                onAddToPlaylist = onAddToPlaylist,
                 onToggleLyrics = onToggleLyrics,
                 onQualityClick = onQualityClick,
                 onDownloadClick = onDownloadClick,
                 onSpeedClick = onSpeedClick,
+                onMoreClick = onMoreClick,
             )
             Spacer(Modifier.height(rpx(24)))
         }
@@ -671,13 +673,12 @@ internal fun PlayerOperationsBar(
     isDownloaded: Boolean,
     currentSpeed: Float,
     onToggleFav: () -> Unit,
-    onAddToPlaylist: () -> Unit,
     onToggleLyrics: () -> Unit,
     onQualityClick: () -> Unit,
     onDownloadClick: () -> Unit,
     onSpeedClick: () -> Unit,
+    onMoreClick: () -> Unit,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -734,28 +735,15 @@ internal fun PlayerOperationsBar(
                 tint = Color.White.copy(alpha = 0.7f),
             )
         }
-        Box {
-            PlayerOperationSlot(
-                onClick = { menuExpanded = true },
-                contentDescription = "更多",
-            ) {
-                PlayerOperationIcon(
-                    icon = R.drawable.ic_ellipsis_vertical,
-                    tint = Color.White.copy(alpha = 0.7f),
-                )
-            }
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-            ) {
-                DropdownMenuItem(
-                    text = { Text("加入歌单") },
-                    onClick = {
-                        menuExpanded = false
-                        onAddToPlaylist()
-                    },
-                )
-            }
+        PlayerOperationSlot(
+            onClick = onMoreClick,
+            enabled = hasCurrentItem,
+            contentDescription = "更多",
+        ) {
+            PlayerOperationIcon(
+                icon = R.drawable.ic_ellipsis_vertical,
+                tint = Color.White.copy(alpha = if (hasCurrentItem) 0.7f else 0.3f),
+            )
         }
     }
 }

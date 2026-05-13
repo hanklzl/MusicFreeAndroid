@@ -41,11 +41,11 @@ class PlayerCoverLayoutTest {
                             isDownloaded = false,
                             currentSpeed = 1.0f,
                             onToggleFav = {},
-                            onAddToPlaylist = {},
                             onToggleLyrics = {},
                             onQualityClick = {},
                             onDownloadClick = {},
                             onSpeedClick = {},
+                            onMoreClick = {},
                             modifier = Modifier.weight(1f),
                         )
                         PlayerSeekBar(

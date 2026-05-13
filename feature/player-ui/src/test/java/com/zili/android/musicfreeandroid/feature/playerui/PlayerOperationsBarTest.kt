@@ -105,22 +105,21 @@ class PlayerOperationsBarTest {
     fun `cover operation callbacks remain wired`() {
         var favoriteClicks = 0
         var lyricClicks = 0
-        var addToPlaylistClicks = 0
+        var moreClicks = 0
         setContent(
             onToggleFav = { favoriteClicks++ },
-            onAddToPlaylist = { addToPlaylistClicks++ },
             onToggleLyrics = { lyricClicks++ },
+            onMoreClick = { moreClicks++ },
         )
 
         composeRule.onNodeWithContentDescription("收藏").performClick()
         composeRule.onNodeWithContentDescription("歌词").performClick()
         composeRule.onNodeWithContentDescription("更多").performClick()
-        composeRule.onNodeWithText("加入歌单").performClick()
 
         composeRule.runOnIdle {
             assertEquals(1, favoriteClicks)
             assertEquals(1, lyricClicks)
-            assertEquals(1, addToPlaylistClicks)
+            assertEquals(1, moreClicks)
         }
     }
 
@@ -152,8 +151,8 @@ class PlayerOperationsBarTest {
 
     private fun setContent(
         onToggleFav: () -> Unit = {},
-        onAddToPlaylist: () -> Unit = {},
         onToggleLyrics: () -> Unit = {},
+        onMoreClick: () -> Unit = {},
     ) {
         composeRule.setContent {
             MusicFreeTheme {
@@ -175,11 +174,11 @@ class PlayerOperationsBarTest {
                         isDownloaded = false,
                         currentSpeed = 1.0f,
                         onToggleFav = onToggleFav,
-                        onAddToPlaylist = onAddToPlaylist,
                         onToggleLyrics = onToggleLyrics,
                         onQualityClick = {},
                         onDownloadClick = {},
                         onSpeedClick = {},
+                        onMoreClick = onMoreClick,
                     )
                 }
             }
