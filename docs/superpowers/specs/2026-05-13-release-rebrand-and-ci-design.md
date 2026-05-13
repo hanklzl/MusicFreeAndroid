@@ -11,7 +11,8 @@
 本次改造的目标：
 
 1. **品牌化**：把 Release 包桌面名改为 `MF音乐`，Debug 包改为 `MF音乐(D)`；Debug 图标在原 adaptive icon 上加红色 `D` 角标，与 Release 包一眼可分辨。
-2. **CI 收敛**：删除每次 push 的 Debug APK 构建工作流与 Dev Harness 门禁；Release APK 改为按北京时间每日凌晨 02:00 自动产出 nightly artifact（仅当 24h 内 main 有新提交），同时保留 tag 推送出正式 GitHub Release 与 manual dispatch 的能力。
+2. **CI 收敛**：删除每次 push 的 Debug APK 构建工作流与 Dev Harness 门禁；同步把 Harness 文档体系内 5 处指向 `dev-harness-gate.yml` 的引用改写为"本地脚本 + 人工 review"路径，保持文档与仓库现实一致。
+3. **Release 触发现代化**：Release APK 改为按北京时间每日凌晨 02:00 自动产出 nightly artifact（仅当 24h 内 main 有新提交），同时保留 tag 推送出正式 GitHub Release 与 manual dispatch 的能力。
 
 ## 2. 当前状态（事实基线）
 
@@ -102,7 +103,23 @@
 - `.github/workflows/android-debug-apk.yml`
 - `.github/workflows/dev-harness-gate.yml`
 
-#### 3.3.2 修改 `android-release-apk.yml`
+#### 3.3.2 Harness 文档同步改写（与 workflow 删除原子提交）
+
+删除 `dev-harness-gate.yml` 让"CI 自动拦截"成为不实陈述。本次实施在**同一 commit / PR** 内一并下改以下 5 处，保证文档与仓库现实一致：
+
+| 文件 | 当前表述 | 改写为 |
+|---|---|---|
+| `AGENTS.md:36` | "违反 rules.md 中标记 MUST / MUST NOT 的条款将在 CI `dev-harness-gate` 作业被拦下。" | "违反 rules.md 中标记 MUST / MUST NOT 的条款由人工 review 拦截；本地可跑 `bash scripts/dev-harness/check.sh` 自查。" |
+| `CLAUDE.md:36` | 同上 | 同上（两份文件保持一致） |
+| `docs/dev-harness/INDEX.md:32` | "- 工作流：`.github/workflows/dev-harness-gate.yml`" | 删除该行 |
+| `docs/dev-harness/test/rules.md:79` | "`dev-harness-gate.yml` MUST 含一个 …" | "PR 合入前 MUST 在本地跑 `bash scripts/dev-harness/check.sh`（默认含编译全模块测试源步骤）；新加模块时 MUST 同步加入 `scripts/dev-harness/check.sh` 的模块列表。" |
+| `docs/dev-harness/test/incidents.md:14-17, 33` 中 INC-2026-0016 的 `guard` 块 | `type: ci-step` / `target: .github/workflows/dev-harness-gate.yml (…)` 及末段"备注"里的同源描述 | `type: manual` / `target: bash scripts/dev-harness/check.sh` ；备注改为"本地复现：`bash scripts/dev-harness/check.sh`（默认步骤包含编译全模块测试源）" |
+
+**`scripts/dev-harness/check.sh` 小修**：脚本逻辑（symlinks → grep guards → 全模块 compileDebugUnitTestKotlin → contract tests）与被删除的 `dev-harness-gate.yml` 一一对应，无需改造逻辑；但脚本内第 52 行附近注释 "Adding tests in other modules requires extending this list AND the CI workflow" 在 workflow 删除后变成陈述不实，需把 "AND the CI workflow" 删除。
+
+> 备注：除上述注释外，`scripts/dev-harness/check.sh` 逻辑保持不变；这次只是把"CI 兜底"降级为"PR 合入前本地脚本 + 人工 review"。
+
+#### 3.3.3 修改 `android-release-apk.yml`
 
 **触发器扩展**
 
@@ -158,7 +175,8 @@ fi
 
 - 内部代号（namespace、`applicationId` 基础值、`Application` 类名、theme 名）。
 - player 模块通知 channel 文案。
-- Dev Harness 文档与 `scripts/dev-harness/`（仅删除 workflow，文档与脚本本次不动）。
+- `scripts/dev-harness/` 脚本本体（仅文档引用同步改写，脚本不动）。
+- 其他 area 的 rules.md / incidents.md（仅 `test/` 域下的 INC-2026-0016 因 guard 失效需要改写；其它 area 的 guard 不依赖被删除的 workflow）。
 - Release 签名 / Logan 环境变量管理（既有机制延续）。
 
 ## 5. 验证
@@ -181,4 +199,5 @@ fi
 
 - **R8 影响**：本次只新增 XML 资源与 `resValue`，不引入反射/序列化路径，对 R8 keep 规则零影响。
 - **回滚成本**：所有改动均为新增/删除文件 + build script 小改，git revert 单 commit 即可回到当前状态。
-- **CI 风险**：删除 `dev-harness-gate.yml` 后，依赖该闸门的本地约束（test fixture 漂移、symlink 守护）将不再在 PR 上自动拦截。本次改造接受这个状态——闸门归人盯，必要时未来可单独恢复或重做。
+- **CI 风险**：删除 `dev-harness-gate.yml` 后，依赖该闸门的本地约束（test fixture 漂移、symlink 守护）将不再在 PR 上自动拦截。Spec §3.3.2 已把约束降级为"PR 合入前本地 `scripts/dev-harness/check.sh` + 人工 review"。这是本次改造主动接受的状态——必要时未来可单独恢复 CI 路径。
+- **未跑 check.sh 的合入**：降级后若 PR 作者忘记本地跑 check.sh、reviewer 也未提醒，fixture / VM ctor 漂移会回归到能合入 main 的水平。本次改造接受这个可能性；缓解是 INC-2026-0016 的 guard 仍记录在案，后续 harness-curator 巡检会盯到复发。
