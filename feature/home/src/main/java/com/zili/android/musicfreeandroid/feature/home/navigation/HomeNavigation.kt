@@ -5,7 +5,6 @@ import androidx.navigation.compose.composable
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.feature.home.HomeScreen
-import com.zili.android.musicfreeandroid.feature.home.HomeSystemActionHandler
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
 
 fun NavGraphBuilder.homeScreen(
@@ -20,7 +19,6 @@ fun NavGraphBuilder.homeScreen(
     onNavigateToPlaylistDetail: (String) -> Unit,
     onNavigateToStarredSheet: (HomeSheetUiModel) -> Unit,
     onNavigateToStarredAlbum: (HomeSheetUiModel) -> Unit,
-    homeSystemActionHandler: HomeSystemActionHandler,
 ) {
     composable<HomeRoute> {
         HomeScreen(
@@ -35,7 +33,6 @@ fun NavGraphBuilder.homeScreen(
             onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,
             onNavigateToStarredSheet = onNavigateToStarredSheet,
             onNavigateToStarredAlbum = onNavigateToStarredAlbum,
-            homeSystemActionHandler = homeSystemActionHandler,
         )
     }
 }

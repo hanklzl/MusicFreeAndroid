@@ -18,9 +18,6 @@ internal object HomeIcons {
     @DrawableRes val DrawerScheduleClose = R.drawable.ic_home_alarm_outline
     @DrawableRes val DrawerBackup = R.drawable.ic_home_circle_stack
     @DrawableRes val DrawerPermissions = R.drawable.ic_home_shield_keyhole_outline
-    @DrawableRes val DrawerLanguage = R.drawable.ic_home_language
     @DrawableRes val DrawerCheckUpdate = R.drawable.ic_home_arrow_path
     @DrawableRes val DrawerAbout = R.drawable.ic_home_information_circle
-    @DrawableRes val DrawerBackToDesktop = R.drawable.ic_home_home_outline
-    @DrawableRes val DrawerExitApp = R.drawable.ic_home_power_outline
 }

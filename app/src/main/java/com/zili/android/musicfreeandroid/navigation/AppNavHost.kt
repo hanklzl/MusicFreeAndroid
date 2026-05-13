@@ -27,7 +27,6 @@ import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
 import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
-import com.zili.android.musicfreeandroid.feature.home.HomeSystemActionHandler
 import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.AlbumDetailSeedStore
 import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.albumDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.ArtistDetailSeedStore
@@ -59,7 +58,6 @@ import com.zili.android.musicfreeandroid.feature.settings.pluginsub.navigation.p
 @Composable
 fun AppNavHost(
     navController: NavHostController,
-    homeSystemActionHandler: HomeSystemActionHandler,
     modifier: Modifier = Modifier,
 ) {
     NavHost(
@@ -117,7 +115,6 @@ fun AppNavHost(
                     ),
                 )
             },
-            homeSystemActionHandler = homeSystemActionHandler,
         )
         localScreen(
             onBack = { navController.popBackStack() },

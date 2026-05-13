@@ -27,28 +27,16 @@ import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 @Composable
 fun HomeDrawerDialogs(
     isTimingCloseVisible: Boolean,
-    isLanguageDialogVisible: Boolean,
     isUpdateCheckVisible: Boolean,
-    currentLanguage: String,
     currentVersion: String,
     scheduleCloseSummary: String,
     onDismissTimingClose: () -> Unit,
-    onDismissLanguage: () -> Unit,
     onDismissUpdateCheck: () -> Unit,
 ) {
     if (isTimingCloseVisible) {
         TimingClosePanel(
             scheduleCloseSummary = scheduleCloseSummary,
             onDismiss = onDismissTimingClose,
-        )
-    }
-
-    if (isLanguageDialogVisible) {
-        InfoDialog(
-            anchorTag = FidelityAnchors.Dialog.LanguageRoot,
-            title = "语言设置",
-            body = "当前语言：$currentLanguage",
-            onDismiss = onDismissLanguage,
         )
     }
 

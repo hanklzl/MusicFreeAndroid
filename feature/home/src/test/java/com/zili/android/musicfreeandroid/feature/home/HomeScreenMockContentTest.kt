@@ -54,11 +54,9 @@ class HomeScreenMockContentTest {
                     state = HomeScreenState(),
                     visualUiModel = buildHomeVisualUiModel(HomeSheetTab.Mine, fakeMineRows),
                     drawerUiModel = buildHomeDrawerUiModel(
-                        currentLanguage = "中文",
                         currentVersion = "1.0.0",
                         scheduleCloseSummary = "",
                     ),
-                    currentLanguage = "中文",
                     currentVersion = "1.0.0",
                     scheduleCloseSummary = "",
                     onDrawerEntryClick = {},

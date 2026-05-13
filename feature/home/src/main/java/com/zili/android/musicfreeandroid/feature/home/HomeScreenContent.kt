@@ -34,7 +34,6 @@ internal fun handleDrawerEntryClick(
     state.closeDrawer()
     when (action) {
         HomeDrawerAction.ShowScheduleClosePanel -> state.showTimingCloseDialog()
-        HomeDrawerAction.ShowLanguageDialog -> state.showLanguageDialog()
         HomeDrawerAction.ShowUpdateCheckDialog -> state.showUpdateCheck()
         else -> onDrawerEntryClick(action)
     }
@@ -45,7 +44,6 @@ fun HomeScreenContent(
     state: HomeScreenState,
     visualUiModel: HomeVisualUiModel,
     drawerUiModel: HomeDrawerUiModel,
-    currentLanguage: String,
     currentVersion: String,
     scheduleCloseSummary: String,
     onDrawerEntryClick: (HomeDrawerAction) -> Unit,
@@ -83,7 +81,6 @@ fun HomeScreenContent(
     BackHandler(
         enabled = state.isDrawerOpen ||
             state.isTimingCloseVisible ||
-            state.isLanguageDialogVisible ||
             state.isUpdateCheckVisible,
     ) {
         state.onBackPressedConsumed()
@@ -147,13 +144,10 @@ fun HomeScreenContent(
 
     HomeDrawerDialogs(
         isTimingCloseVisible = state.isTimingCloseVisible,
-        isLanguageDialogVisible = state.isLanguageDialogVisible,
         isUpdateCheckVisible = state.isUpdateCheckVisible,
-        currentLanguage = currentLanguage,
         currentVersion = currentVersion,
         scheduleCloseSummary = scheduleCloseSummary,
         onDismissTimingClose = state::dismissTimingCloseDialog,
-        onDismissLanguage = state::dismissLanguageDialog,
         onDismissUpdateCheck = state::dismissUpdateCheck,
     )
 }

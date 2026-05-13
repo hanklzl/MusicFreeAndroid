@@ -38,11 +38,8 @@ object FidelityAnchors {
         const val DrawerOtherScheduleClose = "home.drawer.other.scheduleClose"
         const val DrawerOtherBackup = "home.drawer.other.backup"
         const val DrawerOtherPermissions = "home.drawer.other.permissions"
-        const val DrawerSoftwareLanguage = "home.drawer.software.language"
         const val DrawerSoftwareCheckUpdate = "home.drawer.software.checkUpdate"
         const val DrawerSoftwareAbout = "home.drawer.software.about"
-        const val DrawerActionBackToDesktop = "home.drawer.action.backToDesktop"
-        const val DrawerActionExitApp = "home.drawer.action.exitApp"
     }
 
     object Search {
@@ -86,7 +83,6 @@ object FidelityAnchors {
     }
 
     object Dialog {
-        const val LanguageRoot = "dialog.language.root"
         const val UpdateCheckRoot = "dialog.updateCheck.root"
     }
 

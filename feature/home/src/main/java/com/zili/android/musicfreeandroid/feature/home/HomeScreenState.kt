@@ -11,9 +11,6 @@ class HomeScreenState {
     var isTimingCloseVisible by mutableStateOf(false)
         private set
 
-    var isLanguageDialogVisible by mutableStateOf(false)
-        private set
-
     var isUpdateCheckVisible by mutableStateOf(false)
         private set
 
@@ -33,14 +30,6 @@ class HomeScreenState {
         isTimingCloseVisible = false
     }
 
-    fun showLanguageDialog() {
-        isLanguageDialogVisible = true
-    }
-
-    fun dismissLanguageDialog() {
-        isLanguageDialogVisible = false
-    }
-
     fun showUpdateCheck() {
         isUpdateCheckVisible = true
     }
@@ -57,11 +46,6 @@ class HomeScreenState {
 
         isTimingCloseVisible -> {
             dismissTimingCloseDialog()
-            true
-        }
-
-        isLanguageDialogVisible -> {
-            dismissLanguageDialog()
             true
         }
 

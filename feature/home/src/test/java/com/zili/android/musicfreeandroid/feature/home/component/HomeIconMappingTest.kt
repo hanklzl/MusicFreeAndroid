@@ -24,11 +24,8 @@ class HomeIconMappingTest {
             HomeIcons.DrawerScheduleClose,
             HomeIcons.DrawerBackup,
             HomeIcons.DrawerPermissions,
-            HomeIcons.DrawerLanguage,
             HomeIcons.DrawerCheckUpdate,
             HomeIcons.DrawerAbout,
-            HomeIcons.DrawerBackToDesktop,
-            HomeIcons.DrawerExitApp,
         )
 
         assertEquals(R.drawable.ic_home_bars_3, HomeIcons.NavMenu)
@@ -45,12 +42,9 @@ class HomeIconMappingTest {
         assertEquals(R.drawable.ic_home_alarm_outline, HomeIcons.DrawerScheduleClose)
         assertEquals(R.drawable.ic_home_circle_stack, HomeIcons.DrawerBackup)
         assertEquals(R.drawable.ic_home_shield_keyhole_outline, HomeIcons.DrawerPermissions)
-        assertEquals(R.drawable.ic_home_language, HomeIcons.DrawerLanguage)
         assertEquals(R.drawable.ic_home_arrow_path, HomeIcons.DrawerCheckUpdate)
         assertEquals(R.drawable.ic_home_information_circle, HomeIcons.DrawerAbout)
-        assertEquals(R.drawable.ic_home_home_outline, HomeIcons.DrawerBackToDesktop)
-        assertEquals(R.drawable.ic_home_power_outline, HomeIcons.DrawerExitApp)
-        assertEquals(19, ids.size)
+        assertEquals(16, ids.size)
         assertTrue(ids.all { it != 0 })
         assertEquals(ids.size, ids.toSet().size)
     }

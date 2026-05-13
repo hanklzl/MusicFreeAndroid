@@ -22,11 +22,8 @@ sealed interface HomeDrawerAction {
     data object ShowScheduleClosePanel : HomeDrawerAction
     data object OpenBackup : HomeDrawerAction
     data object OpenPermissions : HomeDrawerAction
-    data object ShowLanguageDialog : HomeDrawerAction
     data object ShowUpdateCheckDialog : HomeDrawerAction
     data object OpenAbout : HomeDrawerAction
-    data object BackToDesktop : HomeDrawerAction
-    data object ExitApp : HomeDrawerAction
 }
 
 data class HomeDrawerUiModel(
@@ -51,7 +48,6 @@ data class HomeDrawerItemUiModel(
 )
 
 fun buildHomeDrawerUiModel(
-    currentLanguage: String,
     currentVersion: String,
     scheduleCloseSummary: String,
 ): HomeDrawerUiModel = HomeDrawerUiModel(
@@ -110,13 +106,6 @@ fun buildHomeDrawerUiModel(
             title = "软件",
             items = listOf(
                 HomeDrawerItemUiModel(
-                    title = "语言设置",
-                    iconRes = HomeIcons.DrawerLanguage,
-                    anchorTag = FidelityAnchors.Home.DrawerSoftwareLanguage,
-                    trailingText = currentLanguage,
-                    action = HomeDrawerAction.ShowLanguageDialog,
-                ),
-                HomeDrawerItemUiModel(
                     title = "检查更新",
                     iconRes = HomeIcons.DrawerCheckUpdate,
                     anchorTag = FidelityAnchors.Home.DrawerSoftwareCheckUpdate,
@@ -132,18 +121,5 @@ fun buildHomeDrawerUiModel(
             ),
         ),
     ),
-    footerActions = listOf(
-        HomeDrawerItemUiModel(
-            title = "回到桌面",
-            iconRes = HomeIcons.DrawerBackToDesktop,
-            anchorTag = FidelityAnchors.Home.DrawerActionBackToDesktop,
-            action = HomeDrawerAction.BackToDesktop,
-        ),
-        HomeDrawerItemUiModel(
-            title = "退出软件",
-            iconRes = HomeIcons.DrawerExitApp,
-            anchorTag = FidelityAnchors.Home.DrawerActionExitApp,
-            action = HomeDrawerAction.ExitApp,
-        ),
-    ),
+    footerActions = emptyList(),
 )

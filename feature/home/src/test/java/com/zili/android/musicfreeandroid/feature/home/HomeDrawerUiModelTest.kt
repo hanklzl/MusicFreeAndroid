@@ -9,17 +9,20 @@ class HomeDrawerUiModelTest {
     @Test
     fun `drawer ui model preserves spec section order and trailing text`() {
         val model = buildHomeDrawerUiModel(
-            currentLanguage = "English",
             currentVersion = "1.0",
             scheduleCloseSummary = "",
         )
 
-        assertEquals(listOf("setting", "other", "software"), model.sections.map { it.sectionKey })
         assertEquals(
-            "English",
-            model.sections[2].items.first {
-                it.anchorTag == FidelityAnchors.Home.DrawerSoftwareLanguage
-            }.trailingText,
+            listOf("setting", "other", "software"),
+            model.sections.map { it.sectionKey },
+        )
+        assertEquals(
+            listOf(
+                FidelityAnchors.Home.DrawerSoftwareCheckUpdate,
+                FidelityAnchors.Home.DrawerSoftwareAbout,
+            ),
+            model.sections[2].items.map { it.anchorTag },
         )
         assertEquals(
             "1.0",
@@ -27,12 +30,6 @@ class HomeDrawerUiModelTest {
                 it.anchorTag == FidelityAnchors.Home.DrawerSoftwareCheckUpdate
             }.trailingText,
         )
-        assertEquals(
-            listOf(
-                FidelityAnchors.Home.DrawerActionBackToDesktop,
-                FidelityAnchors.Home.DrawerActionExitApp,
-            ),
-            model.footerActions.map { it.anchorTag },
-        )
+        assertEquals(emptyList<String>(), model.footerActions.map { it.anchorTag })
     }
 }

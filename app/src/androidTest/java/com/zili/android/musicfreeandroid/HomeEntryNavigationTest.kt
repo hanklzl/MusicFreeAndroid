@@ -121,12 +121,6 @@ class HomeEntryNavigationTest {
     }
 
     @Test
-    fun languageEntry_opensLanguageDialog() {
-        openDrawerDestination(FidelityAnchors.Home.DrawerSoftwareLanguage)
-        assertTagExists(FidelityAnchors.Dialog.LanguageRoot)
-    }
-
-    @Test
     fun checkUpdateEntry_opensUpdateCheckDialog() {
         openDrawerDestination(FidelityAnchors.Home.DrawerSoftwareCheckUpdate)
         assertTagExists(FidelityAnchors.Dialog.UpdateCheckRoot)

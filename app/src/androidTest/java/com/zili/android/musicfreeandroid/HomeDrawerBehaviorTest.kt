@@ -10,10 +10,8 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
-import com.zili.android.musicfreeandroid.feature.home.HomeDrawerAction
 import com.zili.android.musicfreeandroid.feature.home.HomeScreenContent
 import com.zili.android.musicfreeandroid.feature.home.HomeScreenState
-import com.zili.android.musicfreeandroid.feature.home.HomeSystemActionHandler
 import com.zili.android.musicfreeandroid.feature.home.buildHomeDrawerUiModel
 import com.zili.android.musicfreeandroid.feature.home.buildHomeVisualUiModel
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
@@ -31,12 +29,10 @@ class HomeDrawerBehaviorTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private lateinit var state: HomeScreenState
-    private lateinit var fakeSystemActionHandler: FakeHomeSystemActionHandler
 
     @Before
     fun setUp() {
         state = HomeScreenState()
-        fakeSystemActionHandler = FakeHomeSystemActionHandler()
 
         composeRule.setContent {
             MusicFreeTheme {
@@ -44,20 +40,12 @@ class HomeDrawerBehaviorTest {
                     state = state,
                     visualUiModel = buildHomeVisualUiModel(selectedTab = HomeSheetTab.Mine, mineRows = emptyList()),
                     drawerUiModel = buildHomeDrawerUiModel(
-                        currentLanguage = "中文",
                         currentVersion = "1.0.0-test",
                         scheduleCloseSummary = "30 分钟后关闭",
                     ),
-                    currentLanguage = "中文",
                     currentVersion = "1.0.0-test",
                     scheduleCloseSummary = "30 分钟后关闭",
-                    onDrawerEntryClick = { action ->
-                        when (action) {
-                            HomeDrawerAction.BackToDesktop -> fakeSystemActionHandler.backToDesktop()
-                            HomeDrawerAction.ExitApp -> Unit
-                            else -> Unit
-                        }
-                    },
+                    onDrawerEntryClick = {},
                     onNavigateToSearch = {},
                     onNavigateToRecommendSheets = {},
                     onNavigateToTopList = {},
@@ -68,17 +56,11 @@ class HomeDrawerBehaviorTest {
                     onImportClick = {},
                     onOpenMineSheet = {},
                     onOpenStarredSheet = {},
+                    onOpenStarredAlbum = {},
+                    onTrashClick = {},
                 )
             }
         }
-    }
-
-    @Test
-    fun language_entry_opens_dialog() {
-        clickDrawerEntry(FidelityAnchors.Home.DrawerSoftwareLanguage)
-
-        assertTagExists(FidelityAnchors.Dialog.LanguageRoot)
-        assertTrue(state.isLanguageDialogVisible)
     }
 
     @Test
@@ -95,15 +77,6 @@ class HomeDrawerBehaviorTest {
 
         assertTagExists(FidelityAnchors.Panel.TimingCloseRoot)
         assertTrue(state.isTimingCloseVisible)
-    }
-
-    @Test
-    fun backToDesktop_action_invokes_fake_handler() {
-        clickDrawerEntry(FidelityAnchors.Home.DrawerActionBackToDesktop)
-
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            fakeSystemActionHandler.backToDesktopCount == 1
-        }
     }
 
     @Test
@@ -143,14 +116,4 @@ class HomeDrawerBehaviorTest {
         composeRule.onNodeWithTag(tag).assertExists()
     }
 
-    private class FakeHomeSystemActionHandler : HomeSystemActionHandler {
-        var backToDesktopCount: Int = 0
-            private set
-
-        override fun backToDesktop() {
-            backToDesktopCount += 1
-        }
-
-        override suspend fun exitApp() = Unit
-    }
 }

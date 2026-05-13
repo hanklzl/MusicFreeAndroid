@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -33,9 +32,7 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
 import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayer
-import com.zili.android.musicfreeandroid.navigation.AndroidHomeSystemActionHandler
 import com.zili.android.musicfreeandroid.navigation.AppNavHost
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
 import dagger.hilt.android.AndroidEntryPoint
@@ -44,9 +41,6 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject
-    lateinit var playerController: PlayerController
-
     @Inject
     lateinit var downloader: Downloader
 
@@ -112,12 +106,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 val navController = rememberNavController()
-                val homeSystemActionHandler = remember(this, playerController) {
-                    AndroidHomeSystemActionHandler(
-                        activity = this,
-                        playerController = playerController,
-                    )
-                }
                 val currentBackStack by navController.currentBackStackEntryAsState()
                 val destination = currentBackStack?.destination
 
@@ -141,7 +129,6 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     AppNavHost(
                         navController = navController,
-                        homeSystemActionHandler = homeSystemActionHandler,
                         modifier = Modifier.padding(innerPadding),
                     )
                 }

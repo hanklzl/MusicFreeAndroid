@@ -7,7 +7,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -22,8 +21,6 @@ import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModel
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
-import kotlinx.coroutines.launch
-import java.util.Locale
 
 @Composable
 fun HomeScreen(
@@ -38,13 +35,11 @@ fun HomeScreen(
     onNavigateToPlaylistDetail: (String) -> Unit,
     onNavigateToStarredSheet: (HomeSheetUiModel) -> Unit,
     onNavigateToStarredAlbum: (HomeSheetUiModel) -> Unit,
-    homeSystemActionHandler: HomeSystemActionHandler,
     viewModel: HomeViewModel = hiltViewModel(),
     importViewModel: PlaylistImportViewModel = hiltViewModel(),
     homeSheetsViewModel: HomeSheetsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val state = remember { HomeScreenState() }
     var selectedTab by rememberSaveable { mutableStateOf(HomeSheetTab.Mine) }
     val playlists by viewModel.playlists.collectAsState()
@@ -71,16 +66,12 @@ fun HomeScreen(
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
     var pendingUnstar by remember { mutableStateOf<HomeSheetUiModel?>(null) }
 
-    val currentLanguage = remember {
-        Locale.getDefault().getDisplayLanguage(Locale.getDefault())
-    }
     val currentVersion = remember(context) {
         context.packageManager.versionNameForPackage(context.packageName).orEmpty()
     }
     val scheduleCloseSummary = ""
-    val drawerUiModel = remember(currentLanguage, currentVersion, scheduleCloseSummary) {
+    val drawerUiModel = remember(currentVersion, scheduleCloseSummary) {
         buildHomeDrawerUiModel(
-            currentLanguage = currentLanguage,
             currentVersion = currentVersion,
             scheduleCloseSummary = scheduleCloseSummary,
         )
@@ -90,7 +81,6 @@ fun HomeScreen(
         state = state,
         visualUiModel = visualUiModel,
         drawerUiModel = drawerUiModel,
-        currentLanguage = currentLanguage,
         currentVersion = currentVersion,
         scheduleCloseSummary = scheduleCloseSummary,
         onDrawerEntryClick = { action ->
@@ -101,15 +91,7 @@ fun HomeScreen(
                 HomeDrawerAction.OpenBackup -> onNavigateToSettings(SettingsType.Backup)
                 HomeDrawerAction.OpenAbout -> onNavigateToSettings(SettingsType.About)
                 HomeDrawerAction.OpenPermissions -> onNavigateToPermissions()
-                HomeDrawerAction.BackToDesktop -> homeSystemActionHandler.backToDesktop()
-                HomeDrawerAction.ExitApp -> {
-                    coroutineScope.launch {
-                        homeSystemActionHandler.exitApp()
-                    }
-                }
-
                 HomeDrawerAction.ShowScheduleClosePanel,
-                HomeDrawerAction.ShowLanguageDialog,
                 HomeDrawerAction.ShowUpdateCheckDialog -> Unit
             }
         },

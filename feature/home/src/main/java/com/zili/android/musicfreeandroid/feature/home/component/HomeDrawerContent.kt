@@ -80,16 +80,18 @@ fun HomeDrawerContent(
                 )
             }
 
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = rpx(24), vertical = rpx(12)),
-                color = MusicFreeTheme.colors.divider,
-            )
-
-            uiModel.footerActions.forEach { item ->
-                DrawerRow(
-                    item = item,
-                    onClick = { onEntryClick(item.action) },
+            if (uiModel.footerActions.isNotEmpty()) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = rpx(24), vertical = rpx(12)),
+                    color = MusicFreeTheme.colors.divider,
                 )
+
+                uiModel.footerActions.forEach { item ->
+                    DrawerRow(
+                        item = item,
+                        onClick = { onEntryClick(item.action) },
+                    )
+                }
             }
         }
     }

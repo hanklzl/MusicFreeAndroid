@@ -14,8 +14,8 @@ class HomeScreenStateTest {
         assertTrue(state.onBackPressedConsumed())
         assertFalse(state.isDrawerOpen)
 
-        state.showLanguageDialog()
+        state.showTimingCloseDialog()
         assertTrue(state.onBackPressedConsumed())
-        assertFalse(state.isLanguageDialogVisible)
+        assertFalse(state.isTimingCloseVisible)
     }
 }

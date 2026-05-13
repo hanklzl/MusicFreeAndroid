@@ -3,8 +3,10 @@ package com.zili.android.musicfreeandroid.feature.home
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
@@ -31,7 +33,6 @@ class HomeDrawerContentInsetsTest {
                 Box(modifier = Modifier.size(width = 360.dp, height = 640.dp)) {
                     HomeDrawerContent(
                         uiModel = buildHomeDrawerUiModel(
-                            currentLanguage = "中文",
                             currentVersion = "1.0.0",
                             scheduleCloseSummary = "",
                         ),
@@ -53,5 +54,24 @@ class HomeDrawerContentInsetsTest {
                 "statusBarTop=$statusBarTop titleTop=$titleTop",
             titleTop >= statusBarTop,
         )
+    }
+
+    @Test
+    fun `drawer does not render removed language and exit actions`() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                HomeDrawerContent(
+                    uiModel = buildHomeDrawerUiModel(
+                        currentVersion = "1.0.0",
+                        scheduleCloseSummary = "",
+                    ),
+                    onEntryClick = {},
+                )
+            }
+        }
+
+        composeRule.onAllNodesWithText("语言设置").assertCountEquals(0)
+        composeRule.onAllNodesWithText("回到桌面").assertCountEquals(0)
+        composeRule.onAllNodesWithText("退出软件").assertCountEquals(0)
     }
 }
