@@ -11,7 +11,6 @@ fun NavGraphBuilder.settingsScreen(
     onNavigateToPermissions: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
     onNavigateToLocalFileSelector: () -> Unit = onNavigateToFileSelector,
-    onNavigateToPluginList: () -> Unit,
 ) {
     composable<SettingsRoute> { backStackEntry ->
         val route = backStackEntry.toRoute<SettingsRoute>()
@@ -21,7 +20,6 @@ fun NavGraphBuilder.settingsScreen(
             onNavigateToPermissions = onNavigateToPermissions,
             onNavigateToFileSelector = onNavigateToFileSelector,
             onNavigateToLocalFileSelector = onNavigateToLocalFileSelector,
-            onNavigateToPluginList = onNavigateToPluginList,
         )
     }
 }

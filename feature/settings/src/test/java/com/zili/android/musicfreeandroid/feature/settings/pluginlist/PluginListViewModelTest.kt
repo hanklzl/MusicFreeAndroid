@@ -4,6 +4,7 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.Playlist
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.zili.android.musicfreeandroid.plugin.local.LocalFilePluginConstants
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.api.PluginUserVariable
@@ -99,6 +100,34 @@ class PluginListViewModelTest {
     fun `plugin items starts empty`() = runTest {
         val viewModel = createViewModel()
         assertEquals(emptyList<PluginUiItem>(), viewModel.pluginItems.value)
+    }
+
+    @Test
+    fun pluginItems_excludesLocalBuiltInPlugin() = runTest {
+        val fixture = createFixture(
+            plugins = MutableStateFlow(
+                listOf(
+                    loadedPlugin(
+                        platform = LocalFilePluginConstants.PLATFORM,
+                        methods = LocalFilePluginConstants.SUPPORTED_METHODS,
+                    ),
+                    loadedPlugin(platform = "source"),
+                ),
+            ),
+        )
+        val itemsJob = launch { fixture.viewModel.pluginItems.collect() }
+
+        advanceUntilIdle()
+
+        val items = fixture.viewModel.pluginItems.value
+        assertEquals(1, items.size)
+        assertEquals("source", items.single().info.platform)
+        assertTrue(
+            "pluginItems should not contain 本地",
+            items.none { it.info.platform == LocalFilePluginConstants.PLATFORM },
+        )
+
+        itemsJob.cancel()
     }
 
     @Test

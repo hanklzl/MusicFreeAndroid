@@ -3,8 +3,6 @@ package com.zili.android.musicfreeandroid.feature.settings
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -19,7 +17,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -57,27 +54,7 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag(FidelityAnchors.Settings.BasicRoot).assertIsDisplayed()
     }
 
-    @Test
-    fun `plugin type renders plugin root and entry action`() {
-        var pluginClicks = 0
-        setContent(
-            type = SettingsType.Plugin,
-            onNavigateToPluginList = { pluginClicks++ },
-        )
-
-        composeRule.onNodeWithTag(FidelityAnchors.Settings.PluginRoot).assertIsDisplayed()
-        composeRule.onNodeWithTag(FidelityAnchors.Settings.PluginManagementEntry).assertIsDisplayed()
-        composeRule.onNodeWithText("进入").performClick()
-
-        composeRule.runOnIdle {
-            assertEquals(1, pluginClicks)
-        }
-    }
-
-    private fun setContent(
-        type: SettingsType,
-        onNavigateToPluginList: () -> Unit = {},
-    ) {
+    private fun setContent(type: SettingsType) {
         val viewModel = SettingsViewModel(
             appPreferences = createAppPreferences(),
             feedbackLogExporter = FakeFeedbackLogExporter(),
@@ -91,7 +68,6 @@ class SettingsScreenTest {
                     onBack = {},
                     onNavigateToPermissions = {},
                     onNavigateToFileSelector = {},
-                    onNavigateToPluginList = onNavigateToPluginList,
                     viewModel = viewModel,
                 )
             }

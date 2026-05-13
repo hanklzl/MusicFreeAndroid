@@ -46,7 +46,6 @@ fun SettingsScreen(
     onNavigateToPermissions: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
     onNavigateToLocalFileSelector: () -> Unit = onNavigateToFileSelector,
-    onNavigateToPluginList: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -140,16 +139,6 @@ fun SettingsScreen(
                 onNavigateToFileSelector = onNavigateToFileSelector,
                 onCreateFeedbackPackage = { showFeedbackConfirm = true },
                 onClearLogs = viewModel::clearLogs,
-                modifier = Modifier.padding(innerPadding),
-            )
-
-            SettingsType.Plugin -> SettingsTypeEntryContent(
-                rootTag = FidelityAnchors.Settings.PluginRoot,
-                title = "插件管理",
-                description = "管理已安装的插件，安装新插件，管理订阅",
-                entryTag = FidelityAnchors.Settings.PluginManagementEntry,
-                actionText = "进入",
-                onClick = onNavigateToPluginList,
                 modifier = Modifier.padding(innerPadding),
             )
 
@@ -273,7 +262,6 @@ private fun SettingsTypeEntryContent(
 
 private fun SettingsType.title(): String = when (this) {
     SettingsType.Basic -> "基本设置"
-    SettingsType.Plugin -> "插件管理"
     SettingsType.Theme -> "主题设置"
     SettingsType.Backup -> "备份与恢复"
     SettingsType.About -> "关于 MusicFree"

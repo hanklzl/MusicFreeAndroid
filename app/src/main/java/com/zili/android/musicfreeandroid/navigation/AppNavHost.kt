@@ -78,6 +78,7 @@ fun AppNavHost(
             onNavigateToHistory = { navController.navigate(HistoryRoute) },
             onNavigateToLocal = { navController.navigate(LocalRoute) },
             onNavigateToSettings = { type: SettingsType -> navController.navigate(SettingsRoute(type)) },
+            onNavigateToPluginList = { navController.navigate(PluginListRoute) },
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
             onNavigateToTopList = { navController.navigate(TopListRoute) },
             onNavigateToPlaylistDetail = { playlistId ->
@@ -215,7 +216,6 @@ fun AppNavHost(
             onBack = { navController.popBackStack() },
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
             onNavigateToFileSelector = { navController.navigate(FileSelectorRoute) },
-            onNavigateToPluginList = { navController.navigate(PluginListRoute) },
         )
         fileSelectorLiteScreen(
             onBack = { navController.popBackStack() },

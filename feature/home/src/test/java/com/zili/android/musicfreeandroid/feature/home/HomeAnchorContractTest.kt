@@ -56,7 +56,6 @@ class HomeAnchorContractTest {
             FidelityAnchors.Panel.TimingCloseRoot,
             FidelityAnchors.Dialog.LanguageRoot,
             FidelityAnchors.Dialog.UpdateCheckRoot,
-            FidelityAnchors.Settings.PluginManagementEntry,
             FidelityAnchors.Settings.ThemeEntry,
             FidelityAnchors.Settings.BackupEntry,
             FidelityAnchors.Settings.AboutEntry,

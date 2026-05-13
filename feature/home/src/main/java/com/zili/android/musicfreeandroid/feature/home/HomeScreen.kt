@@ -32,6 +32,7 @@ fun HomeScreen(
     onNavigateToHistory: () -> Unit,
     onNavigateToLocal: () -> Unit,
     onNavigateToSettings: (SettingsType) -> Unit,
+    onNavigateToPluginList: () -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
@@ -95,7 +96,7 @@ fun HomeScreen(
         onDrawerEntryClick = { action ->
             when (action) {
                 HomeDrawerAction.OpenSettingsRoot -> onNavigateToSettings(SettingsType.Basic)
-                HomeDrawerAction.OpenPluginManagement -> onNavigateToSettings(SettingsType.Plugin)
+                HomeDrawerAction.OpenPluginManagement -> onNavigateToPluginList()
                 HomeDrawerAction.OpenThemeSettings -> onNavigateToSettings(SettingsType.Theme)
                 HomeDrawerAction.OpenBackup -> onNavigateToSettings(SettingsType.Backup)
                 HomeDrawerAction.OpenAbout -> onNavigateToSettings(SettingsType.About)

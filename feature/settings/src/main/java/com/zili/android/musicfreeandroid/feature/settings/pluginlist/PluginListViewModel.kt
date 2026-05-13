@@ -158,7 +158,10 @@ class PluginListViewModel @Inject constructor(
         )
 
     val pluginItems: StateFlow<List<PluginUiItem>> = combine(
-        pluginManager.plugins.map { list -> list.map { it.info } },
+        pluginManager.plugins.map { list ->
+            list.map { it.info }
+                .filter { it.platform != LocalFilePluginConstants.PLATFORM }
+        },
         metaStore.disabledPlugins,
         metaStore.pluginOrder,
         metaStore.alternativePlugins,

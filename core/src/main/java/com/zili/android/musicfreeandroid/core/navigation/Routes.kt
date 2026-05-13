@@ -83,7 +83,6 @@ data class SearchMusicListRoute(
 @Keep
 enum class SettingsType {
     Basic,
-    Plugin,
     Theme,
     Backup,
     About,

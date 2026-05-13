@@ -8,7 +8,6 @@ class PluginSearchPlayAnchorContractTest {
     @Test
     fun `pilot anchors are unique and non blank`() {
         val anchors = listOf(
-            FidelityAnchors.Settings.PluginManagementEntry,
             FidelityAnchors.Settings.ThemeEntry,
             FidelityAnchors.Settings.BackupEntry,
             FidelityAnchors.Settings.AboutEntry,

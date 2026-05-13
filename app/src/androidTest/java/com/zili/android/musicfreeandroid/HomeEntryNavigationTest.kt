@@ -87,11 +87,9 @@ class HomeEntryNavigationTest {
     }
 
     @Test
-    fun settingsPluginEntry_exposesSettingsPluginAnchor() {
+    fun settingsPluginEntry_opensPluginListRoot() {
         openDrawerDestination(FidelityAnchors.Home.DrawerSettingsPlugin)
-        assertTagExists(FidelityAnchors.Screen.SettingsRoot)
-        assertTagExists(FidelityAnchors.Settings.PluginRoot)
-        assertSettingsFallbackEntry(FidelityAnchors.Settings.PluginManagementEntry)
+        assertTagExists(FidelityAnchors.Screen.PluginListRoot)
     }
 
     @Test
