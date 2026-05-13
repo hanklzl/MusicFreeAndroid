@@ -2,6 +2,8 @@ package com.zili.android.musicfreeandroid
 
 import android.app.Application
 import com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapper
+import com.zili.android.musicfreeandroid.bootstrap.PlaybackStartupCoordinator
+import com.zili.android.musicfreeandroid.bootstrap.PluginAutoUpdateCoordinator
 import com.zili.android.musicfreeandroid.logging.LoggingConfig
 import com.zili.android.musicfreeandroid.logging.LoggingInitializer
 import dagger.hilt.android.HiltAndroidApp
@@ -12,6 +14,8 @@ import javax.inject.Inject
 class MusicFreeApplication : Application() {
 
     @Inject lateinit var defaultPluginsBootstrapper: DefaultPluginsBootstrapper
+    @Inject lateinit var pluginAutoUpdateCoordinator: PluginAutoUpdateCoordinator
+    @Inject lateinit var playbackStartupCoordinator: PlaybackStartupCoordinator
 
     override fun onCreate() {
         super.onCreate()
@@ -32,5 +36,7 @@ class MusicFreeApplication : Application() {
         )
 
         defaultPluginsBootstrapper.start()
+        pluginAutoUpdateCoordinator.start()
+        playbackStartupCoordinator.start()
     }
 }

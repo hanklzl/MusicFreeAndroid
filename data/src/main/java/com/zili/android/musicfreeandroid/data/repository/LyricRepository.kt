@@ -131,7 +131,21 @@ class LyricRepository @Inject constructor(
     }
 
     suspend fun deleteByPlatform(platform: String) {
-        lyricCacheDao.deleteByPlatform(platform)
+        logLyricWrite(
+            operation = "delete_lyric_cache_by_platform",
+            fields = mapOf("platform" to platform),
+        ) {
+            lyricCacheDao.deleteByPlatform(platform)
+        }
+    }
+
+    suspend fun clearAll() {
+        logLyricWrite(
+            operation = "clear_lyric_cache",
+            fields = emptyMap(),
+        ) {
+            lyricCacheDao.deleteAll()
+        }
     }
 
     private suspend fun ensureRow(music: MusicItem) {

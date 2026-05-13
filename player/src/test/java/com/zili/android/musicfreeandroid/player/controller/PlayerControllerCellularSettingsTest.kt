@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.player.controller
 import android.content.Context
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolution
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
+import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
@@ -124,6 +125,19 @@ class PlayerControllerCellularSettingsTest {
         override suspend fun playQualityOrder(): QualityFallbackOrder = QualityFallbackOrder.Asc
 
         override suspend fun useCellularPlay(): Boolean = useCellularPlay
+
+        override suspend fun allowConcurrentPlayback(): Boolean = false
+
+        override suspend fun autoPlayWhenAppStart(): Boolean = false
+
+        override suspend fun tryChangeSourceWhenPlayFail(): Boolean = false
+
+        override suspend fun autoStopWhenError(): Boolean = false
+
+        override suspend fun audioInterruptionAction(): AudioInterruptionAction =
+            AudioInterruptionAction.Pause
+
+        override suspend fun audioInterruptionDuckVolume(): Float = 0.5f
     }
 
     private class FakeNetworkStateProvider(

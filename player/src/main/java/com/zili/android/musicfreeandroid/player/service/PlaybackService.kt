@@ -16,19 +16,32 @@ import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.zili.android.musicfreeandroid.core.R as CoreR
+import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.player.R
 import com.zili.android.musicfreeandroid.player.source.HeaderInjectingDataSourceFactory
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class PlaybackService : MediaSessionService() {
 
     @Inject lateinit var headerInjectingFactory: HeaderInjectingDataSourceFactory
+    @Inject lateinit var playbackRuntimeSettings: PlaybackRuntimeSettings
 
     private var mediaSession: MediaSession? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val musicAudioAttributes = AudioAttributes.Builder()
+        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+        .setUsage(C.USAGE_MEDIA)
+        .build()
 
     private val playbackSessionCallback = object : MediaSession.Callback {
         @AndroidXOptIn(markerClass = [UnstableApi::class])
@@ -109,10 +122,7 @@ class PlaybackService : MediaSessionService() {
 
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                    .setUsage(C.USAGE_MEDIA)
-                    .build(),
+                musicAudioAttributes,
                 /* handleAudioFocus = */ true,
             )
             .setHandleAudioBecomingNoisy(true)
@@ -126,6 +136,7 @@ class PlaybackService : MediaSessionService() {
             .setMediaButtonPreferences(PlaybackNotificationActions.mediaButtonPreferences())
             .setCallback(playbackSessionCallback)
             .build()
+        applyAudioFocusPolicy(player)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -152,7 +163,37 @@ class PlaybackService : MediaSessionService() {
             release()
         }
         mediaSession = null
+        serviceScope.cancel()
         super.onDestroy()
+    }
+
+    @AndroidXOptIn(markerClass = [UnstableApi::class])
+    private fun applyAudioFocusPolicy(player: ExoPlayer) {
+        serviceScope.launch {
+            val handleAudioFocus = runCatching {
+                shouldHandleAudioFocus(playbackRuntimeSettings)
+            }.onFailure { error ->
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "playback_audio_focus_policy_failed",
+                    throwable = error,
+                    fields = mapOf(
+                        "status" to "failed",
+                        "reason" to "settings_read_failed",
+                    ),
+                )
+            }.getOrDefault(true)
+
+            player.setAudioAttributes(musicAudioAttributes, handleAudioFocus)
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "playback_audio_focus_policy_applied",
+                fields = mapOf(
+                    "allowConcurrentPlayback" to !handleAudioFocus,
+                    "handleAudioFocus" to handleAudioFocus,
+                ),
+            )
+        }
     }
 
     private fun createSessionActivityPendingIntent(): PendingIntent {
@@ -170,7 +211,12 @@ class PlaybackService : MediaSessionService() {
         )
     }
 
-    private companion object {
+    internal companion object {
+        suspend fun shouldHandleAudioFocus(settings: PlaybackRuntimeSettings): Boolean =
+            withContext(Dispatchers.IO) {
+                !settings.allowConcurrentPlayback()
+            }
+
         const val PLAYBACK_NOTIFICATION_CHANNEL_ID = "playback"
         const val PLAYBACK_NOTIFICATION_ID = 1001
         const val SESSION_ACTIVITY_REQUEST_CODE = 1001

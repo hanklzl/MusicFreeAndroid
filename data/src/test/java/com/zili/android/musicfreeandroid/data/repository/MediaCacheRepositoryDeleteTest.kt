@@ -14,6 +14,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -98,5 +99,48 @@ class MediaCacheRepositoryDeleteTest {
         // memory cleared
         assertNull(repo.get(item, PlayQuality.STANDARD))
         assertFalse("memory should be cleared when row deleted", repo.lastHitFromMemory)
+    }
+
+    @Test fun `clearAll clears DB and memory`() = runTest {
+        val other = item.copy(id = "9", platform = "kugou")
+        repo.put(item, PlayQuality.STANDARD, MediaSourceResult("http://a", null, null, PlayQuality.STANDARD))
+        repo.put(other, PlayQuality.STANDARD, MediaSourceResult("http://b", null, null, PlayQuality.STANDARD))
+
+        // warm memory for both entries
+        repo.get(item, PlayQuality.STANDARD)
+        repo.get(other, PlayQuality.STANDARD)
+
+        repo.clearAll()
+
+        assertEquals(0, dao.count())
+        assertNull(repo.get(item, PlayQuality.STANDARD))
+        assertNull(repo.get(other, PlayQuality.STANDARD))
+        assertFalse("memory should be cleared after clearAll", repo.lastHitFromMemory)
+    }
+
+    @Test fun `put trims oldest rows after max byte limit changes`() = runTest {
+        var now = 100L
+        var limit = Long.MAX_VALUE
+        repo = MediaCacheRepository(
+            dao = dao,
+            now = { now },
+            limitProvider = { limit },
+        )
+        val old = item.copy(id = "old")
+        val middle = item.copy(id = "middle")
+        val newest = item.copy(id = "newest")
+
+        repo.put(old, PlayQuality.STANDARD, MediaSourceResult("http://old", null, null, PlayQuality.STANDARD))
+        now = 200L
+        repo.put(middle, PlayQuality.STANDARD, MediaSourceResult("http://mid", null, null, PlayQuality.STANDARD))
+        limit = dao.totalSizeBytes() + 1L
+        now = 300L
+
+        repo.put(newest, PlayQuality.STANDARD, MediaSourceResult("http://new", null, null, PlayQuality.STANDARD))
+
+        assertNull(dao.get("kuwo", "old"))
+        assertNotNull(dao.get("kuwo", "middle"))
+        assertNotNull(dao.get("kuwo", "newest"))
+        assertTrue(dao.totalSizeBytes() <= limit)
     }
 }

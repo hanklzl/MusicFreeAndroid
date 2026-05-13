@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.plugin.media
 
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
@@ -185,5 +186,17 @@ class PluginMediaSourceServiceTest {
         override suspend fun playQualityOrder(): QualityFallbackOrder = order
 
         override suspend fun useCellularPlay(): Boolean = false
+
+        override suspend fun allowConcurrentPlayback(): Boolean = false
+
+        override suspend fun autoPlayWhenAppStart(): Boolean = false
+
+        override suspend fun tryChangeSourceWhenPlayFail(): Boolean = false
+
+        override suspend fun autoStopWhenError(): Boolean = false
+
+        override suspend fun audioInterruptionAction(): AudioInterruptionAction = AudioInterruptionAction.Pause
+
+        override suspend fun audioInterruptionDuckVolume(): Float = 0.5f
     }
 }

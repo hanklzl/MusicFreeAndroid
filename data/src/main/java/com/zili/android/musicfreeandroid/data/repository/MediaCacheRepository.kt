@@ -4,6 +4,7 @@ import androidx.collection.LruCache
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.db.dao.MediaCacheDao
 import com.zili.android.musicfreeandroid.data.db.entity.MediaCacheEntity
 import com.zili.android.musicfreeandroid.logging.LogCategory
@@ -12,6 +13,7 @@ import com.zili.android.musicfreeandroid.logging.MfLog
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
@@ -23,11 +25,28 @@ data class CachedSource(
 )
 
 @Singleton
-class MediaCacheRepository @Inject constructor(
+class MediaCacheRepository private constructor(
     private val dao: MediaCacheDao,
+    private val limitProvider: suspend () -> Long,
 ) {
+    @Inject
+    constructor(
+        dao: MediaCacheDao,
+        appPreferences: AppPreferences,
+    ) : this(dao, limitProvider = { appPreferences.maxMusicCacheSizeBytes.first() })
+
+    constructor(dao: MediaCacheDao) : this(dao, limitProvider = DEFAULT_LIMIT_PROVIDER)
+
     // Secondary constructor for tests to inject a fake clock
-    internal constructor(dao: MediaCacheDao, now: () -> Long) : this(dao) {
+    internal constructor(dao: MediaCacheDao, now: () -> Long) : this(dao, DEFAULT_LIMIT_PROVIDER) {
+        this.nowFn = now
+    }
+
+    internal constructor(
+        dao: MediaCacheDao,
+        now: () -> Long,
+        limitProvider: suspend () -> Long,
+    ) : this(dao, limitProvider) {
         this.nowFn = now
     }
 
@@ -101,6 +120,7 @@ class MediaCacheRepository @Inject constructor(
             dao.upsert(MediaCacheEntity(item.platform, item.id, json.toString(), now()))
             // Invalidate memory so the next read re-seeds from authoritative DB state
             memory.remove(memoryKey(item.platform, item.id))
+            pruneToLimit(limitProvider())
             if (dao.count() >= LIMIT) pruneOldest()
         }
     }
@@ -132,10 +152,26 @@ class MediaCacheRepository @Inject constructor(
 
     /** Delete all rows for the platform from DB and from memory. */
     suspend fun deleteByPlatform(platform: String) = mutex.withLock {
-        dao.deleteByPlatform(platform)
-        val prefix = "$platform@"
-        val keysToDrop = memory.snapshot().keys.filter { it.startsWith(prefix) }
-        keysToDrop.forEach { memory.remove(it) }
+        logDataWrite(
+            operation = "delete_media_cache_by_platform",
+            fields = mapOf("platform" to platform),
+        ) {
+            dao.deleteByPlatform(platform)
+            val prefix = "$platform@"
+            val keysToDrop = memory.snapshot().keys.filter { it.startsWith(prefix) }
+            keysToDrop.forEach { memory.remove(it) }
+        }
+    }
+
+    /** Delete all media cache rows from DB and memory. */
+    suspend fun clearAll() = mutex.withLock {
+        logDataWrite(
+            operation = "clear_media_cache",
+            fields = emptyMap(),
+        ) {
+            dao.deleteAll()
+            memory.evictAll()
+        }
     }
 
     /**
@@ -167,6 +203,7 @@ class MediaCacheRepository @Inject constructor(
         val startedAt = System.nanoTime()
         try {
             dao.deleteOldest(LIMIT / 2)
+            memory.evictAll()
             MfLog.detail(
                 category = LogCategory.DATA,
                 event = "media_cache_prune",
@@ -183,6 +220,65 @@ class MediaCacheRepository @Inject constructor(
                 throwable = error,
                 fields = mapOf(
                     "count" to LIMIT / 2,
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.FAILURE,
+                    "reason" to "exception",
+                ),
+            )
+            throw error
+        }
+    }
+
+    private suspend fun pruneToLimit(limitBytes: Long) {
+        val startedAt = System.nanoTime()
+        val coercedLimit = limitBytes.coerceAtLeast(0L)
+        try {
+            var totalBytes = dao.totalSizeBytes()
+            if (totalBytes <= coercedLimit) return
+
+            var removedCount = 0
+            var removedBytes = 0L
+            for (entry in dao.getOldestEntries()) {
+                if (totalBytes <= coercedLimit) break
+                val entryBytes = entry.sourcesJson.toByteArray().size.toLong()
+                dao.delete(entry.platform, entry.id)
+                memory.remove(memoryKey(entry.platform, entry.id))
+                totalBytes -= entryBytes
+                removedBytes += entryBytes
+                removedCount += 1
+            }
+
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = "media_cache_trim",
+                fields = mapOf(
+                    "count" to removedCount,
+                    "sizeBytes" to removedBytes,
+                    "limitBytes" to coercedLimit,
+                    "remainingBytes" to totalBytes.coerceAtLeast(0L),
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.SUCCESS,
+                ),
+            )
+        } catch (error: CancellationException) {
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = "media_cache_trim",
+                fields = mapOf(
+                    "limitBytes" to coercedLimit,
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.CANCELLED,
+                    "reason" to LogFields.Reason.CANCELLED,
+                ),
+            )
+            throw error
+        } catch (error: Throwable) {
+            MfLog.error(
+                category = LogCategory.DATA,
+                event = "media_cache_trim",
+                throwable = error,
+                fields = mapOf(
+                    "limitBytes" to coercedLimit,
                     "durationMs" to elapsedMs(startedAt),
                     "result" to LogFields.Result.FAILURE,
                     "reason" to "exception",
@@ -248,6 +344,8 @@ class MediaCacheRepository @Inject constructor(
     companion object {
         const val LIMIT = 800
         const val MEMORY_LIMIT = 200
+        const val DEFAULT_MAX_CACHE_SIZE_BYTES = 512L * 1024L * 1024L
+        private val DEFAULT_LIMIT_PROVIDER: suspend () -> Long = { DEFAULT_MAX_CACHE_SIZE_BYTES }
     }
 
     private fun readQuality(obj: JSONObject, quality: PlayQuality): CachedSource? {

@@ -218,7 +218,7 @@ class PluginListViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = true,
+            initialValue = false,
         )
 
     fun setLazyLoadPlugins(enabled: Boolean) {

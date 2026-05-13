@@ -63,7 +63,7 @@ import kotlin.coroutines.resumeWithException
 
 @Singleton
 class PlayerController @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val mediaSourceResolver: MediaSourceResolver = EmptyMediaSourceResolver,
     private val playbackRuntimeSettings: PlaybackRuntimeSettings = PlaybackRuntimeSettings.Defaults,
     private val networkStateProvider: PlaybackNetworkStateProvider = PlaybackNetworkStateProvider.AlwaysAllowed,
@@ -85,6 +85,7 @@ class PlayerController @Inject constructor(
      * Spec §5.7 of `2026-05-11-plugin-engine-alignment-design.md`.
      */
     private val staleUrlRetryState = ConcurrentHashMap<Pair<String, String>, Boolean>()
+    private val playFailureSourceRetryState = ConcurrentHashMap<Pair<String, String>, Boolean>()
 
     /**
      * Quality currently active in the player. Captured at `setMediaItemAndPlay`
@@ -212,6 +213,23 @@ class PlayerController @Inject constructor(
         playQueue.setQueue(items, startIndex)
         if (shuffleEnabled) playQueue.shuffle()
         playQueue.currentItem?.let { setMediaItemAndPlay(it) }
+        emitQueueState()
+    }
+
+    fun restoreQueue(
+        items: List<MusicItem>,
+        startIndex: Int = 0,
+        playWhenRestored: Boolean = false,
+    ) {
+        playQueue.setQueue(items, startIndex)
+        if (playWhenRestored) {
+            playQueue.currentItem?.let { setMediaItemAndPlay(it) }
+        } else {
+            runOnControllerThread {
+                emitState()
+                emitQueueState()
+            }
+        }
         emitQueueState()
     }
 
@@ -346,6 +364,7 @@ class PlayerController @Inject constructor(
             repeatMode = RepeatMode.OFF
             shuffleEnabled = false
             staleUrlRetryState.clear()
+            playFailureSourceRetryState.clear()
             _playerState.value = PlayerState.EMPTY
             emitQueueState()
         }
@@ -507,6 +526,7 @@ class PlayerController @Inject constructor(
         // New playback for this item — drop any prior stale-url retry flag so the
         // first failure on the fresh URL is allowed to trigger one refresh.
         staleUrlRetryState.remove(item.platform to item.id)
+        playFailureSourceRetryState.remove(item.platform to item.id)
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             MfLog.detail(
                 category = LogCategory.PLAYER,
@@ -813,7 +833,7 @@ class PlayerController @Inject constructor(
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            handleStaleUrlError(error)
+            handlePlaybackError(error)
         }
     }
 
@@ -823,13 +843,36 @@ class PlayerController @Inject constructor(
      */
     @VisibleForTesting
     internal fun handleStaleUrlErrorForTest(error: PlaybackException) {
-        handleStaleUrlError(error)
+        handlePlaybackError(error)
     }
 
-    private fun handleStaleUrlError(error: PlaybackException) {
-        if (error.errorCode != PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS) return
+    @VisibleForTesting
+    internal fun handlePlaybackErrorForTest(error: PlaybackException) {
+        handlePlaybackError(error)
+    }
+
+    private fun handlePlaybackError(error: PlaybackException) {
         val item = playQueue.currentItem ?: return
-        if (item.isLocalPlaybackSource()) return
+        val expectedIndex = playQueue.currentIndex
+
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val staleUrlRecovered = refreshStaleUrlAfterFailure(error, item, expectedIndex)
+            if (staleUrlRecovered) return@launch
+
+            val sourceChanged = changeSourceAfterFailure(error, item, expectedIndex)
+            if (sourceChanged) return@launch
+
+            applyPlaybackFailurePolicy(error, item, expectedIndex)
+        }
+    }
+
+    private suspend fun refreshStaleUrlAfterFailure(
+        error: PlaybackException,
+        item: MusicItem,
+        expectedIndex: Int,
+    ): Boolean {
+        if (error.errorCode != PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS) return false
+        if (item.isLocalPlaybackSource()) return false
 
         val key = item.platform to item.id
         if (staleUrlRetryState.putIfAbsent(key, true) != null) {
@@ -843,120 +886,308 @@ class PlayerController @Inject constructor(
                     "errorCode" to error.errorCode,
                 ),
             )
-            return
+            return false
         }
 
         val quality = currentPlayQuality
-        val expectedIndex = playQueue.currentIndex
         val startedAt = System.nanoTime()
 
-        scope.launch(start = CoroutineStart.UNDISPATCHED) {
-            runCatching {
-                staleUrlRefresher.evictCacheEntry(item.platform, item.id, quality)
-            }.onFailure { evictErr ->
-                MfLog.error(
-                    category = LogCategory.PLAYER,
-                    event = "plugin_media_source_cache_evict_failed",
-                    throwable = evictErr,
-                    fields = mapOf(
-                        "platform" to item.platform,
-                        "itemId" to item.id,
-                        "quality" to quality.name.lowercase(),
-                    ),
-                )
-            }
+        runCatching {
+            staleUrlRefresher.evictCacheEntry(item.platform, item.id, quality)
+        }.onFailure { evictErr ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "plugin_media_source_cache_evict_failed",
+                throwable = evictErr,
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "quality" to quality.name.lowercase(),
+                ),
+            )
+        }
 
-            val fresh = runCatching {
-                staleUrlRefresher.resolveFresh(item, quality.name.lowercase())
-            }.onFailure { refreshErr ->
-                MfLog.error(
-                    category = LogCategory.PLAYER,
-                    event = "plugin_media_source_refresh_failed",
-                    throwable = refreshErr,
-                    fields = mapOf(
-                        "platform" to item.platform,
-                        "itemId" to item.id,
-                        "quality" to quality.name.lowercase(),
-                        "durationMs" to elapsedMs(startedAt),
-                    ),
-                )
-            }.getOrNull()
+        val fresh = runCatching {
+            staleUrlRefresher.resolveFresh(item, quality.name.lowercase())
+        }.onFailure { refreshErr ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "plugin_media_source_refresh_failed",
+                throwable = refreshErr,
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "quality" to quality.name.lowercase(),
+                    "durationMs" to elapsedMs(startedAt),
+                ),
+            )
+        }.getOrNull()
 
-            val refreshedItem = fresh?.item
-            val freshUrl = refreshedItem?.url
-            if (refreshedItem == null || freshUrl.isNullOrBlank()) {
-                MfLog.error(
-                    category = LogCategory.PLAYER,
-                    event = "plugin_media_source_refresh_failed",
-                    fields = mapOf(
-                        "platform" to item.platform,
-                        "itemId" to item.id,
-                        "quality" to quality.name.lowercase(),
-                        "reason" to "no_fresh_url",
-                        "durationMs" to elapsedMs(startedAt),
-                    ),
-                )
-                return@launch
-            }
+        val refreshedItem = fresh?.item
+        val freshUrl = refreshedItem?.url
+        if (refreshedItem == null || freshUrl.isNullOrBlank()) {
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "plugin_media_source_refresh_failed",
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "quality" to quality.name.lowercase(),
+                    "reason" to "no_fresh_url",
+                    "durationMs" to elapsedMs(startedAt),
+                ),
+            )
+            return false
+        }
 
-            if (!playQueue.isCurrentItem(expectedIndex, item)) {
-                // User skipped between the failure and the resolve completion
+        if (!playQueue.isCurrentItem(expectedIndex, item)) {
+            // User skipped between the failure and the resolve completion.
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "plugin_media_source_refresh_dropped",
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "reason" to "queue_changed",
+                ),
+            )
+            return true
+        }
+
+        val source = fresh.source
+        if (!source.headers.isNullOrEmpty() || !source.userAgent.isNullOrBlank()) {
+            trackHeaderRegistry.put(
+                freshUrl,
+                source.headers.orEmpty(),
+                source.userAgent,
+            )
+        }
+        playQueue.replaceCurrent(expectedIndex, item, refreshedItem)
+        emitQueueState()
+
+        var applied = true
+        withConnectedController { controller ->
+            if (!playQueue.isCurrentItem(expectedIndex, refreshedItem)) return@withConnectedController
+            try {
+                val mediaItem = refreshedItem.toMediaItem(defaultArtworkUri)
+                controller.setMediaItem(mediaItem)
+                controller.prepare()
+                controller.play()
                 MfLog.detail(
                     category = LogCategory.PLAYER,
-                    event = "plugin_media_source_refresh_dropped",
+                    event = "plugin_media_source_refreshed_after_failure",
                     fields = mapOf(
                         "platform" to item.platform,
                         "itemId" to item.id,
-                        "reason" to "queue_changed",
+                        "quality" to quality.name.lowercase(),
+                        "durationMs" to elapsedMs(startedAt),
                     ),
                 )
-                return@launch
-            }
-
-            val source = fresh.source
-            if (!source.headers.isNullOrEmpty() || !source.userAgent.isNullOrBlank()) {
-                trackHeaderRegistry.put(
-                    freshUrl,
-                    source.headers.orEmpty(),
-                    source.userAgent,
+            } catch (e: RuntimeException) {
+                applied = false
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "plugin_media_source_refresh_failed",
+                    throwable = e,
+                    fields = mapOf(
+                        "platform" to item.platform,
+                        "itemId" to item.id,
+                        "quality" to quality.name.lowercase(),
+                        "reason" to "set_media_item_failed",
+                        "durationMs" to elapsedMs(startedAt),
+                    ),
                 )
             }
-            playQueue.replaceCurrent(expectedIndex, item, refreshedItem)
-            emitQueueState()
+        }
+        return applied
+    }
 
-            withConnectedController { controller ->
-                if (!playQueue.isCurrentItem(expectedIndex, refreshedItem)) return@withConnectedController
-                try {
-                    val mediaItem = refreshedItem.toMediaItem(defaultArtworkUri)
-                    controller.setMediaItem(mediaItem)
-                    controller.prepare()
-                    controller.play()
-                    MfLog.detail(
-                        category = LogCategory.PLAYER,
-                        event = "plugin_media_source_refreshed_after_failure",
-                        fields = mapOf(
-                            "platform" to item.platform,
-                            "itemId" to item.id,
-                            "quality" to quality.name.lowercase(),
-                            "durationMs" to elapsedMs(startedAt),
-                        ),
-                    )
-                } catch (e: RuntimeException) {
-                    MfLog.error(
-                        category = LogCategory.PLAYER,
-                        event = "plugin_media_source_refresh_failed",
-                        throwable = e,
-                        fields = mapOf(
-                            "platform" to item.platform,
-                            "itemId" to item.id,
-                            "quality" to quality.name.lowercase(),
-                            "reason" to "set_media_item_failed",
-                            "durationMs" to elapsedMs(startedAt),
-                        ),
-                    )
-                }
+    private suspend fun changeSourceAfterFailure(
+        error: PlaybackException,
+        item: MusicItem,
+        expectedIndex: Int,
+    ): Boolean {
+        if (item.isLocalPlaybackSource()) return false
+        if (!playbackRuntimeSettings.tryChangeSourceWhenPlayFail()) return false
+        val key = item.platform to item.id
+        if (playFailureSourceRetryState.putIfAbsent(key, true) != null) return false
+
+        val startedAt = System.nanoTime()
+        val quality = currentPlayQuality.name.lowercase()
+        val resolution = runCatching {
+            mediaSourceResolver.resolve(item, quality)
+        }.onFailure { resolveError ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "playback_failure_source_change_failed",
+                throwable = resolveError,
+                fields = playbackFailureFields(
+                    item = item,
+                    error = error,
+                    startedAt = startedAt,
+                    reason = "resolver_exception",
+                ),
+            )
+        }.getOrNull()
+
+        val changedItem = resolution?.item
+        val changedUrl = changedItem?.url
+        if (changedItem == null || changedUrl.isNullOrBlank() || changedUrl == item.url) {
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "playback_failure_source_change_failed",
+                fields = playbackFailureFields(
+                    item = item,
+                    error = error,
+                    startedAt = startedAt,
+                    reason = if (changedUrl == item.url) "same_source" else "no_source",
+                ),
+            )
+            return false
+        }
+
+        if (!playQueue.isCurrentItem(expectedIndex, item)) {
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "playback_failure_source_change_dropped",
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "reason" to "queue_changed",
+                ),
+            )
+            return true
+        }
+
+        val source = resolution.source
+        if (!source.headers.isNullOrEmpty() || !source.userAgent.isNullOrBlank()) {
+            trackHeaderRegistry.put(
+                changedUrl,
+                source.headers.orEmpty(),
+                source.userAgent,
+            )
+        }
+        playQueue.replaceCurrent(expectedIndex, item, changedItem)
+        emitQueueState()
+
+        var applied = true
+        withConnectedController { controller ->
+            if (!playQueue.isCurrentItem(expectedIndex, changedItem)) return@withConnectedController
+            try {
+                controller.setMediaItem(changedItem.toMediaItem(defaultArtworkUri))
+                controller.prepare()
+                controller.play()
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "playback_failure_source_changed",
+                    fields = playbackFailureFields(
+                        item = item,
+                        error = error,
+                        startedAt = startedAt,
+                        result = LogFields.Result.SUCCESS,
+                        reason = "resolved_new_source",
+                    ),
+                )
+            } catch (setMediaError: RuntimeException) {
+                applied = false
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "playback_failure_source_change_failed",
+                    throwable = setMediaError,
+                    fields = playbackFailureFields(
+                        item = item,
+                        error = error,
+                        startedAt = startedAt,
+                        reason = "set_media_item_failed",
+                    ),
+                )
             }
         }
+        return applied
+    }
+
+    private suspend fun applyPlaybackFailurePolicy(
+        error: PlaybackException,
+        item: MusicItem,
+        expectedIndex: Int,
+    ) {
+        if (!playQueue.isCurrentItem(expectedIndex, item)) return
+        val autoStop = playbackRuntimeSettings.autoStopWhenError()
+        if (autoStop) {
+            pause()
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "playback_failure_auto_paused",
+                throwable = error,
+                fields = playbackFailureFields(
+                    item = item,
+                    error = error,
+                    reason = "auto_stop_enabled",
+                ),
+            )
+            return
+        }
+
+        val previousIndex = playQueue.currentIndex
+        val next = nextItemAfterPlaybackFailure()
+        if (next == null) {
+            pause()
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "playback_failure_next_unavailable",
+                throwable = error,
+                fields = playbackFailureFields(
+                    item = item,
+                    error = error,
+                    reason = "no_next_item",
+                ),
+            )
+            return
+        }
+
+        MfLog.error(
+            category = LogCategory.PLAYER,
+            event = "playback_failure_skip_next",
+            throwable = error,
+            fields = playbackFailureFields(
+                item = item,
+                error = error,
+                reason = "auto_stop_disabled",
+            ),
+        )
+        setMediaItemAndPlay(
+            item = next,
+            expectedIndex = playQueue.currentIndex,
+            rollbackIndex = previousIndex,
+        )
+        emitQueueState()
+    }
+
+    private fun nextItemAfterPlaybackFailure(): MusicItem? {
+        if (playQueue.size <= 1) return null
+        val currentIndex = playQueue.currentIndex
+        val nextIndex = when {
+            currentIndex < 0 -> return null
+            currentIndex < playQueue.size - 1 -> currentIndex + 1
+            repeatMode == RepeatMode.ALL -> 0
+            else -> return null
+        }
+        return playQueue.skipTo(nextIndex)
+    }
+
+    private fun playbackFailureFields(
+        item: MusicItem,
+        error: PlaybackException,
+        startedAt: Long? = null,
+        result: String = LogFields.Result.FAILURE,
+        reason: String,
+    ): Map<String, Any?> = buildMap {
+        put("platform", item.platform)
+        put("itemId", item.id)
+        put("errorCode", error.errorCode)
+        put("result", result)
+        put("reason", reason)
+        if (startedAt != null) put("durationMs", elapsedMs(startedAt))
     }
 
     private fun handleTrackEnded() {

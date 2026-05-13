@@ -7,7 +7,9 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
@@ -299,17 +301,121 @@ class AppPreferences @Inject constructor(
         }
     }
 
-    // ── Plugin Lazy Load (Phase E) ──
+    val allowConcurrentPlayback: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_ALLOW_CONCURRENT_PLAYBACK] ?: false
+    }
+
+    suspend fun setAllowConcurrentPlayback(value: Boolean) {
+        writeRuntimeSetting(KEY_ALLOW_CONCURRENT_PLAYBACK, value) {
+            it[KEY_ALLOW_CONCURRENT_PLAYBACK] = value
+        }
+    }
+
+    val autoPlayWhenAppStart: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_AUTO_PLAY_WHEN_APP_START] ?: false
+    }
+
+    suspend fun setAutoPlayWhenAppStart(value: Boolean) {
+        writeRuntimeSetting(KEY_AUTO_PLAY_WHEN_APP_START, value) {
+            it[KEY_AUTO_PLAY_WHEN_APP_START] = value
+        }
+    }
+
+    val tryChangeSourceWhenPlayFail: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_TRY_CHANGE_SOURCE_WHEN_PLAY_FAIL] ?: false
+    }
+
+    suspend fun setTryChangeSourceWhenPlayFail(value: Boolean) {
+        writeRuntimeSetting(KEY_TRY_CHANGE_SOURCE_WHEN_PLAY_FAIL, value) {
+            it[KEY_TRY_CHANGE_SOURCE_WHEN_PLAY_FAIL] = value
+        }
+    }
+
+    val autoStopWhenError: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_AUTO_STOP_WHEN_ERROR] ?: false
+    }
+
+    suspend fun setAutoStopWhenError(value: Boolean) {
+        writeRuntimeSetting(KEY_AUTO_STOP_WHEN_ERROR, value) {
+            it[KEY_AUTO_STOP_WHEN_ERROR] = value
+        }
+    }
+
+    val audioInterruptionAction: Flow<AudioInterruptionAction> = dataStore.data.map { prefs ->
+        prefs.enumValue(KEY_AUDIO_INTERRUPTION_ACTION, AudioInterruptionAction.Pause)
+    }
+
+    suspend fun setAudioInterruptionAction(value: AudioInterruptionAction) {
+        writeRuntimeSetting(KEY_AUDIO_INTERRUPTION_ACTION, value.name) {
+            it[KEY_AUDIO_INTERRUPTION_ACTION] = value.name
+        }
+    }
+
+    val audioInterruptionDuckVolume: Flow<Float> = dataStore.data.map { prefs ->
+        (prefs[KEY_AUDIO_INTERRUPTION_DUCK_VOLUME] ?: 0.5f).coerceIn(0.1f, 1.0f)
+    }
+
+    suspend fun setAudioInterruptionDuckVolume(value: Float) {
+        val coerced = value.coerceIn(0.1f, 1.0f)
+        writeRuntimeSetting(KEY_AUDIO_INTERRUPTION_DUCK_VOLUME, coerced) {
+            it[KEY_AUDIO_INTERRUPTION_DUCK_VOLUME] = coerced
+        }
+    }
+
+    val maxMusicCacheSizeBytes: Flow<Long> = dataStore.data.map { prefs ->
+        (prefs[KEY_MAX_MUSIC_CACHE_SIZE_BYTES] ?: DEFAULT_MAX_MUSIC_CACHE_SIZE_BYTES)
+            .coerceIn(MIN_MUSIC_CACHE_SIZE_BYTES, MAX_MUSIC_CACHE_SIZE_BYTES)
+    }
+
+    suspend fun setMaxMusicCacheSizeBytes(value: Long) {
+        val coerced = value.coerceIn(MIN_MUSIC_CACHE_SIZE_BYTES, MAX_MUSIC_CACHE_SIZE_BYTES)
+        writeRuntimeSetting(KEY_MAX_MUSIC_CACHE_SIZE_BYTES, coerced) {
+            it[KEY_MAX_MUSIC_CACHE_SIZE_BYTES] = coerced
+        }
+    }
+
+    // ── Plugin Settings ──
+
+    val autoUpdatePlugins: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_AUTO_UPDATE_PLUGINS] ?: false
+    }
+
+    suspend fun setAutoUpdatePlugins(value: Boolean) {
+        writeRuntimeSetting(KEY_AUTO_UPDATE_PLUGINS, value) {
+            it[KEY_AUTO_UPDATE_PLUGINS] = value
+        }
+    }
+
+    val skipPluginVersionCheck: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_SKIP_PLUGIN_VERSION_CHECK] ?: false
+    }
+
+    suspend fun setSkipPluginVersionCheck(value: Boolean) {
+        writeRuntimeSetting(KEY_SKIP_PLUGIN_VERSION_CHECK, value) {
+            it[KEY_SKIP_PLUGIN_VERSION_CHECK] = value
+        }
+    }
+
+    val pluginAutoUpdateLastAtEpochMs: Flow<Long> = dataStore.data.map { prefs ->
+        prefs[KEY_PLUGIN_AUTO_UPDATE_LAST_AT_EPOCH_MS] ?: 0L
+    }
+
+    suspend fun setPluginAutoUpdateLastAtEpochMs(value: Long) {
+        writeRuntimeSetting(KEY_PLUGIN_AUTO_UPDATE_LAST_AT_EPOCH_MS, value) {
+            it[KEY_PLUGIN_AUTO_UPDATE_LAST_AT_EPOCH_MS] = value
+        }
+    }
 
     /**
-     * When true (default), `PluginManager.loadAllPlugins()` seeds the entry list
+     * When true, `PluginManager.loadAllPlugins()` seeds the entry list
      * from the [PluginMetadataCacheGateway] snapshot and defers JS evaluation
      * to a background coroutine — cold-start cost is bounded by file metadata
      * read instead of N × QuickJS context creation. When false, plugins load
-     * synchronously like the pre-Phase-E behaviour.
+     * synchronously like the pre-Phase-E behaviour. RN keeps this disabled by
+     * default, so Android exposes the same default in basic settings.
      */
     val lazyLoadPlugins: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[KEY_LAZY_LOAD_PLUGINS] ?: true
+        prefs[KEY_LAZY_LOAD_PLUGINS] ?: false
     }
 
     suspend fun setLazyLoadPlugins(value: Boolean) {
@@ -394,6 +500,19 @@ class AppPreferences @Inject constructor(
         val KEY_DEFAULT_PLAY_QUALITY = stringPreferencesKey("default_play_quality")
         val KEY_PLAY_QUALITY_ORDER = stringPreferencesKey("play_quality_order")
         val KEY_USE_CELLULAR_PLAY = booleanPreferencesKey("use_cellular_play")
+        val KEY_ALLOW_CONCURRENT_PLAYBACK = booleanPreferencesKey("allow_concurrent_playback")
+        val KEY_AUTO_PLAY_WHEN_APP_START = booleanPreferencesKey("auto_play_when_app_start")
+        val KEY_TRY_CHANGE_SOURCE_WHEN_PLAY_FAIL = booleanPreferencesKey("try_change_source_when_play_fail")
+        val KEY_AUTO_STOP_WHEN_ERROR = booleanPreferencesKey("auto_stop_when_error")
+        val KEY_AUDIO_INTERRUPTION_ACTION = stringPreferencesKey("audio_interruption_action")
+        val KEY_AUDIO_INTERRUPTION_DUCK_VOLUME = floatPreferencesKey("audio_interruption_duck_volume")
+        val KEY_MAX_MUSIC_CACHE_SIZE_BYTES = longPreferencesKey("max_music_cache_size_bytes")
+        const val DEFAULT_MAX_MUSIC_CACHE_SIZE_BYTES = 512L * 1024L * 1024L
+        const val MIN_MUSIC_CACHE_SIZE_BYTES = 100L * 1024L * 1024L
+        const val MAX_MUSIC_CACHE_SIZE_BYTES = 8192L * 1024L * 1024L
+        val KEY_AUTO_UPDATE_PLUGINS = booleanPreferencesKey("auto_update_plugins")
+        val KEY_SKIP_PLUGIN_VERSION_CHECK = booleanPreferencesKey("skip_plugin_version_check")
+        val KEY_PLUGIN_AUTO_UPDATE_LAST_AT_EPOCH_MS = longPreferencesKey("plugin_auto_update_last_at_epoch_ms")
         val KEY_LAZY_LOAD_PLUGINS = booleanPreferencesKey("pref_lazy_load_plugins")
     }
 }

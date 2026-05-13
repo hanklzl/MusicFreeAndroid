@@ -47,6 +47,18 @@ class LyricRepositoryDeleteTest {
         assertNotNull(repository.getCache(kugou))
     }
 
+    @Test fun `clearAll removes every cached lyric`() = runTest {
+        val kuwo = music("1", "kuwo")
+        val kugou = music("2", "kugou")
+        repository.saveRemoteLyric(kuwo, LyricSourceInfo.Plugin("kuwo"), RawLyricPayload(rawLrc = "a"))
+        repository.saveRemoteLyric(kugou, LyricSourceInfo.Plugin("kugou"), RawLyricPayload(rawLrc = "b"))
+
+        repository.clearAll()
+
+        assertNull(repository.getCache(kuwo))
+        assertNull(repository.getCache(kugou))
+    }
+
     private fun music(id: String, platform: String) = MusicItem(
         id = id,
         platform = platform,

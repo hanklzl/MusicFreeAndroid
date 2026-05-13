@@ -14,6 +14,7 @@ import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.logging.FeedbackLogExporterContract
 import com.zili.android.musicfreeandroid.logging.FeedbackPackage
+import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -23,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
+import org.mockito.kotlin.mock
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -76,7 +78,12 @@ class SettingsScreenTest {
         type: SettingsType,
         onNavigateToPluginList: () -> Unit = {},
     ) {
-        val viewModel = SettingsViewModel(createAppPreferences(), FakeFeedbackLogExporter())
+        val viewModel = SettingsViewModel(
+            appPreferences = createAppPreferences(),
+            feedbackLogExporter = FakeFeedbackLogExporter(),
+            pluginManager = mock<PluginManager>(),
+            cacheCleaner = mock<SettingsCacheCleaner>(),
+        )
         composeRule.setContent {
             MusicFreeTheme {
                 SettingsScreen(

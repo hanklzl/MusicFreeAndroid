@@ -397,9 +397,10 @@ class PluginManager @Inject constructor(
             // Re-run the appVersion gate in case the cached metadata was
             // written against an older app version that satisfied a constraint
             // the new app version no longer satisfies.
-            val versionRejection = appVersionGate.evaluate(
-                constraint = plugin.info.appVersion,
-                appVersion = currentAppVersion,
+            val versionRejection = evaluateAppVersionGate(
+                plugin = plugin,
+                operation = "load_lazy",
+                fileName = file.name,
             )
             if (versionRejection != null) {
                 plugin.destroy()
@@ -1573,6 +1574,36 @@ class PluginManager @Inject constructor(
 
     private fun newFlowId(): String = UUID.randomUUID().toString()
 
+    internal suspend fun evaluateAppVersionGate(
+        plugin: LoadedPlugin,
+        operation: String,
+        fileName: String,
+    ): PluginState.Failed? {
+        val constraint = plugin.info.appVersion
+        val skipVersionCheck = appPreferences.skipPluginVersionCheck.first()
+        if (skipVersionCheck) {
+            if (!constraint.isNullOrBlank()) {
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_appversion_gate_skipped",
+                    fields = mapOf(
+                        "operation" to operation,
+                        "fileName" to fileName,
+                        "platform" to plugin.info.platform,
+                        "requiredAppVersion" to constraint,
+                        "currentAppVersion" to currentAppVersion,
+                        "reason" to "user_setting_skip_plugin_version_check",
+                    ),
+                )
+            }
+            return null
+        }
+        return appVersionGate.evaluate(
+            constraint = constraint,
+            appVersion = currentAppVersion,
+        )
+    }
+
     private fun logOperationStart(
         flowId: String,
         operation: String,
@@ -2231,9 +2262,10 @@ class PluginManager @Inject constructor(
             // install — destroy the engine that just got built up, record a
             // Failed(VersionNotMatch) entry and DO NOT atomically move the
             // staged file into pluginsDir (no littering of dead .js plugin files).
-            val versionRejection = appVersionGate.evaluate(
-                constraint = plugin.info.appVersion,
-                appVersion = currentAppVersion,
+            val versionRejection = evaluateAppVersionGate(
+                plugin = plugin,
+                operation = "appversion_gate",
+                fileName = fileName,
             )
             if (versionRejection != null) {
                 plugin.destroy()

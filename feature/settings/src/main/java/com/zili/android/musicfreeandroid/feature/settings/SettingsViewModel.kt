@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
+import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
 import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
@@ -14,7 +15,9 @@ import com.zili.android.musicfreeandroid.logging.FeedbackLogExporterContract
 import com.zili.android.musicfreeandroid.logging.FeedbackPackage
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -36,12 +39,24 @@ data class BasicSettingsUiState(
     val musicOrderInLocalSheet: SortMode = SortMode.Manual,
     val defaultPlayQuality: PlayQuality = PlayQuality.STANDARD,
     val playQualityOrder: QualityFallbackOrder = QualityFallbackOrder.Asc,
+    val allowConcurrentPlayback: Boolean = false,
+    val autoPlayWhenAppStart: Boolean = false,
+    val tryChangeSourceWhenPlayFail: Boolean = false,
+    val autoStopWhenError: Boolean = false,
+    val audioInterruptionAction: AudioInterruptionAction = AudioInterruptionAction.Pause,
+    val audioInterruptionDuckVolume: Float = 0.5f,
     val maxDownload: Int = 3,
     val defaultDownloadQuality: PlayQuality = PlayQuality.STANDARD,
     val downloadQualityOrder: QualityFallbackOrder = QualityFallbackOrder.Asc,
     val useCellularPlay: Boolean = false,
     val useCellularDownload: Boolean = false,
     val lyricAutoSearchEnabled: Boolean = true,
+    val autoUpdatePlugins: Boolean = false,
+    val skipPluginVersionCheck: Boolean = false,
+    val lazyLoadPlugins: Boolean = false,
+    val maxMusicCacheSizeMb: Int = 512,
+    val cacheActionInProgress: Boolean = false,
+    val cacheActionMessage: String? = null,
     val storageAccessState: StorageAccessState = StorageAccessState(),
 )
 
@@ -77,6 +92,39 @@ private data class SheetAlbumBasicSettingsState(
 private data class PlaybackBasicSettingsState(
     val defaultPlayQuality: PlayQuality,
     val playQualityOrder: QualityFallbackOrder,
+    val allowConcurrentPlayback: Boolean,
+    val autoPlayWhenAppStart: Boolean,
+    val tryChangeSourceWhenPlayFail: Boolean,
+    val autoStopWhenError: Boolean,
+    val audioInterruptionAction: AudioInterruptionAction,
+    val audioInterruptionDuckVolume: Float,
+)
+
+private data class PlaybackQualitySettingsState(
+    val defaultPlayQuality: PlayQuality,
+    val playQualityOrder: QualityFallbackOrder,
+)
+
+private data class PlaybackFailureSettingsState(
+    val allowConcurrentPlayback: Boolean,
+    val autoPlayWhenAppStart: Boolean,
+    val tryChangeSourceWhenPlayFail: Boolean,
+    val autoStopWhenError: Boolean,
+)
+
+private data class AudioInterruptionSettingsState(
+    val action: AudioInterruptionAction,
+    val duckVolume: Float,
+)
+
+private data class PluginBasicSettingsState(
+    val autoUpdatePlugins: Boolean,
+    val skipPluginVersionCheck: Boolean,
+    val lazyLoadPlugins: Boolean,
+)
+
+private data class CacheBasicSettingsState(
+    val maxMusicCacheSizeMb: Int,
 )
 
 private data class DownloadBasicSettingsState(
@@ -96,12 +144,24 @@ private data class RuntimeBasicSettingsState(
     val playback: PlaybackBasicSettingsState,
     val download: DownloadBasicSettingsState,
     val network: NetworkBasicSettingsState,
+    val plugin: PluginBasicSettingsState,
+    val cache: CacheBasicSettingsState,
+)
+
+private data class RuntimeCoreBasicSettingsState(
+    val common: CommonBasicSettingsState,
+    val sheetAlbum: SheetAlbumBasicSettingsState,
+    val playback: PlaybackBasicSettingsState,
+    val download: DownloadBasicSettingsState,
+    val network: NetworkBasicSettingsState,
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
     private val feedbackLogExporter: FeedbackLogExporterContract,
+    private val pluginManager: PluginManager,
+    private val cacheCleaner: SettingsCacheCleaner,
 ) : ViewModel() {
 
     val storageAccessState: StateFlow<StorageAccessState> = appPreferences.storageDirectoryUri
@@ -109,9 +169,12 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, StorageAccessState())
 
     private val feedbackActionLock = Mutex()
+    private val cacheActionLock = Mutex()
 
     private val _feedbackExportUiState = MutableStateFlow(FeedbackExportUiState())
     val feedbackExportUiState: StateFlow<FeedbackExportUiState> = _feedbackExportUiState.asStateFlow()
+
+    private val _cacheActionState = MutableStateFlow(CacheActionState())
 
     fun setStorageDirectory(treeUri: String) {
         viewModelScope.launch {
@@ -146,6 +209,24 @@ class SettingsViewModel @Inject constructor(
     val playQualityOrder: StateFlow<QualityFallbackOrder> = appPreferences.playQualityOrder
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), QualityFallbackOrder.Asc)
 
+    val allowConcurrentPlayback: StateFlow<Boolean> = appPreferences.allowConcurrentPlayback
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val autoPlayWhenAppStart: StateFlow<Boolean> = appPreferences.autoPlayWhenAppStart
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val tryChangeSourceWhenPlayFail: StateFlow<Boolean> = appPreferences.tryChangeSourceWhenPlayFail
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val autoStopWhenError: StateFlow<Boolean> = appPreferences.autoStopWhenError
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val audioInterruptionAction: StateFlow<AudioInterruptionAction> = appPreferences.audioInterruptionAction
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AudioInterruptionAction.Pause)
+
+    val audioInterruptionDuckVolume: StateFlow<Float> = appPreferences.audioInterruptionDuckVolume
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.5f)
+
     val useCellularDownload: StateFlow<Boolean> = appPreferences.useCellularDownload
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -160,6 +241,19 @@ class SettingsViewModel @Inject constructor(
 
     val lyricAutoSearchEnabled: StateFlow<Boolean> = appPreferences.lyricAutoSearchEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val autoUpdatePlugins: StateFlow<Boolean> = appPreferences.autoUpdatePlugins
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val skipPluginVersionCheck: StateFlow<Boolean> = appPreferences.skipPluginVersionCheck
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val lazyLoadPlugins: StateFlow<Boolean> = appPreferences.lazyLoadPlugins
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val maxMusicCacheSizeMb: StateFlow<Int> = appPreferences.maxMusicCacheSizeBytes
+        .map { bytes -> (bytes / BYTES_PER_MB).toInt() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 512)
 
     private val commonBasicSettingsState = combine(
         maxSearchHistoryLength,
@@ -185,14 +279,71 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
-    private val playbackBasicSettingsState = combine(
+    private val playbackQualitySettingsState = combine(
         defaultPlayQuality,
         playQualityOrder,
     ) { defaultPlayQuality, playQualityOrder ->
-        PlaybackBasicSettingsState(
+        PlaybackQualitySettingsState(
             defaultPlayQuality = defaultPlayQuality,
             playQualityOrder = playQualityOrder,
         )
+    }
+
+    private val playbackFailureSettingsState = combine(
+        allowConcurrentPlayback,
+        autoPlayWhenAppStart,
+        tryChangeSourceWhenPlayFail,
+        autoStopWhenError,
+    ) { allowConcurrentPlayback, autoPlayWhenAppStart, tryChangeSourceWhenPlayFail, autoStopWhenError ->
+        PlaybackFailureSettingsState(
+            allowConcurrentPlayback = allowConcurrentPlayback,
+            autoPlayWhenAppStart = autoPlayWhenAppStart,
+            tryChangeSourceWhenPlayFail = tryChangeSourceWhenPlayFail,
+            autoStopWhenError = autoStopWhenError,
+        )
+    }
+
+    private val audioInterruptionSettingsState = combine(
+        audioInterruptionAction,
+        audioInterruptionDuckVolume,
+    ) { action, duckVolume ->
+        AudioInterruptionSettingsState(
+            action = action,
+            duckVolume = duckVolume,
+        )
+    }
+
+    private val playbackBasicSettingsState = combine(
+        playbackQualitySettingsState,
+        playbackFailureSettingsState,
+        audioInterruptionSettingsState,
+    ) { quality, failure, interruption ->
+        PlaybackBasicSettingsState(
+            defaultPlayQuality = quality.defaultPlayQuality,
+            playQualityOrder = quality.playQualityOrder,
+            allowConcurrentPlayback = failure.allowConcurrentPlayback,
+            autoPlayWhenAppStart = failure.autoPlayWhenAppStart,
+            tryChangeSourceWhenPlayFail = failure.tryChangeSourceWhenPlayFail,
+            autoStopWhenError = failure.autoStopWhenError,
+            audioInterruptionAction = interruption.action,
+            audioInterruptionDuckVolume = interruption.duckVolume,
+        )
+    }
+
+    private val pluginBasicSettingsState = combine(
+        autoUpdatePlugins,
+        skipPluginVersionCheck,
+        lazyLoadPlugins,
+    ) { autoUpdatePlugins, skipPluginVersionCheck, lazyLoadPlugins ->
+        PluginBasicSettingsState(
+            autoUpdatePlugins = autoUpdatePlugins,
+            skipPluginVersionCheck = skipPluginVersionCheck,
+            lazyLoadPlugins = lazyLoadPlugins,
+        )
+    }
+
+    private val cacheBasicSettingsState = maxMusicCacheSizeMb.map { maxMusicCacheSizeMb ->
+        CacheBasicSettingsState(maxMusicCacheSizeMb = maxMusicCacheSizeMb)
     }
 
     private val downloadBasicSettingsState = combine(
@@ -217,14 +368,14 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
-    private val runtimeBasicSettingsState = combine(
+    private val runtimeCoreBasicSettingsState = combine(
         commonBasicSettingsState,
         sheetAlbumBasicSettingsState,
         playbackBasicSettingsState,
         downloadBasicSettingsState,
         networkBasicSettingsState,
     ) { common, sheetAlbum, playback, download, network ->
-        RuntimeBasicSettingsState(
+        RuntimeCoreBasicSettingsState(
             common = common,
             sheetAlbum = sheetAlbum,
             playback = playback,
@@ -233,11 +384,28 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
+    private val runtimeBasicSettingsState = combine(
+        runtimeCoreBasicSettingsState,
+        pluginBasicSettingsState,
+        cacheBasicSettingsState,
+    ) { core, plugin, cache ->
+        RuntimeBasicSettingsState(
+            common = core.common,
+            sheetAlbum = core.sheetAlbum,
+            playback = core.playback,
+            download = core.download,
+            network = core.network,
+            plugin = plugin,
+            cache = cache,
+        )
+    }
+
     val basicSettingsUiState: StateFlow<BasicSettingsUiState> = combine(
         runtimeBasicSettingsState,
         lyricAutoSearchEnabled,
         storageAccessState,
-    ) { runtime, lyricAutoSearchEnabled, storageAccessState ->
+        _cacheActionState,
+    ) { runtime, lyricAutoSearchEnabled, storageAccessState, cacheActionState ->
         BasicSettingsUiState(
             maxSearchHistoryLength = runtime.common.maxSearchHistoryLength,
             musicDetailDefaultPage = runtime.common.musicDetailDefaultPage,
@@ -247,12 +415,24 @@ class SettingsViewModel @Inject constructor(
             musicOrderInLocalSheet = runtime.sheetAlbum.musicOrderInLocalSheet,
             defaultPlayQuality = runtime.playback.defaultPlayQuality,
             playQualityOrder = runtime.playback.playQualityOrder,
+            allowConcurrentPlayback = runtime.playback.allowConcurrentPlayback,
+            autoPlayWhenAppStart = runtime.playback.autoPlayWhenAppStart,
+            tryChangeSourceWhenPlayFail = runtime.playback.tryChangeSourceWhenPlayFail,
+            autoStopWhenError = runtime.playback.autoStopWhenError,
+            audioInterruptionAction = runtime.playback.audioInterruptionAction,
+            audioInterruptionDuckVolume = runtime.playback.audioInterruptionDuckVolume,
             maxDownload = runtime.download.maxDownload,
             defaultDownloadQuality = runtime.download.defaultDownloadQuality,
             downloadQualityOrder = runtime.download.downloadQualityOrder,
             useCellularPlay = runtime.network.useCellularPlay,
             useCellularDownload = runtime.network.useCellularDownload,
             lyricAutoSearchEnabled = lyricAutoSearchEnabled,
+            autoUpdatePlugins = runtime.plugin.autoUpdatePlugins,
+            skipPluginVersionCheck = runtime.plugin.skipPluginVersionCheck,
+            lazyLoadPlugins = runtime.plugin.lazyLoadPlugins,
+            maxMusicCacheSizeMb = runtime.cache.maxMusicCacheSizeMb,
+            cacheActionInProgress = cacheActionState.inProgress,
+            cacheActionMessage = cacheActionState.message,
             storageAccessState = storageAccessState,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BasicSettingsUiState())
@@ -289,6 +469,47 @@ class SettingsViewModel @Inject constructor(
         appPreferences.setPlayQualityOrder(order)
     }
 
+    fun setAllowConcurrentPlayback(value: Boolean) = viewModelScope.launch {
+        appPreferences.setAllowConcurrentPlayback(value)
+    }
+
+    fun setAutoPlayWhenAppStart(value: Boolean) = viewModelScope.launch {
+        appPreferences.setAutoPlayWhenAppStart(value)
+    }
+
+    fun setTryChangeSourceWhenPlayFail(value: Boolean) = viewModelScope.launch {
+        appPreferences.setTryChangeSourceWhenPlayFail(value)
+    }
+
+    fun setAutoStopWhenError(value: Boolean) = viewModelScope.launch {
+        appPreferences.setAutoStopWhenError(value)
+    }
+
+    fun setAudioInterruptionAction(value: AudioInterruptionAction) = viewModelScope.launch {
+        appPreferences.setAudioInterruptionAction(value)
+    }
+
+    fun setAudioInterruptionDuckVolume(value: Float) = viewModelScope.launch {
+        appPreferences.setAudioInterruptionDuckVolume(value)
+    }
+
+    fun setAutoUpdatePlugins(value: Boolean) = viewModelScope.launch {
+        appPreferences.setAutoUpdatePlugins(value)
+    }
+
+    fun setSkipPluginVersionCheck(value: Boolean) = viewModelScope.launch {
+        appPreferences.setSkipPluginVersionCheck(value)
+    }
+
+    fun setLazyLoadPlugins(value: Boolean) = viewModelScope.launch {
+        appPreferences.setLazyLoadPlugins(value)
+        pluginManager.reload()
+    }
+
+    fun setMaxMusicCacheSizeMb(value: Int) = viewModelScope.launch {
+        appPreferences.setMaxMusicCacheSizeBytes(value.toLong() * BYTES_PER_MB)
+    }
+
     fun setMaxDownload(value: Int) = viewModelScope.launch {
         appPreferences.setMaxDownload(value)
     }
@@ -311,6 +532,51 @@ class SettingsViewModel @Inject constructor(
 
     fun setLyricAutoSearchEnabled(value: Boolean) = viewModelScope.launch {
         appPreferences.setLyricAutoSearchEnabled(value)
+    }
+
+    fun clearMusicCache() {
+        runCacheAction(successMessage = "音乐缓存已清理") {
+            cacheCleaner.clearMusicCache()
+        }
+    }
+
+    fun clearLyricCache() {
+        runCacheAction(successMessage = "歌词缓存已清理") {
+            cacheCleaner.clearLyricCache()
+        }
+    }
+
+    fun clearImageCache() {
+        runCacheAction(successMessage = "图片缓存已清理") {
+            cacheCleaner.clearImageCache()
+        }
+    }
+
+    private fun runCacheAction(
+        successMessage: String,
+        action: suspend () -> Unit,
+    ) {
+        viewModelScope.launch {
+            if (!cacheActionLock.tryLock()) return@launch
+            _cacheActionState.update { CacheActionState(inProgress = true, message = "清理中") }
+            try {
+                action()
+                _cacheActionState.update { CacheActionState(message = successMessage) }
+            } catch (error: CancellationException) {
+                _cacheActionState.update { CacheActionState() }
+                throw error
+            } catch (error: Throwable) {
+                MfLog.error(
+                    category = LogCategory.SETTINGS,
+                    event = "settings_cache_action_failed",
+                    throwable = error,
+                    fields = mapOf("message" to successMessage),
+                )
+                _cacheActionState.update { CacheActionState(message = "清理失败") }
+            } finally {
+                cacheActionLock.unlock()
+            }
+        }
     }
 
     fun createFeedbackPackage() {
@@ -378,4 +644,13 @@ class SettingsViewModel @Inject constructor(
     fun clearFeedbackError() {
         _feedbackExportUiState.update { it.copy(errorMessage = null) }
     }
+
+    private companion object {
+        const val BYTES_PER_MB = 1024L * 1024L
+    }
 }
+
+private data class CacheActionState(
+    val inProgress: Boolean = false,
+    val message: String? = null,
+)

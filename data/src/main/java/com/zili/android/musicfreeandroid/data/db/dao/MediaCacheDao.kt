@@ -17,6 +17,12 @@ interface MediaCacheDao {
     @Query("SELECT COUNT(*) FROM media_cache")
     suspend fun count(): Int
 
+    @Query("SELECT COALESCE(SUM(length(CAST(sourcesJson AS BLOB))), 0) FROM media_cache")
+    suspend fun totalSizeBytes(): Long
+
+    @Query("SELECT * FROM media_cache ORDER BY updated_at ASC")
+    suspend fun getOldestEntries(): List<MediaCacheEntity>
+
     @Query(
         """
         DELETE FROM media_cache WHERE rowid IN (
@@ -31,4 +37,7 @@ interface MediaCacheDao {
 
     @Query("DELETE FROM media_cache WHERE platform = :platform AND id = :id")
     suspend fun delete(platform: String, id: String)
+
+    @Query("DELETE FROM media_cache")
+    suspend fun deleteAll()
 }

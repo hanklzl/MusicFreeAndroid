@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
+import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
 import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
@@ -47,6 +48,9 @@ private enum class BasicSettingsDialog {
     MusicOrderInLocalSheet,
     DefaultPlayQuality,
     PlayQualityOrder,
+    AudioInterruptionAction,
+    AudioInterruptionDuckVolume,
+    MaxMusicCacheSize,
     MaxDownload,
     DefaultDownloadQuality,
     DownloadQualityOrder,
@@ -64,12 +68,25 @@ fun BasicSettingsContent(
     onMusicOrderInLocalSheetChange: (SortMode) -> Unit,
     onDefaultPlayQualityChange: (PlayQuality) -> Unit,
     onPlayQualityOrderChange: (QualityFallbackOrder) -> Unit,
+    onAllowConcurrentPlaybackChange: (Boolean) -> Unit,
+    onAutoPlayWhenAppStartChange: (Boolean) -> Unit,
+    onTryChangeSourceWhenPlayFailChange: (Boolean) -> Unit,
+    onAutoStopWhenErrorChange: (Boolean) -> Unit,
+    onAudioInterruptionActionChange: (AudioInterruptionAction) -> Unit,
+    onAudioInterruptionDuckVolumeChange: (Float) -> Unit,
     onMaxDownloadChange: (Int) -> Unit,
     onDefaultDownloadQualityChange: (PlayQuality) -> Unit,
     onDownloadQualityOrderChange: (QualityFallbackOrder) -> Unit,
     onUseCellularPlayChange: (Boolean) -> Unit,
     onUseCellularDownloadChange: (Boolean) -> Unit,
     onLyricAutoSearchEnabledChange: (Boolean) -> Unit,
+    onAutoUpdatePluginsChange: (Boolean) -> Unit,
+    onSkipPluginVersionCheckChange: (Boolean) -> Unit,
+    onLazyLoadPluginsChange: (Boolean) -> Unit,
+    onMaxMusicCacheSizeMbChange: (Int) -> Unit,
+    onClearMusicCache: () -> Unit,
+    onClearLyricCache: () -> Unit,
+    onClearImageCache: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
     onCreateFeedbackPackage: () -> Unit = {},
     onClearLogs: () -> Unit = {},
@@ -140,18 +157,66 @@ fun BasicSettingsContent(
         }
         item {
             SettingSectionCard("插件", testTag = FidelityAnchors.Settings.BasicSectionPlugin) {
-                PendingValueRow("软件启动时自动更新插件")
-                PendingValueRow("安装插件时不校验版本")
-                PendingValueRow("启用插件懒加载")
+                SettingSwitchRow(
+                    title = "软件启动时自动更新插件",
+                    checked = state.autoUpdatePlugins,
+                    enabled = true,
+                    onCheckedChange = onAutoUpdatePluginsChange,
+                )
+                SettingSwitchRow(
+                    title = "安装插件时不校验版本",
+                    checked = state.skipPluginVersionCheck,
+                    enabled = true,
+                    onCheckedChange = onSkipPluginVersionCheckChange,
+                )
+                SettingSwitchRow(
+                    title = "启用插件懒加载",
+                    checked = state.lazyLoadPlugins,
+                    enabled = true,
+                    onCheckedChange = onLazyLoadPluginsChange,
+                )
             }
         }
         item {
             SettingSectionCard("播放", testTag = FidelityAnchors.Settings.BasicSectionPlayback) {
-                PendingValueRow("允许与其他应用同时播放")
-                PendingValueRow("软件启动时自动播放歌曲")
-                PendingValueRow("播放失败时尝试更换音源")
-                PendingValueRow("播放失败时自动暂停")
-                PendingValueRow("播放被暂时打断时")
+                SettingSwitchRow(
+                    title = "允许与其他应用同时播放",
+                    checked = state.allowConcurrentPlayback,
+                    enabled = true,
+                    onCheckedChange = onAllowConcurrentPlaybackChange,
+                )
+                SettingSwitchRow(
+                    title = "软件启动时自动播放歌曲",
+                    checked = state.autoPlayWhenAppStart,
+                    enabled = true,
+                    onCheckedChange = onAutoPlayWhenAppStartChange,
+                )
+                SettingSwitchRow(
+                    title = "播放失败时尝试更换音源",
+                    checked = state.tryChangeSourceWhenPlayFail,
+                    enabled = true,
+                    onCheckedChange = onTryChangeSourceWhenPlayFailChange,
+                )
+                SettingSwitchRow(
+                    title = "播放失败时自动暂停",
+                    checked = state.autoStopWhenError,
+                    enabled = true,
+                    onCheckedChange = onAutoStopWhenErrorChange,
+                )
+                SettingValueRow(
+                    title = "播放被暂时打断时",
+                    value = state.audioInterruptionAction.label(),
+                    enabled = true,
+                    onClick = { activeDialog = BasicSettingsDialog.AudioInterruptionAction },
+                )
+                if (state.audioInterruptionAction == AudioInterruptionAction.LowerVolume) {
+                    SettingValueRow(
+                        title = "被打断时音量",
+                        value = state.audioInterruptionDuckVolume.volumeLabel(),
+                        enabled = true,
+                        onClick = { activeDialog = BasicSettingsDialog.AudioInterruptionDuckVolume },
+                    )
+                }
                 SettingValueRow(
                     title = "默认播放音质",
                     value = state.defaultPlayQuality.label(),
@@ -232,10 +297,28 @@ fun BasicSettingsContent(
         }
         item {
             SettingSectionCard("缓存", testTag = FidelityAnchors.Settings.BasicSectionCache) {
-                PendingValueRow("音乐缓存上限")
-                SettingActionRow("清除音乐缓存", enabled = false, onClick = {})
-                SettingActionRow("清除歌词缓存", enabled = false, onClick = {})
-                SettingActionRow("清除图片缓存", enabled = false, onClick = {})
+                SettingValueRow(
+                    title = "音乐缓存上限",
+                    value = "${state.maxMusicCacheSizeMb} MB",
+                    enabled = true,
+                    onClick = { activeDialog = BasicSettingsDialog.MaxMusicCacheSize },
+                )
+                SettingActionRow(
+                    title = "清除音乐缓存",
+                    enabled = !state.cacheActionInProgress,
+                    trailingText = state.cacheActionMessage.orEmpty(),
+                    onClick = onClearMusicCache,
+                )
+                SettingActionRow(
+                    title = "清除歌词缓存",
+                    enabled = !state.cacheActionInProgress,
+                    onClick = onClearLyricCache,
+                )
+                SettingActionRow(
+                    title = "清除图片缓存",
+                    enabled = !state.cacheActionInProgress,
+                    onClick = onClearImageCache,
+                )
             }
         }
         item {
@@ -340,6 +423,39 @@ fun BasicSettingsContent(
             onDismiss = { activeDialog = null },
             onSelected = { order ->
                 onPlayQualityOrderChange(order)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.AudioInterruptionAction -> ChoiceDialog(
+            title = "播放被暂时打断时",
+            choices = listOf(
+                Choice(AudioInterruptionAction.Pause, AudioInterruptionAction.Pause.label()),
+                Choice(AudioInterruptionAction.LowerVolume, AudioInterruptionAction.LowerVolume.label()),
+            ),
+            onDismiss = { activeDialog = null },
+            onSelected = { action ->
+                onAudioInterruptionActionChange(action)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.AudioInterruptionDuckVolume -> ChoiceDialog(
+            title = "被打断时音量",
+            choices = listOf(0.3f, 0.5f, 0.8f).map { Choice(it, it.volumeLabel()) },
+            onDismiss = { activeDialog = null },
+            onSelected = { volume ->
+                onAudioInterruptionDuckVolumeChange(volume)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.MaxMusicCacheSize -> ChoiceDialog(
+            title = "音乐缓存上限",
+            choices = listOf(100, 256, 512, 1024, 2048, 4096, 8192).map { Choice(it, "$it MB") },
+            onDismiss = { activeDialog = null },
+            onSelected = { value ->
+                onMaxMusicCacheSizeMbChange(value)
                 activeDialog = null
             },
         )
@@ -486,6 +602,13 @@ private fun PlayQuality.label(): String = when (this) {
     PlayQuality.HIGH -> "高音质"
     PlayQuality.SUPER -> "超高音质"
 }
+
+private fun AudioInterruptionAction.label(): String = when (this) {
+    AudioInterruptionAction.Pause -> "暂停播放"
+    AudioInterruptionAction.LowerVolume -> "降低音量"
+}
+
+private fun Float.volumeLabel(): String = "${(this * 100).toInt()}%"
 
 private fun QualityFallbackOrder.playbackLabel(): String = when (this) {
     QualityFallbackOrder.Asc -> "播放更高音质"

@@ -20,6 +20,11 @@ enum class QualityFallbackOrder {
     Desc,
 }
 
+enum class AudioInterruptionAction {
+    Pause,
+    LowerVolume,
+}
+
 fun PlayQuality.fallbackSequence(order: QualityFallbackOrder): List<PlayQuality> {
     val qualities = listOf(
         PlayQuality.LOW,

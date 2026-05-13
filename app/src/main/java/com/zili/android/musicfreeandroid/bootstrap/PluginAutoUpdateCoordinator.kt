@@ -1,0 +1,138 @@
+package com.zili.android.musicfreeandroid.bootstrap
+
+import androidx.annotation.VisibleForTesting
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.di.ApplicationScope
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class PluginAutoUpdateCoordinator @Inject constructor(
+    private val appPreferences: AppPreferences,
+    private val pluginManager: PluginManager,
+    @param:ApplicationScope private val applicationScope: CoroutineScope,
+) {
+    fun start() {
+        applicationScope.launch(Dispatchers.IO) {
+            runIfDue(nowMs = System.currentTimeMillis())
+        }
+    }
+
+    @VisibleForTesting
+    internal suspend fun runIfDue(nowMs: Long) = withContext(Dispatchers.IO) {
+        val startedAt = System.currentTimeMillis()
+        try {
+            val enabled = appPreferences.autoUpdatePlugins.first()
+            if (!enabled) {
+                logSkipped(
+                    reason = "disabled",
+                    lastAtMs = appPreferences.pluginAutoUpdateLastAtEpochMs.first(),
+                    nowMs = nowMs,
+                    startedAt = startedAt,
+                )
+                return@withContext
+            }
+
+            val lastAtMs = appPreferences.pluginAutoUpdateLastAtEpochMs.first()
+            val elapsedMs = nowMs - lastAtMs
+            if (lastAtMs > 0L && elapsedMs in 0 until AUTO_UPDATE_INTERVAL_MS) {
+                logSkipped(
+                    reason = "interval_not_elapsed",
+                    lastAtMs = lastAtMs,
+                    nowMs = nowMs,
+                    startedAt = startedAt,
+                )
+                return@withContext
+            }
+
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "plugin_auto_update_start",
+                fields = mapOf(
+                    "operation" to "auto_update_plugins",
+                    "lastAtEpochMs" to lastAtMs,
+                    "nowEpochMs" to nowMs,
+                ),
+            )
+
+            pluginManager.ensurePluginsLoaded()
+            val result = pluginManager.updateAllPlugins()
+            appPreferences.setPluginAutoUpdateLastAtEpochMs(nowMs)
+
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "plugin_auto_update_completed",
+                fields = mapOf(
+                    "operation" to "auto_update_plugins",
+                    "targetCount" to result.targetPlugins.size,
+                    "successCount" to result.successCount,
+                    "failureCount" to result.failureCount,
+                    "durationMs" to (System.currentTimeMillis() - startedAt),
+                    "result" to if (result.failureCount == 0) {
+                        LogFields.Result.SUCCESS
+                    } else {
+                        LogFields.Result.FAILURE
+                    },
+                ),
+            )
+        } catch (error: CancellationException) {
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "plugin_auto_update_completed",
+                fields = mapOf(
+                    "operation" to "auto_update_plugins",
+                    "durationMs" to (System.currentTimeMillis() - startedAt),
+                    "result" to LogFields.Result.CANCELLED,
+                    "reason" to LogFields.Reason.CANCELLED,
+                ),
+            )
+            throw error
+        } catch (error: Throwable) {
+            runCatching { appPreferences.setPluginAutoUpdateLastAtEpochMs(nowMs) }
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_auto_update_failed",
+                throwable = error,
+                fields = mapOf(
+                    "operation" to "auto_update_plugins",
+                    "durationMs" to (System.currentTimeMillis() - startedAt),
+                    "result" to LogFields.Result.FAILURE,
+                ),
+            )
+        }
+    }
+
+    private fun logSkipped(
+        reason: String,
+        lastAtMs: Long,
+        nowMs: Long,
+        startedAt: Long,
+    ) {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_auto_update_skipped",
+            fields = mapOf(
+                "operation" to "auto_update_plugins",
+                "reason" to reason,
+                "lastAtEpochMs" to lastAtMs,
+                "nowEpochMs" to nowMs,
+                "durationMs" to (System.currentTimeMillis() - startedAt),
+                "result" to LogFields.Result.SKIPPED,
+            ),
+        )
+    }
+
+    private companion object {
+        const val AUTO_UPDATE_INTERVAL_MS: Long = 24L * 60L * 60L * 1000L
+    }
+}

@@ -48,4 +48,22 @@ class MediaCacheDaoTest {
         assertNull(dao.get("kuwo", "1"))
         assertNotNull(dao.get("kuwo", "2"))
     }
+
+    @Test fun `deleteAll removes every row`() = runTest {
+        dao.upsert(MediaCacheEntity("kuwo", "1", "{}", 100))
+        dao.upsert(MediaCacheEntity("kugou", "2", "{}", 200))
+
+        dao.deleteAll()
+
+        assertEquals(0, dao.count())
+    }
+
+    @Test fun `totalSizeBytes sums source json bytes and oldest entries are ordered`() = runTest {
+        dao.upsert(MediaCacheEntity("kuwo", "1", "12345", 300))
+        dao.upsert(MediaCacheEntity("kuwo", "2", "123", 100))
+        dao.upsert(MediaCacheEntity("kuwo", "3", "1234", 200))
+
+        assertEquals(12L, dao.totalSizeBytes())
+        assertEquals(listOf("2", "3", "1"), dao.getOldestEntries().map { it.id })
+    }
 }

@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
+import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
 import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
@@ -15,6 +16,7 @@ import com.zili.android.musicfreeandroid.logging.FeedbackPackage
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.MfLogger
+import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -34,6 +36,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.rules.TemporaryFolder
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
 import org.robolectric.RobolectricTestRunner
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -95,12 +99,22 @@ class SettingsViewModelTest {
         assertEquals(SortMode.Manual, state.musicOrderInLocalSheet)
         assertEquals(PlayQuality.STANDARD, state.defaultPlayQuality)
         assertEquals(QualityFallbackOrder.Asc, state.playQualityOrder)
+        assertEquals(false, state.allowConcurrentPlayback)
+        assertEquals(false, state.autoPlayWhenAppStart)
+        assertEquals(false, state.tryChangeSourceWhenPlayFail)
+        assertEquals(false, state.autoStopWhenError)
+        assertEquals(AudioInterruptionAction.Pause, state.audioInterruptionAction)
+        assertEquals(0.5f, state.audioInterruptionDuckVolume)
         assertEquals(3, state.maxDownload)
         assertEquals(PlayQuality.STANDARD, state.defaultDownloadQuality)
         assertEquals(QualityFallbackOrder.Asc, state.downloadQualityOrder)
         assertEquals(false, state.useCellularPlay)
         assertEquals(false, state.useCellularDownload)
         assertEquals(true, state.lyricAutoSearchEnabled)
+        assertEquals(false, state.autoUpdatePlugins)
+        assertEquals(false, state.skipPluginVersionCheck)
+        assertEquals(false, state.lazyLoadPlugins)
+        assertEquals(512, state.maxMusicCacheSizeMb)
         assertTrue(!state.storageAccessState.isConfigured)
     }
 
@@ -108,7 +122,8 @@ class SettingsViewModelTest {
     fun `basic settings setters update collected runtime-backed state and preferences`() =
         runTest(mainDispatcherRule.dispatcher) {
             val appPreferences = createAppPreferences()
-            val viewModel = createViewModel(appPreferences)
+            val pluginManager = mock<PluginManager>()
+            val viewModel = createViewModel(appPreferences, pluginManager = pluginManager)
             val job = backgroundScope.launch { viewModel.basicSettingsUiState.collect {} }
             advanceUntilIdle()
 
@@ -120,6 +135,16 @@ class SettingsViewModelTest {
             viewModel.setMusicOrderInLocalSheet(SortMode.Title)
             viewModel.setDefaultPlayQuality(PlayQuality.HIGH)
             viewModel.setPlayQualityOrder(QualityFallbackOrder.Desc)
+            viewModel.setAllowConcurrentPlayback(true)
+            viewModel.setAutoPlayWhenAppStart(true)
+            viewModel.setTryChangeSourceWhenPlayFail(true)
+            viewModel.setAutoStopWhenError(true)
+            viewModel.setAudioInterruptionAction(AudioInterruptionAction.LowerVolume)
+            viewModel.setAudioInterruptionDuckVolume(0.8f)
+            viewModel.setAutoUpdatePlugins(true)
+            viewModel.setSkipPluginVersionCheck(true)
+            viewModel.setLazyLoadPlugins(true)
+            viewModel.setMaxMusicCacheSizeMb(1024)
             viewModel.setMaxDownload(7)
             viewModel.setDefaultDownloadQuality(PlayQuality.SUPER)
             viewModel.setDownloadQualityOrder(QualityFallbackOrder.Desc)
@@ -137,12 +162,22 @@ class SettingsViewModelTest {
             assertEquals(SortMode.Title, state.musicOrderInLocalSheet)
             assertEquals(PlayQuality.HIGH, state.defaultPlayQuality)
             assertEquals(QualityFallbackOrder.Desc, state.playQualityOrder)
+            assertEquals(true, state.allowConcurrentPlayback)
+            assertEquals(true, state.autoPlayWhenAppStart)
+            assertEquals(true, state.tryChangeSourceWhenPlayFail)
+            assertEquals(true, state.autoStopWhenError)
+            assertEquals(AudioInterruptionAction.LowerVolume, state.audioInterruptionAction)
+            assertEquals(0.8f, state.audioInterruptionDuckVolume)
             assertEquals(7, state.maxDownload)
             assertEquals(PlayQuality.SUPER, state.defaultDownloadQuality)
             assertEquals(QualityFallbackOrder.Desc, state.downloadQualityOrder)
             assertEquals(true, state.useCellularPlay)
             assertEquals(true, state.useCellularDownload)
             assertEquals(false, state.lyricAutoSearchEnabled)
+            assertEquals(true, state.autoUpdatePlugins)
+            assertEquals(true, state.skipPluginVersionCheck)
+            assertEquals(true, state.lazyLoadPlugins)
+            assertEquals(1024, state.maxMusicCacheSizeMb)
             assertTrue(!state.storageAccessState.isConfigured)
             assertEquals(100, appPreferences.maxSearchHistoryLength.first())
             assertEquals(MusicDetailDefaultPage.Lyric, appPreferences.musicDetailDefaultPage.first())
@@ -152,12 +187,23 @@ class SettingsViewModelTest {
             assertEquals(SortMode.Title, appPreferences.musicOrderInLocalSheet.first())
             assertEquals(PlayQuality.HIGH, appPreferences.defaultPlayQuality.first())
             assertEquals(QualityFallbackOrder.Desc, appPreferences.playQualityOrder.first())
+            assertEquals(true, appPreferences.allowConcurrentPlayback.first())
+            assertEquals(true, appPreferences.autoPlayWhenAppStart.first())
+            assertEquals(true, appPreferences.tryChangeSourceWhenPlayFail.first())
+            assertEquals(true, appPreferences.autoStopWhenError.first())
+            assertEquals(AudioInterruptionAction.LowerVolume, appPreferences.audioInterruptionAction.first())
+            assertEquals(0.8f, appPreferences.audioInterruptionDuckVolume.first())
+            assertEquals(true, appPreferences.autoUpdatePlugins.first())
+            assertEquals(true, appPreferences.skipPluginVersionCheck.first())
+            assertEquals(true, appPreferences.lazyLoadPlugins.first())
+            assertEquals(1024L * 1024L * 1024L, appPreferences.maxMusicCacheSizeBytes.first())
             assertEquals(7, appPreferences.maxDownload.first())
             assertEquals(PlayQuality.SUPER, appPreferences.defaultDownloadQuality.first())
             assertEquals(QualityFallbackOrder.Desc, appPreferences.downloadQualityOrder.first())
             assertEquals(true, appPreferences.useCellularPlay.first())
             assertEquals(true, appPreferences.useCellularDownload.first())
             assertEquals(false, appPreferences.lyricAutoSearchEnabled.first())
+            verify(pluginManager).reload()
             job.cancel()
         }
 
@@ -232,6 +278,31 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `cache clear actions call cleaner and publish result`() = runTest(mainDispatcherRule.dispatcher) {
+        val cleaner = mock<SettingsCacheCleaner>()
+        val viewModel = createViewModel(createAppPreferences(), cacheCleaner = cleaner)
+        val job = backgroundScope.launch { viewModel.basicSettingsUiState.collect {} }
+        advanceUntilIdle()
+
+        viewModel.clearMusicCache()
+        advanceUntilIdle()
+        verify(cleaner).clearMusicCache()
+        assertEquals("音乐缓存已清理", viewModel.basicSettingsUiState.value.cacheActionMessage)
+
+        viewModel.clearLyricCache()
+        advanceUntilIdle()
+        verify(cleaner).clearLyricCache()
+        assertEquals("歌词缓存已清理", viewModel.basicSettingsUiState.value.cacheActionMessage)
+
+        viewModel.clearImageCache()
+        advanceUntilIdle()
+        verify(cleaner).clearImageCache()
+        assertEquals("图片缓存已清理", viewModel.basicSettingsUiState.value.cacheActionMessage)
+
+        job.cancel()
+    }
+
+    @Test
     fun `clear logs ignores concurrent clicks`() = runTest(mainDispatcherRule.dispatcher) {
         val exporter = createFakeExporter(clearDelayMs = 100)
         val viewModel = createViewModel(createAppPreferences(), exporter)
@@ -278,8 +349,10 @@ class SettingsViewModelTest {
     private fun createViewModel(
         appPreferences: AppPreferences,
         exporter: FeedbackLogExporterContract = createFakeExporter(),
+        pluginManager: PluginManager = mock(),
+        cacheCleaner: SettingsCacheCleaner = mock(),
     ): SettingsViewModel {
-        return SettingsViewModel(appPreferences, exporter)
+        return SettingsViewModel(appPreferences, exporter, pluginManager, cacheCleaner)
     }
 
     private fun createFeedbackPackage(fileName: String): FeedbackPackage {

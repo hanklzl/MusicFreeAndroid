@@ -98,6 +98,7 @@ class PluginManagerUserVariablesTest {
         whenever(context.packageName).thenReturn("com.test")
         val appPreferences = mock<AppPreferences>()
         whenever(appPreferences.lazyLoadPlugins).thenReturn(flowOf(false))
+        whenever(appPreferences.skipPluginVersionCheck).thenReturn(flowOf(false))
         return PluginManager(
             context,
             metaStore,

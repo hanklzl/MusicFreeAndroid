@@ -105,4 +105,7 @@ interface LyricCacheDao {
 
     @Query("DELETE FROM lyric_cache WHERE musicPlatform = :platform")
     suspend fun deleteByPlatform(platform: String)
+
+    @Query("DELETE FROM lyric_cache")
+    suspend fun deleteAll()
 }

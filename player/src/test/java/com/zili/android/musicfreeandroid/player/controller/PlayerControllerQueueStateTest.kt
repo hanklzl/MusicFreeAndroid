@@ -50,6 +50,21 @@ class PlayerControllerQueueStateTest {
     }
 
     @Test
+    fun `restoreQueue emits snapshot without starting playback when autoplay is false`() {
+        val controller = PlayerController(context)
+        try {
+            val items = listOf(item("1"), item("2"), item("3"))
+            controller.restoreQueue(items, startIndex = 1, playWhenRestored = false)
+            val snapshot = controller.queueState.value
+            assertEquals(items, snapshot.items)
+            assertEquals(1, snapshot.currentIndex)
+            assertEquals(item("2"), controller.playerState.value.currentItem)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
     fun `playItem adds new item and emits snapshot pointing at it`() {
         val controller = PlayerController(context)
         try {

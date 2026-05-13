@@ -61,6 +61,7 @@ class MediaCacheRepositoryTest {
         val dao: MediaCacheDao = mockk {
             coEvery { get("kg", "1") } returns MediaCacheEntity("kg", "1", existingJson, 100L)
             coEvery { upsert(capture(capturedEntity)) } returns Unit
+            coEvery { totalSizeBytes() } returns 0L
             coEvery { count() } returns 1
         }
         val repo = MediaCacheRepository(dao) { 999L }
@@ -78,6 +79,7 @@ class MediaCacheRepositoryTest {
         val dao: MediaCacheDao = mockk {
             coEvery { get(any(), any()) } returns null
             coEvery { upsert(any()) } returns Unit
+            coEvery { totalSizeBytes() } returns 0L
             coEvery { count() } returns 800
             coEvery { deleteOldest(400) } returns Unit
         }
@@ -91,10 +93,35 @@ class MediaCacheRepositoryTest {
         val dao: MediaCacheDao = mockk {
             coEvery { get(any(), any()) } returns null
             coEvery { upsert(any()) } returns Unit
+            coEvery { totalSizeBytes() } returns 0L
             coEvery { count() } returns 799
         }
         MediaCacheRepository(dao) { 1L }
             .put(item, PlayQuality.STANDARD, MediaSourceResult("http://a", null, null, PlayQuality.STANDARD))
         coVerify(exactly = 0) { dao.deleteOldest(any()) }
+    }
+
+    @Test
+    fun `put trims oldest entries when byte limit is exceeded`() = runTest {
+        val dao: MediaCacheDao = mockk {
+            coEvery { get(any(), any()) } returns null
+            coEvery { upsert(any()) } returns Unit
+            coEvery { totalSizeBytes() } returns 120L
+            coEvery { getOldestEntries() } returns listOf(
+                MediaCacheEntity("kg", "old", "12345", 100L),
+                MediaCacheEntity("kg", "new", "12345", 200L),
+            )
+            coEvery { delete("kg", "old") } returns Unit
+            coEvery { count() } returns 1
+        }
+
+        MediaCacheRepository(
+            dao = dao,
+            now = { 300L },
+            limitProvider = { 115L },
+        ).put(item, PlayQuality.STANDARD, MediaSourceResult("http://a", null, null, PlayQuality.STANDARD))
+
+        coVerify(exactly = 1) { dao.delete("kg", "old") }
+        coVerify(exactly = 0) { dao.delete("kg", "new") }
     }
 }

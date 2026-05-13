@@ -10,6 +10,7 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.local.LocalFilePlugin
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import com.zili.android.musicfreeandroid.plugin.runtime.PluginAppVersionGate
+import com.zili.android.musicfreeandroid.plugin.runtime.PluginErrorReason
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -28,7 +29,7 @@ class PluginManagerUpdateFlowTest {
     @get:Rule
     val tempFolder = TemporaryFolder()
 
-    private fun createManager(): PluginManager {
+    private fun createManager(skipPluginVersionCheck: Boolean = false): PluginManager {
         val context = mock<Context>()
         whenever(context.filesDir).thenReturn(tempFolder.root)
         val pluginMetaStore = mock<PluginMetaStore>()
@@ -37,6 +38,7 @@ class PluginManagerUpdateFlowTest {
         whenever(pluginMetaStore.pluginOrder).thenReturn(flowOf(emptyList()))
         val appPreferences = mock<AppPreferences>()
         whenever(appPreferences.lazyLoadPlugins).thenReturn(flowOf(false))
+        whenever(appPreferences.skipPluginVersionCheck).thenReturn(flowOf(skipPluginVersionCheck))
         return PluginManager(
             context,
             pluginMetaStore,
@@ -89,6 +91,40 @@ class PluginManagerUpdateFlowTest {
     }
 
     @Test
+    fun `app version gate rejects mismatched version when skip setting is disabled`() = runTest {
+        val manager = createManager(skipPluginVersionCheck = false)
+
+        val rejection = manager.evaluateAppVersionGate(
+            plugin = plugin(
+                platform = "future-only",
+                supportedSearchType = listOf("music"),
+                appVersion = ">=99.0.0",
+            ),
+            operation = "appversion_gate",
+            fileName = "future-only.js",
+        )
+
+        assertEquals(PluginErrorReason.VersionNotMatch, rejection?.reason)
+    }
+
+    @Test
+    fun `app version gate is skipped when skip setting is enabled`() = runTest {
+        val manager = createManager(skipPluginVersionCheck = true)
+
+        val rejection = manager.evaluateAppVersionGate(
+            plugin = plugin(
+                platform = "future-only",
+                supportedSearchType = listOf("music"),
+                appVersion = ">=99.0.0",
+            ),
+            operation = "appversion_gate",
+            fileName = "future-only.js",
+        )
+
+        assertEquals(null, rejection)
+    }
+
+    @Test
     fun `getLyricSearchablePlugins includes lyric and legacy plugins`() = runTest {
         val manager = createManager()
         manager.setLoadedPluginsForTest(
@@ -116,6 +152,7 @@ class PluginManagerUpdateFlowTest {
         platform: String,
         supportedSearchType: List<String>,
         supportedSearchTypeDeclared: Boolean = supportedSearchType.isNotEmpty(),
+        appVersion: String? = null,
     ): LoadedPlugin {
         val plugin = mock<LoadedPlugin>()
         whenever(plugin.info).thenReturn(
@@ -127,6 +164,7 @@ class PluginManagerUpdateFlowTest {
                 srcUrl = null,
                 supportedSearchType = supportedSearchType,
                 supportedSearchTypeDeclared = supportedSearchTypeDeclared,
+                appVersion = appVersion,
             ),
         )
         return plugin

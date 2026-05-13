@@ -281,6 +281,7 @@ class PluginStateMachineTest {
         whenever(metaStore.getUserVariables(any())).thenReturn(flowOf(emptyMap()))
         val appPreferences = mock<AppPreferences>()
         whenever(appPreferences.lazyLoadPlugins).thenReturn(flowOf(false))
+        whenever(appPreferences.skipPluginVersionCheck).thenReturn(flowOf(false))
         return PluginManager(
             context,
             metaStore,

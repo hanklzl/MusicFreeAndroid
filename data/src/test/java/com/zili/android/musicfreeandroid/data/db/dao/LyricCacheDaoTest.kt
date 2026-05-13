@@ -39,6 +39,16 @@ class LyricCacheDaoTest {
         assertNotNull(dao.getByKey("kugou", "3"))
     }
 
+    @Test fun `deleteAll removes every row`() = runTest {
+        dao.upsert(makeEntity(id = "1", platform = "kuwo"))
+        dao.upsert(makeEntity(id = "2", platform = "kugou"))
+
+        dao.deleteAll()
+
+        assertNull(dao.getByKey("kuwo", "1"))
+        assertNull(dao.getByKey("kugou", "2"))
+    }
+
     private fun makeEntity(id: String, platform: String): LyricCacheEntity = LyricCacheEntity(
         musicId = id,
         musicPlatform = platform,

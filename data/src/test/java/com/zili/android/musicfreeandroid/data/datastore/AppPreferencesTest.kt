@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
+import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
 import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
@@ -200,6 +201,17 @@ class AppPreferencesTest {
         assertEquals(PlayQuality.STANDARD, prefs.defaultPlayQuality.first())
         assertEquals(QualityFallbackOrder.Asc, prefs.playQualityOrder.first())
         assertFalse(prefs.useCellularPlay.first())
+        assertFalse(prefs.allowConcurrentPlayback.first())
+        assertFalse(prefs.autoPlayWhenAppStart.first())
+        assertFalse(prefs.tryChangeSourceWhenPlayFail.first())
+        assertFalse(prefs.autoStopWhenError.first())
+        assertEquals(AudioInterruptionAction.Pause, prefs.audioInterruptionAction.first())
+        assertEquals(0.5f, prefs.audioInterruptionDuckVolume.first())
+        assertEquals(512L * 1024L * 1024L, prefs.maxMusicCacheSizeBytes.first())
+        assertFalse(prefs.autoUpdatePlugins.first())
+        assertFalse(prefs.skipPluginVersionCheck.first())
+        assertFalse(prefs.lazyLoadPlugins.first())
+        assertEquals(0L, prefs.pluginAutoUpdateLastAtEpochMs.first())
     }
 
     @Test
@@ -213,6 +225,17 @@ class AppPreferencesTest {
         prefs.setDefaultPlayQuality(PlayQuality.SUPER)
         prefs.setPlayQualityOrder(QualityFallbackOrder.Desc)
         prefs.setUseCellularPlay(true)
+        prefs.setAllowConcurrentPlayback(true)
+        prefs.setAutoPlayWhenAppStart(true)
+        prefs.setTryChangeSourceWhenPlayFail(true)
+        prefs.setAutoStopWhenError(true)
+        prefs.setAudioInterruptionAction(AudioInterruptionAction.LowerVolume)
+        prefs.setAudioInterruptionDuckVolume(0.8f)
+        prefs.setMaxMusicCacheSizeBytes(1024L * 1024L * 1024L)
+        prefs.setAutoUpdatePlugins(true)
+        prefs.setSkipPluginVersionCheck(true)
+        prefs.setLazyLoadPlugins(true)
+        prefs.setPluginAutoUpdateLastAtEpochMs(1234L)
 
         assertEquals(100, prefs.maxSearchHistoryLength.first())
         assertEquals(MusicDetailDefaultPage.Lyric, prefs.musicDetailDefaultPage.first())
@@ -223,6 +246,32 @@ class AppPreferencesTest {
         assertEquals(PlayQuality.SUPER, prefs.defaultPlayQuality.first())
         assertEquals(QualityFallbackOrder.Desc, prefs.playQualityOrder.first())
         assertTrue(prefs.useCellularPlay.first())
+        assertTrue(prefs.allowConcurrentPlayback.first())
+        assertTrue(prefs.autoPlayWhenAppStart.first())
+        assertTrue(prefs.tryChangeSourceWhenPlayFail.first())
+        assertTrue(prefs.autoStopWhenError.first())
+        assertEquals(AudioInterruptionAction.LowerVolume, prefs.audioInterruptionAction.first())
+        assertEquals(0.8f, prefs.audioInterruptionDuckVolume.first())
+        assertEquals(1024L * 1024L * 1024L, prefs.maxMusicCacheSizeBytes.first())
+        assertTrue(prefs.autoUpdatePlugins.first())
+        assertTrue(prefs.skipPluginVersionCheck.first())
+        assertTrue(prefs.lazyLoadPlugins.first())
+        assertEquals(1234L, prefs.pluginAutoUpdateLastAtEpochMs.first())
+    }
+
+    @Test
+    fun `cache and duck volume settings coerce to supported range`() = testScope.runTest {
+        prefs.setMaxMusicCacheSizeBytes(10L * 1024L * 1024L)
+        assertEquals(100L * 1024L * 1024L, prefs.maxMusicCacheSizeBytes.first())
+
+        prefs.setMaxMusicCacheSizeBytes(9000L * 1024L * 1024L)
+        assertEquals(8192L * 1024L * 1024L, prefs.maxMusicCacheSizeBytes.first())
+
+        prefs.setAudioInterruptionDuckVolume(2f)
+        assertEquals(1f, prefs.audioInterruptionDuckVolume.first())
+
+        prefs.setAudioInterruptionDuckVolume(0f)
+        assertEquals(0.1f, prefs.audioInterruptionDuckVolume.first())
     }
 
     @Test
