@@ -639,6 +639,7 @@ private fun MediaResultItem(
             .fillMaxWidth()
             .height(rpx(120))
             .clickable(onClick = onClick)
+            .testTag(FidelityAnchors.Search.ResultMediaRow)
             .padding(horizontal = rpx(24)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -690,7 +691,8 @@ private fun SheetResultItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .testTag(FidelityAnchors.Search.ResultSheetItem),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CoverImage(
@@ -732,6 +734,7 @@ private fun MusicResultItem(
             .fillMaxWidth()
             .height(rpx(120))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .testTag(FidelityAnchors.Search.ResultMusicRow)
             .padding(horizontal = rpx(24)),
         verticalAlignment = Alignment.CenterVertically,
     ) {

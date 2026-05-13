@@ -58,7 +58,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -67,6 +70,7 @@ import com.zili.android.musicfreeandroid.core.R as CoreR
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
+import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.feature.settings.components.SettingSectionCard
 import com.zili.android.musicfreeandroid.feature.settings.components.SettingSwitchRow
@@ -128,7 +132,9 @@ fun PluginListScreen(
     MusicFreeScreenScaffold(
         title = "插件管理",
         onBack = onBack,
-        modifier = modifier,
+        modifier = modifier
+            .testTag(FidelityAnchors.Screen.PluginListRoot)
+            .semantics { testTagsAsResourceId = true },
         actions = {
             Box {
                 IconButton(onClick = { showMenu = true }) {

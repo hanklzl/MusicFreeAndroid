@@ -163,6 +163,7 @@ private fun TopListItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .testTag(FidelityAnchors.TopList.Item)
             .padding(horizontal = rpx(24), vertical = rpx(14)),
         verticalAlignment = Alignment.CenterVertically,
     ) {

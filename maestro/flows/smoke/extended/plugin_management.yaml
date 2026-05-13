@@ -1,0 +1,55 @@
+appId: com.zili.android.musicfreeandroid.debug
+name: smoke_extended_plugin_management
+tags:
+  - smoke
+  - extended
+  - plugin
+---
+- launchApp:
+    stopApp: true
+- tapOn:
+    text: "允许|Allow|Allow notifications"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: ".*home\\.navBar\\.menu"
+    timeout: 30000
+- tapOn:
+    id: ".*home\\.navBar\\.menu"
+    retryTapIfNoChange: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: ".*home\\.drawer\\.settings\\.plugin"
+    timeout: 15000
+- tapOn:
+    id: ".*home\\.drawer\\.settings\\.plugin"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: ".*settings\\.pluginManagement\\.entry"
+    timeout: 15000
+- tapOn:
+    text: "进入"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: ".*screen\\.pluginList\\.root"
+    timeout: 15000
+- tapOn:
+    text: "更多"
+    retryTapIfNoChange: true
+- assertVisible: "订阅设置"
+- assertVisible: "排序"
+- assertVisible: "卸载全部"
+- back
+- tapOn:
+    text: "安装插件"
+    retryTapIfNoChange: true
+- assertVisible: "从本地安装"
+- assertVisible: "从网络安装"
+- assertVisible: "更新全部插件"
+- assertVisible: "更新订阅"
+- back
+- takeScreenshot: smoke_extended_plugin_management

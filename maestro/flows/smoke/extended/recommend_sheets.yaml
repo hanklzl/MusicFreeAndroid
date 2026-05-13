@@ -1,0 +1,36 @@
+appId: com.zili.android.musicfreeandroid.debug
+name: smoke_extended_recommend_sheets
+tags:
+  - smoke
+  - extended
+  - recommend
+---
+- launchApp:
+    stopApp: true
+- tapOn:
+    text: "允许|Allow|Allow notifications"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: ".*home\\.operations\\.recommendSheets"
+    timeout: 30000
+- tapOn:
+    id: ".*home\\.operations\\.recommendSheets"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: ".*screen\\.recommendSheets\\.root"
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: ".*recommendSheets\\.item"
+    timeout: 60000
+- tapOn:
+    id: ".*recommendSheets\\.item"
+    index: 0
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      text: "收藏歌单|取消收藏歌单|.*加载歌单失败.*|重试"
+    timeout: 30000
+- takeScreenshot: smoke_extended_recommend_sheets_detail

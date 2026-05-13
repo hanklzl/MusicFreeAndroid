@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
@@ -50,7 +52,8 @@ fun PlayQueueSheetContent(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .testTag(FidelityAnchors.Player.Queue.SheetRoot),
+            .testTag(FidelityAnchors.Player.Queue.SheetRoot)
+            .semantics { testTagsAsResourceId = true },
     ) {
         QueueHeader(
             count = uiModel.count,

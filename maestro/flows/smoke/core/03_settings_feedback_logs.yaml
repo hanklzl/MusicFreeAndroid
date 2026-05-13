@@ -1,0 +1,48 @@
+appId: com.zili.android.musicfreeandroid.debug
+name: smoke_core_settings_feedback_logs
+tags:
+  - smoke
+  - core
+  - settings
+  - feedback
+---
+- launchApp:
+    stopApp: true
+- tapOn:
+    text: "允许|Allow|Allow notifications"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: ".*home\\.navBar\\.menu"
+    timeout: 30000
+- tapOn:
+    id: ".*home\\.navBar\\.menu"
+    retryTapIfNoChange: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: ".*home\\.drawer\\.settings\\.basic"
+    timeout: 15000
+- tapOn:
+    id: ".*home\\.drawer\\.settings\\.basic"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: ".*settings\\.basic\\.root"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "生成日志包并分享"
+    direction: DOWN
+    timeout: 30000
+    centerElement: true
+- tapOn:
+    text: "生成日志包并分享"
+    retryTapIfNoChange: true
+- assertVisible: "分享日志包"
+- assertVisible:
+    text: ".*搜索词、请求地址、插件返回内容以及设备信息.*"
+- tapOn: "取消"
+- assertNotVisible: "分享日志包"
+- takeScreenshot: smoke_core_settings_feedback_logs

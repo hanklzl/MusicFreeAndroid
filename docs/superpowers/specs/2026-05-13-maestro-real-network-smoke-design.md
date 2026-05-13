@@ -117,6 +117,7 @@ com.zili.android.musicfreeandroid.debug
 - `screen.settings.root`
 - `settings.basic.root`
 - `settings.pluginManagement.entry`
+- `player.fullscreen.root`
 - `player.mini.root`
 - `player.mini.queue`
 
@@ -155,7 +156,7 @@ com.zili.android.musicfreeandroid.debug
 3. 点击“搜索”或提交输入法搜索。
 4. 等待搜索结果或错误状态。
 5. 点击首个单曲结果。
-6. 验证 mini player 或播放器页面入口出现。
+6. 验证 `player.fullscreen.root` 出现。
 
 验收重点：
 
@@ -238,9 +239,9 @@ com.zili.android.musicfreeandroid.debug
 
 ### 8.7 `player_queue.yaml`
 
-目的：在已有播放状态时验证 mini player、播放器页和队列入口基础可用。
+目的：通过真实搜索播放建立播放状态，再验证 mini player、播放器页和队列入口基础可用。
 
-前置条件：通常由 `02_search_play.yaml` 成功建立播放状态。脚本在 `--suite all` 时应把该 flow 放在 `02_search_play.yaml` 之后执行；单独执行时文档需说明可能因无播放状态而失败。
+前置条件：设备网络可访问默认插件搜索和音源链路；flow 自行搜索 `jay` 并点击首个单曲。
 
 步骤：
 

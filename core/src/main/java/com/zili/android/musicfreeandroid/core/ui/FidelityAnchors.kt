@@ -8,6 +8,7 @@ object FidelityAnchors {
         const val TopListRoot = "screen.topList.root"
         const val HistoryRoot = "screen.history.root"
         const val SettingsRoot = "screen.settings.root"
+        const val PluginListRoot = "screen.pluginList.root"
         const val PermissionsRoot = "screen.permissions.root"
         const val LocalRoot = "screen.local.root"
     }
@@ -46,13 +47,25 @@ object FidelityAnchors {
 
     object Search {
         const val Input = "search.input"
+        const val ResultMusicRow = "search.result.musicRow"
+        const val ResultMediaRow = "search.result.mediaRow"
+        const val ResultSheetItem = "search.result.sheetItem"
     }
 
     object SearchMusicList {
         const val Input = "searchMusicList.input"
     }
 
+    object RecommendSheets {
+        const val Item = "recommendSheets.item"
+    }
+
+    object TopList {
+        const val Item = "topList.item"
+    }
+
     object Player {
+        const val FullscreenRoot = "player.fullscreen.root"
         const val MiniRoot = "player.mini.root"
         const val MiniPlayPause = "player.mini.playPause"
         const val MiniQueue = "player.mini.queue"

@@ -1,0 +1,70 @@
+appId: com.zili.android.musicfreeandroid.debug
+name: smoke_extended_player_queue
+tags:
+  - smoke
+  - extended
+  - player
+  - queue
+---
+- launchApp:
+    stopApp: true
+- tapOn:
+    text: "允许|Allow|Allow notifications"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: ".*home\\.navBar\\.search"
+    timeout: 30000
+- tapOn:
+    id: ".*home\\.navBar\\.search"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: ".*screen\\.search\\.root"
+    timeout: 15000
+- tapOn:
+    id: ".*search\\.input"
+    retryTapIfNoChange: true
+- eraseText
+- inputText: "jay"
+- tapOn:
+    text: "搜索"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: ".*search\\.result\\.musicRow"
+    timeout: 45000
+- tapOn:
+    id: ".*search\\.result\\.musicRow"
+    index: 0
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: ".*player\\.fullscreen\\.root"
+    timeout: 45000
+- back
+- extendedWaitUntil:
+    visible:
+      id: ".*player\\.mini\\.root"
+    timeout: 30000
+- tapOn:
+    id: ".*player\\.mini\\.root"
+    retryTapIfNoChange: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    text: "播放|暂停|列表循环|单曲循环|随机播放|歌词"
+    optional: true
+- back
+- extendedWaitUntil:
+    visible:
+      id: ".*player\\.mini\\.queue"
+    timeout: 15000
+- tapOn:
+    id: ".*player\\.mini\\.queue"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: ".*player\\.queue\\.root"
+    timeout: 15000
+- takeScreenshot: smoke_extended_player_queue

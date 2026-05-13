@@ -1,0 +1,36 @@
+appId: com.zili.android.musicfreeandroid.debug
+name: smoke_extended_top_list_detail
+tags:
+  - smoke
+  - extended
+  - top-list
+---
+- launchApp:
+    stopApp: true
+- tapOn:
+    text: "允许|Allow|Allow notifications"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: ".*home\\.operations\\.topList"
+    timeout: 30000
+- tapOn:
+    id: ".*home\\.operations\\.topList"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: ".*screen\\.topList\\.root"
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: ".*topList\\.item"
+    timeout: 60000
+- tapOn:
+    id: ".*topList\\.item"
+    index: 0
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      text: "详情|加载更多|.*加载榜单失败.*|重试"
+    timeout: 30000
+- takeScreenshot: smoke_extended_top_list_detail

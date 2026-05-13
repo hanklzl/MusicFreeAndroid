@@ -29,6 +29,7 @@ class HomeAnchorContractTest {
             FidelityAnchors.Home.DrawerSettings,
             FidelityAnchors.Home.DrawerPluginManagement,
             FidelityAnchors.Home.DrawerPermissions,
+            FidelityAnchors.Player.FullscreenRoot,
             FidelityAnchors.Player.MiniRoot,
             FidelityAnchors.Player.MiniPlayPause,
             FidelityAnchors.Player.MiniQueue,
@@ -59,6 +60,12 @@ class HomeAnchorContractTest {
             FidelityAnchors.Settings.ThemeEntry,
             FidelityAnchors.Settings.BackupEntry,
             FidelityAnchors.Settings.AboutEntry,
+            FidelityAnchors.Screen.PluginListRoot,
+            FidelityAnchors.Search.ResultMusicRow,
+            FidelityAnchors.Search.ResultMediaRow,
+            FidelityAnchors.Search.ResultSheetItem,
+            FidelityAnchors.RecommendSheets.Item,
+            FidelityAnchors.TopList.Item,
         )
 
         assertEquals(anchors.size, anchors.toSet().size)

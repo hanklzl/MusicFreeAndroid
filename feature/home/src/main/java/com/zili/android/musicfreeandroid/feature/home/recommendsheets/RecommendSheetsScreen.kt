@@ -184,7 +184,9 @@ private fun RecommendSheetGridItem(
     onClick: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .testTag(FidelityAnchors.RecommendSheets.Item),
     ) {
         BoxWithConstraints(
             modifier = Modifier

@@ -63,6 +63,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -77,6 +78,7 @@ import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
+import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
 import com.zili.android.musicfreeandroid.feature.playerui.component.quality.MusicQualitySheet
 import com.zili.android.musicfreeandroid.feature.playerui.component.quality.MusicQualitySheetMode
@@ -164,7 +166,12 @@ fun PlayerScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(FidelityAnchors.Player.FullscreenRoot)
+            .semantics { testTagsAsResourceId = true },
+    ) {
         // Layer 1: 纯黑背景
         Box(
             modifier = Modifier
