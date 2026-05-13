@@ -9,7 +9,6 @@ import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
-import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,7 +47,7 @@ class MusicListEditorLiteViewModelTest {
         Dispatchers.setMain(testDispatcher)
         whenever(appPreferences.defaultDownloadQuality).thenReturn(flowOf(PlayQuality.HIGH))
         whenever(playlistRepository.observeAllPlaylists()).thenReturn(MutableStateFlow(emptyList()))
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+        whenever(musicRepository.observeLocalLibrary())
             .thenReturn(MutableStateFlow(emptyList()))
     }
 
@@ -311,10 +310,10 @@ class MusicListEditorLiteViewModelTest {
     @Test
     fun `local library route loads persisted local music with local title`() = runTest {
         val items = listOf(
-            track(id = "1", platform = LocalMusicScanner.PLATFORM_LOCAL),
-            track(id = "2", platform = LocalMusicScanner.PLATFORM_LOCAL),
+            track(id = "1", platform = "plugin-a"),
+            track(id = "2", platform = "plugin-b"),
         )
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+        whenever(musicRepository.observeLocalLibrary())
             .thenReturn(MutableStateFlow(items))
         whenever(playlistRepository.observeAllPlaylists()).thenReturn(
             MutableStateFlow(
@@ -331,17 +330,17 @@ class MusicListEditorLiteViewModelTest {
             listOf("playlist-2"),
             viewModel.uiState.value.availableTargetPlaylists.map { it.id },
         )
-        verify(musicRepository).observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)
+        verify(musicRepository).observeLocalLibrary()
         verify(playlistRepository, never()).observeMusicInPlaylist("local")
     }
 
     @Test
     fun `local library save deletes removed items from music repository`() = runTest {
         val items = listOf(
-            track(id = "1", platform = LocalMusicScanner.PLATFORM_LOCAL),
-            track(id = "2", platform = LocalMusicScanner.PLATFORM_LOCAL),
+            track(id = "1", platform = "plugin-a"),
+            track(id = "2", platform = "plugin-b"),
         )
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+        whenever(musicRepository.observeLocalLibrary())
             .thenReturn(MutableStateFlow(items))
 
         val viewModel = createLocalLibraryViewModel()
@@ -352,7 +351,7 @@ class MusicListEditorLiteViewModelTest {
         viewModel.saveChanges()
         advanceUntilIdle()
 
-        verify(musicRepository).delete(items[0])
+        verify(musicRepository).removeFromLocalLibrary(items[0])
         verify(playlistRepository, never()).removeMusicFromPlaylist("local", items[0])
         assertEquals(listOf(items[1]), viewModel.uiState.value.items)
         assertFalse(viewModel.uiState.value.hasPendingChanges)

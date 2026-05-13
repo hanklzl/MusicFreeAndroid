@@ -14,7 +14,6 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
-import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
@@ -83,7 +82,7 @@ class SearchMusicListScreenFocusTest {
     private fun createViewModel(): SearchMusicListViewModel {
         val playerController = mock<PlayerController>()
         val musicRepository = mock<MusicRepository>()
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+        whenever(musicRepository.observeLocalLibrary())
             .thenReturn(MutableStateFlow(emptyList()))
         return SearchMusicListViewModel(
             route = SearchMusicListRoute.localLibrary(),

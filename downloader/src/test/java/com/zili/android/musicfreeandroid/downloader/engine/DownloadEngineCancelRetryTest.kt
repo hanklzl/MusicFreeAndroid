@@ -7,6 +7,8 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
+import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.downloader.io.NetworkState
 import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
 import com.zili.android.musicfreeandroid.downloader.model.MediaKey
@@ -36,6 +38,8 @@ class DownloadEngineCancelRetryTest {
     private lateinit var http: FakeHttpDownloader
     private lateinit var writer: FakeMediaStoreWriter
     private lateinit var resolver: FakeQualityResolver
+    private lateinit var converters: Converters
+    private lateinit var musicRepository: MusicRepository
 
     @Before fun setup() {
         val syncExec = Executor { it.run() }
@@ -43,9 +47,12 @@ class DownloadEngineCancelRetryTest {
             ApplicationProvider.getApplicationContext(), AppDatabase::class.java,
         ).allowMainThreadQueries().setQueryExecutor(syncExec).setTransactionExecutor(syncExec).build()
         http = FakeHttpDownloader(); writer = FakeMediaStoreWriter(); resolver = FakeQualityResolver()
+        converters = Converters()
+        musicRepository = MusicRepository(db, db.musicDao(), converters)
         engine = DownloadEngine(
             taskDao = db.downloadTaskDao(), downloadedDao = db.downloadedTrackDao(),
             http = http, writer = writer.asWriter(), resolver = resolver::resolve,
+            converters = converters, musicRepository = musicRepository,
             configFlow = MutableStateFlow(
                 DownloadConfig(1, false, PlayQuality.STANDARD, QualityFallbackOrder.Asc, "Music/MusicFree/"),
             ),

@@ -38,6 +38,17 @@ interface MusicDao {
     @Query("SELECT * FROM music_items WHERE platform = :platform ORDER BY title ASC")
     fun observeByPlatform(platform: String): Flow<List<MusicItemEntity>>
 
+    @Query(
+        """
+    SELECT DISTINCT m.* FROM music_items m
+    LEFT JOIN downloaded_tracks d
+      ON d.id = m.id AND d.platform = m.platform
+    WHERE m.platform = :localPlatform OR d.id IS NOT NULL
+    ORDER BY m.title ASC, m.platform ASC, m.id ASC
+    """
+    )
+    fun observeLocalLibrary(localPlatform: String): Flow<List<MusicItemEntity>>
+
     @Query("SELECT * FROM music_items ORDER BY title ASC")
     fun observeAll(): Flow<List<MusicItemEntity>>
 

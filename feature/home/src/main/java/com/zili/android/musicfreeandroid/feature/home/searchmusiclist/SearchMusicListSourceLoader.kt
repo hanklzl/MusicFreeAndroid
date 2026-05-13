@@ -6,7 +6,6 @@ import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.feature.home.collection.CollectionSource
 import com.zili.android.musicfreeandroid.feature.home.collection.toCollectionSource
-import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -22,7 +21,7 @@ class SearchMusicListSourceLoader @Inject constructor(
     fun observe(source: CollectionSource): Flow<List<MusicItem>> =
         when (source) {
             CollectionSource.History -> playerController.playHistory
-            CollectionSource.LocalLibrary -> musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)
+            CollectionSource.LocalLibrary -> musicRepository.observeLocalLibrary()
             is CollectionSource.Playlist -> playlistRepository.observeMusicInPlaylist(source.playlistId)
             is CollectionSource.Transient -> flowOf(emptyList())
         }

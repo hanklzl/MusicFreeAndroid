@@ -22,6 +22,7 @@ class ConvertersTest {
             duration = 123_000L,
             url = "https://example.test/song.mp3",
             artwork = "https://example.test/art.jpg",
+            localPath = "content://media/external/audio/media/42",
             qualities = mapOf(
                 PlayQuality.STANDARD to QualityInfo(
                     url = "https://example.test/std.mp3",
@@ -46,6 +47,7 @@ class ConvertersTest {
         assertEquals(item.duration, restored?.duration)
         assertEquals(item.url, restored?.url)
         assertEquals(item.artwork, restored?.artwork)
+        assertEquals(item.localPath, restored?.localPath)
         assertEquals(item.qualities, restored?.qualities)
         assertEquals(item.raw, restored?.raw)
         assertEquals(item.addedAt, restored?.addedAt)
@@ -76,6 +78,40 @@ class ConvertersTest {
         assertNull(restored?.album)
         assertNull(restored?.url)
         assertNull(restored?.artwork)
+        assertNull(restored?.qualities)
+    }
+
+    @Test
+    fun jsonToMusicItemHandlesLegacyJsonWithoutLocalPath() {
+        val legacyJson = """
+            {
+                "id":"legacy-1",
+                "platform":"demo",
+                "title":"Legacy Song",
+                "artist":"Legacy Artist",
+                "album":"Legacy Album",
+                "duration":180000,
+                "url":"https://example.test/legacy.mp3",
+                "artwork":"https://example.test/legacy.jpg",
+                "qualities":null,
+                "raw":{"origin":"plugin"},
+                "addedAt":321
+            }
+        """.trimIndent()
+
+        val restored = converters.jsonToMusicItem(legacyJson)
+
+        assertEquals("legacy-1", restored?.id)
+        assertEquals("demo", restored?.platform)
+        assertEquals("Legacy Song", restored?.title)
+        assertEquals("Legacy Artist", restored?.artist)
+        assertEquals("Legacy Album", restored?.album)
+        assertEquals(180000L, restored?.duration)
+        assertEquals("https://example.test/legacy.mp3", restored?.url)
+        assertEquals("https://example.test/legacy.jpg", restored?.artwork)
+        assertEquals(null, restored?.localPath)
+        assertEquals(mapOf("origin" to "plugin"), restored?.raw)
+        assertEquals(321L, restored?.addedAt)
         assertNull(restored?.qualities)
     }
 }

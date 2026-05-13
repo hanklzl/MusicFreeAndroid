@@ -4,7 +4,6 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
-import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,7 +43,7 @@ class SearchMusicListViewModelTest {
 
     @Test
     fun `initial autofocus request is consumed once per view model instance`() {
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+        whenever(musicRepository.observeLocalLibrary())
             .thenReturn(MutableStateFlow(emptyList()))
         val viewModel = SearchMusicListViewModel(
             route = SearchMusicListRoute.localLibrary(),

@@ -5,7 +5,6 @@ import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.feature.home.collection.CollectionSource
-import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,9 +51,9 @@ class SearchMusicListSourceLoaderTest {
     }
 
     @Test
-    fun `local library source loads persisted local music from repository`() = runTest {
-        val localItems = listOf(track(id = "local-song", platform = LocalMusicScanner.PLATFORM_LOCAL))
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+    fun `local library source uses unified local library repository`() = runTest {
+        val localItems = listOf(track(id = "local-song", platform = "plugin-platform"))
+        whenever(musicRepository.observeLocalLibrary())
             .thenReturn(flowOf(localItems))
 
         val loader = SearchMusicListSourceLoader(playlistRepository, playerController, musicRepository)
@@ -62,7 +61,7 @@ class SearchMusicListSourceLoaderTest {
         val actual = loader.observe(CollectionSource.LocalLibrary).first()
 
         assertEquals(localItems, actual)
-        verify(musicRepository).observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)
+        verify(musicRepository).observeLocalLibrary()
     }
 
     @Test

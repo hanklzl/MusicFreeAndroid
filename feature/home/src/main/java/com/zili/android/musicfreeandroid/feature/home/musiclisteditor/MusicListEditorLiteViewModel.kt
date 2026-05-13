@@ -11,7 +11,6 @@ import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
-import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.LogFields
 import com.zili.android.musicfreeandroid.logging.MfLog
@@ -86,7 +85,7 @@ class MusicListEditorLiteViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val sourceItems = if (isLocalLibrary) {
-                musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)
+                musicRepository.observeLocalLibrary()
             } else {
                 playlistRepository.observeMusicInPlaylist(playlistId)
             }
@@ -165,7 +164,7 @@ class MusicListEditorLiteViewModel @Inject constructor(
             ) {
                 removedItems.forEach { item ->
                     if (isLocalLibrary) {
-                        musicRepository.delete(item)
+                        musicRepository.removeFromLocalLibrary(item)
                     } else {
                         playlistRepository.removeMusicFromPlaylist(playlistId, item)
                     }

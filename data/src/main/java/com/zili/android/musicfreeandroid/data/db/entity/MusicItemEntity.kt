@@ -14,4 +14,5 @@ data class MusicItemEntity(
     val artwork: String?,
     val qualitiesJson: String?,
     val rawJson: String? = null,
+    val localPath: String? = null,
 )

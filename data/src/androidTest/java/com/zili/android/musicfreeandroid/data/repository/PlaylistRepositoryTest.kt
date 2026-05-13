@@ -42,7 +42,7 @@ class PlaylistRepositoryTest {
         val converters = Converters()
         val coverStore = PlaylistCoverStore(ctx)
         playlistRepo = PlaylistRepository(db, db.playlistDao(), db.musicDao(), coverStore, converters)
-        musicRepo = MusicRepository(db.musicDao(), converters)
+        musicRepo = MusicRepository(db, db.musicDao(), converters)
     }
 
     @After

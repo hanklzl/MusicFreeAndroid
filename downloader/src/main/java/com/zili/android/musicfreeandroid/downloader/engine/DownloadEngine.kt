@@ -6,6 +6,7 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
+import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.entity.DownloadTaskEntity
 import com.zili.android.musicfreeandroid.data.db.entity.DownloadedTrackEntity
 import com.zili.android.musicfreeandroid.downloader.io.HttpDownloadException
@@ -17,6 +18,10 @@ import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
 import com.zili.android.musicfreeandroid.downloader.model.MediaKey
 import com.zili.android.musicfreeandroid.downloader.prefs.DownloadConfig
 import com.zili.android.musicfreeandroid.downloader.quality.QualityFallback
+import com.zili.android.musicfreeandroid.data.repository.MusicRepository
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.LogFields
+import com.zili.android.musicfreeandroid.logging.MfLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +54,8 @@ class DownloadEngine(
     private val http: HttpDownloader,
     private val writer: suspend (cacheFile: File, displayName: String, mime: String, relPath: String, size: Long) -> Uri,
     private val resolver: suspend (MusicItem, qualityWire: String) -> MediaSourceResult?,
+    private val converters: Converters,
+    private val musicRepository: MusicRepository,
     private val configFlow: StateFlow<DownloadConfig>,
     private val networkFlow: StateFlow<NetworkState>,
     private val cacheDir: File,
@@ -130,6 +137,7 @@ class DownloadEngine(
                     targetQuality = effectiveQuality.name.lowercase(),
                     status = DownloadStatus.PENDING.name, errorReason = null,
                     seedUrl = item.url,
+                    musicItemJson = converters.musicItemToJson(item),
                     resolvedUrl = null, resolvedHeadersJson = null,
                     fileSize = null, downloadedSize = null,
                     createdAt = now, updatedAt = now,
@@ -155,7 +163,7 @@ class DownloadEngine(
     }
 
     private suspend fun runOne(task: DownloadTaskEntity, key: MediaKey) {
-        val musicItem = task.toMusicItemSeed()
+        val musicItem = task.toMusicItemSeed(converters)
         val targetQuality = runCatching {
             PlayQuality.valueOf(task.targetQuality.uppercase())
         }.getOrDefault(PlayQuality.STANDARD)
@@ -208,15 +216,54 @@ class DownloadEngine(
             val size = cacheFile.length()
             withContext(NonCancellable) {
                 val uri = writer(cacheFile, displayName, mime, relPath, size)
-                downloadedDao.insert(
-                    DownloadedTrackEntity(
-                        id = task.id, platform = task.platform,
-                        mediaStoreUri = uri.toString(), relativePath = relPath,
-                        mimeType = mime, quality = task.targetQuality,
-                        sizeBytes = size, downloadedAt = System.currentTimeMillis(),
-                    ),
+                val downloaded = DownloadedTrackEntity(
+                    id = task.id, platform = task.platform,
+                    mediaStoreUri = uri.toString(), relativePath = relPath,
+                    mimeType = mime, quality = task.targetQuality,
+                    sizeBytes = size, downloadedAt = System.currentTimeMillis(),
                 )
-                taskDao.deleteByKey(task.id, task.platform)
+                val localWriteStartedAt = System.nanoTime()
+                val localWriteFields = downloadLocalLibraryWriteFields(musicItem, downloaded)
+                MfLog.detail(
+                    category = LogCategory.DOWNLOAD,
+                    event = "download_local_library_write_start",
+                    fields = localWriteFields,
+                )
+                try {
+                    musicRepository.commitDownloadedTrack(musicItem, downloaded)
+                    taskDao.deleteByKey(task.id, task.platform)
+                    MfLog.detail(
+                        category = LogCategory.DOWNLOAD,
+                        event = "download_local_library_write_success",
+                        fields = localWriteFields + mapOf(
+                            "durationMs" to elapsedMs(localWriteStartedAt),
+                            "result" to LogFields.Result.SUCCESS,
+                        ),
+                    )
+                } catch (e: CancellationException) {
+                    MfLog.detail(
+                        category = LogCategory.DOWNLOAD,
+                        event = "download_local_library_write_cancelled",
+                        fields = localWriteFields + mapOf(
+                            "durationMs" to elapsedMs(localWriteStartedAt),
+                            "result" to LogFields.Result.CANCELLED,
+                            "reason" to LogFields.Reason.CANCELLED,
+                        ),
+                    )
+                    throw e
+                } catch (t: Throwable) {
+                    MfLog.error(
+                        category = LogCategory.DOWNLOAD,
+                        event = "download_local_library_write_failed",
+                        throwable = t,
+                        fields = localWriteFields + mapOf(
+                            "durationMs" to elapsedMs(localWriteStartedAt),
+                            "result" to LogFields.Result.FAILURE,
+                            "reason" to "exception",
+                        ),
+                    )
+                    throw t
+                }
             }
             progressCache.remove(key)
             _events.tryEmit(DownloadEvent.Completed(key))
@@ -293,10 +340,26 @@ private fun DownloadTaskEntity.toUi(progress: Pair<Long?, Long?>?): DownloadTask
     errorReason = errorReason?.let { runCatching { DownloadFailReason.valueOf(it) }.getOrNull() },
 )
 
-private fun DownloadTaskEntity.toMusicItemSeed(): MusicItem = MusicItem(
-    id = id, platform = platform, title = title, artist = artist,
-    album = album, duration = durationMs, url = seedUrl, artwork = artwork, qualities = null,
+private fun DownloadTaskEntity.toMusicItemSeed(converters: Converters): MusicItem =
+    runCatching { converters.jsonToMusicItem(musicItemJson) }.getOrNull() ?: MusicItem(
+        id = id, platform = platform, title = title, artist = artist,
+        album = album, duration = durationMs, url = seedUrl, artwork = artwork, qualities = null,
+    )
+
+private fun downloadLocalLibraryWriteFields(
+    item: MusicItem,
+    downloaded: DownloadedTrackEntity,
+): Map<String, Any?> = mapOf(
+    "operation" to "download_local_library_write",
+    "itemId" to item.id,
+    "itemName" to item.title,
+    "platform" to item.platform,
+    "quality" to downloaded.quality,
+    "pathType" to "mediastore",
+    "sizeBytes" to downloaded.sizeBytes,
 )
+
+private fun elapsedMs(startedAt: Long): Long = (System.nanoTime() - startedAt) / 1_000_000
 
 sealed interface DownloadEvent {
     data class Completed(val key: MediaKey) : DownloadEvent

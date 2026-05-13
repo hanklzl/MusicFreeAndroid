@@ -21,4 +21,5 @@ data class DownloadTaskEntity(
     val downloadedSize: Long?,
     val createdAt: Long,
     val updatedAt: Long,
+    val musicItemJson: String? = null,
 )

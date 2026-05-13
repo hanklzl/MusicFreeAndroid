@@ -48,7 +48,7 @@ class LocalMusicViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+        whenever(musicRepository.observeLocalLibrary())
             .thenReturn(MutableStateFlow(emptyList()))
         whenever(appPreferences.defaultDownloadQuality).thenReturn(flowOf(PlayQuality.STANDARD))
         whenever(appPreferences.storageDirectoryUri).thenReturn(flowOf(null))
@@ -64,7 +64,7 @@ class LocalMusicViewModelTest {
     @Test
     fun `items come from persisted local repository`() = runTest(testDispatcher) {
         val items = listOf(track("1"))
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+        whenever(musicRepository.observeLocalLibrary())
             .thenReturn(MutableStateFlow(items))
 
         val viewModel = createViewModel()
@@ -73,7 +73,7 @@ class LocalMusicViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state is LocalMusicUiState.Success)
         assertEquals(items, (state as LocalMusicUiState.Success).musicItems)
-        verify(musicRepository).observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)
+        verify(musicRepository).observeLocalLibrary()
     }
 
     @Test
@@ -138,7 +138,7 @@ class LocalMusicViewModelTest {
     fun `repository emissions do not clear scan errors`() = runTest(testDispatcher) {
         val repositoryItems = MutableStateFlow(emptyList<MusicItem>())
         val treeUri = "content://com.android.externalstorage.documents/tree/primary%3ABroken"
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+        whenever(musicRepository.observeLocalLibrary())
             .thenReturn(repositoryItems)
         whenever(scanner.scan(treeUri)).thenThrow(IllegalStateException("扫描失败"))
 
@@ -176,7 +176,7 @@ class LocalMusicViewModelTest {
     fun `scanLocalMusic exits Loading when scanner emits empty list without repository update`() = runTest(testDispatcher) {
         val treeUri = "content://com.android.externalstorage.documents/tree/primary%3AEmpty"
         val repositoryItems = MutableStateFlow(emptyList<MusicItem>())
-        whenever(musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL))
+        whenever(musicRepository.observeLocalLibrary())
             .thenReturn(repositoryItems)
         whenever(scanner.scan(treeUri)).thenReturn(flowOf(emptyList()))
 
@@ -192,14 +192,14 @@ class LocalMusicViewModelTest {
     }
 
     @Test
-    fun `removeFromLocalLibrary deletes persisted item`() = runTest(testDispatcher) {
+    fun `removeFromLocalLibrary uses unified repository removal`() = runTest(testDispatcher) {
         val item = track("1")
 
         val viewModel = createViewModel()
         viewModel.removeFromLocalLibrary(item)
         advanceUntilIdle()
 
-        verify(musicRepository).delete(item)
+        verify(musicRepository).removeFromLocalLibrary(item)
     }
 
     @Test

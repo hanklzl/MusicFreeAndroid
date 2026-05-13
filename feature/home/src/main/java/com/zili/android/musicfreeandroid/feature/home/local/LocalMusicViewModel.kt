@@ -54,7 +54,7 @@ class LocalMusicViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            musicRepository.observeByPlatform(LocalMusicScanner.PLATFORM_LOCAL)
+            musicRepository.observeLocalLibrary()
                 .catch { e ->
                     _uiState.value = LocalMusicUiState.Error(e.message ?: "加载失败")
                 }
@@ -208,7 +208,7 @@ class LocalMusicViewModel @Inject constructor(
             val flowId = newFlowId("remove_local_item")
             val startedAt = System.nanoTime()
             try {
-                musicRepository.delete(item)
+                musicRepository.removeFromLocalLibrary(item)
                 MfLog.detail(
                     LogCategory.HOME,
                     "local_music_remove_success",

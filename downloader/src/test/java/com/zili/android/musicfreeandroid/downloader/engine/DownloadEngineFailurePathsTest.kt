@@ -7,6 +7,8 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
+import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.zili.android.musicfreeandroid.data.repository.MusicRepository
 import com.zili.android.musicfreeandroid.downloader.io.NetworkState
 import com.zili.android.musicfreeandroid.downloader.model.DownloadFailReason
 import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
@@ -38,6 +40,8 @@ class DownloadEngineFailurePathsTest {
     private lateinit var configFlow: MutableStateFlow<DownloadConfig>
     private lateinit var network: MutableStateFlow<NetworkState>
     private lateinit var engine: DownloadEngine
+    private lateinit var converters: Converters
+    private lateinit var musicRepository: MusicRepository
 
     @Before fun setup() {
         val syncExec = Executor { it.run() }
@@ -51,6 +55,8 @@ class DownloadEngineFailurePathsTest {
         http = FakeHttpDownloader()
         writer = FakeMediaStoreWriter()
         resolver = FakeQualityResolver()
+        converters = Converters()
+        musicRepository = MusicRepository(db, db.musicDao(), converters)
         configFlow = MutableStateFlow(
             DownloadConfig(2, false, PlayQuality.STANDARD, QualityFallbackOrder.Asc, "Music/MusicFree/"),
         )
@@ -59,6 +65,7 @@ class DownloadEngineFailurePathsTest {
             taskDao = db.downloadTaskDao(),
             downloadedDao = db.downloadedTrackDao(),
             http = http, writer = writer.asWriter(), resolver = resolver::resolve,
+            converters = converters, musicRepository = musicRepository,
             configFlow = configFlow, networkFlow = network,
             cacheDir = createTempDirectory("dlcache").toFile(),
             ioDispatcher = UnconfinedTestDispatcher(),

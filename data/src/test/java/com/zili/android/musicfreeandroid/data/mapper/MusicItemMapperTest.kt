@@ -32,10 +32,33 @@ class MusicItemMapperTest {
                 "nested" to mapOf("token" to "secret", "page" to 3),
                 "flags" to listOf("album", true),
             ),
+            localPath = "content://media/external/audio/media/99",
         )
         val entity = model.toEntity(converters)
         val roundTripped = entity.toModel(converters)
         assertEquals(model, roundTripped)
+    }
+
+    @Test
+    fun `localPath and raw survive entity conversion`() {
+        val item = MusicItem(
+            id = "local-copy",
+            platform = "demo",
+            title = "Downloaded",
+            artist = "Artist",
+            album = "Album",
+            duration = 180_000L,
+            url = "https://example.test/download.mp3",
+            artwork = "https://example.test/cover.jpg",
+            qualities = null,
+            raw = mapOf("origin" to "plugin"),
+            localPath = "content://media/external/audio/media/99",
+        )
+
+        val restored = item.toEntity(converters).toModel(converters)
+
+        assertEquals(item.localPath, restored.localPath)
+        assertEquals(item.raw, restored.raw)
     }
 
     @Test

@@ -50,6 +50,7 @@ class Converters {
         json.put("duration", item.duration)
         json.put("url", item.url ?: JSONObject.NULL)
         json.put("artwork", item.artwork ?: JSONObject.NULL)
+        json.put("localPath", item.localPath ?: JSONObject.NULL)
         json.put("qualities", qualitiesToJson(item.qualities) ?: JSONObject.NULL)
         json.put("raw", rawMapToJsonObject(item.raw))
         json.put("addedAt", item.addedAt)
@@ -69,6 +70,7 @@ class Converters {
             duration = obj.optLong("duration", 0L),
             url = if (obj.isNull("url")) null else obj.getString("url"),
             artwork = if (obj.isNull("artwork")) null else obj.getString("artwork"),
+            localPath = if (obj.isNull("localPath")) null else obj.getString("localPath"),
             qualities = if (obj.isNull("qualities")) null else jsonToQualities(obj.getString("qualities")),
             raw = if (obj.isNull("raw")) emptyMap() else jsonObjectToMap(obj.getJSONObject("raw")),
             addedAt = obj.optLong("addedAt", 0L),

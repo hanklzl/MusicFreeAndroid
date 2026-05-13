@@ -1,13 +1,16 @@
 package com.zili.android.musicfreeandroid.data.repository
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
+import com.zili.android.musicfreeandroid.data.db.entity.DownloadedTrackEntity
 import com.zili.android.musicfreeandroid.data.mapper.toEntity
 import com.zili.android.musicfreeandroid.data.mapper.toModel
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.LogFields
 import com.zili.android.musicfreeandroid.logging.MfLog
+import androidx.room.withTransaction
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -16,6 +19,7 @@ import javax.inject.Singleton
 
 @Singleton
 class MusicRepository @Inject constructor(
+    private val db: AppDatabase,
     private val musicDao: MusicDao,
     private val converters: Converters,
 ) {
@@ -25,6 +29,11 @@ class MusicRepository @Inject constructor(
 
     fun observeByPlatform(platform: String): Flow<List<MusicItem>> =
         musicDao.observeByPlatform(platform).map { entities -> entities.map { it.toModel(converters) } }
+
+    fun observeLocalLibrary(): Flow<List<MusicItem>> =
+        musicDao.observeLocalLibrary(LOCAL_PLATFORM).map { entities ->
+            entities.map { it.toModel(converters) }
+        }
 
     suspend fun getById(id: String, platform: String): MusicItem? =
         musicDao.getById(id, platform)?.toModel(converters)
@@ -75,6 +84,67 @@ class MusicRepository @Inject constructor(
             resultFields = { mapOf("count" to 1) },
         ) {
             musicDao.delete(item.toEntity(converters))
+        }
+
+    suspend fun commitDownloadedTrack(item: MusicItem, downloaded: DownloadedTrackEntity) =
+        logDataWrite(
+            operation = "commit_downloaded_track",
+            fields = item.logFields() + mapOf(
+                "quality" to downloaded.quality,
+                "pathType" to "mediastore",
+            ),
+            resultFields = { mapOf("count" to 1) },
+        ) {
+            db.withTransaction {
+                val existing = musicDao.getById(item.id, item.platform)?.toModel(converters)
+                val merged = existing?.let { current ->
+                    current.copy(
+                        title = item.title.takeIf { it.isNotBlank() } ?: current.title,
+                        artist = item.artist.takeIf { it.isNotBlank() } ?: current.artist,
+                        album = item.album ?: current.album,
+                        duration = item.duration.takeIf { it > 0L } ?: current.duration,
+                        url = item.url ?: current.url,
+                        artwork = item.artwork ?: current.artwork,
+                        qualities = item.qualities ?: current.qualities,
+                        raw = current.raw + item.raw,
+                    )
+                } ?: item
+                val localItem = merged.copy(
+                    localPath = downloaded.mediaStoreUri,
+                    raw = merged.raw + mapOf(
+                        "downloaded" to true,
+                        "downloadQuality" to downloaded.quality,
+                        "downloadedAt" to downloaded.downloadedAt,
+                        "mediaStoreUri" to downloaded.mediaStoreUri,
+                    ),
+                )
+                db.downloadedTrackDao().insert(downloaded)
+                musicDao.upsert(localItem.toEntity(converters))
+            }
+        }
+
+    suspend fun removeFromLocalLibrary(item: MusicItem) =
+        logDataWrite(
+            operation = "remove_from_local_library",
+            fields = item.logFields(),
+            resultFields = { mapOf("count" to 1) },
+        ) {
+            db.withTransaction {
+                if (item.platform == LOCAL_PLATFORM) {
+                    musicDao.delete(item.toEntity(converters))
+                } else {
+                    db.downloadedTrackDao().deleteByKey(item.id, item.platform)
+                    val existing = musicDao.getById(item.id, item.platform)?.toModel(converters)
+                    if (existing != null) {
+                        musicDao.update(
+                            existing.copy(
+                                localPath = null,
+                                raw = existing.raw - "downloaded" - "downloadQuality" - "downloadedAt" - "mediaStoreUri",
+                            ).toEntity(converters)
+                        )
+                    }
+                }
+            }
         }
 
     suspend fun deleteByPlatform(platform: String) =
@@ -140,4 +210,8 @@ class MusicRepository @Inject constructor(
     )
 
     private fun elapsedMs(startedAt: Long): Long = (System.nanoTime() - startedAt) / 1_000_000
+
+    private companion object {
+        const val LOCAL_PLATFORM = "local"
+    }
 }
