@@ -12,8 +12,8 @@
 - status: active
 - rule_ref: docs/dev-harness/test/rules.md#rule-test-fixture-must-track-vm-ctor
 - guard:
-    type: ci-step
-    target: .github/workflows/dev-harness-gate.yml (Compile-only test sources step)
+    type: manual
+    target: bash scripts/dev-harness/check.sh (Compile-only test sources step)
 - fix_ref: 566a01b, 457f62c
 
 ### 根因
@@ -30,7 +30,7 @@ dev-harness gate 必须含一个全模块的"仅编译测试源"步骤（`compil
 
 ### 备注
 
-guard 类型 `ci-step`：在 `.github/workflows/dev-harness-gate.yml` 的 "Compile-only test sources (all modules)" 步抓；本地复现见 `bash scripts/dev-harness/check.sh`（默认步骤包含编译全模块测试源）。
+guard 类型 `manual`：PR 合入前 MUST 在本地跑 `bash scripts/dev-harness/check.sh`（默认步骤包含编译全模块测试源）；CI 不再自动兜底。
 
 ## INC-2026-0013 — ViewModel 异步加载 stale 结果未丢弃
 

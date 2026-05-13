@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*"
+  schedule:
+    - cron: "0 18 * * *"   # 18:00 UTC == 北京时间次日 02:00
   workflow_dispatch:
 
 permissions:
@@ -26,20 +28,36 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for new commits (nightly only)
+        id: nightly-guard
+        if: github.event_name == 'schedule'
+        run: |
+          new_commits=$(git log --since="24 hours ago" --oneline origin/main | wc -l | tr -d ' ')
+          echo "new_commits=$new_commits" >> "$GITHUB_OUTPUT"
+          if [ "$new_commits" -eq 0 ]; then
+            echo "::notice::No new commits in last 24h on main; skipping nightly build."
+          fi
 
       - name: Set up JDK 21
+        if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Set up Gradle
+        if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         uses: gradle/actions/setup-gradle@v5
 
       - name: Set up Android SDK
+        if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         uses: android-actions/setup-android@v4.0.1
 
       - name: Validate release secrets
+        if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         env:
           ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
@@ -65,6 +83,7 @@ jobs:
           exit "$missing"
 
       - name: Decode release keystore
+        if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         env:
           ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
         run: |
@@ -72,6 +91,7 @@ jobs:
           chmod 600 "$RUNNER_TEMP/release.jks"
 
       - name: Build Release APK
+        if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         env:
           ANDROID_RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
@@ -83,9 +103,12 @@ jobs:
 
       - name: Name APK
         id: name-apk
+        if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             apk_name="MusicFreeAndroid-${GITHUB_REF_NAME}.apk"
+          elif [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            apk_name="MusicFreeAndroid-nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD).apk"
           else
             apk_name="MusicFreeAndroid-manual-${GITHUB_RUN_NUMBER}.apk"
           fi
@@ -93,6 +116,7 @@ jobs:
           echo "apk_name=$apk_name" >> "$GITHUB_OUTPUT"
 
       - name: Upload Release APK artifact
+        if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         uses: actions/upload-artifact@v7
         with:
           name: MusicFreeAndroid-release-apk

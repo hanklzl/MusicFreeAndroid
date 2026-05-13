@@ -46,7 +46,7 @@ echo "==> Compile-only test sources (all modules) — guards INC-2026-0016"
 
 echo "==> Contract tests (JVM)"
 # Only invoke modules that currently host harness/contracts/ tests.
-# Adding tests in other modules requires extending this list AND the CI workflow.
+# Adding tests in other modules requires extending this list.
 ./gradlew \
   :app:testDebugUnitTest :plugin:testDebugUnitTest :feature:player-ui:testDebugUnitTest \
   --tests '*harness.contracts.*' --no-daemon

@@ -75,6 +75,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            resValue("string", "app_name", "MF音乐(D)")
         }
         release {
             signingConfig = signingConfigs.getByName("release")
@@ -84,6 +85,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            resValue("string", "app_name", "MF音乐")
             if (releaseSigningRequested) {
                 buildConfigField(
                     "String",
@@ -105,6 +107,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
     }
 }
 

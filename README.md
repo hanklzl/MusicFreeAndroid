@@ -141,10 +141,9 @@ UI Screen 相关改动还必须遵守 [docs/ui-harness/screen-chrome-rules.md](d
 
 ## CI 与发布
 
-仓库包含两个 GitHub Actions workflow：
+仓库包含一个 GitHub Actions workflow：
 
-- `.github/workflows/android-debug-apk.yml`：在 push 或手动触发时构建 Debug APK，并上传 `MusicFreeAndroid-debug-apk` artifact。
-- `.github/workflows/android-release-apk.yml`：在 `v*` tag push 或手动触发时构建 Release APK。tag 触发时会上传 APK 到 GitHub Release。
+- `.github/workflows/android-release-apk.yml`：在 `v*` tag push、按北京时间 02:00 的 nightly schedule（24h 内 main 有新提交才构建）、或手动触发时构建 Release APK。tag 触发时会上传 APK 到 GitHub Release；nightly / manual 仅以 artifact 形式产出。
 
 GitHub Release workflow 使用 `release` Environment secrets：
 

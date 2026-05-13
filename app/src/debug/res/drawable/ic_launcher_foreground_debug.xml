@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@mipmap/ic_launcher_foreground"/>
+    <item
+        android:width="36dp"
+        android:height="36dp"
+        android:gravity="bottom|right"
+        android:right="26dp"
+        android:bottom="26dp">
+        <vector
+            android:width="36dp" android:height="36dp"
+            android:viewportWidth="36" android:viewportHeight="36">
+            <path
+                android:fillColor="#E53935"
+                android:pathData="M18,2 A16,16 0 1 1 17.99,2 Z"/>
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M11,9 L19,9 A8,9 0 0 1 19,27 L11,27 Z M15,13 L15,23 L19,23 A5,5 0 0 0 19,13 Z"/>
+        </vector>
+    </item>
+</layer-list>

@@ -76,5 +76,5 @@ implemented_by: INC-2026-0016
 
 - 修改 ViewModel / Repository / 注入入口的构造器参数 MUST 同步更新所有 `*Test.kt` 中的 fixture / fake / factory。
 - PR MUST 跑该模块完整 `testDebugUnitTest` 通过后再合入；不能仅靠 `assembleDebug` 验证（gradle 测试源编译被 build cache 掩盖）。
-- `dev-harness-gate.yml` MUST 含一个 "Compile-only test sources (all modules)" 步骤跑 `:<each-module>:compileDebugUnitTestKotlin`，作为 fixture lag 的 PR 守门。新加模块时 MUST 同步加入这步。
+- PR 合入前 MUST 在本地跑 `bash scripts/dev-harness/check.sh`（默认含编译全模块测试源步骤）；新加模块时 MUST 同步加入 `scripts/dev-harness/check.sh` 的 `:<each-module>:compileDebugUnitTestKotlin` 模块列表。
 - 本地等价命令：`bash scripts/dev-harness/check.sh`（默认含编译全模块测试源步骤）。

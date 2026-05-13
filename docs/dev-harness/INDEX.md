@@ -27,9 +27,8 @@
 - 单一来源：`.agents/skills/<area>-skill/`，软链至 `.claude/skills/`、`.codex/skills/`。
 - 5 个 skill：`ui-harness-skill`、`plugin-system-skill`、`media-player-skill`、`test-stability-skill`、`harness-curator-skill`。
 
-## CI 守门
+## 本地守门
 
-- 工作流：`.github/workflows/dev-harness-gate.yml`
 - 本地一键：`bash scripts/dev-harness/check.sh`
 
 ## 项目记忆边界

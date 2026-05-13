@@ -33,7 +33,7 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - 测试代码 / 测试基建：`docs/dev-harness/test/rules.md`
 
 每条 rule 都关联一条或多条 incident（`docs/dev-harness/incidents/index.md`）和 / 或一条 contract test。
-违反 rules.md 中标记 MUST / MUST NOT 的条款将在 CI `dev-harness-gate` 作业被拦下。
+违反 rules.md 中标记 MUST / MUST NOT 的条款由人工 review 拦截；本地可跑 `bash scripts/dev-harness/check.sh` 自查。
 
 历史决策快照在 `docs/superpowers/specs/` 与 `plans/`（仅参考），不是当前规则源。
 

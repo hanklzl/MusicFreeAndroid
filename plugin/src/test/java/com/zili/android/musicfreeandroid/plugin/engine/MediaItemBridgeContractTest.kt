@@ -15,7 +15,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
 /**
- * dev-harness-gate contract: the MusicItem ↔ JS bridge is owned by JsBridge +
+ * dev-harness contract: the MusicItem ↔ JS bridge is owned by JsBridge +
  * MusicItemBridgeProjector. Any new bridge consumer MUST go through these
  * helpers; ad-hoc map construction risks leaking reserved keys or skipping the
  * DownloadedTrack / LyricCache projection.
