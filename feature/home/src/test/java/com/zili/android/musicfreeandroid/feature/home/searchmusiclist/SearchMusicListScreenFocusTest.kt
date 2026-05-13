@@ -40,7 +40,6 @@ class SearchMusicListScreenFocusTest {
             MusicFreeTheme {
                 SearchMusicListScreen(
                     onBack = {},
-                    onNavigateToPlayer = {},
                     viewModel = viewModel,
                 )
             }
@@ -61,7 +60,6 @@ class SearchMusicListScreenFocusTest {
                 if (showScreen) {
                     SearchMusicListScreen(
                         onBack = {},
-                        onNavigateToPlayer = {},
                         viewModel = viewModel,
                     )
                 }

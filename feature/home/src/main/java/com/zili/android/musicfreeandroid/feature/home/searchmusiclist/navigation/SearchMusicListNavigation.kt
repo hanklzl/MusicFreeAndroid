@@ -7,12 +7,10 @@ import com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusi
 
 fun NavGraphBuilder.searchMusicListScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
 ) {
     composable<SearchMusicListRoute> {
         SearchMusicListScreen(
             onBack = onBack,
-            onNavigateToPlayer = onNavigateToPlayer,
         )
     }
 }

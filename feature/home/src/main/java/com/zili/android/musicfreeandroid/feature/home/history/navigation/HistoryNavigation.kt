@@ -7,13 +7,11 @@ import com.zili.android.musicfreeandroid.feature.home.history.HistoryScreen
 
 fun NavGraphBuilder.historyScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     onNavigateToSearchMusicList: () -> Unit,
 ) {
     composable<HistoryRoute> {
         HistoryScreen(
             onBack = onBack,
-            onNavigateToPlayer = onNavigateToPlayer,
             onNavigateToSearchMusicList = onNavigateToSearchMusicList,
         )
     }

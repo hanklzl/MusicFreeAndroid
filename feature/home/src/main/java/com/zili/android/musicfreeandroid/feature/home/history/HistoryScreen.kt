@@ -44,7 +44,6 @@ import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
 @Composable
 fun HistoryScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     onNavigateToSearchMusicList: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoryViewModel = hiltViewModel(),
@@ -105,7 +104,7 @@ fun HistoryScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .combinedClickable(
-                                    onClick = { if (viewModel.playAt(index)) onNavigateToPlayer() },
+                                    onClick = { viewModel.playAt(index) },
                                     onLongClick = { optionsItem = item },
                                 )
                                 .padding(horizontal = rpx(24), vertical = rpx(16)),

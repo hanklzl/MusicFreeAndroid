@@ -441,7 +441,6 @@ class SearchViewModel @Inject constructor(
     // ── 播放 ──
 
     sealed interface PlayEvent {
-        data object NavigateToPlayer : PlayEvent
         data class Failed(val message: String) : PlayEvent
     }
 
@@ -504,7 +503,6 @@ class SearchViewModel @Inject constructor(
                             playerController.playQueue(resolvedQueue, startIndex)
                         }
                     }
-                    _playEvent.emit(PlayEvent.NavigateToPlayer)
                 } else {
                     MfLog.error(
                         category = LogCategory.SEARCH,

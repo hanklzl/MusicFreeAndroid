@@ -39,7 +39,6 @@ import com.zili.android.musicfreeandroid.core.ui.MusicItemRow
 @Composable
 fun PlaylistDetailScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     onNavigateToSearchMusicList: (String) -> Unit,
     onNavigateToMusicListEditorLite: (String) -> Unit,
     viewModel: PlaylistDetailViewModel = hiltViewModel(),
@@ -96,7 +95,6 @@ fun PlaylistDetailScreen(
                 musicCount = items.size,
                 onPlayAll = {
                     viewModel.playAll()
-                    onNavigateToPlayer()
                 },
                 onSearch = { onNavigateToSearchMusicList(playlist.id) },
             )
@@ -118,7 +116,6 @@ fun PlaylistDetailScreen(
                             ),
                             onClick = {
                                 viewModel.playAll(startIndex = index)
-                                onNavigateToPlayer()
                             },
                             onAction = { action ->
                                 when (action) {

@@ -8,13 +8,11 @@ import com.zili.android.musicfreeandroid.feature.home.toplist.TopListDetailScree
 
 fun NavGraphBuilder.topListDetailScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     onOpenMusicDetail: (MusicItem) -> Unit,
 ) {
     composable<TopListDetailRoute> {
         TopListDetailScreen(
             onBack = onBack,
-            onNavigateToPlayer = onNavigateToPlayer,
             onOpenMusicDetail = onOpenMusicDetail,
         )
     }

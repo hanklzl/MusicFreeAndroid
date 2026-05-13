@@ -7,12 +7,10 @@ import com.zili.android.musicfreeandroid.feature.home.pluginsheet.PluginSheetDet
 
 fun NavGraphBuilder.pluginSheetDetailScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
 ) {
     composable<PluginSheetDetailRoute> {
         PluginSheetDetailScreen(
             onBack = onBack,
-            onNavigateToPlayer = onNavigateToPlayer,
         )
     }
 }

@@ -44,7 +44,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun AlbumDetailScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AlbumDetailViewModel = hiltViewModel(),
 ) {
@@ -115,8 +114,7 @@ fun AlbumDetailScreen(
                                 .combinedClickable(
                                     onClick = {
                                         scope.launch {
-                                            val ok = viewModel.playAt(index)
-                                            if (ok) onNavigateToPlayer()
+                                            viewModel.playAt(index)
                                         }
                                     },
                                     onLongClick = { optionsItem = item },

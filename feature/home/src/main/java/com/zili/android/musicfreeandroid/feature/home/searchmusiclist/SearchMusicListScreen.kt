@@ -52,7 +52,6 @@ import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 @Composable
 fun SearchMusicListScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchMusicListViewModel = hiltViewModel(),
 ) {
@@ -144,9 +143,7 @@ fun SearchMusicListScreen(
                             SearchMusicListItem(
                                 item = item,
                                 onClick = {
-                                    if (viewModel.playFilteredItem(index)) {
-                                        onNavigateToPlayer()
-                                    }
+                                    viewModel.playFilteredItem(index)
                                 },
                             )
                             if (index < uiState.filteredItems.lastIndex) {

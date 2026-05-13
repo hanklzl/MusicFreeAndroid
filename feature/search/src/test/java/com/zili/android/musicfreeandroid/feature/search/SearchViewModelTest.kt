@@ -19,9 +19,12 @@ import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -441,6 +444,31 @@ class SearchViewModelTest {
             assertEquals("https://resolver.example/1.mp3", firstValue.url)
         }
         verify(playerController, never()).playQueue(any(), any())
+    }
+
+    @Test
+    fun `resolveAndPlay success does not emit navigation event`() = runTest(mainDispatcherRule.dispatcher) {
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
+
+        val item = musicItem(id = "1", title = "Song 1").copy(
+            platform = "source",
+            url = "https://resolver.example/1.mp3",
+        )
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val events = mutableListOf<SearchViewModel.PlayEvent>()
+        val collectJob = launch {
+            viewModel.playEvent.collect { event -> events += event }
+        }
+
+        viewModel.resolveAndPlay(item, listOf(item))
+        advanceUntilIdle()
+        collectJob.cancelAndJoin()
+
+        verify(playerController).playItem(item)
+        verify(playerController, never()).playQueue(any(), any())
+        assertTrue(events.isEmpty())
     }
 
     @Test

@@ -40,7 +40,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun TopListDetailScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     onOpenMusicDetail: (MusicItem) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TopListDetailViewModel = hiltViewModel(),
@@ -102,10 +101,7 @@ fun TopListDetailScreen(
                                 .combinedClickable(
                                     onClick = {
                                         scope.launch {
-                                            val ok = viewModel.playAt(index)
-                                            if (ok) {
-                                                onNavigateToPlayer()
-                                            }
+                                            viewModel.playAt(index)
                                         }
                                     },
                                     onLongClick = { optionsItem = item },

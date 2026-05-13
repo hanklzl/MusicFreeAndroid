@@ -45,7 +45,6 @@ fun LocalScreen(
     onNavigateToSearchMusicList: () -> Unit,
     onNavigateToMusicListEditor: () -> Unit,
     onNavigateToDownloading: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LocalMusicViewModel = hiltViewModel(),
 ) {
@@ -193,7 +192,6 @@ fun LocalScreen(
             downloadedKeys = downloadedKeys.map { it.value }.toSet(),
             onItemClick = { item, items ->
                 viewModel.playItem(item, items)
-                onNavigateToPlayer()
             },
             onItemLongClick = { item -> optionsItem = item },
             onRetry = {

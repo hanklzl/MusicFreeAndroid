@@ -31,7 +31,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun ArtistDetailScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ArtistDetailViewModel = hiltViewModel(),
 ) {
@@ -86,8 +85,7 @@ fun ArtistDetailScreen(
                                 .fillMaxWidth()
                                 .clickable {
                                     scope.launch {
-                                        val ok = viewModel.playAt(index)
-                                        if (ok) onNavigateToPlayer()
+                                        viewModel.playAt(index)
                                     }
                                 }
                                 .padding(horizontal = rpx(24), vertical = rpx(12)),

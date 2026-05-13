@@ -91,7 +91,6 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 fun SearchScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     onOpenAlbumDetail: (AlbumItemBase) -> Unit,
     onOpenArtistDetail: (ArtistItemBase) -> Unit,
     onOpenSheetDetail: (MusicSheetItemBase) -> Unit,
@@ -134,7 +133,6 @@ fun SearchScreen(
     LaunchedEffect(Unit) {
         viewModel.playEvent.onEach { event ->
             when (event) {
-                is SearchViewModel.PlayEvent.NavigateToPlayer -> onNavigateToPlayer()
                 is SearchViewModel.PlayEvent.Failed ->
                     Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
             }

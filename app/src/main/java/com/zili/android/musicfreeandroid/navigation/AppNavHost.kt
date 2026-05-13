@@ -15,7 +15,6 @@ import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicListEditorLiteRoute
 import com.zili.android.musicfreeandroid.core.navigation.PermissionsRoute
 import com.zili.android.musicfreeandroid.core.navigation.PlaylistDetailRoute
-import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginListRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.PluginSortRoute
@@ -122,7 +121,6 @@ fun AppNavHost(
         )
         localScreen(
             onBack = { navController.popBackStack() },
-            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onNavigateToSearchMusicList = {
                 navController.navigate(SearchMusicListRoute.localLibrary())
             },
@@ -139,7 +137,6 @@ fun AppNavHost(
         )
         playlistDetailScreen(
             onBack = { navController.popBackStack() },
-            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onNavigateToSearchMusicList = { playlistId ->
                 navController.navigate(SearchMusicListRoute.playlist(playlistId))
             },
@@ -152,7 +149,6 @@ fun AppNavHost(
         )
         searchScreen(
             onBack = { navController.popBackStack() },
-            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onOpenAlbumDetail = { album ->
                 val seedToken = AlbumDetailSeedStore.put(album)
                 navController.navigate(
@@ -203,14 +199,12 @@ fun AppNavHost(
         )
         historyScreen(
             onBack = { navController.popBackStack() },
-            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onNavigateToSearchMusicList = {
                 navController.navigate(SearchMusicListRoute.history())
             },
         )
         searchMusicListScreen(
             onBack = { navController.popBackStack() },
-            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
         settingsScreen(
             onBack = { navController.popBackStack() },
@@ -256,7 +250,6 @@ fun AppNavHost(
         )
         topListDetailScreen(
             onBack = { navController.popBackStack() },
-            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
             onOpenMusicDetail = { item ->
                 val seedToken = MusicDetailSeedStore.put(item)
                 navController.navigate(
@@ -294,7 +287,6 @@ fun AppNavHost(
         )
         pluginSheetDetailScreen(
             onBack = { navController.popBackStack() },
-            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
         musicDetailScreen(
             onBack = { navController.popBackStack() },
@@ -324,11 +316,9 @@ fun AppNavHost(
         )
         albumDetailScreen(
             onBack = { navController.popBackStack() },
-            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
         artistDetailScreen(
             onBack = { navController.popBackStack() },
-            onNavigateToPlayer = { navController.navigate(PlayerRoute) },
         )
     }
 }

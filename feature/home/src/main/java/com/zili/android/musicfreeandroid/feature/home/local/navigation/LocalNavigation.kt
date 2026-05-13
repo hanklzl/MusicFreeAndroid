@@ -7,7 +7,6 @@ import com.zili.android.musicfreeandroid.feature.home.local.LocalScreen
 
 fun NavGraphBuilder.localScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
     onNavigateToSearchMusicList: () -> Unit,
     onNavigateToMusicListEditor: () -> Unit,
     onNavigateToDownloading: () -> Unit,
@@ -18,7 +17,6 @@ fun NavGraphBuilder.localScreen(
             onNavigateToSearchMusicList = onNavigateToSearchMusicList,
             onNavigateToMusicListEditor = onNavigateToMusicListEditor,
             onNavigateToDownloading = onNavigateToDownloading,
-            onNavigateToPlayer = onNavigateToPlayer,
         )
     }
 }

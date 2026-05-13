@@ -7,12 +7,10 @@ import com.zili.android.musicfreeandroid.feature.home.albumdetail.AlbumDetailScr
 
 fun NavGraphBuilder.albumDetailScreen(
     onBack: () -> Unit,
-    onNavigateToPlayer: () -> Unit,
 ) {
     composable<AlbumDetailRoute> {
         AlbumDetailScreen(
             onBack = onBack,
-            onNavigateToPlayer = onNavigateToPlayer,
         )
     }
 }
