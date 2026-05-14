@@ -5,6 +5,10 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zili.android.musicfreeandroid.plugin.api.musicItems
+import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.logging.LogCategory
+import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.logging.MfLogger
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
 import com.zili.android.musicfreeandroid.plugin.runtime.PluginAppVersionGate
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +38,7 @@ class PluginRuntimeNetworkIntegrationTest {
 
     private lateinit var appContext: Context
     private lateinit var pluginManager: PluginManager
+    private lateinit var logger: RecordingLogger
     private val dataStoreScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Before
@@ -45,6 +50,8 @@ class PluginRuntimeNetworkIntegrationTest {
         )
 
         appContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
+        logger = RecordingLogger()
+        MfLog.install(logger)
         val dataStore = PreferenceDataStoreFactory.create(
             scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-runtime-network-it") },
@@ -75,6 +82,7 @@ class PluginRuntimeNetworkIntegrationTest {
                 pluginManager.uninstallAllPlugins()
             }
         }
+        MfLog.resetForTest()
         dataStoreScope.cancel()
     }
 
@@ -92,22 +100,14 @@ class PluginRuntimeNetworkIntegrationTest {
             wySearch.data.isNotEmpty(),
         )
 
-        var mediaSourceUrl: String? = null
-        for (item in wySearch.musicItems().take(5)) {
-            val source = runCatching {
-                wy.getMediaSource(
-                    musicItem = item,
-                    quality = "standard",
-                )
-            }.getOrNull()
-            if (source != null && source.url.isNotBlank()) {
-                mediaSourceUrl = source.url
-                break
-            }
-        }
+        val mediaSource = firstPlayableMediaSource(
+            plugin = wy,
+            items = wySearch.musicItems().take(5),
+            quality = "standard",
+        )
         assertTrue(
-            "WY getMediaSource should return playable url",
-            !mediaSourceUrl.isNullOrBlank(),
+            failureMessage("WY getMediaSource should return playable url", mediaSource),
+            !mediaSource.playableUrl.isNullOrBlank(),
         )
     }
 
@@ -133,23 +133,49 @@ class PluginRuntimeNetworkIntegrationTest {
             search.data.isNotEmpty(),
         )
 
-        var mediaSourceUrl: String? = null
-        for (item in search.musicItems().take(5)) {
-            val source = runCatching {
-                wy.getMediaSource(
-                    musicItem = item,
-                    quality = "standard",
-                )
-            }.getOrNull()
-            if (source != null && source.url.isNotBlank()) {
-                mediaSourceUrl = source.url
-                break
-            }
-        }
-        assertTrue(
-            "WY getMediaSource from default subscription should return playable url",
-            !mediaSourceUrl.isNullOrBlank(),
+        val mediaSource = firstPlayableMediaSource(
+            plugin = wy,
+            items = search.musicItems().take(5),
+            quality = "standard",
         )
+        assertTrue(
+            failureMessage("WY getMediaSource from default subscription should return playable url", mediaSource),
+            !mediaSource.playableUrl.isNullOrBlank(),
+        )
+    }
+
+    @Test
+    fun defaultSubscription_healthyRnMatrixPlugins_returnPlayableUrls() = runBlocking {
+        val install = pluginManager.installFromSubscriptionUrl(
+            subscriptionUrl = "https://13413.kstore.vip/yuanli/yuanli.json",
+        )
+        assertTrue(
+            "Default subscription should install at least one plugin",
+            install.successfulInstalls > 0,
+        )
+
+        val expectedHealthyPlatforms = listOf("元力KW", "元力KG", "元力QQ", "bilibili")
+        val pluginsByPlatform = pluginManager.plugins.value.associateBy { it.info.platform }
+        for (platform in expectedHealthyPlatforms) {
+            val plugin = pluginsByPlatform[platform]
+            assertNotNull("Default subscription should contain $platform", plugin)
+
+            val search = plugin!!.search(query = "in the end", page = 1)
+            assertTrue(
+                "$platform search should return at least one result",
+                search.data.isNotEmpty(),
+            )
+
+            val mediaSource = firstPlayableMediaSource(
+                plugin = plugin,
+                items = search.musicItems().take(2),
+                quality = "standard",
+            )
+            assertTrue(
+                failureMessage("$platform getMediaSource should return playable url", mediaSource),
+                !mediaSource.playableUrl.isNullOrBlank(),
+            )
+        }
     }
 
     @Test
@@ -179,17 +205,15 @@ class PluginRuntimeNetworkIntegrationTest {
             "Search should still work after plugin update",
             search.data.isNotEmpty(),
         )
-        var playableUrl: String? = null
-        for (item in search.musicItems().take(5)) {
-            val source = runCatching {
-                updated.getMediaSource(item, quality = "standard")
-            }.getOrNull()
-            if (source != null && source.url.isNotBlank()) {
-                playableUrl = source.url
-                break
-            }
-        }
-        assertTrue(!playableUrl.isNullOrBlank())
+        val mediaSource = firstPlayableMediaSource(
+            plugin = updated,
+            items = search.musicItems().take(5),
+            quality = "standard",
+        )
+        assertTrue(
+            failureMessage("Updated WY getMediaSource should return playable url", mediaSource),
+            !mediaSource.playableUrl.isNullOrBlank(),
+        )
     }
 
     @Test
@@ -228,4 +252,112 @@ class PluginRuntimeNetworkIntegrationTest {
 
     private fun testPreferencesFile(prefix: String): File =
         File(appContext.cacheDir, "$prefix-${UUID.randomUUID()}.preferences_pb")
+
+    private suspend fun firstPlayableMediaSource(
+        plugin: LoadedPlugin,
+        items: List<MusicItem>,
+        quality: String,
+    ): MediaSourceProbe {
+        val attempts = mutableListOf<MediaSourceAttempt>()
+        for (item in items) {
+            val outcome = runCatching {
+                plugin.getMediaSource(
+                    musicItem = item,
+                    quality = quality,
+                )
+            }
+            val source = outcome.getOrNull()
+            attempts += MediaSourceAttempt(
+                id = item.id,
+                title = item.title,
+                url = source?.url,
+                hasUrl = source?.url?.isNotBlank() == true,
+                error = outcome.exceptionOrNull()?.let { "${it::class.java.simpleName}: ${it.message}" },
+            )
+            if (source != null && source.url.isNotBlank()) {
+                return MediaSourceProbe(playableUrl = source.url, attempts = attempts)
+            }
+        }
+        return MediaSourceProbe(playableUrl = null, attempts = attempts)
+    }
+
+    private fun failureMessage(prefix: String, probe: MediaSourceProbe): String {
+        return buildString {
+            appendLine(prefix)
+            appendLine("media attempts:")
+            probe.attempts.forEach { attempt ->
+                appendLine(
+                    "  id=${attempt.id} title=${attempt.title.take(80)} " +
+                        "hasUrl=${attempt.hasUrl} url=${attempt.url?.take(120)} error=${attempt.error}",
+                )
+            }
+            appendLine("diagnostic logs:")
+            appendLine(logger.diagnosticTail())
+        }
+    }
+
+    private data class MediaSourceProbe(
+        val playableUrl: String?,
+        val attempts: List<MediaSourceAttempt>,
+    )
+
+    private data class MediaSourceAttempt(
+        val id: String,
+        val title: String,
+        val url: String?,
+        val hasUrl: Boolean,
+        val error: String?,
+    )
+
+    private data class RecordedEvent(
+        val category: LogCategory,
+        val event: String,
+        val fields: Map<String, Any?>,
+        val throwable: Throwable?,
+    )
+
+    private class RecordingLogger : MfLogger {
+        private val events = mutableListOf<RecordedEvent>()
+
+        override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+            events += RecordedEvent(category, event, fields, throwable = null)
+        }
+
+        override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+            events += RecordedEvent(category, event, fields, throwable = null)
+        }
+
+        override fun error(
+            category: LogCategory,
+            event: String,
+            throwable: Throwable?,
+            fields: Map<String, Any?>,
+        ) {
+            events += RecordedEvent(category, event, fields, throwable)
+        }
+
+        override fun flush() = Unit
+
+        fun diagnosticTail(): String {
+            val relevant = setOf(
+                "axios_request",
+                "axios_response",
+                "axios_request_failed",
+                "plugin_api_call_success",
+                "plugin_api_call_failed",
+            )
+            return events
+                .filter { it.event in relevant }
+                .takeLast(32)
+                .joinToString("\n") { recorded ->
+                    val fields = recorded.fields.entries.joinToString(" ") { (key, value) ->
+                        "$key=${value.toString().replace('\n', ' ').take(220)}"
+                    }
+                    val throwable = recorded.throwable?.let { " throwable=${it::class.java.simpleName}:${it.message}" }
+                        .orEmpty()
+                    "${recorded.event} $fields$throwable"
+                }
+                .ifBlank { "<no diagnostic logs captured>" }
+        }
+    }
 }

@@ -481,11 +481,18 @@ object JsBridge {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun parseRecommendSheetTagsResult(map: Map<String, Any?>): RecommendSheetTagsResult {
+    fun parseRecommendSheetTagsResult(
+        map: Map<String, Any?>,
+        fallbackPlatform: String? = null,
+    ): RecommendSheetTagsResult {
         val pinned = (map["pinned"] as? List<*>)?.mapNotNull { entry ->
-            (entry as? Map<String, Any?>)?.let(::toMusicSheetItemBase)
+            (entry as? Map<String, Any?>)?.let {
+                toMusicSheetItemBase(it, fallbackPlatform = fallbackPlatform)
+            }
         } ?: emptyList()
-        val groups = (map["data"] as? List<*>)?.let(::parseTopListGroups) ?: emptyList()
+        val groups = (map["data"] as? List<*>)?.let {
+            parseTopListGroups(it, fallbackPlatform = fallbackPlatform)
+        } ?: emptyList()
         return RecommendSheetTagsResult(
             pinned = pinned,
             data = groups,
@@ -493,10 +500,15 @@ object JsBridge {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun parseRecommendSheetsByTagResult(map: Map<String, Any?>): PaginationResult<MusicSheetItemBase> {
+    fun parseRecommendSheetsByTagResult(
+        map: Map<String, Any?>,
+        fallbackPlatform: String? = null,
+    ): PaginationResult<MusicSheetItemBase> {
         val isEnd = map["isEnd"] as? Boolean ?: false
         val data = (map["data"] as? List<*>)?.mapNotNull { entry ->
-            (entry as? Map<String, Any?>)?.let(::toMusicSheetItemBase)
+            (entry as? Map<String, Any?>)?.let {
+                toMusicSheetItemBase(it, fallbackPlatform = fallbackPlatform)
+            }
         } ?: emptyList()
         return PaginationResult(
             isEnd = isEnd,

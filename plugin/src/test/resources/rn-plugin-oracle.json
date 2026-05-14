@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repo": "MusicFree",
+    "files": [
+      "src/types/plugin.d.ts",
+      "src/core/pluginManager/plugin.ts",
+      "src/core/pluginManager/index.ts",
+      "src/constants/commonConst.ts"
+    ]
+  },
+  "pluginDefine": {
+    "methods": [
+      "search",
+      "getMediaSource",
+      "getMusicInfo",
+      "getLyric",
+      "getAlbumInfo",
+      "getMusicSheetInfo",
+      "getArtistWorks",
+      "importMusicSheet",
+      "importMusicItem",
+      "getTopLists",
+      "getTopListDetail",
+      "getRecommendSheetTags",
+      "getRecommendSheetsByTag",
+      "getMusicComments"
+    ],
+    "metadataFields": [
+      "platform",
+      "appVersion",
+      "version",
+      "srcUrl",
+      "primaryKey",
+      "defaultSearchType",
+      "supportedSearchType",
+      "cacheControl",
+      "author",
+      "description",
+      "userVariables",
+      "hints"
+    ],
+    "mediaSourceResultFields": [
+      "headers",
+      "url",
+      "userAgent",
+      "quality"
+    ],
+    "cacheControlValues": [
+      "cache",
+      "no-cache",
+      "no-store"
+    ]
+  },
+  "runtime": {
+    "requireModules": [
+      "@react-native-cookies/cookies",
+      "axios",
+      "big-integer",
+      "cheerio",
+      "crypto-js",
+      "dayjs",
+      "he",
+      "qs",
+      "webdav"
+    ],
+    "deprecatedNoOpModules": [
+      "@react-native-cookies/cookies"
+    ],
+    "defaultAxiosTimeoutMs": 2000,
+    "authUrlCredentialsBecomeBasicHeader": true,
+    "globalProcess": true,
+    "envLang": "zh-CN",
+    "urlConstructorInjected": true,
+    "states": [
+      "Initializing",
+      "Loading",
+      "Mounted",
+      "Error"
+    ],
+    "errorReasons": [
+      "VersionNotMatch",
+      "CannotParse"
+    ],
+    "cacheFallsBackWhenOffline": true,
+    "localPlugin": {
+      "platform": "本地",
+      "hash": "local-plugin-hash",
+      "internalSerializeKey": "$"
+    }
+  },
+  "manager": {
+    "lazyLoadConfigKey": "basic.lazyLoadPlugin",
+    "supportsLazyLoad": true,
+    "silentDuplicateHashInstall": true,
+    "hasPluginMetadataCache": true,
+    "clearsMediaExtraOnUninstall": true
+  }
+}

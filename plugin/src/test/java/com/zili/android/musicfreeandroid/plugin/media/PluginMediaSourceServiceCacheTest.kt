@@ -12,6 +12,7 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.zili.android.musicfreeandroid.plugin.network.PluginNetworkStateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -147,6 +148,38 @@ class PluginMediaSourceServiceCacheTest {
         verify(plugin).getMediaSource(any(), eq("standard"))
         verify(cache, never()).get(any(), any())
         verify(cache).put(any(), eq(PlayQuality.STANDARD), any())
+    }
+
+    @Test
+    fun `no-cache reads cached source while offline`() = runTest {
+        val plugin = plugin(
+            platform = "kuwo",
+            supportsMedia = true,
+            url = "https://kuwo.example/should-not-be-asked.mp3",
+            cacheControl = null,
+        )
+        val cache = mock<MediaCacheRepository>()
+        whenever(cache.get(any(), eq(PlayQuality.STANDARD))).thenReturn(
+            CachedSource(
+                url = "https://cache.example/offline-cached.mp3",
+                headers = null,
+                userAgent = "OfflineUA",
+            ),
+        )
+
+        val service = service(
+            plugins = listOf(plugin),
+            alternatives = emptyMap(),
+            cache = cache,
+            network = object : PluginNetworkStateProvider {
+                override fun isOffline(): Boolean = true
+            },
+        )
+
+        val result = service.resolve(item("kuwo"), quality = "standard")!!
+
+        assertEquals("https://cache.example/offline-cached.mp3", result.item.url)
+        verify(plugin, never()).getMediaSource(any(), any())
     }
 
     @Test
@@ -310,6 +343,7 @@ class PluginMediaSourceServiceCacheTest {
         cache: MediaCacheRepository,
         disabled: Set<String> = emptySet(),
         settings: PlaybackRuntimeSettings = PlaybackRuntimeSettings.Defaults,
+        network: PluginNetworkStateProvider = PluginNetworkStateProvider.AlwaysOnline,
     ): PluginMediaSourceService {
         val manager = mock<PluginManager>()
         val metaStore = mock<PluginMetaStore>()
@@ -320,7 +354,7 @@ class PluginMediaSourceServiceCacheTest {
         whenever(metaStore.alternativePlugins).thenReturn(flowOf(alternatives))
         whenever(metaStore.disabledPlugins).thenReturn(flowOf(disabled))
         whenever(manager.pluginMetaStore).thenReturn(metaStore)
-        return PluginMediaSourceService(manager, cache, settings)
+        return PluginMediaSourceService(manager, cache, settings, network)
     }
 
     private suspend fun plugin(

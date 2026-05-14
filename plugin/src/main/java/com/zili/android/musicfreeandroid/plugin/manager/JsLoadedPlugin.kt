@@ -322,7 +322,7 @@ class JsLoadedPlugin(
         ) {
             val result = engine.evaluate<Any?>("await __plugin.getTopLists()")
             val list = result as? List<*> ?: return@executeApiCall emptyList()
-            JsBridge.parseTopListGroups(list)
+            JsBridge.parseTopListGroups(list, fallbackPlatform = info.platform)
         }
     }
 
@@ -394,7 +394,7 @@ class JsLoadedPlugin(
         ) {
             val result = engine.evaluate<Any?>("await __plugin.getRecommendSheetTags()")
             val map = toMap(result) ?: return@executeApiCall null
-            JsBridge.parseRecommendSheetTagsResult(map)
+            JsBridge.parseRecommendSheetTagsResult(map, fallbackPlatform = info.platform)
         }
     }
 
@@ -419,7 +419,7 @@ class JsLoadedPlugin(
                 "await __plugin.getRecommendSheetsByTag(__recommendTag, $page)",
             )
             val map = toMap(result) ?: return@executeApiCall null
-            JsBridge.parseRecommendSheetsByTagResult(map)
+            JsBridge.parseRecommendSheetsByTagResult(map, fallbackPlatform = info.platform)
         }
     }
 

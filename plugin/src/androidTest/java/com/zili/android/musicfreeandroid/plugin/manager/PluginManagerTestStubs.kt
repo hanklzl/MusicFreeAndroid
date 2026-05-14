@@ -37,9 +37,12 @@ internal class StubMediaCacheDao : MediaCacheDao {
     override suspend fun get(platform: String, id: String): MediaCacheEntity? = null
     override suspend fun upsert(entity: MediaCacheEntity) = Unit
     override suspend fun count(): Int = 0
+    override suspend fun totalSizeBytes(): Long = 0L
+    override suspend fun getOldestEntries(): List<MediaCacheEntity> = emptyList()
     override suspend fun deleteOldest(n: Int) = Unit
     override suspend fun deleteByPlatform(platform: String) = Unit
     override suspend fun delete(platform: String, id: String) = Unit
+    override suspend fun deleteAll() = Unit
 }
 
 internal class StubLyricCacheDao : LyricCacheDao {
@@ -71,6 +74,7 @@ internal class StubLyricCacheDao : LyricCacheDao {
     override suspend fun setLocalTranslation(platform: String, id: String, translation: String, updatedAt: Long) = Unit
     override suspend fun setOffset(platform: String, id: String, offsetMs: Long, updatedAt: Long) = Unit
     override suspend fun deleteByPlatform(platform: String) = Unit
+    override suspend fun deleteAll() = Unit
 }
 
 internal class StubDownloadedTrackDao : DownloadedTrackDao {

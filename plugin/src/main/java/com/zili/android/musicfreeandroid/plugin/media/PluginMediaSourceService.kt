@@ -14,6 +14,7 @@ import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.zili.android.musicfreeandroid.plugin.network.PluginNetworkStateProvider
 import com.zili.android.musicfreeandroid.plugin.playback.CacheControl
 import com.zili.android.musicfreeandroid.plugin.playback.shouldUseCache
 import com.zili.android.musicfreeandroid.plugin.playback.shouldWriteCache
@@ -26,12 +27,13 @@ class PluginMediaSourceService @Inject constructor(
     private val pluginManager: PluginManager,
     private val mediaCacheRepository: MediaCacheRepository,
     private val playbackRuntimeSettings: PlaybackRuntimeSettings = PlaybackRuntimeSettings.Defaults,
+    private val networkStateProvider: PluginNetworkStateProvider = PluginNetworkStateProvider.AlwaysOnline,
 ) : MediaSourceResolver, StaleUrlRefresher {
 
     /**
      * Default resolution entry. Reads cache when the source plugin's declared
-     * `cacheControl` permits it (currently only `"cache"`; offline fallback for
-     * `"no-cache"` is deferred until ConnectivityChecker arrives). Always writes
+     * `cacheControl` permits it (`"cache"`, or `"no-cache"` while offline).
+     * Always writes
      * cache on success unless `cacheControl == "no-store"`.
      */
     override suspend fun resolve(
@@ -74,8 +76,7 @@ class PluginMediaSourceService @Inject constructor(
         // PluginMetaStore alternative-plugins change, or include resolver platform
         // in the cache key.
         if (useCache) {
-            // TODO: NoCache offline fallback when ConnectivityChecker arrives.
-            val isOffline = false
+            val isOffline = networkStateProvider.isOffline()
             if (shouldUseCache(cacheControl, isOffline = isOffline)) {
                 // Important #2/#3 fix: when quality is null, target the user's
                 // default play quality (the same quality the fetch loop will ask

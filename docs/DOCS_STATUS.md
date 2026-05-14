@@ -48,6 +48,7 @@
 | [docs/dev-harness/player/rules.md](./dev-harness/player/rules.md) | 当前规范（Dev Harness — Player） | 是 | PlayerController 连接、沉浸式 chrome、歌词跟随防抖 |
 | [docs/dev-harness/test/rules.md](./dev-harness/test/rules.md) | 当前规范（Dev Harness — Test） | 是 | runTest 范式、instrumentation 主线程模型、DataStore 隔离、runner 基线、JVM 内存基线 |
 | [docs/dev-harness/incidents/index.md](./dev-harness/incidents/index.md) | 当前规范（Dev Harness — Incidents 索引） | 是 | INC-YYYY-NNNN 全仓索引；guard 类型反查 |
+| [docs/plugin-parity/rn-plugin-oracle.md](./plugin-parity/rn-plugin-oracle.md) | 当前规范（RN 插件能力 Oracle） | 是 | RN 插件协议 oracle 生成、Android contract test 与默认订阅源守门 |
 | [docs/superpowers/specs/2026-05-09-dev-harness-foundation-design.md](./superpowers/specs/2026-05-09-dev-harness-foundation-design.md) | 当前规范（Dev Harness 基础设施专项） | 是（作为实现计划输入） | 总入口 + 错误库 + 5 skills + 测试守门 + 3 PR 编排设计 |
 | [docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md](./superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md) | 当前规范（Android 测试稳定性专项） | 是（作为实现计划输入） | feature androidTest runner 基线、Gradle full androidTest D8 OOM、Player instrumentation setUp 死锁、`@Ignore` 反应化、Settings VM `runTest` 迁移、HomeFidelity 断言改写、`:plugin` 集成测试拆分、MockWebServer 介入与 instrumentation DataStore 隔离 |
 | [docs/superpowers/specs/2026-05-04-github-actions-debug-apk-design.md](./superpowers/specs/2026-05-04-github-actions-debug-apk-design.md) | 历史记录 | 否 | 已被 [2026-05-13 发布品牌化与 CI 改造设计](./superpowers/specs/2026-05-13-release-rebrand-and-ci-design.md) 取代；Debug APK workflow 已下线，仅保留 Release / nightly 链路 |

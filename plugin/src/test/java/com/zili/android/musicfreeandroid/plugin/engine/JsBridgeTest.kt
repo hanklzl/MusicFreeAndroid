@@ -377,6 +377,28 @@ class JsBridgeTest {
     }
 
     @Test
+    fun `parseRecommendSheetTagsResult backfills blank platforms from loaded plugin`() {
+        val payload = mapOf<String, Any?>(
+            "pinned" to listOf(
+                mapOf("id" to "tag-1", "platform" to "", "title" to "Pinned"),
+            ),
+            "data" to listOf(
+                mapOf(
+                    "title" to "Group",
+                    "data" to listOf(
+                        mapOf("id" to "tag-2", "title" to "Grouped"),
+                    ),
+                ),
+            ),
+        )
+
+        val result = JsBridge.parseRecommendSheetTagsResult(payload, fallbackPlatform = "demo")
+
+        assertEquals("demo", result.pinned.single().platform)
+        assertEquals("demo", result.data.single().data.single().platform)
+    }
+
+    @Test
     fun `parseMusicInfoResult merges partial payload`() {
         val base = com.zili.android.musicfreeandroid.core.model.MusicItem(
             id = "1",
@@ -599,6 +621,21 @@ class JsBridgeTest {
         assertEquals("User A", result.data[0].nickName)
         assertEquals(1, result.data[0].replies.size)
         assertEquals("Agree", result.data[0].replies[0].comment)
+    }
+
+    @Test
+    fun `parseRecommendSheetsByTagResult backfills blank platforms from loaded plugin`() {
+        val payload = mapOf<String, Any?>(
+            "isEnd" to true,
+            "data" to listOf(
+                mapOf("id" to "sheet-1", "platform" to "", "title" to "Sheet A"),
+                mapOf("id" to "sheet-2", "title" to "Sheet B"),
+            ),
+        )
+
+        val result = JsBridge.parseRecommendSheetsByTagResult(payload, fallbackPlatform = "demo")
+
+        assertEquals(listOf("demo", "demo"), result.data.map { it.platform })
     }
 
     @Test

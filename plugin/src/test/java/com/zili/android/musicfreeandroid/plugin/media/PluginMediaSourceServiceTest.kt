@@ -11,6 +11,7 @@ import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
 import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.zili.android.musicfreeandroid.plugin.network.PluginNetworkStateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -143,7 +144,12 @@ class PluginMediaSourceServiceTest {
         // they fall into the default `no-cache` policy (which never reads cache).
         // A null-stubbed mock is sufficient.
         val cache = mock<MediaCacheRepository>()
-        return PluginMediaSourceService(manager, cache, settings)
+        return PluginMediaSourceService(
+            pluginManager = manager,
+            mediaCacheRepository = cache,
+            playbackRuntimeSettings = settings,
+            networkStateProvider = PluginNetworkStateProvider.AlwaysOnline,
+        )
     }
 
     private suspend fun plugin(platform: String, supportsMedia: Boolean, url: String): LoadedPlugin {

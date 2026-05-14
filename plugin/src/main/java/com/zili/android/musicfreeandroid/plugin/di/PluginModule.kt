@@ -4,6 +4,8 @@ import android.content.Context
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.media.StaleUrlRefresher
 import com.zili.android.musicfreeandroid.plugin.media.PluginMediaSourceService
+import com.zili.android.musicfreeandroid.plugin.network.AndroidPluginNetworkStateProvider
+import com.zili.android.musicfreeandroid.plugin.network.PluginNetworkStateProvider
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -27,6 +29,12 @@ abstract class PluginModule {
     abstract fun bindStaleUrlRefresher(
         impl: PluginMediaSourceService,
     ): StaleUrlRefresher
+
+    @Binds
+    @Singleton
+    abstract fun bindPluginNetworkStateProvider(
+        impl: AndroidPluginNetworkStateProvider,
+    ): PluginNetworkStateProvider
 
     companion object {
         /**
