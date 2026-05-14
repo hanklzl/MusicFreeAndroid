@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":logging"))
     implementation(project(":plugin"))
     implementation(project(":downloader"))
+    implementation(project(":updater"))
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

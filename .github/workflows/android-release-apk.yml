@@ -24,12 +24,25 @@ jobs:
       contents: read
     outputs:
       apk-name: ${{ steps.name-apk.outputs.apk_name }}
+      apk-sha256: ${{ steps.apk-meta.outputs.sha256 }}
+      apk-size: ${{ steps.apk-meta.outputs.size }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Validate version consistency
+        if: github.ref_type == 'tag'
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          actual=$(awk -F= '/^versionName/{print $2}' version.properties | tr -d '[:space:]')
+          [ "$expected" = "$actual" ] || {
+            echo "::error::tag $GITHUB_REF_NAME vs versionName $actual mismatch"
+            exit 1
+          }
+          echo "OK: $GITHUB_REF_NAME ↔ versionName=$actual"
 
       - name: Check for new commits (nightly only)
         id: nightly-guard
@@ -115,6 +128,14 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/$apk_name"
           echo "apk_name=$apk_name" >> "$GITHUB_OUTPUT"
 
+      - name: Compute APK sha256 + size
+        id: apk-meta
+        if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
+        run: |
+          apk="$RUNNER_TEMP/${{ steps.name-apk.outputs.apk_name }}"
+          echo "sha256=$(sha256sum "$apk" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "size=$(wc -c < "$apk")" >> "$GITHUB_OUTPUT"
+
       - name: Upload Release APK artifact
         if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         uses: actions/upload-artifact@v7
@@ -133,13 +154,51 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Download Release APK artifact
         uses: actions/download-artifact@v7
         with:
           name: MusicFreeAndroid-release-apk
           path: release-apk
 
-      - name: Upload APK to GitHub Release
+      - name: Generate release notes
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          prev=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null \
+                 || git rev-list --max-parents=0 HEAD | tail -1)
+          bash scripts/release/generate-notes.sh "$prev" "$GITHUB_REF_NAME" > release_notes.md
+          head -30 release_notes.md
+
+      - name: Upload release notes artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: release_notes.md
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Prepend CHANGELOG.md and push main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          bash scripts/release/prepend-changelog.sh release_notes.md "$GITHUB_REF_NAME"
+          git add CHANGELOG.md
+          git commit -m "docs(changelog): release $GITHUB_REF_NAME [skip ci]"
+          if ! git push origin main; then
+            git pull --rebase origin main
+            git push origin main || echo "::warning::CHANGELOG push failed, manual sync required"
+          fi
+
+      - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -147,8 +206,75 @@ jobs:
           apk_path="release-apk/${{ needs.build-release-apk.outputs.apk-name }}"
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "$apk_path" --clobber
+            gh release edit "$GITHUB_REF_NAME" --notes-file release_notes.md
           else
             gh release create "$GITHUB_REF_NAME" "$apk_path" \
               --title "$GITHUB_REF_NAME" \
-              --generate-notes
+              --notes-file release_notes.md
           fi
+
+  publish-version-manifest:
+    name: Publish version manifest
+    needs: [build-release-apk, publish-github-release]
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout source at tag
+        uses: actions/checkout@v6
+        with:
+          path: source
+          ref: ${{ github.ref }}
+
+      - name: Checkout gh-pages (if exists)
+        uses: actions/checkout@v6
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Init gh-pages if missing
+        run: |
+          if [ ! -d gh-pages/.git ]; then
+            git clone --branch main "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
+            cd gh-pages
+            git checkout --orphan gh-pages
+            git rm -rf . 2>/dev/null || true
+            echo "Release manifest branch" > README.md
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "chore: init gh-pages"
+          fi
+
+      - name: Download release notes artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: release-notes
+          path: source
+
+      - name: Build version.json
+        run: |
+          mkdir -p gh-pages/release
+          vcode=$(awk -F= '/^versionCode/{print $2}' source/version.properties | tr -d '[:space:]')
+          bash source/scripts/release/build-version-json.sh \
+              --version "${GITHUB_REF_NAME#v}" \
+              --version-code "$vcode" \
+              --tag "$GITHUB_REF_NAME" \
+              --sha256 "${{ needs.build-release-apk.outputs.apk-sha256 }}" \
+              --size "${{ needs.build-release-apk.outputs.apk-size }}" \
+              --apk-name "${{ needs.build-release-apk.outputs.apk-name }}" \
+              --notes source/release_notes.md \
+              > gh-pages/release/version.json
+          jq . gh-pages/release/version.json
+
+      - name: Commit & push gh-pages
+        run: |
+          cd gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add release/version.json
+          git commit -m "chore(release): publish ${GITHUB_REF_NAME}"
+          git push origin gh-pages

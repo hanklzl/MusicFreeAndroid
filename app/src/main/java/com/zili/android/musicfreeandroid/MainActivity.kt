@@ -35,6 +35,10 @@ import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayer
 import com.zili.android.musicfreeandroid.navigation.AppNavHost
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.updater.checker.UpdateChecker
+import com.zili.android.musicfreeandroid.updater.downloader.ApkDownloader
+import com.zili.android.musicfreeandroid.updater.installer.ApkInstaller
+import com.zili.android.musicfreeandroid.updater.ui.UpdateDialogHost
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -43,6 +47,15 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var downloader: Downloader
+
+    @Inject
+    lateinit var updateChecker: UpdateChecker
+
+    @Inject
+    lateinit var apkDownloader: ApkDownloader
+
+    @Inject
+    lateinit var apkInstaller: ApkInstaller
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -68,6 +81,11 @@ class MainActivity : ComponentActivity() {
         MfLog.trace(LogCategory.APP, "edge_to_edge_enabled")
         setContent {
             MusicFreeTheme {
+                UpdateDialogHost(
+                    checker = updateChecker,
+                    downloader = apkDownloader,
+                    installer = apkInstaller,
+                )
                 val notificationPermission = requiredNotificationPermission()
                 val notificationPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission(),

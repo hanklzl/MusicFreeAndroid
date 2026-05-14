@@ -13,4 +13,5 @@ enum class LogCategory(val wireName: String) {
     SETTINGS("settings"),
     HOME("home"),
     LYRICS("lyrics"),
+    UPDATE("update"),
 }

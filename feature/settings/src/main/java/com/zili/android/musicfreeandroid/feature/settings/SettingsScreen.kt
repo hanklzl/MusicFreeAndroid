@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.feature.settings
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +37,7 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.feature.settings.components.SettingSectionCard
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
 
@@ -162,13 +164,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(innerPadding),
             )
 
-            SettingsType.About -> SettingsTypeEntryContent(
-                rootTag = FidelityAnchors.Settings.AboutRoot,
-                title = "关于 MusicFree",
-                description = "应用信息与版本详情将显示在这里。",
-                entryTag = FidelityAnchors.Settings.AboutEntry,
-                actionText = "待接入",
-                onClick = null,
+            SettingsType.About -> AboutSettingsContent(
                 modifier = Modifier.padding(innerPadding),
             )
         }
@@ -211,6 +207,28 @@ private fun FeedbackExportConfirmDialog(
             }
         },
     )
+}
+
+@Composable
+private fun AboutSettingsContent(modifier: Modifier = Modifier) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .testTag(FidelityAnchors.Settings.AboutRoot)
+            .padding(horizontal = rpx(24)),
+        verticalArrangement = Arrangement.spacedBy(rpx(16)),
+    ) {
+        item { Spacer(modifier = Modifier.height(rpx(24))) }
+        item {
+            SettingSectionCard(
+                "关于",
+                testTag = FidelityAnchors.Settings.AboutEntry,
+            ) {
+                CheckUpdateRow()
+            }
+        }
+        item { Spacer(modifier = Modifier.height(rpx(24))) }
+    }
 }
 
 @Composable

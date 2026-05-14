@@ -16,3 +16,4 @@ tools/logan/out/
 tools/logan/*.class
 **/__pycache__/
 *.pyc
+.env.release.local

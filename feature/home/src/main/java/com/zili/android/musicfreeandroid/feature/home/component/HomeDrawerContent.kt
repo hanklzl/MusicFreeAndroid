@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.home.component
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,8 +21,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -29,6 +33,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
@@ -39,6 +45,7 @@ import com.zili.android.musicfreeandroid.feature.home.HomeDrawerAction
 import com.zili.android.musicfreeandroid.feature.home.HomeDrawerItemUiModel
 import com.zili.android.musicfreeandroid.feature.home.HomeDrawerSectionUiModel
 import com.zili.android.musicfreeandroid.feature.home.HomeDrawerUiModel
+import com.zili.android.musicfreeandroid.feature.home.UpdateBadgeViewModel
 
 @Composable
 fun HomeDrawerContent(
@@ -46,8 +53,11 @@ fun HomeDrawerContent(
     onEntryClick: (HomeDrawerAction) -> Unit,
     modifier: Modifier = Modifier,
     statusBarTopPadding: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+    updateBadgeViewModel: UpdateBadgeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val updateState by updateBadgeViewModel.checker.state.collectAsState()
+    val hasUpdateRedDot = updateState.hasUnreadAvailableUpdate
 
     Box(
         modifier = modifier
@@ -77,6 +87,7 @@ fun HomeDrawerContent(
                 DrawerSection(
                     section = section,
                     onEntryClick = onEntryClick,
+                    hasUpdateRedDot = hasUpdateRedDot,
                 )
             }
 
@@ -101,6 +112,7 @@ fun HomeDrawerContent(
 private fun DrawerSection(
     section: HomeDrawerSectionUiModel,
     onEntryClick: (HomeDrawerAction) -> Unit,
+    hasUpdateRedDot: Boolean = false,
 ) {
     Column(
         modifier = Modifier
@@ -120,6 +132,7 @@ private fun DrawerSection(
             DrawerRow(
                 item = item,
                 onClick = { onEntryClick(item.action) },
+                showRedDot = hasUpdateRedDot && item.action == HomeDrawerAction.OpenSettingsRoot,
             )
         }
     }
@@ -129,6 +142,7 @@ private fun DrawerSection(
 private fun DrawerRow(
     item: HomeDrawerItemUiModel,
     onClick: () -> Unit,
+    showRedDot: Boolean = false,
 ) {
     Row(
         modifier = Modifier
@@ -152,12 +166,23 @@ private fun DrawerRow(
             fontSize = FontSizes.subTitle,
         )
         Spacer(modifier = Modifier.weight(1f))
-        item.trailingText?.takeIf { it.isNotBlank() }?.let { trailingText ->
-            Text(
-                text = trailingText,
-                color = MusicFreeTheme.colors.textSecondary,
-                fontSize = FontSizes.subTitle,
-            )
+        if (showRedDot) {
+            DrawerRedDot()
+        } else {
+            item.trailingText?.takeIf { it.isNotBlank() }?.let { trailingText ->
+                Text(
+                    text = trailingText,
+                    color = MusicFreeTheme.colors.textSecondary,
+                    fontSize = FontSizes.subTitle,
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun DrawerRedDot() {
+    Canvas(modifier = Modifier.size(8.dp)) {
+        drawCircle(color = Color(0xFFE53935))
     }
 }

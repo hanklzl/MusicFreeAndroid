@@ -31,6 +31,10 @@
 
 - 本地一键：`bash scripts/dev-harness/check.sh`
 
+## 发布流程
+
+- 发布流程详见根目录 `RELEASE.md` 与 `docs/superpowers/specs/2026-05-13-android-release-pipeline-design.md`。
+
 ## 项目记忆边界
 
 - 错误库 / 强约束 / AI skills 都进 git，跨 AI 工具与跨开发者生效。

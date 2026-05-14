@@ -1,3 +1,6 @@
+import java.util.Properties
+import org.gradle.api.GradleException
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +8,14 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
+
+val versionProps = Properties().also { props ->
+    rootProject.file("version.properties").inputStream().use { stream -> props.load(stream) }
+}
+val appVersionCode: Int = versionProps.getProperty("versionCode")?.toIntOrNull()
+    ?: throw GradleException("version.properties: versionCode missing or invalid")
+val appVersionName: String = versionProps.getProperty("versionName")
+    ?: throw GradleException("version.properties: versionName missing")
 
 val releaseSigningEnvironmentVariables = listOf(
     "ANDROID_RELEASE_KEYSTORE_PATH",
@@ -52,8 +63,8 @@ android {
         applicationId = "com.zili.android.musicfreeandroid"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "com.zili.android.musicfreeandroid.HiltTestRunner"
 
@@ -130,6 +141,7 @@ dependencies {
     implementation(project(":feature:settings"))
     implementation(project(":logging"))
     implementation(project(":downloader"))
+    implementation(project(":updater"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)
