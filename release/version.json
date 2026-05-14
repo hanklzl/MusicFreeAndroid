@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "version": "1.0.0",
+  "versionCode": 10000,
+  "releasedAt": "2026-05-14T17:06:04Z",
+  "download": [
+    "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.0.0/MusicFreeAndroid-v1.0.0.apk",
+    "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.0.0/release/MusicFreeAndroid-v1.0.0.apk"
+  ],
+  "size": 9754223,
+  "sha256": "ff8a7bd6250c49f6cb10550879c05edb508b881b5b02c2392107d14eee789f5f",
+  "changeLog": [
+    "feat(release): Android 发布流水线与内置更新检查",
+    "feat(player-ui): 对齐播放器三点歌词操作浮窗",
+    "feat(local): 对齐下载曲目本地元数据",
+    "feat(release): MF音乐 品牌化与 CI 收敛",
+    "feat(settings): 接入插件播放缓存基础设置",
+    "feat(plugin): 全面对齐 RN MusicFree 插件引擎语义",
+    "feat(app): default bootstrap plugins for dev fixture",
+    "feat(logging): instrument diagnostics coverage"
+  ],
+  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.0.0"
+}
