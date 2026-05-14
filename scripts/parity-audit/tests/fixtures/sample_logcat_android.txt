@@ -1,0 +1,4 @@
+05-15 12:30:10.001  4321  4321 I PARITY_MARK: BEGIN 01_after_cold_start
+05-15 12:30:10.500  4321  4321 I PARITY_EVT: {"kind":"plugin.method_called","ts_ms":1715749810500,"plugin_id":"wy","method":"search","args_hash":"5eb63bbb"}
+05-15 12:30:10.700  4321  4321 I PARITY_EVT: {"kind":"play.state_changed","ts_ms":1715749810700,"from":"IDLE","to":"LOADING"}
+05-15 12:30:10.999  4321  4321 I PARITY_MARK: END 01_after_cold_start

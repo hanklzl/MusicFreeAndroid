@@ -26,6 +26,7 @@ SKILLS=(
   media-player-skill:player
   test-stability-skill:test
   harness-curator-skill:_curator
+  parity-audit-skill:_curator
 )
 
 errors=0

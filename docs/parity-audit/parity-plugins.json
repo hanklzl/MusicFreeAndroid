@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "plugins": [
+    {
+      "id": "wy",
+      "display_name": "网易云（v0 测试基线）",
+      "subscription_url": "https://gitee.com/maotoumao/MusicFreePlugins/raw/master/dist/wy/index.js",
+      "notes": "v0 仅用该插件验证 home 推荐位 + 搜索链路。"
+    }
+  ]
+}

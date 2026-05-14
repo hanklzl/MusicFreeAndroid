@@ -70,6 +70,7 @@
 | [docs/superpowers/specs/2026-05-11-wy-recommend-toplist-detail-fix.md](./superpowers/specs/2026-05-11-wy-recommend-toplist-detail-fix.md) | 当前规范（网易推荐歌单与榜单详情修复） | 是（作为实现计划输入） | 插件返回数值型整数 ID 时规范化为无 `.0` 字符串，避免网易歌单/榜单详情调用失败 |
 | [docs/superpowers/specs/2026-05-15-enable-horizontal-swipe-design.md](./superpowers/specs/2026-05-15-enable-horizontal-swipe-design.md) | 当前规范（搜索结果与榜单横向手势） | 是（作为实现计划输入） | 搜索结果、推荐歌单和榜单 Tab 内容区支持左右滑动切换，保持现有页面 chrome、加载与分页语义 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
+| [docs/parity-audit/README.md](./parity-audit/README.md) | 当前规范（Parity Audit 专项） | 是 | parity-audit-skill 管理的状态、scenario catalog 与运行产物目录索引 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |
 | [docs/superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md](./superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md) | 当前参考（首页 mock 专项） | 否 | 首页主界面与底部 mini player 的第一阶段 mock 对齐设计 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-design.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-design.md) | 当前参考 | 否 | 首页 fidelity 设计决策背景 |

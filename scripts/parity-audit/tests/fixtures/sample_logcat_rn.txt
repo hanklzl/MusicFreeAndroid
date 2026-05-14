@@ -1,0 +1,7 @@
+05-15 12:30:00.001  1234  1234 I PARITY_MARK: BEGIN 01_after_cold_start
+05-15 12:30:00.500  1234  1234 I ReactNativeJS: [PluginManager] call wy.search with hello world
+05-15 12:30:00.700  1234  1234 I ReactNativeJS: [TrackPlayer] state transition: IDLE -> LOADING
+05-15 12:30:00.999  1234  1234 I PARITY_MARK: END 01_after_cold_start
+05-15 12:30:01.100  1234  1234 I PARITY_MARK: BEGIN 02_after_recommend_loaded
+05-15 12:30:01.200  1234  1234 I ReactNativeJS: [Navigation] navigate to MusicDetail with id=abc&from=home
+05-15 12:30:01.999  1234  1234 I PARITY_MARK: END 02_after_recommend_loaded

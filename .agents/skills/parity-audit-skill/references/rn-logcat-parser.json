@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "patterns": [
+    {
+      "kind": "plugin.method_called",
+      "regex": "\\[PluginManager\\] call (?P<plugin_id>[^\\s]+)\\.(?P<method>[^\\s]+) with (?P<args>.+)",
+      "fields_template": {"plugin_id": "$plugin_id", "method": "$method", "args_hash": "$args|sha1_8"}
+    },
+    {
+      "kind": "play.state_changed",
+      "regex": "\\[TrackPlayer\\] state transition: (?P<from>[A-Z_]+) -> (?P<to>[A-Z_]+)",
+      "fields_template": {"from": "$from", "to": "$to"}
+    },
+    {
+      "kind": "nav.enter",
+      "regex": "\\[Navigation\\] navigate to (?P<route>[A-Za-z]+)(?: with (?P<params>.+))?",
+      "fields_template": {"route": "$route", "params_hash": "$params|sha1_8"}
+    }
+  ],
+  "notes": "v0 起步只覆盖三类；更多正则在 v1 真跑过 RN 后补。未匹配的 logcat 行被忽略。"
+}

@@ -45,6 +45,10 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - 历史决策快照：`docs/superpowers/specs/` 与 `plans/`（仅参考，不是当前规则源）
 - 个人会话偏好（Claude Code only）：`~/.claude/projects/.../memory/MEMORY.md`，不进仓库
 
+## Parity Audit Skill 入口
+
+跨工具调用的 RN/Android 对齐扫描 sub-agent，触发短语见 `.agents/skills/parity-audit-skill/SKILL.md`。状态文件 `docs/parity-audit/state.json` + `queue.md` 为唯一可信源。`mode=dry-run` 不会创建 Issue；`mode=audit` 走 `gh issue create` + 指纹查重 + release 截图上传。设计 spec：`docs/superpowers/specs/2026-05-15-parity-audit-agent-design.md`。
+
 ## Git Worktree 开发约束
 
 - 默认使用 `git worktree` 进行功能开发，避免在主工作区直接切换或堆叠功能分支。

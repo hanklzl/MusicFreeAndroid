@@ -1,0 +1,47 @@
+# maestro/flows/parity/home_entry.rn.yaml
+# env: { RUN_ID, SCENARIO, DEVICE }
+appId: fun.upup.musicfree
+---
+- runScript:
+    file: _lib/mark_waypoint.js
+    env: { WAYPOINT: "00_pre_launch", EDGE: "BEGIN", DEVICE: "${DEVICE}" }
+
+- launchApp:
+    clearState: false           # 假定 install-plugins 已装好；不清数据
+
+- runScript:
+    file: _lib/mark_waypoint.js
+    env: { WAYPOINT: "01_after_cold_start", EDGE: "BEGIN", DEVICE: "${DEVICE}" }
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: "01_after_cold_start"
+- runFlow:
+    file: _lib/dump_hierarchy.yaml
+    env:
+      WAYPOINT: "01_after_cold_start"
+      SIDE: "rn"
+      RUN_ID: "${RUN_ID}"
+      DEVICE: "${DEVICE}"
+      SCENARIO: "${SCENARIO}"
+- runScript:
+    file: _lib/mark_waypoint.js
+    env: { WAYPOINT: "01_after_cold_start", EDGE: "END", DEVICE: "${DEVICE}" }
+
+- runScript:
+    file: _lib/mark_waypoint.js
+    env: { WAYPOINT: "02_after_recommend_loaded", EDGE: "BEGIN", DEVICE: "${DEVICE}" }
+# 等推荐位首屏；若有更稳的 selector（例如某个推荐位标题文本），改成 assertVisible 等待
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: "02_after_recommend_loaded"
+- runFlow:
+    file: _lib/dump_hierarchy.yaml
+    env:
+      WAYPOINT: "02_after_recommend_loaded"
+      SIDE: "rn"
+      RUN_ID: "${RUN_ID}"
+      DEVICE: "${DEVICE}"
+      SCENARIO: "${SCENARIO}"
+- runScript:
+    file: _lib/mark_waypoint.js
+    env: { WAYPOINT: "02_after_recommend_loaded", EDGE: "END", DEVICE: "${DEVICE}" }

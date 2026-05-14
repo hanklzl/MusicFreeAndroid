@@ -1,0 +1,27 @@
+# docs/parity-audit/scenarios/home_entry.yaml
+id: home_entry
+title: 首页冷启动落地
+priority: core
+page: home
+rn_appid: fun.upup.musicfree
+android_appid: com.zili.android.musicfreeandroid.debug
+rn_flow: maestro/flows/parity/home_entry.rn.yaml
+android_flow: maestro/flows/parity/home_entry.android.yaml
+waypoints:
+  - id: 01_after_cold_start
+    description: 冷启动后落地首页，等动画结束
+  - id: 02_after_recommend_loaded
+    description: 等推荐位完成首屏渲染（最长 8s）
+expected_events: []   # v0 不强校验，先看输出是什么
+diff_tolerance:
+  screenshot_ssim_min: 0.92
+  ignore_event_fields: [ts_ms, request_id]
+authored_by: human   # v0 唯一手写的 scenario
+authored_run_id: null
+flow_health:
+  rn: unknown
+  android: unknown
+  last_validated_run_id: null
+notes: |
+  v0 唯一手写 scenario。RN 入口 ../MusicFree/src/pages/home，Android 入口 feature:home。
+  上层 audit.sh 调用 mode=dry-run，本 scenario 不期望建 Issue。

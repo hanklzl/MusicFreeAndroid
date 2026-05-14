@@ -1,0 +1,32 @@
+# maestro/flows/parity/_lib/dump_hierarchy.yaml
+# usage: env: { WAYPOINT, SIDE (rn|android), RUN_ID, DEVICE, SCENARIO }
+
+appId: "*"
+---
+- runScript:
+    file: ./mark_waypoint.js
+    env:
+      WAYPOINT: "${WAYPOINT}"
+      EDGE: "DUMP"
+      DEVICE: "${DEVICE}"
+- runScript:
+    inline: |
+      const device = MAESTRO_ENV.DEVICE ? `-s ${MAESTRO_ENV.DEVICE}` : "";
+      const wp = MAESTRO_ENV.WAYPOINT;
+      const side = MAESTRO_ENV.SIDE;
+      const scenario = MAESTRO_ENV.SCENARIO;
+      const runId = MAESTRO_ENV.RUN_ID;
+      const dst = `docs/parity-audit/runs/${runId}/scenarios/${scenario}/${side}/waypoint-${wp}-hierarchy.xml`;
+      const cmds = [
+        `adb ${device} shell uiautomator dump /sdcard/parity-${wp}.xml`,
+        `mkdir -p $(dirname ${dst})`,
+        `adb ${device} pull /sdcard/parity-${wp}.xml ${dst}`,
+        `adb ${device} shell rm /sdcard/parity-${wp}.xml`
+      ];
+      for (const c of cmds) {
+        const r = shell(c);
+        if (r.exitCode !== 0) {
+          output.error = r.stderr;
+          break;
+        }
+      }

@@ -1,0 +1,24 @@
+# maestro/flows/parity/_bootstrap/install-plugins.rn.yaml
+# env: { PLUGIN_URL }
+# NOTE: selector 为占位 placeholder。真机/模拟器跑前必须按 uiautomator dump 替换为可用项。
+appId: fun.upup.musicfree
+---
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd:
+    timeout: 8000
+# 占位 selector，必须按真机实际 dump 改写
+- tapOn:
+    text: "设置"
+- tapOn:
+    text: "插件管理"
+- tapOn:
+    text: "从订阅安装"
+- inputText: "${PLUGIN_URL}"
+- tapOn:
+    text: "确认"
+- waitForAnimationToEnd:
+    timeout: 10000
+- assertVisible:
+    text: "安装成功"
+    optional: true

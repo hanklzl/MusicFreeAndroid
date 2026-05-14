@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "labels": [
+    { "name": "parity-audit",          "color": "5319e7", "description": "由 parity-audit-skill 自动产出/管理" },
+    { "name": "priority:core",         "color": "b60205", "description": "parity 核心优先级" },
+    { "name": "priority:non-core",     "color": "fbca04", "description": "parity 非核心优先级" },
+    { "name": "area:home",             "color": "0e8a16", "description": "首页页面相关" },
+    { "name": "area:search",           "color": "0e8a16", "description": "搜索页面相关" },
+    { "name": "area:player",           "color": "0e8a16", "description": "播放器/迷你播放器相关" },
+    { "name": "area:plugin",           "color": "0e8a16", "description": "插件管理 / 订阅相关" },
+    { "name": "area:settings",         "color": "0e8a16", "description": "设置页相关" },
+    { "name": "area:local",            "color": "0e8a16", "description": "本地音乐相关" },
+    { "name": "area:sheet",            "color": "0e8a16", "description": "歌单/榜单相关" },
+    { "name": "area:musicDetail",      "color": "0e8a16", "description": "音乐详情页相关" },
+    { "name": "area:other",            "color": "0e8a16", "description": "其它/未归类区域" },
+    { "name": "kind:ui-gap",           "color": "1d76db", "description": "RN/Android UI 视觉或布局差异" },
+    { "name": "kind:logic-gap",        "color": "1d76db", "description": "业务逻辑/交互行为差异" },
+    { "name": "kind:missing-feature",  "color": "1d76db", "description": "Android 侧缺失 RN 已有功能" },
+    { "name": "kind:crash",            "color": "1d76db", "description": "Android 进程崩溃 / ANR" },
+    { "name": "kind:perf",             "color": "1d76db", "description": "性能 / 耗时显著差异" },
+    { "name": "kind:error-divergence", "color": "1d76db", "description": "错误处理或降级行为差异" },
+    { "name": "severity:major",        "color": "d93f0b", "description": "需要修复" },
+    { "name": "severity:critical",     "color": "b60205", "description": "崩溃或核心链路阻塞" },
+    { "name": "needs-retry",           "color": "c5def5", "description": "需要下一轮 audit 再次确认稳定性" },
+    { "name": "flaky-flow",            "color": "c5def5", "description": "Maestro flow 不稳，需修 selector" },
+    { "name": "manual-dedup-required", "color": "c5def5", "description": "指纹命中多个 Issue，需人工裁决" }
+  ]
+}

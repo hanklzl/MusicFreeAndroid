@@ -40,3 +40,7 @@
 - 错误库 / 强约束 / AI skills 都进 git，跨 AI 工具与跨开发者生效。
 - Claude Code 个人 auto-memory（`~/.claude/projects/.../memory/MEMORY.md`）仅承载个人会话偏好，不放项目级 rule。
 - 历史决策快照在 `docs/superpowers/specs/` 与 `plans/`，仅参考。
+
+## Adjacent: Parity Audit Skill
+
+并非 dev-harness 域，但产出物（Issue 草稿、scenario catalog、运行产物）与 dev-harness incidents 互补。详见 `.agents/skills/parity-audit-skill/SKILL.md` 与 `docs/superpowers/specs/2026-05-15-parity-audit-agent-design.md`。
