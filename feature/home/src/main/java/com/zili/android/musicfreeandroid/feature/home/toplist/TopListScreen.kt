@@ -30,6 +30,7 @@ import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.zili.android.musicfreeandroid.core.ui.horizontalTabSwipe
 import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityTabs
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
@@ -45,6 +46,7 @@ fun TopListScreen(
     val plugins by viewModel.availablePlugins.collectAsStateWithLifecycle()
     val selectedPlugin by viewModel.selectedPlugin.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val selectedPluginIndex = plugins.indexOfFirst { it.platform == selectedPlugin }
 
     MusicFreeScreenScaffold(
         title = "榜单",
@@ -68,46 +70,57 @@ fun TopListScreen(
                     onSelectPlugin = viewModel::selectPlugin,
                 )
 
-                when (val state = uiState) {
-                    is TopListUiState.Idle,
-                    is TopListUiState.Loading,
-                    -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
-                        }
-                    }
-
-                    is TopListUiState.Error -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = rpx(24)),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Text(
-                                text = state.message,
-                                color = MusicFreeTheme.colors.danger,
-                                fontSize = FontSizes.content,
-                            )
-                            TextButton(onClick = { viewModel.refresh() }) {
-                                Text("重试", color = MusicFreeTheme.colors.primary)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .horizontalTabSwipe(
+                            selectedIndex = selectedPluginIndex,
+                            pageCount = plugins.size,
+                            enabled = selectedPluginIndex >= 0,
+                            onSelectIndex = { index -> viewModel.selectPlugin(plugins[index].platform) },
+                        ),
+                ) {
+                    when (val state = uiState) {
+                        is TopListUiState.Idle,
+                        is TopListUiState.Loading,
+                        -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
                             }
                         }
-                    }
 
-                    is TopListUiState.Success -> {
-                        if (state.groups.isEmpty()) {
-                            EmptyState("当前插件不支持榜单")
-                        } else {
-                            TopListGroups(
-                                pluginPlatform = selectedPlugin,
-                                groups = state.groups,
-                                onOpenTopListDetail = onOpenTopListDetail,
-                            )
+                        is TopListUiState.Error -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = rpx(24)),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Text(
+                                    text = state.message,
+                                    color = MusicFreeTheme.colors.danger,
+                                    fontSize = FontSizes.content,
+                                )
+                                TextButton(onClick = { viewModel.refresh() }) {
+                                    Text("重试", color = MusicFreeTheme.colors.primary)
+                                }
+                            }
+                        }
+
+                        is TopListUiState.Success -> {
+                            if (state.groups.isEmpty()) {
+                                EmptyState("当前插件不支持榜单")
+                            } else {
+                                TopListGroups(
+                                    pluginPlatform = selectedPlugin,
+                                    groups = state.groups,
+                                    onOpenTopListDetail = onOpenTopListDetail,
+                                )
+                            }
                         }
                     }
                 }

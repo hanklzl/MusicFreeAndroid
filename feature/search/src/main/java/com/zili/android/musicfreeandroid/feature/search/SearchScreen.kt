@@ -77,8 +77,10 @@ import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
 import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.core.ui.HorizontalSwipeDirection
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
 import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
+import com.zili.android.musicfreeandroid.core.ui.horizontalSwipeNavigation
 import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
 import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
 import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
@@ -426,16 +428,19 @@ private fun SearchResultPanel(
     onLongClick: (MusicItem) -> Unit = {},
 ) {
     val colors = MusicFreeTheme.colors
+    val mediaTypes = SearchMediaType.entries
+    val selectedMediaIndex = mediaTypes.indexOf(selectedMediaType).coerceAtLeast(0)
+    val selectedPluginIndex = searchablePlugins.indexOfFirst { it.platform == selectedPlatform }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // 媒体类型 Tab
         ScrollableTabRow(
-            selectedTabIndex = SearchMediaType.entries.indexOf(selectedMediaType).coerceAtLeast(0),
+            selectedTabIndex = selectedMediaIndex,
             edgePadding = 0.dp,
             containerColor = colors.pageBackground,
             contentColor = colors.primary,
         ) {
-            SearchMediaType.entries.forEach { type ->
+            mediaTypes.forEach { type ->
                 Tab(
                     selected = type == selectedMediaType,
                     onClick = { onSelectMediaType(type) },
@@ -448,7 +453,7 @@ private fun SearchResultPanel(
         // 插件 Tab
         if (searchablePlugins.isNotEmpty()) {
             ScrollableTabRow(
-                selectedTabIndex = searchablePlugins.indexOfFirst { it.platform == selectedPlatform }.coerceAtLeast(0),
+                selectedTabIndex = selectedPluginIndex.coerceAtLeast(0),
                 edgePadding = 0.dp,
                 indicator = {},
                 containerColor = colors.pageBackground,
@@ -471,115 +476,138 @@ private fun SearchResultPanel(
         }
 
         // 结果区域
-        when (val state = currentPluginState) {
-            is PluginSearchState.Idle -> { /* 空 */ }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .horizontalSwipeNavigation { direction ->
+                    val pluginTargetIndex = when (direction) {
+                        HorizontalSwipeDirection.Next -> selectedPluginIndex + 1
+                        HorizontalSwipeDirection.Previous -> selectedPluginIndex - 1
+                    }
+                    if (selectedPluginIndex >= 0 && pluginTargetIndex in searchablePlugins.indices) {
+                        onSelectPlatform(searchablePlugins[pluginTargetIndex].platform)
+                        return@horizontalSwipeNavigation
+                    }
 
-            is PluginSearchState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(color = colors.primary)
+                    val mediaTargetIndex = when (direction) {
+                        HorizontalSwipeDirection.Next -> selectedMediaIndex + 1
+                        HorizontalSwipeDirection.Previous -> selectedMediaIndex - 1
+                    }
+                    if (mediaTargetIndex in mediaTypes.indices) {
+                        onSelectMediaType(mediaTypes[mediaTargetIndex])
+                    }
+                },
+        ) {
+            when (val state = currentPluginState) {
+                is PluginSearchState.Idle -> { /* 空 */ }
+
+                is PluginSearchState.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(color = colors.primary)
+                    }
                 }
-            }
 
-            is PluginSearchState.Error -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = state.message,
-                        color = colors.textSecondary,
-                        fontSize = FontSizes.subTitle,
-                    )
-                }
-            }
-
-            is PluginSearchState.Success -> {
-                val items = state.items
-                if (items.isEmpty()) {
+                is PluginSearchState.Error -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "暂无搜索结果",
+                            text = state.message,
                             color = colors.textSecondary,
-                            fontSize = FontSizes.content,
+                            fontSize = FontSizes.subTitle,
                         )
                     }
-                } else if (selectedMediaType == SearchMediaType.SHEET) {
-                    val sheets = items.filterIsInstance<PluginSearchItem.Sheet>()
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(rpx(24)),
-                        horizontalArrangement = Arrangement.spacedBy(rpx(16)),
-                        verticalArrangement = Arrangement.spacedBy(rpx(24)),
-                    ) {
-                        gridItems(
-                            items = sheets,
-                            key = { item -> searchResultKey(item) },
-                        ) { sheet ->
-                            SheetResultItem(
-                                item = sheet.item,
-                                onClick = { onSheetClick(sheet.item) },
+                }
+
+                is PluginSearchState.Success -> {
+                    val items = state.items
+                    if (items.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "暂无搜索结果",
+                                color = colors.textSecondary,
+                                fontSize = FontSizes.content,
                             )
                         }
+                    } else if (selectedMediaType == SearchMediaType.SHEET) {
+                        val sheets = items.filterIsInstance<PluginSearchItem.Sheet>()
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(rpx(24)),
+                            horizontalArrangement = Arrangement.spacedBy(rpx(16)),
+                            verticalArrangement = Arrangement.spacedBy(rpx(24)),
+                        ) {
+                            gridItems(
+                                items = sheets,
+                                key = { item -> searchResultKey(item) },
+                            ) { sheet ->
+                                SheetResultItem(
+                                    item = sheet.item,
+                                    onClick = { onSheetClick(sheet.item) },
+                                )
+                            }
 
-                        if (!state.isEnd) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                SearchLoadingFooter(state.page, onLoadMore)
+                            if (!state.isEnd) {
+                                item(span = { GridItemSpan(maxLineSpan) }) {
+                                    SearchLoadingFooter(state.page, onLoadMore)
+                                }
                             }
                         }
-                    }
-                } else {
-                    val musicQueue = items.filterIsInstance<PluginSearchItem.Music>().map { it.item }
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(
-                            items = items,
-                            key = { item -> searchResultKey(item) },
-                        ) { result ->
-                            when (result) {
-                                is PluginSearchItem.Music -> {
-                                    val music = result.item
-                                    MusicResultItem(
-                                        item = music,
-                                        onClick = { onMusicClick(music, musicQueue) },
-                                        onLongClick = { onLongClick(music) },
-                                        onPlayNext = { onPlayNext(music) },
-                                        onAddToPlaylist = { onAddToPlaylist(music) },
-                                        onToggleFavorite = { onToggleFavorite(music) },
-                                        isFavoriteFlow = isFavoriteFlow,
+                    } else {
+                        val musicQueue = items.filterIsInstance<PluginSearchItem.Music>().map { it.item }
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(
+                                items = items,
+                                key = { item -> searchResultKey(item) },
+                            ) { result ->
+                                when (result) {
+                                    is PluginSearchItem.Music -> {
+                                        val music = result.item
+                                        MusicResultItem(
+                                            item = music,
+                                            onClick = { onMusicClick(music, musicQueue) },
+                                            onLongClick = { onLongClick(music) },
+                                            onPlayNext = { onPlayNext(music) },
+                                            onAddToPlaylist = { onAddToPlaylist(music) },
+                                            onToggleFavorite = { onToggleFavorite(music) },
+                                            isFavoriteFlow = isFavoriteFlow,
+                                        )
+                                    }
+                                    is PluginSearchItem.Album -> MediaResultItem(
+                                        coverUri = result.item.artwork,
+                                        title = result.item.title.orEmpty().ifBlank { "未命名专辑" },
+                                        tag = result.item.platform,
+                                        description = albumDescription(result.item),
+                                        onClick = { onAlbumClick(result.item) },
+                                    )
+                                    is PluginSearchItem.Artist -> MediaResultItem(
+                                        coverUri = result.item.avatar,
+                                        title = result.item.name.orEmpty().ifBlank { "未知歌手" },
+                                        tag = result.item.platform,
+                                        description = artistDescription(result.item),
+                                        onClick = { onArtistClick(result.item) },
+                                    )
+                                    is PluginSearchItem.Sheet -> MediaResultItem(
+                                        coverUri = result.item.artwork ?: result.item.coverImg,
+                                        title = result.item.title.orEmpty().ifBlank { "未命名歌单" },
+                                        tag = result.item.platform,
+                                        description = result.item.description.orEmpty(),
+                                        onClick = { onSheetClick(result.item) },
                                     )
                                 }
-                                is PluginSearchItem.Album -> MediaResultItem(
-                                    coverUri = result.item.artwork,
-                                    title = result.item.title.orEmpty().ifBlank { "未命名专辑" },
-                                    tag = result.item.platform,
-                                    description = albumDescription(result.item),
-                                    onClick = { onAlbumClick(result.item) },
-                                )
-                                is PluginSearchItem.Artist -> MediaResultItem(
-                                    coverUri = result.item.avatar,
-                                    title = result.item.name.orEmpty().ifBlank { "未知歌手" },
-                                    tag = result.item.platform,
-                                    description = artistDescription(result.item),
-                                    onClick = { onArtistClick(result.item) },
-                                )
-                                is PluginSearchItem.Sheet -> MediaResultItem(
-                                    coverUri = result.item.artwork ?: result.item.coverImg,
-                                    title = result.item.title.orEmpty().ifBlank { "未命名歌单" },
-                                    tag = result.item.platform,
-                                    description = result.item.description.orEmpty(),
-                                    onClick = { onSheetClick(result.item) },
-                                )
                             }
-                        }
 
-                        if (!state.isEnd) {
-                            item { SearchLoadingFooter(state.page, onLoadMore) }
+                            if (!state.isEnd) {
+                                item { SearchLoadingFooter(state.page, onLoadMore) }
+                            }
                         }
                     }
                 }

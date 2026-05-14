@@ -39,6 +39,7 @@ import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
@@ -353,6 +354,119 @@ class SearchViewModelTest {
         afterLoadMore as PluginSearchState.Success
         assertEquals(1, afterLoadMore.items.size)
         assertEquals(1, afterLoadMore.page)
+    }
+
+    @Test
+    fun `load more ignores duplicate request while same page is in flight`() = runTest {
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
+        whenever(appPreferences.addSearchQuery(any())).thenReturn(Unit)
+
+        val secondPageGate = CompletableDeferred<SearchResult>()
+        val plugin = plugin(
+            platform = "searchable",
+            supportedSearchType = listOf("music"),
+            firstPage = searchResult(
+                data = listOf(musicItem("1", "Song 1")),
+                isEnd = false,
+            ),
+        )
+        whenever(plugin.search("hello", 2, "music")).doSuspendableAnswer {
+            secondPageGate.await()
+        }
+        setLoadedPlugins(plugin)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.searchAll("hello")
+        advanceUntilIdle()
+
+        viewModel.loadMore()
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        verify(plugin, times(1)).search("hello", 2, "music")
+
+        secondPageGate.complete(
+            searchResult(
+                data = listOf(musicItem("2", "Song 2")),
+                isEnd = true,
+            ),
+        )
+        advanceUntilIdle()
+
+        val state = viewModel.searchResults.value[SearchMediaType.MUSIC]?.get("searchable")
+        assertTrue("Expected Success but was $state", state is PluginSearchState.Success)
+        state as PluginSearchState.Success
+        assertEquals(listOf("1", "2"), state.items.map { (it as PluginSearchItem.Music).item.id })
+        assertEquals(2, state.page)
+    }
+
+    @Test
+    fun `old query load more does not block or overwrite new query load more`() = runTest {
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
+        whenever(appPreferences.addSearchQuery(any())).thenReturn(Unit)
+
+        val oldSecondPageGate = CompletableDeferred<SearchResult>()
+        val plugin = plugin(
+            platform = "searchable",
+            supportedSearchType = listOf("music"),
+            firstPage = searchResult(
+                data = listOf(musicItem("hello-1", "Hello 1")),
+                isEnd = false,
+            ),
+        )
+        whenever(plugin.search("hello", 2, "music")).doSuspendableAnswer {
+            oldSecondPageGate.await()
+        }
+        whenever(plugin.search("world", 1, "music")).thenReturn(
+            searchResult(
+                data = listOf(musicItem("world-1", "World 1")),
+                isEnd = false,
+            ),
+        )
+        whenever(plugin.search("world", 2, "music")).thenReturn(
+            searchResult(
+                data = listOf(musicItem("world-2", "World 2")),
+                isEnd = true,
+            ),
+        )
+        setLoadedPlugins(plugin)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.searchAll("hello")
+        advanceUntilIdle()
+
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        viewModel.searchAll("world")
+        advanceUntilIdle()
+
+        viewModel.loadMore()
+        advanceUntilIdle()
+
+        verify(plugin, times(1)).search("hello", 2, "music")
+        verify(plugin, times(1)).search("world", 2, "music")
+
+        oldSecondPageGate.complete(
+            searchResult(
+                data = listOf(musicItem("hello-2", "Hello 2")),
+                isEnd = true,
+            ),
+        )
+        advanceUntilIdle()
+
+        val state = viewModel.searchResults.value[SearchMediaType.MUSIC]?.get("searchable")
+        assertTrue("Expected Success but was $state", state is PluginSearchState.Success)
+        state as PluginSearchState.Success
+        assertEquals(
+            listOf("world-1", "world-2"),
+            state.items.map { (it as PluginSearchItem.Music).item.id },
+        )
+        assertEquals(2, state.page)
     }
 
     @Test

@@ -66,7 +66,17 @@ class SearchViewModel @Inject constructor(
         val mediaType: SearchMediaType,
     )
 
+    private data class LoadMoreRequest(
+        val generation: Long,
+        val query: String,
+        val mediaType: SearchMediaType,
+        val platform: String,
+        val page: Int,
+    )
+
     private var pendingSearch: PendingSearch? = null
+    private val loadMoreInFlight = mutableSetOf<LoadMoreRequest>()
+    private var searchGeneration: Long = 0L
 
     // ── 搜索历史 ──
     val searchHistory: StateFlow<List<String>> = appPreferences.searchHistory
@@ -229,6 +239,7 @@ class SearchViewModel @Inject constructor(
 
     fun searchAll(query: String) {
         if (query.isBlank()) return
+        searchGeneration += 1
         _currentQuery.value = query
         _pageStatus.value = SearchPageStatus.SEARCHING
 
@@ -390,6 +401,15 @@ class SearchViewModel @Inject constructor(
         val plugin = pluginManager.getPlugin(platform) ?: return
         val nextPage = current.page + 1
         val query = _currentQuery.value
+        val generation = searchGeneration
+        val request = LoadMoreRequest(
+            generation = generation,
+            query = query,
+            mediaType = mediaType,
+            platform = platform,
+            page = nextPage,
+        )
+        if (!loadMoreInFlight.add(request)) return
 
         viewModelScope.launch {
             val startedAt = System.nanoTime()
@@ -411,11 +431,20 @@ class SearchViewModel @Inject constructor(
                         "durationMs" to durationMs,
                     ),
                 )
+                val latest = _searchResults.value[mediaType]?.get(platform)
+                if (
+                    generation != searchGeneration ||
+                    query != _currentQuery.value ||
+                    latest !is PluginSearchState.Success ||
+                    latest.page != current.page
+                ) {
+                    return@launch
+                }
                 updatePluginState(
                     mediaType,
                     platform,
-                    current.copy(
-                        items = current.items + result.data,
+                    latest.copy(
+                        items = latest.items + result.data,
                         isEnd = result.isEnd,
                         page = nextPage,
                     ),
@@ -434,6 +463,8 @@ class SearchViewModel @Inject constructor(
                         "durationMs" to elapsedMs(startedAt),
                     ),
                 )
+            } finally {
+                loadMoreInFlight.remove(request)
             }
         }
     }
