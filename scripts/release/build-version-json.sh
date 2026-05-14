@@ -46,15 +46,22 @@ DOWNLOAD_JSDELIVR="https://cdn.jsdelivr.net/gh/$OWNER/$REPO@$TAG/release/$APK_NA
 RELEASE_NOTES_URL="https://github.com/$OWNER/$REPO/releases/tag/$TAG"
 
 # Extract changeLog lines: prefer the LLM summary block (everything between title and "### 变更详情")
+# NB: do not pipe into `head -n N` — that closes the upstream pipe and trips SIGPIPE under set -o pipefail.
 CHANGELOG_LINES=$(awk '
     /^## \[/ { inSummary = 1; next }
     /^### 变更详情/ { inSummary = 0 }
     inSummary { print }
-' "$NOTES" | sed -E 's/^\s+|\s+$//g' | awk 'NF' | head -n 8)
+' "$NOTES" | sed -E 's/^\s+|\s+$//g' | awk 'NF { print; if (++n >= 8) exit }')
 
 if [[ -z "$CHANGELOG_LINES" ]]; then
     # fallback: take first 8 commit subject lines
-    CHANGELOG_LINES=$(grep -E '^- ' "$NOTES" | head -n 8 | sed -E 's/^- //; s/ \([a-f0-9]+\)$//')
+    CHANGELOG_LINES=$(awk '/^- / {
+        line = $0
+        sub(/^- /, "", line)
+        sub(/ \([a-f0-9]+\)$/, "", line)
+        print line
+        if (++n >= 8) exit
+    }' "$NOTES")
 fi
 
 jq -n \
