@@ -310,10 +310,13 @@ patch 文件落 `docs/parity-audit/rn-patches/`，由人决定是否 apply。
        - 仅 RN 有 → "android_missing"
        - 仅 Android 有 → "android_extra"
        - 双方都有但关键字段 hash 不同 → "value_mismatch"
-    3. 容忍：
-       - 同 kind 数量差 ≤ tolerance（默认 0）→ 记，但 severity=minor
-       - duration_ms 差异 > 50% → severity=perf
-       - error 频次/类型不一致 → severity=major
+    3. 容忍与分级（severity 与 kind 是正交两维）：
+       - `severity` ∈ {`minor`, `major`, `critical`}
+       - `kind` ∈ {`ui-gap`, `logic-gap`, `missing-feature`, `crash`, `perf`, `error-divergence`}
+       - 同 kind 数量差 ≤ tolerance（默认 0）→ 记，severity=minor
+       - duration_ms 差异 > 50% → severity=major, kind=perf
+       - error 频次/类型不一致 → severity=major, kind=error-divergence
+       - Android 单边崩（见 §3.5） → severity=critical, kind=crash
 ```
 
 `diff.json`：
@@ -347,7 +350,13 @@ patch 文件落 `docs/parity-audit/rn-patches/`，由人决定是否 apply。
 
 ### 5.1 触发条件
 
-只有 `verdict == diff_found` 且 `severity ∈ {major, critical}` 直接建 Issue。`minor` 仅进 REPORT；`perf` / `error-divergence` 建但加 `needs-retry` label。
+建 Issue 必须同时满足：
+- `verdict == diff_found`
+- `severity ∈ {major, critical}`
+
+附加规则：
+- `severity == minor` → 仅进 REPORT.md，不建 Issue
+- `kind ∈ {perf, error-divergence}` → 仍按上述规则建 Issue，但额外打 `needs-retry` label（提示在下一轮 audit 中复测确认稳定性后再决定是否升级处理）
 
 ### 5.2 标题与 Body
 
