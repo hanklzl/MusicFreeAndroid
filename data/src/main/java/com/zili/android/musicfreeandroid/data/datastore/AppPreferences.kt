@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
+import com.zili.android.musicfreeandroid.core.model.DesktopLyricAlignment
+import com.zili.android.musicfreeandroid.core.model.LyricAssociationType
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
@@ -119,6 +121,90 @@ class AppPreferences @Inject constructor(
     suspend fun setLyricAutoSearchEnabled(enabled: Boolean) {
         writeRuntimeSetting(KEY_LYRIC_AUTO_SEARCH_ENABLED, enabled) {
             it[KEY_LYRIC_AUTO_SEARCH_ENABLED] = enabled
+        }
+    }
+
+    val desktopLyricEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_DESKTOP_LYRIC_ENABLED] ?: false
+    }
+
+    suspend fun setDesktopLyricEnabled(enabled: Boolean) {
+        writeRuntimeSetting(KEY_DESKTOP_LYRIC_ENABLED, enabled) {
+            it[KEY_DESKTOP_LYRIC_ENABLED] = enabled
+        }
+    }
+
+    val desktopLyricAlignment: Flow<DesktopLyricAlignment> = dataStore.data.map { prefs ->
+        prefs.enumValue(KEY_DESKTOP_LYRIC_ALIGNMENT, DesktopLyricAlignment.Center)
+    }
+
+    suspend fun setDesktopLyricAlignment(value: DesktopLyricAlignment) {
+        writeRuntimeSetting(KEY_DESKTOP_LYRIC_ALIGNMENT, value.name) {
+            it[KEY_DESKTOP_LYRIC_ALIGNMENT] = value.name
+        }
+    }
+
+    val desktopLyricTopPercent: Flow<Float> = dataStore.data.map { prefs ->
+        (prefs[KEY_DESKTOP_LYRIC_TOP_PERCENT] ?: 0.08f).coerceIn(0f, 1f)
+    }
+
+    suspend fun setDesktopLyricTopPercent(value: Float) {
+        val coerced = value.coerceIn(0f, 1f)
+        writeRuntimeSetting(KEY_DESKTOP_LYRIC_TOP_PERCENT, coerced) {
+            it[KEY_DESKTOP_LYRIC_TOP_PERCENT] = coerced
+        }
+    }
+
+    val desktopLyricLeftPercent: Flow<Float> = dataStore.data.map { prefs ->
+        (prefs[KEY_DESKTOP_LYRIC_LEFT_PERCENT] ?: 0.08f).coerceIn(0f, 1f)
+    }
+
+    suspend fun setDesktopLyricLeftPercent(value: Float) {
+        val coerced = value.coerceIn(0f, 1f)
+        writeRuntimeSetting(KEY_DESKTOP_LYRIC_LEFT_PERCENT, coerced) {
+            it[KEY_DESKTOP_LYRIC_LEFT_PERCENT] = coerced
+        }
+    }
+
+    val desktopLyricWidthPercent: Flow<Float> = dataStore.data.map { prefs ->
+        (prefs[KEY_DESKTOP_LYRIC_WIDTH_PERCENT] ?: 0.84f).coerceIn(0.2f, 1f)
+    }
+
+    suspend fun setDesktopLyricWidthPercent(value: Float) {
+        val coerced = value.coerceIn(0.2f, 1f)
+        writeRuntimeSetting(KEY_DESKTOP_LYRIC_WIDTH_PERCENT, coerced) {
+            it[KEY_DESKTOP_LYRIC_WIDTH_PERCENT] = coerced
+        }
+    }
+
+    val desktopLyricFontSizeSp: Flow<Int> = dataStore.data.map { prefs ->
+        (prefs[KEY_DESKTOP_LYRIC_FONT_SIZE_SP] ?: 18).coerceIn(12, 32)
+    }
+
+    suspend fun setDesktopLyricFontSizeSp(value: Int) {
+        val coerced = value.coerceIn(12, 32)
+        writeRuntimeSetting(KEY_DESKTOP_LYRIC_FONT_SIZE_SP, coerced) {
+            it[KEY_DESKTOP_LYRIC_FONT_SIZE_SP] = coerced
+        }
+    }
+
+    val desktopLyricTextColor: Flow<String> = dataStore.data.map { prefs ->
+        prefs[KEY_DESKTOP_LYRIC_TEXT_COLOR] ?: "#FFFFFFFF"
+    }
+
+    suspend fun setDesktopLyricTextColor(value: String) {
+        writeRuntimeSetting(KEY_DESKTOP_LYRIC_TEXT_COLOR, value) {
+            it[KEY_DESKTOP_LYRIC_TEXT_COLOR] = value
+        }
+    }
+
+    val desktopLyricBackgroundColor: Flow<String> = dataStore.data.map { prefs ->
+        prefs[KEY_DESKTOP_LYRIC_BACKGROUND_COLOR] ?: "#66000000"
+    }
+
+    suspend fun setDesktopLyricBackgroundColor(value: String) {
+        writeRuntimeSetting(KEY_DESKTOP_LYRIC_BACKGROUND_COLOR, value) {
+            it[KEY_DESKTOP_LYRIC_BACKGROUND_COLOR] = value
         }
     }
 
@@ -238,6 +324,26 @@ class AppPreferences @Inject constructor(
     suspend fun setMusicDetailAwake(value: Boolean) {
         writeRuntimeSetting(KEY_MUSIC_DETAIL_AWAKE, value) {
             it[KEY_MUSIC_DETAIL_AWAKE] = value
+        }
+    }
+
+    val lyricAssociationType: Flow<LyricAssociationType> = dataStore.data.map { prefs ->
+        prefs.enumValue(KEY_LYRIC_ASSOCIATION_TYPE, LyricAssociationType.Search)
+    }
+
+    suspend fun setLyricAssociationType(value: LyricAssociationType) {
+        writeRuntimeSetting(KEY_LYRIC_ASSOCIATION_TYPE, value.name) {
+            it[KEY_LYRIC_ASSOCIATION_TYPE] = value.name
+        }
+    }
+
+    val showExitOnNotification: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_SHOW_EXIT_ON_NOTIFICATION] ?: false
+    }
+
+    suspend fun setShowExitOnNotification(value: Boolean) {
+        writeRuntimeSetting(KEY_SHOW_EXIT_ON_NOTIFICATION, value) {
+            it[KEY_SHOW_EXIT_ON_NOTIFICATION] = value
         }
     }
 
@@ -424,6 +530,36 @@ class AppPreferences @Inject constructor(
         }
     }
 
+    val debugErrorLogEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_DEBUG_ERROR_LOG_ENABLED] ?: true
+    }
+
+    suspend fun setDebugErrorLogEnabled(value: Boolean) {
+        writeRuntimeSetting(KEY_DEBUG_ERROR_LOG_ENABLED, value) {
+            it[KEY_DEBUG_ERROR_LOG_ENABLED] = value
+        }
+    }
+
+    val debugTraceLogEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_DEBUG_TRACE_LOG_ENABLED] ?: true
+    }
+
+    suspend fun setDebugTraceLogEnabled(value: Boolean) {
+        writeRuntimeSetting(KEY_DEBUG_TRACE_LOG_ENABLED, value) {
+            it[KEY_DEBUG_TRACE_LOG_ENABLED] = value
+        }
+    }
+
+    val debugDevLogEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_DEBUG_DEV_LOG_ENABLED] ?: false
+    }
+
+    suspend fun setDebugDevLogEnabled(value: Boolean) {
+        writeRuntimeSetting(KEY_DEBUG_DEV_LOG_ENABLED, value) {
+            it[KEY_DEBUG_DEV_LOG_ENABLED] = value
+        }
+    }
+
     private suspend fun writeRuntimeSetting(
         key: Preferences.Key<*>,
         value: Any?,
@@ -484,6 +620,14 @@ class AppPreferences @Inject constructor(
         val KEY_LYRIC_SHOW_TRANSLATION = booleanPreferencesKey("lyric_show_translation")
         val KEY_LYRIC_DETAIL_FONT_SIZE = intPreferencesKey("lyric_detail_font_size")
         val KEY_LYRIC_AUTO_SEARCH_ENABLED = booleanPreferencesKey("lyric_auto_search_enabled")
+        val KEY_DESKTOP_LYRIC_ENABLED = booleanPreferencesKey("desktop_lyric_enabled")
+        val KEY_DESKTOP_LYRIC_ALIGNMENT = stringPreferencesKey("desktop_lyric_alignment")
+        val KEY_DESKTOP_LYRIC_TOP_PERCENT = floatPreferencesKey("desktop_lyric_top_percent")
+        val KEY_DESKTOP_LYRIC_LEFT_PERCENT = floatPreferencesKey("desktop_lyric_left_percent")
+        val KEY_DESKTOP_LYRIC_WIDTH_PERCENT = floatPreferencesKey("desktop_lyric_width_percent")
+        val KEY_DESKTOP_LYRIC_FONT_SIZE_SP = intPreferencesKey("desktop_lyric_font_size_sp")
+        val KEY_DESKTOP_LYRIC_TEXT_COLOR = stringPreferencesKey("desktop_lyric_text_color")
+        val KEY_DESKTOP_LYRIC_BACKGROUND_COLOR = stringPreferencesKey("desktop_lyric_background_color")
         val KEY_SEARCH_HISTORY = stringPreferencesKey("search_history")
         val KEY_MAX_SEARCH_HISTORY_LENGTH = intPreferencesKey("max_search_history_length")
         const val DEFAULT_MAX_SEARCH_HISTORY = 50
@@ -494,6 +638,8 @@ class AppPreferences @Inject constructor(
         val KEY_DOWNLOAD_DIR_RELATIVE = stringPreferencesKey("download_dir_relative")
         val KEY_MUSIC_DETAIL_DEFAULT_PAGE = stringPreferencesKey("music_detail_default_page")
         val KEY_MUSIC_DETAIL_AWAKE = booleanPreferencesKey("music_detail_awake")
+        val KEY_LYRIC_ASSOCIATION_TYPE = stringPreferencesKey("lyric_association_type")
+        val KEY_SHOW_EXIT_ON_NOTIFICATION = booleanPreferencesKey("show_exit_on_notification")
         val KEY_CLICK_MUSIC_IN_SEARCH = stringPreferencesKey("click_music_in_search")
         val KEY_CLICK_MUSIC_IN_ALBUM = stringPreferencesKey("click_music_in_album")
         val KEY_MUSIC_ORDER_IN_LOCAL_SHEET = stringPreferencesKey("music_order_in_local_sheet")
@@ -514,6 +660,9 @@ class AppPreferences @Inject constructor(
         val KEY_SKIP_PLUGIN_VERSION_CHECK = booleanPreferencesKey("skip_plugin_version_check")
         val KEY_PLUGIN_AUTO_UPDATE_LAST_AT_EPOCH_MS = longPreferencesKey("plugin_auto_update_last_at_epoch_ms")
         val KEY_LAZY_LOAD_PLUGINS = booleanPreferencesKey("pref_lazy_load_plugins")
+        val KEY_DEBUG_ERROR_LOG_ENABLED = booleanPreferencesKey("debug_error_log_enabled")
+        val KEY_DEBUG_TRACE_LOG_ENABLED = booleanPreferencesKey("debug_trace_log_enabled")
+        val KEY_DEBUG_DEV_LOG_ENABLED = booleanPreferencesKey("debug_dev_log_enabled")
     }
 }
 

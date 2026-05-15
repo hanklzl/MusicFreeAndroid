@@ -3,6 +3,8 @@ package com.zili.android.musicfreeandroid.feature.playerui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.model.DesktopLyricAlignment
+import com.zili.android.musicfreeandroid.core.model.LyricAssociationType
 import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
@@ -68,6 +70,44 @@ class PlayerViewModel @Inject constructor(
     val musicDetailAwake: StateFlow<Boolean> =
         appPreferences.musicDetailAwake
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val lyricAssociationType: StateFlow<LyricAssociationType> =
+        appPreferences.lyricAssociationType
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LyricAssociationType.Search)
+
+    private val desktopLyricPositionState = combine(
+        appPreferences.desktopLyricTopPercent,
+        appPreferences.desktopLyricLeftPercent,
+        appPreferences.desktopLyricWidthPercent,
+    ) { topPercent, leftPercent, widthPercent ->
+        Triple(topPercent, leftPercent, widthPercent)
+    }
+
+    private val desktopLyricStyleState = combine(
+        appPreferences.desktopLyricFontSizeSp,
+        appPreferences.desktopLyricTextColor,
+        appPreferences.desktopLyricBackgroundColor,
+    ) { fontSizeSp, textColor, backgroundColor ->
+        Triple(fontSizeSp, textColor, backgroundColor)
+    }
+
+    internal val desktopLyricOverlayState: StateFlow<DesktopLyricOverlayState> = combine(
+        appPreferences.desktopLyricEnabled,
+        appPreferences.desktopLyricAlignment,
+        desktopLyricPositionState,
+        desktopLyricStyleState,
+    ) { enabled, alignment, position, style ->
+        DesktopLyricOverlayState(
+            enabled = enabled,
+            alignment = alignment,
+            topPercent = position.first,
+            leftPercent = position.second,
+            widthPercent = position.third,
+            fontSizeSp = style.first,
+            textColor = style.second,
+            backgroundColor = style.third,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DesktopLyricOverlayState())
 
     private val _internalErrorEvents = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val errorEvents: SharedFlow<String> =
@@ -586,6 +626,39 @@ class PlayerViewModel @Inject constructor(
 
     fun setLyricDetailFontSize(level: Int) {
         viewModelScope.launch { appPreferences.setLyricDetailFontSize(level) }
+    }
+
+    fun setDesktopLyricEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                appPreferences.setDesktopLyricEnabled(enabled)
+                logLyricDetail(
+                    event = "desktop_lyric_toggle",
+                    operation = "toggle_desktop_lyric",
+                    item = playerState.value.currentItem,
+                    result = LogFields.Result.SUCCESS,
+                    extra = mapOf("enabled" to enabled),
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                logLyricError(
+                    event = "desktop_lyric_toggle_failed",
+                    operation = "toggle_desktop_lyric",
+                    item = playerState.value.currentItem,
+                    error = error,
+                    extra = mapOf("enabled" to enabled),
+                )
+                _internalErrorEvents.tryEmit("桌面歌词设置失败: ${error.message ?: error::class.simpleName}")
+            }
+        }
+    }
+
+    fun associateLyricFromManualInput(input: String): Boolean {
+        val target = ManualLyricAssociationParser.parse(input, fallback = playerState.value.currentItem)
+            ?: return false
+        associateLyric(target)
+        return true
     }
 
     fun searchLyrics() {

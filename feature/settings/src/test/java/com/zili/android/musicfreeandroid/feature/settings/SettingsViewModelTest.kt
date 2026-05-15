@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
 import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
+import com.zili.android.musicfreeandroid.core.model.DesktopLyricAlignment
+import com.zili.android.musicfreeandroid.core.model.LyricAssociationType
 import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
@@ -16,6 +18,7 @@ import com.zili.android.musicfreeandroid.logging.FeedbackPackage
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.MfLogger
+import com.zili.android.musicfreeandroid.logging.ReadableLogStore
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -94,6 +97,8 @@ class SettingsViewModelTest {
         assertEquals(50, state.maxSearchHistoryLength)
         assertEquals(MusicDetailDefaultPage.Album, state.musicDetailDefaultPage)
         assertEquals(false, state.musicDetailAwake)
+        assertEquals(LyricAssociationType.Search, state.lyricAssociationType)
+        assertEquals(false, state.showExitOnNotification)
         assertEquals(SearchResultClickAction.PlayMusic, state.clickMusicInSearch)
         assertEquals(AlbumMusicClickAction.PlayAlbum, state.clickMusicInAlbum)
         assertEquals(SortMode.Manual, state.musicOrderInLocalSheet)
@@ -111,10 +116,21 @@ class SettingsViewModelTest {
         assertEquals(false, state.useCellularPlay)
         assertEquals(false, state.useCellularDownload)
         assertEquals(true, state.lyricAutoSearchEnabled)
+        assertEquals(false, state.desktopLyricEnabled)
+        assertEquals(DesktopLyricAlignment.Center, state.desktopLyricAlignment)
+        assertEquals(0.08f, state.desktopLyricTopPercent)
+        assertEquals(0.08f, state.desktopLyricLeftPercent)
+        assertEquals(0.84f, state.desktopLyricWidthPercent)
+        assertEquals(18, state.desktopLyricFontSizeSp)
+        assertEquals("#FFFFFFFF", state.desktopLyricTextColor)
+        assertEquals("#66000000", state.desktopLyricBackgroundColor)
         assertEquals(false, state.autoUpdatePlugins)
         assertEquals(false, state.skipPluginVersionCheck)
         assertEquals(false, state.lazyLoadPlugins)
         assertEquals(512, state.maxMusicCacheSizeMb)
+        assertEquals(true, state.debugErrorLogEnabled)
+        assertEquals(true, state.debugTraceLogEnabled)
+        assertEquals(false, state.debugDevLogEnabled)
         assertTrue(!state.storageAccessState.isConfigured)
     }
 
@@ -130,6 +146,8 @@ class SettingsViewModelTest {
             viewModel.setMaxSearchHistoryLength(100)
             viewModel.setMusicDetailDefaultPage(MusicDetailDefaultPage.Lyric)
             viewModel.setMusicDetailAwake(true)
+            viewModel.setLyricAssociationType(LyricAssociationType.Input)
+            viewModel.setShowExitOnNotification(true)
             viewModel.setClickMusicInSearch(SearchResultClickAction.PlayMusicAndReplace)
             viewModel.setClickMusicInAlbum(AlbumMusicClickAction.PlayMusic)
             viewModel.setMusicOrderInLocalSheet(SortMode.Title)
@@ -151,12 +169,25 @@ class SettingsViewModelTest {
             viewModel.setUseCellularPlay(true)
             viewModel.setUseCellularDownload(true)
             viewModel.setLyricAutoSearchEnabled(false)
+            viewModel.setDesktopLyricEnabled(true)
+            viewModel.setDesktopLyricAlignment(DesktopLyricAlignment.Right)
+            viewModel.setDesktopLyricTopPercent(0.16f)
+            viewModel.setDesktopLyricLeftPercent(0.24f)
+            viewModel.setDesktopLyricWidthPercent(0.66f)
+            viewModel.setDesktopLyricFontSizeSp(24)
+            viewModel.setDesktopLyricTextColor("#FFFFD54F")
+            viewModel.setDesktopLyricBackgroundColor("#00000000")
+            viewModel.setDebugErrorLogEnabled(false)
+            viewModel.setDebugTraceLogEnabled(false)
+            viewModel.setDebugDevLogEnabled(true)
             advanceUntilIdle()
 
             val state = viewModel.basicSettingsUiState.value
             assertEquals(100, state.maxSearchHistoryLength)
             assertEquals(MusicDetailDefaultPage.Lyric, state.musicDetailDefaultPage)
             assertEquals(true, state.musicDetailAwake)
+            assertEquals(LyricAssociationType.Input, state.lyricAssociationType)
+            assertEquals(true, state.showExitOnNotification)
             assertEquals(SearchResultClickAction.PlayMusicAndReplace, state.clickMusicInSearch)
             assertEquals(AlbumMusicClickAction.PlayMusic, state.clickMusicInAlbum)
             assertEquals(SortMode.Title, state.musicOrderInLocalSheet)
@@ -174,14 +205,27 @@ class SettingsViewModelTest {
             assertEquals(true, state.useCellularPlay)
             assertEquals(true, state.useCellularDownload)
             assertEquals(false, state.lyricAutoSearchEnabled)
+            assertEquals(true, state.desktopLyricEnabled)
+            assertEquals(DesktopLyricAlignment.Right, state.desktopLyricAlignment)
+            assertEquals(0.16f, state.desktopLyricTopPercent)
+            assertEquals(0.24f, state.desktopLyricLeftPercent)
+            assertEquals(0.66f, state.desktopLyricWidthPercent)
+            assertEquals(24, state.desktopLyricFontSizeSp)
+            assertEquals("#FFFFD54F", state.desktopLyricTextColor)
+            assertEquals("#00000000", state.desktopLyricBackgroundColor)
             assertEquals(true, state.autoUpdatePlugins)
             assertEquals(true, state.skipPluginVersionCheck)
             assertEquals(true, state.lazyLoadPlugins)
             assertEquals(1024, state.maxMusicCacheSizeMb)
+            assertEquals(false, state.debugErrorLogEnabled)
+            assertEquals(false, state.debugTraceLogEnabled)
+            assertEquals(true, state.debugDevLogEnabled)
             assertTrue(!state.storageAccessState.isConfigured)
             assertEquals(100, appPreferences.maxSearchHistoryLength.first())
             assertEquals(MusicDetailDefaultPage.Lyric, appPreferences.musicDetailDefaultPage.first())
             assertEquals(true, appPreferences.musicDetailAwake.first())
+            assertEquals(LyricAssociationType.Input, appPreferences.lyricAssociationType.first())
+            assertEquals(true, appPreferences.showExitOnNotification.first())
             assertEquals(SearchResultClickAction.PlayMusicAndReplace, appPreferences.clickMusicInSearch.first())
             assertEquals(AlbumMusicClickAction.PlayMusic, appPreferences.clickMusicInAlbum.first())
             assertEquals(SortMode.Title, appPreferences.musicOrderInLocalSheet.first())
@@ -203,6 +247,17 @@ class SettingsViewModelTest {
             assertEquals(true, appPreferences.useCellularPlay.first())
             assertEquals(true, appPreferences.useCellularDownload.first())
             assertEquals(false, appPreferences.lyricAutoSearchEnabled.first())
+            assertEquals(true, appPreferences.desktopLyricEnabled.first())
+            assertEquals(DesktopLyricAlignment.Right, appPreferences.desktopLyricAlignment.first())
+            assertEquals(0.16f, appPreferences.desktopLyricTopPercent.first())
+            assertEquals(0.24f, appPreferences.desktopLyricLeftPercent.first())
+            assertEquals(0.66f, appPreferences.desktopLyricWidthPercent.first())
+            assertEquals(24, appPreferences.desktopLyricFontSizeSp.first())
+            assertEquals("#FFFFD54F", appPreferences.desktopLyricTextColor.first())
+            assertEquals("#00000000", appPreferences.desktopLyricBackgroundColor.first())
+            assertEquals(false, appPreferences.debugErrorLogEnabled.first())
+            assertEquals(false, appPreferences.debugTraceLogEnabled.first())
+            assertEquals(true, appPreferences.debugDevLogEnabled.first())
             verify(pluginManager).reload()
             job.cancel()
         }
@@ -275,6 +330,25 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, exporter.clearCalls)
+    }
+
+    @Test
+    fun `show error log reads readable log store`() = runTest(mainDispatcherRule.dispatcher) {
+        val logFile = tmpFolder.newFile("readable-errors.log")
+        ReadableLogStore.install(logFile)
+        ReadableLogStore.appendError("settings_failed", "line payload")
+        val viewModel = createViewModel(createAppPreferences())
+
+        viewModel.showErrorLog()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.errorLogUiState.value.visible)
+        assertTrue(viewModel.errorLogUiState.value.content.contains("settings_failed"))
+        assertTrue(viewModel.errorLogUiState.value.content.contains("line payload"))
+
+        viewModel.dismissErrorLog()
+
+        assertFalse(viewModel.errorLogUiState.value.visible)
     }
 
     @Test

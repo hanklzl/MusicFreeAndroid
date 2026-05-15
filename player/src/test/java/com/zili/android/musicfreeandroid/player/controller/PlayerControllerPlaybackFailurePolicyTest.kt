@@ -188,5 +188,7 @@ class PlayerControllerPlaybackFailurePolicyTest {
             AudioInterruptionAction.Pause
 
         override suspend fun audioInterruptionDuckVolume(): Float = 0.5f
+
+        override suspend fun showExitOnNotification(): Boolean = false
     }
 }

@@ -25,6 +25,17 @@ enum class AudioInterruptionAction {
     LowerVolume,
 }
 
+enum class LyricAssociationType {
+    Search,
+    Input,
+}
+
+enum class DesktopLyricAlignment {
+    Left,
+    Center,
+    Right,
+}
+
 fun PlayQuality.fallbackSequence(order: QualityFallbackOrder): List<PlayQuality> {
     val qualities = listOf(
         PlayQuality.LOW,

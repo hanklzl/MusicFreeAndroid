@@ -270,6 +270,18 @@ class PlayerController @Inject constructor(
         skipToNext()
     }
 
+    override fun closeFromNotification() {
+        reset()
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "playback_notification_close",
+            fields = mapOf(
+                "status" to LogFields.Result.SUCCESS,
+                "operation" to "close_notification",
+            ),
+        )
+    }
+
     fun skipTo(index: Int) {
         val previousIndex = playQueue.currentIndex
         val item = playQueue.skipTo(index) ?: return

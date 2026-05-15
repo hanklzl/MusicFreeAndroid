@@ -204,5 +204,7 @@ class PluginMediaSourceServiceTest {
         override suspend fun audioInterruptionAction(): AudioInterruptionAction = AudioInterruptionAction.Pause
 
         override suspend fun audioInterruptionDuckVolume(): Float = 0.5f
+
+        override suspend fun showExitOnNotification(): Boolean = false
     }
 }

@@ -213,6 +213,7 @@ class PluginMediaSourceServiceCacheTest {
             override suspend fun autoStopWhenError(): Boolean = false
             override suspend fun audioInterruptionAction(): AudioInterruptionAction = AudioInterruptionAction.Pause
             override suspend fun audioInterruptionDuckVolume(): Float = 0.5f
+            override suspend fun showExitOnNotification(): Boolean = false
         }
         val service = service(
             plugins = listOf(plugin),

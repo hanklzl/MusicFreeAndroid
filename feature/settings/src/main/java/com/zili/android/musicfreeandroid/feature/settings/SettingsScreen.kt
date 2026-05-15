@@ -24,10 +24,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.AnnotatedString
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,7 +55,9 @@ fun SettingsScreen(
 ) {
     val basicState by viewModel.basicSettingsUiState.collectAsStateWithLifecycle()
     val feedbackExportUiState by viewModel.feedbackExportUiState.collectAsStateWithLifecycle()
+    val errorLogUiState by viewModel.errorLogUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     var showFeedbackConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(context, viewModel, feedbackExportUiState.pendingPackage) {
@@ -114,6 +118,8 @@ fun SettingsScreen(
                 onMaxSearchHistoryLengthChange = viewModel::setMaxSearchHistoryLength,
                 onMusicDetailDefaultPageChange = viewModel::setMusicDetailDefaultPage,
                 onMusicDetailAwakeChange = viewModel::setMusicDetailAwake,
+                onLyricAssociationTypeChange = viewModel::setLyricAssociationType,
+                onShowExitOnNotificationChange = viewModel::setShowExitOnNotification,
                 onClickMusicInSearchChange = viewModel::setClickMusicInSearch,
                 onClickMusicInAlbumChange = viewModel::setClickMusicInAlbum,
                 onMusicOrderInLocalSheetChange = viewModel::setMusicOrderInLocalSheet,
@@ -131,6 +137,27 @@ fun SettingsScreen(
                 onUseCellularPlayChange = viewModel::setUseCellularPlay,
                 onUseCellularDownloadChange = viewModel::setUseCellularDownload,
                 onLyricAutoSearchEnabledChange = viewModel::setLyricAutoSearchEnabled,
+                onDesktopLyricEnabledChange = { enabled ->
+                    if (!enabled) {
+                        viewModel.setDesktopLyricEnabled(false)
+                    } else if (readPermissionsUiState(context).overlayGranted) {
+                        viewModel.setDesktopLyricEnabled(true)
+                    } else {
+                        val opened = openOverlaySettings(context)
+                        Toast.makeText(
+                            context,
+                            if (opened) "请授予悬浮窗权限后重新开启桌面歌词" else "无法打开悬浮窗权限设置",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                },
+                onDesktopLyricAlignmentChange = viewModel::setDesktopLyricAlignment,
+                onDesktopLyricTopPercentChange = viewModel::setDesktopLyricTopPercent,
+                onDesktopLyricLeftPercentChange = viewModel::setDesktopLyricLeftPercent,
+                onDesktopLyricWidthPercentChange = viewModel::setDesktopLyricWidthPercent,
+                onDesktopLyricFontSizeSpChange = viewModel::setDesktopLyricFontSizeSp,
+                onDesktopLyricTextColorChange = viewModel::setDesktopLyricTextColor,
+                onDesktopLyricBackgroundColorChange = viewModel::setDesktopLyricBackgroundColor,
                 onAutoUpdatePluginsChange = viewModel::setAutoUpdatePlugins,
                 onSkipPluginVersionCheckChange = viewModel::setSkipPluginVersionCheck,
                 onLazyLoadPluginsChange = viewModel::setLazyLoadPlugins,
@@ -141,6 +168,10 @@ fun SettingsScreen(
                 onNavigateToFileSelector = onNavigateToFileSelector,
                 onCreateFeedbackPackage = { showFeedbackConfirm = true },
                 onClearLogs = viewModel::clearLogs,
+                onDebugErrorLogEnabledChange = viewModel::setDebugErrorLogEnabled,
+                onDebugTraceLogEnabledChange = viewModel::setDebugTraceLogEnabled,
+                onDebugDevLogEnabledChange = viewModel::setDebugDevLogEnabled,
+                onViewErrorLog = viewModel::showErrorLog,
                 modifier = Modifier.padding(innerPadding),
             )
 
@@ -179,6 +210,17 @@ fun SettingsScreen(
             },
         )
     }
+
+    if (errorLogUiState.visible) {
+        ErrorLogDialog(
+            content = errorLogUiState.content,
+            onCopy = {
+                clipboardManager.setText(AnnotatedString(errorLogUiState.content))
+                Toast.makeText(context, "错误日志已复制", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = viewModel::dismissErrorLog,
+        )
+    }
 }
 
 @Composable
@@ -204,6 +246,38 @@ private fun FeedbackExportConfirmDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(text = "取消")
+            }
+        },
+    )
+}
+
+@Composable
+private fun ErrorLogDialog(
+    content: String,
+    onCopy: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "错误日志") },
+        text = {
+            LazyColumn(modifier = Modifier.height(rpx(480))) {
+                item {
+                    Text(
+                        text = content,
+                        fontSize = FontSizes.description,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onCopy) {
+                Text(text = "复制")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "关闭")
             }
         },
     )

@@ -74,6 +74,7 @@ class FeedbackLogExporter(
     private fun clearLogsBlocking() {
         clearAndRecreate(config.logDir)
         clearAndRecreate(config.feedbackDir)
+        ReadableLogStore.clear()
         MfLog.trace(LogCategory.FEEDBACK, "feedback_logs_cleared")
     }
 

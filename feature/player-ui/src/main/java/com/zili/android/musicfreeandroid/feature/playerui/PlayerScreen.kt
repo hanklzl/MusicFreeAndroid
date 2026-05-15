@@ -3,7 +3,10 @@ package com.zili.android.musicfreeandroid.feature.playerui
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings as AndroidSettings
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -69,7 +72,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.zili.android.musicfreeandroid.core.R
+import com.zili.android.musicfreeandroid.core.model.LyricAssociationType
 import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
+import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
@@ -86,6 +91,7 @@ import com.zili.android.musicfreeandroid.feature.playerui.component.rate.PlayRat
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricSearchSheet
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsContent
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsOperations
+import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsUiState
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,9 +114,12 @@ fun PlayerScreen(
     val lyricSearchLoading by viewModel.lyricSearchLoading.collectAsStateWithLifecycle()
     val musicDetailDefaultPage by viewModel.musicDetailDefaultPage.collectAsStateWithLifecycle()
     val musicDetailAwake by viewModel.musicDetailAwake.collectAsStateWithLifecycle()
+    val lyricAssociationType by viewModel.lyricAssociationType.collectAsStateWithLifecycle()
+    val desktopLyricOverlayState by viewModel.desktopLyricOverlayState.collectAsStateWithLifecycle()
     var contentPage by remember { mutableStateOf(PlayerContentPage.Cover) }
     var defaultPageApplied by remember { mutableStateOf(false) }
     var showLyricSearchSheet by remember { mutableStateOf(false) }
+    var showManualLyricAssociationDialog by remember { mutableStateOf(false) }
     var showLyricOffsetDialog by remember { mutableStateOf(false) }
     var showMoreOptionsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
@@ -149,6 +158,31 @@ fun PlayerScreen(
         if (!defaultPageApplied) {
             contentPage = defaultPage.toPlayerContentPage()
             defaultPageApplied = true
+        }
+    }
+
+    val desktopLyricController = remember(context) {
+        DesktopLyricOverlayController(context.applicationContext)
+    }
+    val desktopLyricText = lyricsUiState.desktopLyricText(currentItem)
+    LaunchedEffect(desktopLyricOverlayState, desktopLyricText) {
+        desktopLyricController.update(desktopLyricOverlayState, desktopLyricText)
+    }
+    DisposableEffect(desktopLyricController) {
+        onDispose {
+            desktopLyricController.remove()
+        }
+    }
+
+    fun openLyricAssociation() {
+        when (lyricAssociationType) {
+            LyricAssociationType.Search -> {
+                showLyricSearchSheet = true
+                viewModel.searchLyrics()
+            }
+            LyricAssociationType.Input -> {
+                showManualLyricAssociationDialog = true
+            }
         }
     }
 
@@ -250,10 +284,7 @@ fun PlayerScreen(
                             viewModel.setLyricDetailFontSize(nextFontLevel)
                         },
                         onOffset = { showLyricOffsetDialog = true },
-                        onSearch = {
-                            showLyricSearchSheet = true
-                            viewModel.searchLyrics()
-                        },
+                        onSearch = ::openLyricAssociation,
                         onToggleTranslation = {
                             viewModel.setLyricShowTranslation(!lyricsUiState.showTranslation)
                         },
@@ -327,6 +358,24 @@ fun PlayerScreen(
             )
         }
 
+        if (showManualLyricAssociationDialog) {
+            ManualLyricAssociationDialog(
+                onDismiss = { showManualLyricAssociationDialog = false },
+                onConfirm = { input ->
+                    if (viewModel.associateLyricFromManualInput(input)) {
+                        showManualLyricAssociationDialog = false
+                        Toast.makeText(context, "已关联歌词", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "请输入 platform@id 或包含 platform/id 的 JSON",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                },
+            )
+        }
+
         if (showLyricOffsetDialog) {
             LyricOffsetDialog(
                 currentOffsetMs = lyricsUiState.userOffsetMs,
@@ -338,11 +387,22 @@ fun PlayerScreen(
         if (showMoreOptionsSheet && currentItem != null) {
             PlayerMoreOptionsSheet(
                 item = currentItem,
-                desktopLyricEnabled = false,
+                desktopLyricEnabled = desktopLyricOverlayState.enabled,
                 onDismiss = { showMoreOptionsSheet = false },
                 onToggleDesktopLyric = {
                     showMoreOptionsSheet = false
-                    Toast.makeText(context, "桌面歌词暂未接入", Toast.LENGTH_SHORT).show()
+                    if (desktopLyricOverlayState.enabled) {
+                        viewModel.setDesktopLyricEnabled(false)
+                    } else if (AndroidSettings.canDrawOverlays(context)) {
+                        viewModel.setDesktopLyricEnabled(true)
+                    } else {
+                        val opened = openDesktopLyricPermissionSettings(context)
+                        Toast.makeText(
+                            context,
+                            if (opened) "请授予悬浮窗权限后重新开启桌面歌词" else "无法打开悬浮窗权限设置",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
                 },
                 onImportRawLyric = {
                     showMoreOptionsSheet = false
@@ -406,6 +466,37 @@ fun PlayerScreen(
     }
 }
 
+@Composable
+private fun ManualLyricAssociationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var input by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("手动关联歌词") },
+        text = {
+            OutlinedTextField(
+                value = input,
+                onValueChange = { input = it },
+                label = { Text("platform@id 或 JSON") },
+                singleLine = false,
+                minLines = 3,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(input) }) {
+                Text("关联")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        },
+    )
+}
+
 private enum class PlayerContentPage {
     Cover,
     Lyrics,
@@ -414,6 +505,34 @@ private enum class PlayerContentPage {
 private fun MusicDetailDefaultPage.toPlayerContentPage(): PlayerContentPage = when (this) {
     MusicDetailDefaultPage.Album -> PlayerContentPage.Cover
     MusicDetailDefaultPage.Lyric -> PlayerContentPage.Lyrics
+}
+
+private fun PlayerLyricsUiState.desktopLyricText(currentItem: MusicItem?): String {
+    val currentLine = currentLineIndex
+        ?.let { document?.lines?.getOrNull(it) }
+        ?.let { line ->
+            listOfNotNull(
+                line.text.takeIf { it.isNotBlank() },
+                line.translation?.takeIf { it.isNotBlank() },
+            ).joinToString("\n")
+        }
+        ?.takeIf { it.isNotBlank() }
+    return currentLine ?: currentItem?.title.orEmpty()
+}
+
+private fun openDesktopLyricPermissionSettings(context: Context): Boolean {
+    return runCatching {
+        val intent = Intent(
+            AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:${context.packageName}"),
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (intent.resolveActivity(context.packageManager) == null) {
+            false
+        } else {
+            context.startActivity(intent)
+            true
+        }
+    }.getOrDefault(false)
 }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {

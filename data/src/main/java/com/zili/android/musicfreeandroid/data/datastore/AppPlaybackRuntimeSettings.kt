@@ -36,4 +36,7 @@ class AppPlaybackRuntimeSettings @Inject constructor(
 
     override suspend fun audioInterruptionDuckVolume(): Float =
         appPreferences.audioInterruptionDuckVolume.first()
+
+    override suspend fun showExitOnNotification(): Boolean =
+        appPreferences.showExitOnNotification.first()
 }

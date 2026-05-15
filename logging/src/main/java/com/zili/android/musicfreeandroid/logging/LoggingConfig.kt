@@ -6,6 +6,7 @@ data class LoggingConfig(
     /** Logan's own temporary cache directory, passed to LoganConfig.setCachePath. */
     val cacheDir: File,
     val logDir: File,
+    val readableLogFile: File = File(logDir, "readable-errors.log"),
     val feedbackDir: File,
     /** Root matched by app/src/main/res/xml/feedback_file_paths.xml cache-path. */
     val feedbackShareRootDir: File = cacheDir,

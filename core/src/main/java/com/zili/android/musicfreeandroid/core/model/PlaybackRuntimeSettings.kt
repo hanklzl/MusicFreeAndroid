@@ -19,6 +19,8 @@ interface PlaybackRuntimeSettings {
 
     suspend fun audioInterruptionDuckVolume(): Float
 
+    suspend fun showExitOnNotification(): Boolean
+
     object Defaults : PlaybackRuntimeSettings {
         override suspend fun defaultPlayQuality(): PlayQuality = PlayQuality.STANDARD
 
@@ -37,5 +39,7 @@ interface PlaybackRuntimeSettings {
         override suspend fun audioInterruptionAction(): AudioInterruptionAction = AudioInterruptionAction.Pause
 
         override suspend fun audioInterruptionDuckVolume(): Float = 0.5f
+
+        override suspend fun showExitOnNotification(): Boolean = false
     }
 }

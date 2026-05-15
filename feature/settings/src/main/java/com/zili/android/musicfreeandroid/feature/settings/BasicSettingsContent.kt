@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
 import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
+import com.zili.android.musicfreeandroid.core.model.DesktopLyricAlignment
+import com.zili.android.musicfreeandroid.core.model.LyricAssociationType
 import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
@@ -43,6 +45,7 @@ private data class Choice<T>(
 private enum class BasicSettingsDialog {
     MaxSearchHistoryLength,
     MusicDetailDefaultPage,
+    LyricAssociationType,
     ClickMusicInSearch,
     ClickMusicInAlbum,
     MusicOrderInLocalSheet,
@@ -54,6 +57,13 @@ private enum class BasicSettingsDialog {
     MaxDownload,
     DefaultDownloadQuality,
     DownloadQualityOrder,
+    DesktopLyricAlignment,
+    DesktopLyricTopPercent,
+    DesktopLyricLeftPercent,
+    DesktopLyricWidthPercent,
+    DesktopLyricFontSizeSp,
+    DesktopLyricTextColor,
+    DesktopLyricBackgroundColor,
 }
 
 @Composable
@@ -63,6 +73,8 @@ fun BasicSettingsContent(
     onMaxSearchHistoryLengthChange: (Int) -> Unit,
     onMusicDetailDefaultPageChange: (MusicDetailDefaultPage) -> Unit,
     onMusicDetailAwakeChange: (Boolean) -> Unit,
+    onLyricAssociationTypeChange: (LyricAssociationType) -> Unit,
+    onShowExitOnNotificationChange: (Boolean) -> Unit,
     onClickMusicInSearchChange: (SearchResultClickAction) -> Unit,
     onClickMusicInAlbumChange: (AlbumMusicClickAction) -> Unit,
     onMusicOrderInLocalSheetChange: (SortMode) -> Unit,
@@ -80,6 +92,14 @@ fun BasicSettingsContent(
     onUseCellularPlayChange: (Boolean) -> Unit,
     onUseCellularDownloadChange: (Boolean) -> Unit,
     onLyricAutoSearchEnabledChange: (Boolean) -> Unit,
+    onDesktopLyricEnabledChange: (Boolean) -> Unit,
+    onDesktopLyricAlignmentChange: (DesktopLyricAlignment) -> Unit,
+    onDesktopLyricTopPercentChange: (Float) -> Unit,
+    onDesktopLyricLeftPercentChange: (Float) -> Unit,
+    onDesktopLyricWidthPercentChange: (Float) -> Unit,
+    onDesktopLyricFontSizeSpChange: (Int) -> Unit,
+    onDesktopLyricTextColorChange: (String) -> Unit,
+    onDesktopLyricBackgroundColorChange: (String) -> Unit,
     onAutoUpdatePluginsChange: (Boolean) -> Unit,
     onSkipPluginVersionCheckChange: (Boolean) -> Unit,
     onLazyLoadPluginsChange: (Boolean) -> Unit,
@@ -90,6 +110,10 @@ fun BasicSettingsContent(
     onNavigateToFileSelector: () -> Unit,
     onCreateFeedbackPackage: () -> Unit = {},
     onClearLogs: () -> Unit = {},
+    onDebugErrorLogEnabledChange: (Boolean) -> Unit,
+    onDebugTraceLogEnabledChange: (Boolean) -> Unit,
+    onDebugDevLogEnabledChange: (Boolean) -> Unit,
+    onViewErrorLog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var activeDialog by remember { mutableStateOf<BasicSettingsDialog?>(null) }
@@ -126,8 +150,18 @@ fun BasicSettingsContent(
                     testTag = FidelityAnchors.Settings.BasicMusicDetailAwake,
                     onCheckedChange = onMusicDetailAwakeChange,
                 )
-                PendingValueRow("关联歌词方式")
-                PendingValueRow("通知栏显示关闭按钮 (重启后生效)")
+                SettingValueRow(
+                    title = "关联歌词方式",
+                    value = state.lyricAssociationType.label(),
+                    enabled = true,
+                    onClick = { activeDialog = BasicSettingsDialog.LyricAssociationType },
+                )
+                SettingSwitchRow(
+                    title = "通知栏显示关闭按钮 (重启后生效)",
+                    checked = state.showExitOnNotification,
+                    enabled = true,
+                    onCheckedChange = onShowExitOnNotificationChange,
+                )
             }
         }
         item {
@@ -291,8 +325,54 @@ fun BasicSettingsContent(
                     testTag = FidelityAnchors.Settings.BasicLyricAutoSearch,
                     onCheckedChange = onLyricAutoSearchEnabledChange,
                 )
-                PendingValueRow("开启桌面歌词")
-                PendingValueRow("桌面歌词位置/样式")
+                SettingSwitchRow(
+                    title = "开启桌面歌词",
+                    checked = state.desktopLyricEnabled,
+                    enabled = true,
+                    onCheckedChange = onDesktopLyricEnabledChange,
+                )
+                SettingValueRow(
+                    title = "桌面歌词对齐方式",
+                    value = state.desktopLyricAlignment.label(),
+                    enabled = true,
+                    onClick = { activeDialog = BasicSettingsDialog.DesktopLyricAlignment },
+                )
+                SettingValueRow(
+                    title = "桌面歌词顶部位置",
+                    value = state.desktopLyricTopPercent.percentLabel(),
+                    enabled = true,
+                    onClick = { activeDialog = BasicSettingsDialog.DesktopLyricTopPercent },
+                )
+                SettingValueRow(
+                    title = "桌面歌词左侧位置",
+                    value = state.desktopLyricLeftPercent.percentLabel(),
+                    enabled = true,
+                    onClick = { activeDialog = BasicSettingsDialog.DesktopLyricLeftPercent },
+                )
+                SettingValueRow(
+                    title = "桌面歌词宽度",
+                    value = state.desktopLyricWidthPercent.percentLabel(),
+                    enabled = true,
+                    onClick = { activeDialog = BasicSettingsDialog.DesktopLyricWidthPercent },
+                )
+                SettingValueRow(
+                    title = "桌面歌词字号",
+                    value = "${state.desktopLyricFontSizeSp}sp",
+                    enabled = true,
+                    onClick = { activeDialog = BasicSettingsDialog.DesktopLyricFontSizeSp },
+                )
+                SettingValueRow(
+                    title = "桌面歌词文字颜色",
+                    value = state.desktopLyricTextColor.colorLabel(),
+                    enabled = true,
+                    onClick = { activeDialog = BasicSettingsDialog.DesktopLyricTextColor },
+                )
+                SettingValueRow(
+                    title = "桌面歌词背景颜色",
+                    value = state.desktopLyricBackgroundColor.colorLabel(),
+                    enabled = true,
+                    onClick = { activeDialog = BasicSettingsDialog.DesktopLyricBackgroundColor },
+                )
             }
         }
         item {
@@ -323,10 +403,29 @@ fun BasicSettingsContent(
         }
         item {
             SettingSectionCard("开发选项", testTag = FidelityAnchors.Settings.BasicSectionDeveloper) {
-                PendingValueRow("记录错误日志")
-                PendingValueRow("记录详细日志")
-                PendingValueRow("调试面板")
-                SettingActionRow("查看错误日志", enabled = false, onClick = {})
+                SettingSwitchRow(
+                    title = "记录错误日志",
+                    checked = state.debugErrorLogEnabled,
+                    enabled = true,
+                    onCheckedChange = onDebugErrorLogEnabledChange,
+                )
+                SettingSwitchRow(
+                    title = "记录详细日志",
+                    checked = state.debugTraceLogEnabled,
+                    enabled = true,
+                    onCheckedChange = onDebugTraceLogEnabledChange,
+                )
+                SettingSwitchRow(
+                    title = "调试面板",
+                    checked = state.debugDevLogEnabled,
+                    enabled = true,
+                    onCheckedChange = onDebugDevLogEnabledChange,
+                )
+                SettingActionRow(
+                    title = "查看错误日志",
+                    enabled = true,
+                    onClick = onViewErrorLog,
+                )
                 SettingActionRow(
                     title = "生成日志包并分享",
                     enabled = !isFeedbackActionInProgress,
@@ -364,6 +463,19 @@ fun BasicSettingsContent(
             onDismiss = { activeDialog = null },
             onSelected = { page ->
                 onMusicDetailDefaultPageChange(page)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.LyricAssociationType -> ChoiceDialog(
+            title = "关联歌词方式",
+            choices = listOf(
+                Choice(LyricAssociationType.Search, LyricAssociationType.Search.label()),
+                Choice(LyricAssociationType.Input, LyricAssociationType.Input.label()),
+            ),
+            onDismiss = { activeDialog = null },
+            onSelected = { type ->
+                onLyricAssociationTypeChange(type)
                 activeDialog = null
             },
         )
@@ -493,18 +605,78 @@ fun BasicSettingsContent(
             },
         )
 
+        BasicSettingsDialog.DesktopLyricAlignment -> ChoiceDialog(
+            title = "桌面歌词对齐方式",
+            choices = DesktopLyricAlignment.entries.map { Choice(it, it.label()) },
+            onDismiss = { activeDialog = null },
+            onSelected = { alignment ->
+                onDesktopLyricAlignmentChange(alignment)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.DesktopLyricTopPercent -> ChoiceDialog(
+            title = "桌面歌词顶部位置",
+            choices = listOf(0.02f, 0.08f, 0.16f, 0.24f, 0.32f).map { Choice(it, it.percentLabel()) },
+            onDismiss = { activeDialog = null },
+            onSelected = { topPercent ->
+                onDesktopLyricTopPercentChange(topPercent)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.DesktopLyricLeftPercent -> ChoiceDialog(
+            title = "桌面歌词左侧位置",
+            choices = listOf(0f, 0.08f, 0.16f, 0.24f).map { Choice(it, it.percentLabel()) },
+            onDismiss = { activeDialog = null },
+            onSelected = { leftPercent ->
+                onDesktopLyricLeftPercentChange(leftPercent)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.DesktopLyricWidthPercent -> ChoiceDialog(
+            title = "桌面歌词宽度",
+            choices = listOf(0.5f, 0.66f, 0.84f, 1f).map { Choice(it, it.percentLabel()) },
+            onDismiss = { activeDialog = null },
+            onSelected = { widthPercent ->
+                onDesktopLyricWidthPercentChange(widthPercent)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.DesktopLyricFontSizeSp -> ChoiceDialog(
+            title = "桌面歌词字号",
+            choices = listOf(14, 16, 18, 20, 24, 28, 32).map { Choice(it, "${it}sp") },
+            onDismiss = { activeDialog = null },
+            onSelected = { fontSize ->
+                onDesktopLyricFontSizeSpChange(fontSize)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.DesktopLyricTextColor -> ChoiceDialog(
+            title = "桌面歌词文字颜色",
+            choices = desktopLyricTextColorChoices(),
+            onDismiss = { activeDialog = null },
+            onSelected = { color ->
+                onDesktopLyricTextColorChange(color)
+                activeDialog = null
+            },
+        )
+
+        BasicSettingsDialog.DesktopLyricBackgroundColor -> ChoiceDialog(
+            title = "桌面歌词背景颜色",
+            choices = desktopLyricBackgroundColorChoices(),
+            onDismiss = { activeDialog = null },
+            onSelected = { color ->
+                onDesktopLyricBackgroundColorChange(color)
+                activeDialog = null
+            },
+        )
+
         null -> Unit
     }
-}
-
-@Composable
-private fun PendingValueRow(title: String) {
-    SettingValueRow(
-        title = title,
-        value = "待接入",
-        enabled = false,
-        onClick = {},
-    )
 }
 
 @Composable
@@ -572,9 +744,34 @@ private fun playQualityChoices(): List<Choice<PlayQuality>> = listOf(
     Choice(PlayQuality.SUPER, PlayQuality.SUPER.label()),
 )
 
+private fun desktopLyricTextColorChoices(): List<Choice<String>> = listOf(
+    Choice("#FFFFFFFF", "#FFFFFFFF".colorLabel()),
+    Choice("#FF222222", "#FF222222".colorLabel()),
+    Choice("#FFFFD54F", "#FFFFD54F".colorLabel()),
+    Choice("#FF4CAF50", "#FF4CAF50".colorLabel()),
+)
+
+private fun desktopLyricBackgroundColorChoices(): List<Choice<String>> = listOf(
+    Choice("#00000000", "#00000000".colorLabel()),
+    Choice("#66000000", "#66000000".colorLabel()),
+    Choice("#99FFFFFF", "#99FFFFFF".colorLabel()),
+    Choice("#CC222222", "#CC222222".colorLabel()),
+)
+
 private fun MusicDetailDefaultPage.label(): String = when (this) {
     MusicDetailDefaultPage.Album -> "默认展示专辑页"
     MusicDetailDefaultPage.Lyric -> "默认展示歌词页"
+}
+
+private fun LyricAssociationType.label(): String = when (this) {
+    LyricAssociationType.Search -> "搜索歌词"
+    LyricAssociationType.Input -> "手动输入歌曲信息"
+}
+
+private fun DesktopLyricAlignment.label(): String = when (this) {
+    DesktopLyricAlignment.Left -> "左对齐"
+    DesktopLyricAlignment.Center -> "居中"
+    DesktopLyricAlignment.Right -> "右对齐"
 }
 
 private fun SearchResultClickAction.label(): String = when (this) {
@@ -608,7 +805,21 @@ private fun AudioInterruptionAction.label(): String = when (this) {
     AudioInterruptionAction.LowerVolume -> "降低音量"
 }
 
+private fun Float.percentLabel(): String = "${(this * 100).toInt()}%"
+
 private fun Float.volumeLabel(): String = "${(this * 100).toInt()}%"
+
+private fun String.colorLabel(): String = when (uppercase()) {
+    "#FFFFFFFF" -> "白色"
+    "#FF222222" -> "深色"
+    "#FFFFD54F" -> "黄色"
+    "#FF4CAF50" -> "绿色"
+    "#00000000" -> "透明"
+    "#66000000" -> "半透明黑"
+    "#99FFFFFF" -> "半透明白"
+    "#CC222222" -> "深色背景"
+    else -> this
+}
 
 private fun QualityFallbackOrder.playbackLabel(): String = when (this) {
     QualityFallbackOrder.Asc -> "播放更高音质"

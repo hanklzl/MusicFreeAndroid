@@ -19,6 +19,7 @@ class PlaybackNotificationCommandHandlerTest {
 
         PlaybackNotificationCommandHandler.skipToPrevious()
         PlaybackNotificationCommandHandler.skipToNext()
+        PlaybackNotificationCommandHandler.close()
 
         assertEquals(emptyList<String>(), controls.calls)
     }
@@ -30,8 +31,9 @@ class PlaybackNotificationCommandHandlerTest {
 
         PlaybackNotificationCommandHandler.skipToPrevious()
         PlaybackNotificationCommandHandler.skipToNext()
+        PlaybackNotificationCommandHandler.close()
 
-        assertEquals(listOf("previous", "next"), controls.calls)
+        assertEquals(listOf("previous", "next", "close"), controls.calls)
         PlaybackNotificationCommandHandler.detach(controls)
     }
 
@@ -60,5 +62,9 @@ private class RecordingControls : PlaybackNotificationQueueControls {
 
     override fun skipToNextFromNotification() {
         calls += "next"
+    }
+
+    override fun closeFromNotification() {
+        calls += "close"
     }
 }

@@ -36,4 +36,22 @@ class PlaybackNotificationActionsTest {
             next.sessionCommand?.customAction,
         )
     }
+
+    @Test
+    fun `media button preferences include close command when enabled`() {
+        val buttons = PlaybackNotificationActions.mediaButtonPreferences(showCloseButton = true)
+
+        assertEquals(3, buttons.size)
+
+        val close = buttons[2]
+        assertEquals(CommandButton.ICON_STOP, close.icon)
+        assertEquals("关闭", close.displayName)
+        assertEquals(CommandButton.SLOT_OVERFLOW, close.slots.get(0))
+        assertEquals(Player.COMMAND_INVALID, close.playerCommand)
+        assertNotNull(close.sessionCommand)
+        assertEquals(
+            PlaybackNotificationActions.ACTION_CLOSE,
+            close.sessionCommand?.customAction,
+        )
+    }
 }

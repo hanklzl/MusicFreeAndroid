@@ -138,6 +138,8 @@ class PlayerControllerCellularSettingsTest {
             AudioInterruptionAction.Pause
 
         override suspend fun audioInterruptionDuckVolume(): Float = 0.5f
+
+        override suspend fun showExitOnNotification(): Boolean = false
     }
 
     private class FakeNetworkStateProvider(

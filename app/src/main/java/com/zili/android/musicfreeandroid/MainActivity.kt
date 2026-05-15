@@ -8,6 +8,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
@@ -15,9 +18,15 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
@@ -29,6 +38,8 @@ import androidx.navigation.compose.rememberNavController
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
 import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayer
@@ -41,6 +52,7 @@ import com.zili.android.musicfreeandroid.updater.installer.ApkInstaller
 import com.zili.android.musicfreeandroid.updater.ui.UpdateDialogHost
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -56,6 +68,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var apkInstaller: ApkInstaller
+
+    @Inject
+    lateinit var appPreferences: AppPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -126,31 +141,63 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val currentBackStack by navController.currentBackStackEntryAsState()
                 val destination = currentBackStack?.destination
+                var debugPanelEnabled by remember { mutableStateOf(false) }
+
+                LaunchedEffect(appPreferences) {
+                    appPreferences.debugDevLogEnabled.collect { enabled ->
+                        debugPanelEnabled = enabled
+                    }
+                }
 
                 val isPlayerRoute = destination?.hasRoute<PlayerRoute>() == true
                 val showMiniPlayer = destination != null && !isPlayerRoute
 
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    contentWindowInsets = WindowInsets.safeDrawing.only(
-                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
-                    ),
-                    bottomBar = {
-                        if (showMiniPlayer) {
-                            MiniPlayer(
-                                onNavigateToPlayer = {
-                                    navController.navigate(PlayerRoute)
-                                },
-                            )
-                        }
-                    },
-                ) { innerPadding ->
-                    AppNavHost(
-                        navController = navController,
-                        modifier = Modifier.padding(innerPadding),
-                    )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        contentWindowInsets = WindowInsets.safeDrawing.only(
+                            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+                        ),
+                        bottomBar = {
+                            if (showMiniPlayer) {
+                                MiniPlayer(
+                                    onNavigateToPlayer = {
+                                        navController.navigate(PlayerRoute)
+                                    },
+                                )
+                            }
+                        },
+                    ) { innerPadding ->
+                        AppNavHost(
+                            navController = navController,
+                            modifier = Modifier.padding(innerPadding),
+                        )
+                    }
+                    if (debugPanelEnabled) {
+                        DebugPanelOverlay(modifier = Modifier.align(Alignment.TopEnd))
+                    }
                 }
             }
         }
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun DebugPanelOverlay(modifier: Modifier = Modifier) {
+    val switches = MfLog.currentSwitches()
+    Column(
+        modifier = modifier
+            .padding(top = rpx(56), end = rpx(16))
+            .background(Color.Black.copy(alpha = 0.68f))
+            .padding(horizontal = rpx(16), vertical = rpx(10)),
+    ) {
+        Text(
+            text = "Debug",
+            color = Color.White,
+        )
+        Text(
+            text = "error=${switches.errorEnabled} detail=${switches.detailEnabled}",
+            color = Color.White.copy(alpha = 0.82f),
+        )
     }
 }

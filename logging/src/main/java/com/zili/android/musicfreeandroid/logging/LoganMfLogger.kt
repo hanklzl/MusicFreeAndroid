@@ -67,5 +67,8 @@ class LoganMfLogger(
             throwable = throwable,
         )
         Logan.w(line, level.loganType)
+        if (level == LogLevel.ERROR) {
+            ReadableLogStore.appendError(event, line)
+        }
     }
 }

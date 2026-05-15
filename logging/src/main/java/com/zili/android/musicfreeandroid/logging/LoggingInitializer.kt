@@ -18,6 +18,7 @@ object LoggingInitializer {
             config.cacheDir.mkdirs()
             config.logDir.mkdirs()
             config.feedbackDir.mkdirs()
+            ReadableLogStore.install(config.readableLogFile)
 
             Logan.init(
                 LoganConfig.Builder()

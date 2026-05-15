@@ -1,11 +1,20 @@
 package com.zili.android.musicfreeandroid.logging
 
 object MfLog : MfLogger {
+    data class LogSwitches(
+        val errorEnabled: Boolean = true,
+        val detailEnabled: Boolean = true,
+        val devEnabled: Boolean = false,
+    )
+
     @Volatile
     private var delegate: MfLogger = NoOpLogger
 
     @Volatile
     private var paritySink: ParityEventSink? = null
+
+    @Volatile
+    private var switches: LogSwitches = LogSwitches()
 
     fun install(logger: MfLogger) {
         delegate = logger
@@ -14,7 +23,14 @@ object MfLog : MfLogger {
     fun resetForTest() {
         delegate = NoOpLogger
         paritySink = null
+        switches = LogSwitches()
     }
+
+    fun configure(switches: LogSwitches) {
+        this.switches = switches
+    }
+
+    fun currentSwitches(): LogSwitches = switches
 
     /**
      * 启用 parity event sink,把 MfLog 事件按 parity taxonomy 额外输出为单行 JSON。
@@ -32,11 +48,13 @@ object MfLog : MfLogger {
     }
 
     override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        if (!switches.detailEnabled) return
         delegate.trace(category, event, fields)
         paritySink?.emit(event, fields)
     }
 
     override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        if (!switches.detailEnabled) return
         delegate.detail(category, event, fields)
         paritySink?.emit(event, fields)
     }
@@ -47,6 +65,7 @@ object MfLog : MfLogger {
         throwable: Throwable?,
         fields: Map<String, Any?>,
     ) {
+        if (!switches.errorEnabled) return
         delegate.error(category, event, throwable, fields)
         paritySink?.let { sink ->
             val enriched = if (throwable != null && "message" !in fields) {

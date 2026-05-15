@@ -4,6 +4,7 @@ import android.app.Application
 import com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapper
 import com.zili.android.musicfreeandroid.bootstrap.PlaybackStartupCoordinator
 import com.zili.android.musicfreeandroid.bootstrap.PluginAutoUpdateCoordinator
+import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.logging.LoggingConfig
 import com.zili.android.musicfreeandroid.logging.LoggingInitializer
 import com.zili.android.musicfreeandroid.logging.MfLog
@@ -11,6 +12,11 @@ import com.zili.android.musicfreeandroid.updater.bootstrap.UpdateCheckCoordinato
 import dagger.hilt.android.HiltAndroidApp
 import java.io.File
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class MusicFreeApplication : Application() {
@@ -19,6 +25,9 @@ class MusicFreeApplication : Application() {
     @Inject lateinit var pluginAutoUpdateCoordinator: PluginAutoUpdateCoordinator
     @Inject lateinit var playbackStartupCoordinator: PlaybackStartupCoordinator
     @Inject lateinit var updateCheckCoordinator: UpdateCheckCoordinator
+    @Inject lateinit var appPreferences: AppPreferences
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()
@@ -46,9 +55,28 @@ class MusicFreeApplication : Application() {
             MfLog.enableParitySink()
         }
 
+        startLoggingPreferenceBridge()
         defaultPluginsBootstrapper.start()
         pluginAutoUpdateCoordinator.start()
         playbackStartupCoordinator.start()
         updateCheckCoordinator.start()
+    }
+
+    private fun startLoggingPreferenceBridge() {
+        applicationScope.launch {
+            combine(
+                appPreferences.debugErrorLogEnabled,
+                appPreferences.debugTraceLogEnabled,
+                appPreferences.debugDevLogEnabled,
+            ) { errorEnabled, traceEnabled, devEnabled ->
+                MfLog.LogSwitches(
+                    errorEnabled = errorEnabled,
+                    detailEnabled = traceEnabled,
+                    devEnabled = devEnabled,
+                )
+            }.collect { switches ->
+                MfLog.configure(switches)
+            }
+        }
     }
 }

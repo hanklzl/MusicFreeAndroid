@@ -37,6 +37,8 @@ class PlaybackService : MediaSessionService() {
     @Inject lateinit var playbackRuntimeSettings: PlaybackRuntimeSettings
 
     private var mediaSession: MediaSession? = null
+    @Volatile
+    private var showCloseButtonOnNotification: Boolean = false
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val musicAudioAttributes = AudioAttributes.Builder()
         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -61,11 +63,14 @@ class PlaybackService : MediaSessionService() {
                 .buildUpon()
                 .add(PlaybackNotificationActions.SkipToPreviousCommand)
                 .add(PlaybackNotificationActions.SkipToNextCommand)
+                .add(PlaybackNotificationActions.CloseCommand)
                 .build()
 
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                 .setAvailableSessionCommands(sessionCommands)
-                .setMediaButtonPreferences(PlaybackNotificationActions.mediaButtonPreferences())
+                .setMediaButtonPreferences(
+                    PlaybackNotificationActions.mediaButtonPreferences(showCloseButtonOnNotification),
+                )
                 .setSessionActivity(createSessionActivityPendingIntent())
                 .build()
         }
@@ -91,6 +96,12 @@ class PlaybackService : MediaSessionService() {
                 }
                 PlaybackNotificationActions.ACTION_SKIP_TO_NEXT -> {
                     PlaybackNotificationCommandHandler.skipToNext()
+                }
+                PlaybackNotificationActions.ACTION_CLOSE -> {
+                    PlaybackNotificationCommandHandler.close()
+                    session.player.stop()
+                    session.player.clearMediaItems()
+                    stopSelf()
                 }
                 else -> return super.onCustomCommand(session, controller, customCommand, args)
             }
@@ -133,10 +144,13 @@ class PlaybackService : MediaSessionService() {
 
         mediaSession = MediaSession.Builder(this, player)
             .setSessionActivity(createSessionActivityPendingIntent())
-            .setMediaButtonPreferences(PlaybackNotificationActions.mediaButtonPreferences())
+            .setMediaButtonPreferences(
+                PlaybackNotificationActions.mediaButtonPreferences(showCloseButtonOnNotification),
+            )
             .setCallback(playbackSessionCallback)
             .build()
         applyAudioFocusPolicy(player)
+        applyNotificationCloseButtonPreference()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -191,6 +205,37 @@ class PlaybackService : MediaSessionService() {
                 fields = mapOf(
                     "allowConcurrentPlayback" to !handleAudioFocus,
                     "handleAudioFocus" to handleAudioFocus,
+                ),
+            )
+        }
+    }
+
+    @AndroidXOptIn(markerClass = [UnstableApi::class])
+    private fun applyNotificationCloseButtonPreference() {
+        serviceScope.launch {
+            val enabled = runCatching {
+                withContext(Dispatchers.IO) { playbackRuntimeSettings.showExitOnNotification() }
+            }.onFailure { error ->
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "playback_notification_close_preference_failed",
+                    throwable = error,
+                    fields = mapOf(
+                        "status" to "failed",
+                        "reason" to "settings_read_failed",
+                    ),
+                )
+            }.getOrDefault(false)
+            showCloseButtonOnNotification = enabled
+            mediaSession?.setMediaButtonPreferences(
+                PlaybackNotificationActions.mediaButtonPreferences(enabled),
+            )
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "playback_notification_close_preference_applied",
+                fields = mapOf(
+                    "status" to "success",
+                    "enabled" to enabled,
                 ),
             )
         }

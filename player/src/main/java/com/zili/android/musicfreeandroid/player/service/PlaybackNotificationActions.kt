@@ -11,24 +11,40 @@ object PlaybackNotificationActions {
         "com.zili.android.musicfreeandroid.player.action.SKIP_TO_PREVIOUS"
     const val ACTION_SKIP_TO_NEXT =
         "com.zili.android.musicfreeandroid.player.action.SKIP_TO_NEXT"
+    const val ACTION_CLOSE =
+        "com.zili.android.musicfreeandroid.player.action.CLOSE"
 
     val SkipToPreviousCommand = SessionCommand(ACTION_SKIP_TO_PREVIOUS, emptyCommandExtras())
     val SkipToNextCommand = SessionCommand(ACTION_SKIP_TO_NEXT, emptyCommandExtras())
+    val CloseCommand = SessionCommand(ACTION_CLOSE, emptyCommandExtras())
 
     @AndroidXOptIn(markerClass = [UnstableApi::class])
-    fun mediaButtonPreferences(): List<CommandButton> {
-        return listOf(
+    fun mediaButtonPreferences(showCloseButton: Boolean = false): List<CommandButton> {
+        return buildList {
+            add(
             CommandButton.Builder(CommandButton.ICON_PREVIOUS)
                 .setSessionCommand(SkipToPreviousCommand)
                 .setDisplayName("上一首")
                 .setSlots(CommandButton.SLOT_BACK)
                 .build(),
+            )
+            add(
             CommandButton.Builder(CommandButton.ICON_NEXT)
                 .setSessionCommand(SkipToNextCommand)
                 .setDisplayName("下一首")
                 .setSlots(CommandButton.SLOT_FORWARD)
                 .build(),
-        )
+            )
+            if (showCloseButton) {
+                add(
+                    CommandButton.Builder(CommandButton.ICON_STOP)
+                        .setSessionCommand(CloseCommand)
+                        .setDisplayName("关闭")
+                        .setSlots(CommandButton.SLOT_OVERFLOW)
+                        .build(),
+                )
+            }
+        }
     }
 
     private fun emptyCommandExtras(): Bundle {

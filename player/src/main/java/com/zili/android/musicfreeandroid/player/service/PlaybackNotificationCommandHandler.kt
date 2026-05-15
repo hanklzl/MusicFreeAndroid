@@ -3,6 +3,7 @@ package com.zili.android.musicfreeandroid.player.service
 interface PlaybackNotificationQueueControls {
     fun skipToPreviousFromNotification()
     fun skipToNextFromNotification()
+    fun closeFromNotification()
 }
 
 object PlaybackNotificationCommandHandler {
@@ -25,6 +26,10 @@ object PlaybackNotificationCommandHandler {
 
     fun skipToNext() {
         controls?.skipToNextFromNotification()
+    }
+
+    fun close() {
+        controls?.closeFromNotification()
     }
 
     internal fun detachAllForTest() {
