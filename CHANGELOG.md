@@ -6,6 +6,34 @@
 
 <!-- next-release -->
 
+## [v1.0.1] - 2026-05-16
+
+### 变更详情
+
+#### 新功能
+- feat(listen-stats): 实现听歌足迹（统计页 + 明细页 + 侧栏入口） (24e3ee7)
+- feat(detail): 榜单/插件歌单详情顶部 header + PlayAllBar 对齐 RN (e2aae6d)
+- feat(settings): 接入基础设置剩余项 (6387d47)
+- feat(parity-audit): 完整 parity audit 流水线 skill + 脚本 + 单 scenario (ab1a3fa)
+- feat(ui): 开启横向 tab 手势 (bb2f4e0)
+- feat(plugin): 对齐 RN 插件能力验证 (9e530b2)
+
+#### 修复
+- fix(player-ui): mini player 播放按钮 ripple 裁剪到圆形 (1070eb9)
+- fix(release): build-version-json.sh 避免 head -n 8 触发 SIGPIPE (b3db2a8)
+
+#### 文档
+- docs(plan): listen-stats 实现计划（25 task） (1775262)
+- docs(spec): listen-stats 听歌统计功能设计草案 (80a5aba)
+- docs(constraints): AGENTS.md 加入数据库迁移规范条款 (3a97ca9)
+- docs(detail): 榜单/插件歌单详情 header + PlayAllBar 对齐 RN 设计与计划 (c6cab9f)
+- docs(parity-audit): plan 扩展到含 Issue 创建/dedup/label/release 上传 (53c73ec)
+- docs(parity-audit): v0 实现计划（端到端管道 + 单 scenario） (7dcaeee)
+- docs(changelog): release v1.0.0 [skip ci] (211cbc8)
+
+#### 杂项
+- chore(release): bump to v1.0.1 (bcf7aca)
+
 ## [v1.0.0] - 2026-05-15
 
 ### 变更详情
