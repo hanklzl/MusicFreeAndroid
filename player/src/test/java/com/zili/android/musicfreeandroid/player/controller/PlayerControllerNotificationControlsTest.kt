@@ -5,8 +5,10 @@ import com.zili.android.musicfreeandroid.core.media.MediaSourceResolution
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.player.listening.ListenTracker
 import com.zili.android.musicfreeandroid.player.source.TrackHeaderRegistry
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import org.mockito.kotlin.mock
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
@@ -29,7 +31,7 @@ class PlayerControllerNotificationControlsTest {
 
     @Test
     fun `notification controls reattach when controller is reused after detach`() {
-        val controller = PlayerController(context)
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
 
         try {
             PlaybackNotificationCommandHandler.detach(controller)
@@ -49,7 +51,7 @@ class PlayerControllerNotificationControlsTest {
         val resolver = RecordingResolver(
             resolvedUrl = "https://cdn.example.test/2.mp3",
         )
-        val controller = PlayerController(context, resolver)
+        val controller = PlayerController(context, resolver, listenTracker = mock<ListenTracker>())
 
         try {
             controller.playQueue.setQueue(
@@ -75,7 +77,7 @@ class PlayerControllerNotificationControlsTest {
     @Test
     fun `notification next rolls queue back when media source cannot resolve`() {
         val resolver = UnresolvedResolver()
-        val controller = PlayerController(context, resolver)
+        val controller = PlayerController(context, resolver, listenTracker = mock<ListenTracker>())
 
         try {
             controller.playQueue.setQueue(
@@ -102,7 +104,7 @@ class PlayerControllerNotificationControlsTest {
         val resolver = RecordingResolver(
             resolvedUrl = "https://cdn.example.test/fresh.mp3",
         )
-        val controller = PlayerController(context, resolver)
+        val controller = PlayerController(context, resolver, listenTracker = mock<ListenTracker>())
 
         try {
             controller.playItem(testItem("1").copy(url = "https://cdn.example.test/stale.mp3"))
@@ -121,7 +123,7 @@ class PlayerControllerNotificationControlsTest {
         val resolver = RecordingResolver(
             resolvedUrl = "https://cdn.example.test/fresh.mp3",
         )
-        val controller = PlayerController(context, resolver)
+        val controller = PlayerController(context, resolver, listenTracker = mock<ListenTracker>())
         val queued = testItem("1").copy(url = "https://queue.example.test/1.mp3")
 
         try {
@@ -150,6 +152,7 @@ class PlayerControllerNotificationControlsTest {
             context = context,
             mediaSourceResolver = resolver,
             trackHeaderRegistry = registry,
+            listenTracker = mock<ListenTracker>(),
         )
 
         try {

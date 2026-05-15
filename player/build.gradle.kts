@@ -39,6 +39,7 @@ kotlin {
 dependencies {
     implementation(project(":core"))
     implementation(project(":logging"))
+    implementation(project(":data"))
 
     // Hilt
     implementation(libs.hilt.android)
@@ -58,6 +59,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.robolectric)
+    testImplementation(libs.mockito.kotlin)
 
     // 集成测试
     androidTestImplementation(libs.androidx.junit)

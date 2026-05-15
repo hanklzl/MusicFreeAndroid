@@ -10,6 +10,7 @@ import com.zili.android.musicfreeandroid.core.navigation.DownloadingRoute
 import com.zili.android.musicfreeandroid.core.navigation.FileSelectorRoute
 import com.zili.android.musicfreeandroid.core.navigation.HistoryRoute
 import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
+import com.zili.android.musicfreeandroid.core.navigation.ListenStatsRoute
 import com.zili.android.musicfreeandroid.core.navigation.LocalRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicDetailRoute
 import com.zili.android.musicfreeandroid.core.navigation.MusicListEditorLiteRoute
@@ -52,6 +53,7 @@ import com.zili.android.musicfreeandroid.feature.settings.navigation.permissions
 import com.zili.android.musicfreeandroid.feature.settings.navigation.settingsScreen
 import com.zili.android.musicfreeandroid.feature.settings.pluginlist.navigation.pluginListScreen
 import com.zili.android.musicfreeandroid.feature.settings.pluginsort.navigation.pluginSortScreen
+import com.zili.android.musicfreeandroid.feature.listenstats.navigation.listenStatsScreen
 import com.zili.android.musicfreeandroid.feature.settings.pluginsub.navigation.pluginSubscriptionScreen
 
 @Composable
@@ -72,6 +74,7 @@ fun AppNavHost(
             onNavigateToSearch = { navController.navigate(SearchRoute) },
             onNavigateToRecommendSheets = { navController.navigate(RecommendSheetsRoute) },
             onNavigateToHistory = { navController.navigate(HistoryRoute) },
+            onNavigateToListenStats = { navController.navigate(ListenStatsRoute()) },
             onNavigateToLocal = { navController.navigate(LocalRoute) },
             onNavigateToSettings = { type: SettingsType -> navController.navigate(SettingsRoute(type)) },
             onNavigateToPluginList = { navController.navigate(PluginListRoute) },
@@ -301,5 +304,6 @@ fun AppNavHost(
         artistDetailScreen(
             onBack = { navController.popBackStack() },
         )
+        listenStatsScreen(navController)
     }
 }

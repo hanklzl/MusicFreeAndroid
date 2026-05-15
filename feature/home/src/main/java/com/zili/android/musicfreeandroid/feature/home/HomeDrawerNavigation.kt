@@ -16,6 +16,7 @@ suspend fun runHomeDrawerNavigation(
 }
 
 sealed interface HomeDrawerAction {
+    data object OpenListenStats : HomeDrawerAction
     data object OpenSettingsRoot : HomeDrawerAction
     data object OpenPluginManagement : HomeDrawerAction
     data object OpenThemeSettings : HomeDrawerAction
@@ -52,6 +53,18 @@ fun buildHomeDrawerUiModel(
     scheduleCloseSummary: String,
 ): HomeDrawerUiModel = HomeDrawerUiModel(
     sections = listOf(
+        HomeDrawerSectionUiModel(
+            sectionKey = "me",
+            title = "我的",
+            items = listOf(
+                HomeDrawerItemUiModel(
+                    title = "听歌足迹",
+                    iconRes = HomeIcons.DrawerListenStats,
+                    anchorTag = FidelityAnchors.Home.DrawerMeListenStats,
+                    action = HomeDrawerAction.OpenListenStats,
+                ),
+            ),
+        ),
         HomeDrawerSectionUiModel(
             sectionKey = "setting",
             title = "设置",

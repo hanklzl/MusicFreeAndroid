@@ -8,8 +8,10 @@ import com.zili.android.musicfreeandroid.core.media.StaleUrlRefresher
 import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.zili.android.musicfreeandroid.player.listening.ListenTracker
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
 import com.zili.android.musicfreeandroid.player.source.TrackHeaderRegistry
+import org.mockito.kotlin.mock
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -230,6 +232,7 @@ class PlayerControllerStaleUrlRefreshTest {
         mediaSourceResolver = resolver,
         trackHeaderRegistry = registry,
         staleUrlRefresher = refresher,
+        listenTracker = mock<ListenTracker>(),
     )
 
     private fun httpError(): PlaybackException = PlaybackException(

@@ -8,9 +8,11 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
+import com.zili.android.musicfreeandroid.player.listening.ListenTracker
 import com.zili.android.musicfreeandroid.player.network.PlaybackNetworkState
 import com.zili.android.musicfreeandroid.player.network.PlaybackNetworkStateProvider
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import org.mockito.kotlin.mock
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -94,6 +96,7 @@ class PlayerControllerCellularSettingsTest {
         mediaSourceResolver = resolver,
         playbackRuntimeSettings = settings,
         networkStateProvider = network,
+        listenTracker = mock<ListenTracker>(),
     )
 
     private fun remoteItem() = MusicItem(

@@ -33,6 +33,7 @@ import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueueControls
 import com.zili.android.musicfreeandroid.player.service.PlaybackService
+import com.zili.android.musicfreeandroid.player.listening.ListenTracker
 import com.zili.android.musicfreeandroid.player.source.TrackHeaderRegistry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -69,6 +70,7 @@ class PlayerController @Inject constructor(
     private val networkStateProvider: PlaybackNetworkStateProvider = PlaybackNetworkStateProvider.AlwaysAllowed,
     private val trackHeaderRegistry: TrackHeaderRegistry = TrackHeaderRegistry(),
     private val staleUrlRefresher: StaleUrlRefresher = EmptyStaleUrlRefresher,
+    private val listenTracker: ListenTracker,
 ) : PlaybackNotificationQueueControls {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val connectionMutex = Mutex()
@@ -826,6 +828,7 @@ class PlayerController @Inject constructor(
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_ENDED) {
+                listenTracker.onTrackEnded(playQueue.currentItem)
                 handleTrackEnded()
             }
             emitState()
@@ -833,6 +836,7 @@ class PlayerController @Inject constructor(
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
+            listenTracker.onIsPlayingChanged(isPlaying, playQueue.currentItem)
             emitState()
             updatePositionTracking()
         }
@@ -841,7 +845,16 @@ class PlayerController @Inject constructor(
             mediaItem: androidx.media3.common.MediaItem?,
             reason: Int,
         ) {
+            listenTracker.onMediaItemTransition(playQueue.currentItem, reason)
             emitState()
+        }
+
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int,
+        ) {
+            listenTracker.onPositionDiscontinuity(reason)
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -1262,6 +1275,16 @@ class PlayerController @Inject constructor(
             items = playQueue.items,
             currentIndex = playQueue.currentIndex,
         )
+    }
+
+    /**
+     * 用户在统计页触发"清除统计数据"前调用此方法：
+     * 把当前 session（如已达 30s 阈值）落库，避免清除时丢失。
+     * 之后再调 [com.zili.android.musicfreeandroid.data.repository.ListenStatsRepository.clearAll]
+     * 删除全部 listen_event。
+     */
+    fun flushListenTrackerForClear() {
+        listenTracker.flushCurrentSession()
     }
 
     private fun elapsedMs(startedAt: Long): Long =

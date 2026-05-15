@@ -224,3 +224,17 @@ data object PluginSubscriptionRoute
 
 @Serializable
 data object DownloadingRoute
+
+@Serializable
+data class ListenStatsRoute(
+    val scope: String = "WEEK",
+    val anchorEpochDay: Long = -1L,
+)
+
+@Serializable
+data class ListenDetailRoute(
+    val mode: String,
+    val scope: String,
+    val anchorEpochDay: Long,
+    val filterValue: String? = null,
+)

@@ -20,4 +20,5 @@ internal object HomeIcons {
     @DrawableRes val DrawerPermissions = R.drawable.ic_home_shield_keyhole_outline
     @DrawableRes val DrawerCheckUpdate = R.drawable.ic_home_arrow_path
     @DrawableRes val DrawerAbout = R.drawable.ic_home_information_circle
+    @DrawableRes val DrawerListenStats = R.drawable.ic_home_chart_bar_outline
 }

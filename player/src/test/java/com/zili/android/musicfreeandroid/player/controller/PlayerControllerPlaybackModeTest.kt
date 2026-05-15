@@ -3,7 +3,9 @@ package com.zili.android.musicfreeandroid.player.controller
 import android.content.Context
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.zili.android.musicfreeandroid.player.listening.ListenTracker
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import org.mockito.kotlin.mock
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -27,7 +29,7 @@ class PlayerControllerPlaybackModeTest {
 
     @Test
     fun `cyclePlaybackMode enters shuffle from queue mode`() {
-        val controller = PlayerController(context)
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
 
         try {
             controller.playQueue.setQueue(testItems(), startIndex = 1)
@@ -46,7 +48,7 @@ class PlayerControllerPlaybackModeTest {
 
     @Test
     fun `cyclePlaybackMode treats repeat off as queue mode`() {
-        val controller = PlayerController(context)
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
 
         try {
             controller.playQueue.setQueue(testItems(), startIndex = 1)
@@ -64,7 +66,7 @@ class PlayerControllerPlaybackModeTest {
 
     @Test
     fun `cyclePlaybackMode exits shuffle and enters single mode`() {
-        val controller = PlayerController(context)
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
         val originalItems = testItems()
 
         try {
@@ -88,7 +90,7 @@ class PlayerControllerPlaybackModeTest {
 
     @Test
     fun `cyclePlaybackMode enters queue mode from single mode`() {
-        val controller = PlayerController(context)
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
 
         try {
             controller.playQueue.setQueue(testItems(), startIndex = 0)

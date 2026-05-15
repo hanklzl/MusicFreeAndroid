@@ -139,6 +139,7 @@ dependencies {
     implementation(project(":feature:player-ui"))
     implementation(project(":feature:search"))
     implementation(project(":feature:settings"))
+    implementation(project(":feature:listen-stats"))
     implementation(project(":logging"))
     implementation(project(":downloader"))
     implementation(project(":updater"))

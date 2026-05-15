@@ -317,4 +317,40 @@ class RoutesTest {
         val decoded = Json.decodeFromString<LocalRoute>(json)
         assertEquals(LocalRoute, decoded)
     }
+
+    @Test
+    fun `ListenStatsRoute defaults serialize round-trip`() {
+        val route = com.zili.android.musicfreeandroid.core.navigation.ListenStatsRoute()
+        val json = kotlinx.serialization.json.Json.encodeToString(
+            com.zili.android.musicfreeandroid.core.navigation.ListenStatsRoute.serializer(),
+            route,
+        )
+        val decoded = kotlinx.serialization.json.Json.decodeFromString(
+            com.zili.android.musicfreeandroid.core.navigation.ListenStatsRoute.serializer(),
+            json,
+        )
+        org.junit.Assert.assertEquals(route, decoded)
+        org.junit.Assert.assertEquals("WEEK", decoded.scope)
+        org.junit.Assert.assertEquals(-1L, decoded.anchorEpochDay)
+    }
+
+    @Test
+    fun `ListenDetailRoute requires mode and propagates filterValue`() {
+        val route = com.zili.android.musicfreeandroid.core.navigation.ListenDetailRoute(
+            mode = "BY_ARTIST",
+            scope = "WEEK",
+            anchorEpochDay = 20221L,
+            filterValue = "周杰伦",
+        )
+        val json = kotlinx.serialization.json.Json.encodeToString(
+            com.zili.android.musicfreeandroid.core.navigation.ListenDetailRoute.serializer(),
+            route,
+        )
+        val decoded = kotlinx.serialization.json.Json.decodeFromString(
+            com.zili.android.musicfreeandroid.core.navigation.ListenDetailRoute.serializer(),
+            json,
+        )
+        org.junit.Assert.assertEquals(route, decoded)
+        org.junit.Assert.assertEquals("周杰伦", decoded.filterValue)
+    }
 }

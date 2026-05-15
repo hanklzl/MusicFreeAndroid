@@ -40,6 +40,15 @@ class HomeAnchorContractTest {
     }
 
     @Test
+    fun `DrawerMeListenStats anchor exists in drawer ui model`() {
+        val model = buildHomeDrawerUiModel("1.0", "")
+        val anchors = model.sections.flatMap { it.items }.map { it.anchorTag }
+        assertTrue(
+            FidelityAnchors.Home.DrawerMeListenStats in anchors
+        )
+    }
+
+    @Test
     fun `expanded homepage fidelity anchors stay unique and non blank`() {
         val anchors = listOf(
             FidelityAnchors.Home.DrawerSettingsBasic,

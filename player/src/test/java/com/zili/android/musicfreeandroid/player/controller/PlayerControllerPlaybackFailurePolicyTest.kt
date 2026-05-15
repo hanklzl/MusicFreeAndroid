@@ -10,7 +10,9 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
+import com.zili.android.musicfreeandroid.player.listening.ListenTracker
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import org.mockito.kotlin.mock
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -110,6 +112,7 @@ class PlayerControllerPlaybackFailurePolicyTest {
         context = context,
         mediaSourceResolver = resolver,
         playbackRuntimeSettings = settings,
+        listenTracker = mock<ListenTracker>(),
     )
 
     private fun decoderError(): PlaybackException = PlaybackException(

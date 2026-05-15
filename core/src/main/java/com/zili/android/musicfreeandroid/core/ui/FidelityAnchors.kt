@@ -29,6 +29,7 @@ object FidelityAnchors {
         const val SheetsImport = "home.sheets.action.import"
         const val DrawerRoot = "home.drawer.root"
         const val DrawerTitle = "home.drawer.title"
+        const val DrawerMeListenStats = "home.drawer.me.listenStats"
         const val DrawerSettings = "home.drawer.settings"
         const val DrawerPluginManagement = "home.drawer.pluginManagement"
         const val DrawerPermissions = "home.drawer.permissions"

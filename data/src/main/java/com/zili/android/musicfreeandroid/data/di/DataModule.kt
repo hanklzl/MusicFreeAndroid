@@ -11,6 +11,7 @@ import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.zili.android.musicfreeandroid.data.db.migration.MIGRATION_9_10
 import com.zili.android.musicfreeandroid.data.db.dao.LyricCacheDao
 import com.zili.android.musicfreeandroid.data.db.dao.MediaCacheDao
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
@@ -19,6 +20,7 @@ import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
 import com.zili.android.musicfreeandroid.data.db.dao.PluginMetadataCacheDao
+import com.zili.android.musicfreeandroid.data.db.dao.ListenStatsDao
 import com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDao
 import com.zili.android.musicfreeandroid.data.datastore.AppPlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.data.local.Mp3MetadataReaderImpl
@@ -31,6 +33,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import java.time.ZoneId
 import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_preferences")
@@ -43,7 +46,7 @@ object DataModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "musicfree.db")
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addMigrations(MIGRATION_9_10)
             .addCallback(SeedFavoriteCallback)
             .build()
 
@@ -55,6 +58,9 @@ object DataModule {
 
     @Provides
     fun providePlayQueueDao(db: AppDatabase): PlayQueueDao = db.playQueueDao()
+
+    @Provides
+    fun provideListenStatsDao(db: AppDatabase): ListenStatsDao = db.listenStatsDao()
 
     @Provides
     fun provideStarredSheetDao(db: AppDatabase): StarredSheetDao = db.starredSheetDao()
@@ -112,4 +118,9 @@ object DataModule {
     fun providePluginMetadataCacheGateway(
         impl: PluginMetadataCacheRepository,
     ): PluginMetadataCacheGateway = impl
+
+    @Provides
+    @Singleton
+    fun provideZoneIdProvider(): () -> ZoneId = { ZoneId.systemDefault() }
+
 }

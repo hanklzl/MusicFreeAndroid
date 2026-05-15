@@ -11,6 +11,7 @@ import com.zili.android.musicfreeandroid.data.db.dao.MediaCacheDao
 import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
 import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
+import com.zili.android.musicfreeandroid.data.db.dao.ListenStatsDao
 import com.zili.android.musicfreeandroid.data.db.dao.PluginMetadataCacheDao
 import com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDao
 import com.zili.android.musicfreeandroid.data.db.entity.DownloadTaskEntity
@@ -23,6 +24,8 @@ import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
 import com.zili.android.musicfreeandroid.data.db.entity.PlayQueueEntity
 import com.zili.android.musicfreeandroid.data.db.entity.PluginMetadataCacheEntity
 import com.zili.android.musicfreeandroid.data.db.entity.StarredSheetEntity
+import com.zili.android.musicfreeandroid.data.db.entity.ListenEventEntity
+import com.zili.android.musicfreeandroid.data.db.entity.ListenEventArtistEntity
 
 @Database(
     entities = [
@@ -36,8 +39,10 @@ import com.zili.android.musicfreeandroid.data.db.entity.StarredSheetEntity
         DownloadTaskEntity::class,
         DownloadedTrackEntity::class,
         PluginMetadataCacheEntity::class,
+        ListenEventEntity::class,
+        ListenEventArtistEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -51,4 +56,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun downloadTaskDao(): DownloadTaskDao
     abstract fun downloadedTrackDao(): DownloadedTrackDao
     abstract fun pluginMetadataCacheDao(): PluginMetadataCacheDao
+    abstract fun listenStatsDao(): ListenStatsDao
 }

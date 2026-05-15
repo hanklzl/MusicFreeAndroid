@@ -27,6 +27,7 @@ fun HomeScreen(
     onNavigateToSearch: () -> Unit,
     onNavigateToRecommendSheets: () -> Unit,
     onNavigateToHistory: () -> Unit,
+    onNavigateToListenStats: () -> Unit,
     onNavigateToLocal: () -> Unit,
     onNavigateToSettings: (SettingsType) -> Unit,
     onNavigateToPluginList: () -> Unit,
@@ -85,6 +86,7 @@ fun HomeScreen(
         scheduleCloseSummary = scheduleCloseSummary,
         onDrawerEntryClick = { action ->
             when (action) {
+                HomeDrawerAction.OpenListenStats -> onNavigateToListenStats()
                 HomeDrawerAction.OpenSettingsRoot -> onNavigateToSettings(SettingsType.Basic)
                 HomeDrawerAction.OpenPluginManagement -> onNavigateToPluginList()
                 HomeDrawerAction.OpenThemeSettings -> onNavigateToSettings(SettingsType.Theme)

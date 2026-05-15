@@ -10,7 +10,9 @@ import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.LogFields
 import com.zili.android.musicfreeandroid.logging.MfLog
 import com.zili.android.musicfreeandroid.logging.MfLogger
+import com.zili.android.musicfreeandroid.player.listening.ListenTracker
 import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import org.mockito.kotlin.mock
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
@@ -43,7 +45,7 @@ class PlayerControllerSpeedTest {
 
     @Test
     fun `default playbackSpeed is 1_0`() {
-        val controller = PlayerController(context)
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
         try {
             assertEquals(PlaybackSpeeds.DEFAULT, controller.playerState.value.playbackSpeed)
         } finally {
@@ -53,7 +55,7 @@ class PlayerControllerSpeedTest {
 
     @Test
     fun `setPlaybackSpeed updates state without connected controller`() {
-        val controller = PlayerController(context)
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
         try {
             controller.setPlaybackSpeed(1.5f)
             assertEquals(1.5f, controller.playerState.value.playbackSpeed)
@@ -64,7 +66,7 @@ class PlayerControllerSpeedTest {
 
     @Test
     fun `setPlaybackSpeed accepts edge values`() {
-        val controller = PlayerController(context)
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
         try {
             controller.setPlaybackSpeed(0.5f)
             assertEquals(0.5f, controller.playerState.value.playbackSpeed)
@@ -77,7 +79,7 @@ class PlayerControllerSpeedTest {
 
     @Test
     fun `changeQuality is no-op when no current item`() {
-        val controller = PlayerController(context)
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
         try {
             // No queue items — currentItem is null
             controller.changeQuality(PlayQuality.HIGH)
@@ -93,7 +95,7 @@ class PlayerControllerSpeedTest {
         val nullResolver = object : MediaSourceResolver {
             override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution? = null
         }
-        val controller = PlayerController(context, nullResolver)
+        val controller = PlayerController(context, nullResolver, listenTracker = mock<ListenTracker>())
         try {
             val item = MusicItem(
                 id = "x",
@@ -147,7 +149,7 @@ class PlayerControllerSpeedTest {
         val nullResolver = object : MediaSourceResolver {
             override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution? = null
         }
-        val controller = PlayerController(context, nullResolver)
+        val controller = PlayerController(context, nullResolver, listenTracker = mock<ListenTracker>())
         try {
             val item = MusicItem(
                 id = "quality-log",
