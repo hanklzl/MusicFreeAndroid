@@ -1,4 +1,4 @@
-package com.zili.android.musicfreeandroid.feature.home.pluginsheet
+package com.zili.android.musicfreeandroid.feature.home.component
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -13,15 +13,15 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29])
-class PluginSheetMusicRowTest {
+class PluginMusicRowTest {
     @get:Rule
     val composeRule = createComposeRule()
 
     @Test
-    fun `plugin sheet row shows platform tag and artist album subtitle`() {
+    fun `plugin music row shows platform tag and artist album subtitle`() {
         composeRule.setContent {
             MusicFreeTheme {
-                PluginSheetMusicRow(
+                PluginMusicRow(
                     index = 0,
                     item = track(),
                     isFavorite = false,

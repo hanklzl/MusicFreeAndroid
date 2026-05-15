@@ -86,8 +86,42 @@ class PluginSheetDetailViewModel @Inject constructor(
         }
     }
 
+    fun playAll() {
+        val list = _uiState.value.musicList
+        if (list.isEmpty()) {
+            MfLog.detail(
+                LogCategory.HOME,
+                "plugin_sheet_play_all_skipped",
+                mapOf(
+                    "screen" to SCREEN_PLUGIN_SHEET_DETAIL,
+                    "operation" to "play_all",
+                    "platform" to route.pluginPlatform,
+                    "sheetId" to route.sheetId,
+                    "result" to LogFields.Result.SKIPPED,
+                    "reason" to "empty_list",
+                ),
+            )
+            return
+        }
+        viewModelScope.launch {
+            runUserAction(
+                eventPrefix = "plugin_sheet_play_all",
+                operation = "play_all",
+                fields = mapOf("count" to list.size),
+            ) {
+                playAt(0)
+            }
+        }
+    }
+
     fun showAddToPlaylistSheet(item: MusicItem) {
         _sheetState.value = AddToPlaylistSheetState.single(item)
+    }
+
+    fun showBatchAddToPlaylistSheet() {
+        val list = _uiState.value.musicList
+        if (list.isEmpty()) return
+        _sheetState.value = AddToPlaylistSheetState.batch(list)
     }
 
     fun hideAddToPlaylistSheet() {
@@ -95,30 +129,70 @@ class PluginSheetDetailViewModel @Inject constructor(
     }
 
     fun addPendingToPlaylist(targetPlaylistId: String) {
-        val item = _sheetState.value.pendingItem ?: return
+        val items = _sheetState.value.pendingItems
+        if (items.isEmpty()) return
         viewModelScope.launch {
+            val baseFields = if (items.size == 1) {
+                musicItemFields(items[0]) + mapOf(
+                    "playlistId" to targetPlaylistId,
+                    "itemCount" to 1,
+                )
+            } else {
+                mapOf(
+                    "playlistId" to targetPlaylistId,
+                    "itemCount" to items.size,
+                )
+            }
+            val mutableFields: MutableMap<String, Any?> = baseFields.toMutableMap()
             runUserAction(
                 eventPrefix = "plugin_sheet_add_to_playlist",
                 operation = "add_to_playlist",
-                fields = musicItemFields(item) + mapOf("playlistId" to targetPlaylistId),
+                fields = mutableFields,
             ) {
-                playlistRepository.addMusicToPlaylist(targetPlaylistId, item)
+                val added = if (items.size == 1) {
+                    if (playlistRepository.addMusicToPlaylist(targetPlaylistId, items[0])) 1 else 0
+                } else {
+                    playlistRepository.addMusicsToPlaylist(targetPlaylistId, items)
+                }
+                mutableFields["added"] = added
+                mutableFields["skipped"] = items.size - added
                 hideAddToPlaylistSheet()
             }
         }
     }
 
     fun createPlaylistAndAddPending(name: String) {
-        val item = _sheetState.value.pendingItem ?: return
+        val items = _sheetState.value.pendingItems
+        if (items.isEmpty()) return
         viewModelScope.launch {
             val newId = UUID.randomUUID().toString()
+            val baseFields = if (items.size == 1) {
+                musicItemFields(items[0]) + mapOf(
+                    "playlistId" to newId,
+                    "itemName" to name,
+                    "itemCount" to 1,
+                )
+            } else {
+                mapOf(
+                    "playlistId" to newId,
+                    "itemName" to name,
+                    "itemCount" to items.size,
+                )
+            }
+            val mutableFields: MutableMap<String, Any?> = baseFields.toMutableMap()
             runUserAction(
                 eventPrefix = "plugin_sheet_create_playlist",
                 operation = "create_playlist_and_add",
-                fields = musicItemFields(item) + mapOf("playlistId" to newId, "itemName" to name),
+                fields = mutableFields,
             ) {
                 playlistRepository.createPlaylist(Playlist(id = newId, name = name, coverUri = null))
-                playlistRepository.addMusicToPlaylist(newId, item)
+                val added = if (items.size == 1) {
+                    if (playlistRepository.addMusicToPlaylist(newId, items[0])) 1 else 0
+                } else {
+                    playlistRepository.addMusicsToPlaylist(newId, items)
+                }
+                mutableFields["added"] = added
+                mutableFields["skipped"] = items.size - added
                 hideAddToPlaylistSheet()
             }
         }

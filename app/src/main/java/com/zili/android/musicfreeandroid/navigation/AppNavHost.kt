@@ -32,7 +32,6 @@ import com.zili.android.musicfreeandroid.feature.home.albumdetail.navigation.alb
 import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.ArtistDetailSeedStore
 import com.zili.android.musicfreeandroid.feature.home.artistdetail.navigation.artistDetailScreen
 import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.musicDetailScreen
-import com.zili.android.musicfreeandroid.feature.home.musicdetail.navigation.MusicDetailSeedStore
 import com.zili.android.musicfreeandroid.feature.home.musiclisteditor.navigation.musicListEditorLiteScreen
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStore
 import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.pluginSheetDetailScreen
@@ -247,21 +246,6 @@ fun AppNavHost(
         )
         topListDetailScreen(
             onBack = { navController.popBackStack() },
-            onOpenMusicDetail = { item ->
-                val seedToken = MusicDetailSeedStore.put(item)
-                navController.navigate(
-                    MusicDetailRoute(
-                        pluginPlatform = item.platform,
-                        musicId = item.id,
-                        title = item.title,
-                        artist = item.artist,
-                        album = item.album,
-                        artwork = item.artwork,
-                        durationMs = item.duration,
-                        seedToken = seedToken,
-                    ),
-                )
-            },
         )
         recommendSheetsScreen(
             onBack = { navController.popBackStack() },
