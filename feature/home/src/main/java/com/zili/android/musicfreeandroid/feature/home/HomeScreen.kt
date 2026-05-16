@@ -39,12 +39,14 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     importViewModel: PlaylistImportViewModel = hiltViewModel(),
     homeSheetsViewModel: HomeSheetsViewModel = hiltViewModel(),
+    updateBadgeViewModel: UpdateBadgeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val state = remember { HomeScreenState() }
     var selectedTab by rememberSaveable { mutableStateOf(HomeSheetTab.Mine) }
     val playlists by viewModel.playlists.collectAsState()
     val starredSheets by viewModel.starredSheets.collectAsState()
+    val updateState by updateBadgeViewModel.checker.state.collectAsState()
 
     val mineRows = remember(playlists) {
         playlists.map { p ->
@@ -84,6 +86,7 @@ fun HomeScreen(
         drawerUiModel = drawerUiModel,
         currentVersion = currentVersion,
         scheduleCloseSummary = scheduleCloseSummary,
+        hasUpdateRedDot = updateState.hasUnreadAvailableUpdate,
         onDrawerEntryClick = { action ->
             when (action) {
                 HomeDrawerAction.OpenListenStats -> onNavigateToListenStats()

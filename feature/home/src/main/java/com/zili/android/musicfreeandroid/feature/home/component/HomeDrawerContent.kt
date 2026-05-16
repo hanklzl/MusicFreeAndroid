@@ -21,8 +21,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,7 +32,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.IconSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
@@ -45,7 +42,6 @@ import com.zili.android.musicfreeandroid.feature.home.HomeDrawerAction
 import com.zili.android.musicfreeandroid.feature.home.HomeDrawerItemUiModel
 import com.zili.android.musicfreeandroid.feature.home.HomeDrawerSectionUiModel
 import com.zili.android.musicfreeandroid.feature.home.HomeDrawerUiModel
-import com.zili.android.musicfreeandroid.feature.home.UpdateBadgeViewModel
 
 @Composable
 fun HomeDrawerContent(
@@ -53,11 +49,9 @@ fun HomeDrawerContent(
     onEntryClick: (HomeDrawerAction) -> Unit,
     modifier: Modifier = Modifier,
     statusBarTopPadding: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-    updateBadgeViewModel: UpdateBadgeViewModel = hiltViewModel(),
+    hasUpdateRedDot: Boolean = false,
 ) {
     val context = LocalContext.current
-    val updateState by updateBadgeViewModel.checker.state.collectAsState()
-    val hasUpdateRedDot = updateState.hasUnreadAvailableUpdate
 
     Box(
         modifier = modifier

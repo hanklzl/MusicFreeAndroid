@@ -205,9 +205,7 @@ class MusicListEditorLiteViewModel @Inject constructor(
                 operation = "add_selected_to_playlist",
                 fields = mapOf("playlistId" to targetPlaylistId, "count" to selectedItems.size),
             ) {
-                selectedItems.forEach { item ->
-                    playlistRepository.addMusicToPlaylist(targetPlaylistId, item)
-                }
+                playlistRepository.addMusicsToPlaylist(targetPlaylistId, selectedItems)
             }
         }
     }

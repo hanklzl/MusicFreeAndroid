@@ -248,10 +248,9 @@ class MusicListEditorLiteViewModelTest {
         viewModel.addSelectedToPlaylist("playlist-2")
         advanceUntilIdle()
 
-        inOrder(playlistRepository) {
-            verify(playlistRepository).addMusicToPlaylist("playlist-2", items[0])
-            verify(playlistRepository).addMusicToPlaylist("playlist-2", items[1])
-        }
+        verify(playlistRepository).addMusicsToPlaylist("playlist-2", items)
+        verify(playlistRepository, never()).addMusicToPlaylist("playlist-2", items[0])
+        verify(playlistRepository, never()).addMusicToPlaylist("playlist-2", items[1])
     }
 
     @Test

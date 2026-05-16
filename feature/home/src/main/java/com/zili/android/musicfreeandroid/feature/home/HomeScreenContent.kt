@@ -46,6 +46,7 @@ fun HomeScreenContent(
     drawerUiModel: HomeDrawerUiModel,
     currentVersion: String,
     scheduleCloseSummary: String,
+    hasUpdateRedDot: Boolean = false,
     onDrawerEntryClick: (HomeDrawerAction) -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToRecommendSheets: () -> Unit,
@@ -91,6 +92,7 @@ fun HomeScreenContent(
         drawerContent = {
             HomeDrawerContent(
                 uiModel = drawerUiModel,
+                hasUpdateRedDot = hasUpdateRedDot,
                 onEntryClick = { action ->
                     handleDrawerEntryClick(
                         state = state,
