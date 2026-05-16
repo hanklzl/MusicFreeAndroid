@@ -1,23 +1,39 @@
 {
-  "schemaVersion": 1,
-  "version": "1.0.1",
-  "versionCode": 10001,
-  "releasedAt": "2026-05-15T23:31:28Z",
-  "download": [
-    "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.0.1/MusicFreeAndroid-v1.0.1.apk",
-    "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.0.1/release/MusicFreeAndroid-v1.0.1.apk"
-  ],
-  "size": 9918679,
-  "sha256": "72fe208bd74fdd1d9703a0797e66e9af1e5603ca1f85ce8ca9906bf7274ddc14",
+  "schemaVersion": 2,
+  "version": "1.0.2",
+  "versionCode": 10002,
+  "releasedAt": "2026-05-16T15:36:24Z",
+  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.0.2",
   "changeLog": [
-    "feat(listen-stats): 实现听歌足迹（统计页 + 明细页 + 侧栏入口）",
-    "feat(detail): 榜单/插件歌单详情顶部 header + PlayAllBar 对齐 RN",
-    "feat(settings): 接入基础设置剩余项",
-    "feat(parity-audit): 完整 parity audit 流水线 skill + 脚本 + 单 scenario",
-    "feat(ui): 开启横向 tab 手势",
-    "feat(plugin): 对齐 RN 插件能力验证",
-    "fix(player-ui): mini player 播放按钮 ripple 裁剪到圆形",
-    "fix(release): build-version-json.sh 避免 head -n 8 触发 SIGPIPE"
+    "feat(release): 分 ABI APK 发布与更新链路改造 (a602d8a)",
+    "feat(theme): 实现 setCustomTheme 与主题设置子页 (b9b20e4)",
+    "feat(listen-stats): 修复封面、跨插件归并、本地时区三项问题 (ece9229)",
+    "feat(playlist): 支持歌单批量修改 (af12703)",
+    "feat(player): 补齐播放详情更多动作 (3d18717)",
+    "fix(home): 清理专辑详情标题空值处理 (4a9da2f)",
+    "fix(plugin): 把网络下载移出 PluginManager mutex，并修正默认插件 bootstrap 重复下载 (da7b331)",
+    "fix(home): 对齐歌单详情整体滚动 (21b7678)"
   ],
-  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.0.1"
+  "variants": {
+    "arm64-v8a": {
+      "download": [
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.0.2/MusicFreeAndroid-v1.0.2-arm64-v8a.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.0.2/release/MusicFreeAndroid-v1.0.2-arm64-v8a.apk"
+      ],
+      "size": 7572767,
+      "sha256": "372ec1905a5f18d9d85f62d4a368caa3c72f50917ce867703fa96c24ebec1fa5"
+    },
+    "x86_64": {
+      "download": [
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.0.2/MusicFreeAndroid-v1.0.2-x86_64.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.0.2/release/MusicFreeAndroid-v1.0.2-x86_64.apk"
+      ],
+      "size": 7607923,
+      "sha256": "ee536a45d9f8d51ea6870ae10b3e29775fc1478aa1d0f86ea27b02c8b055238b"
+    }
+  },
+  "mapping": {
+    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.0.2/mapping-v1.0.2.zip",
+    "sha256": "9269c34e52d48167f8c6afb35025257d479cb64789adf432affaca996d9323d7"
+  }
 }
