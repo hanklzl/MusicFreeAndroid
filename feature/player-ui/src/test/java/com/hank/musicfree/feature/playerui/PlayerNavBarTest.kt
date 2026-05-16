@@ -24,6 +24,32 @@ class PlayerNavBarTest {
     val composeRule = createComposeRule()
 
     @Test
+    fun `description row keeps RN height and displays Chinese artist with platform tag`() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                Box(Modifier.size(width = 375.dp, height = 150.dp)) {
+                    PlayerNavBar(
+                        title = "孤勇者",
+                        artist = "陈奕迅",
+                        platform = "元力QQ",
+                        onBack = {},
+                        onShare = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag(PlayerNavDescriptionRowTestTag)
+            .assertIsDisplayed()
+            .assertHeightIsEqualTo(16.dp)
+        composeRule.onNodeWithText("陈奕迅").assertIsDisplayed()
+        composeRule.onNodeWithText("元力QQ").assertIsDisplayed()
+        composeRule.onNodeWithTag(PlayerPlatformTagTestTag)
+            .assertIsDisplayed()
+            .assertHeightIsEqualTo(16.dp)
+    }
+
+    @Test
     fun `platform tag keeps RN height and remains visible with long artist`() {
         composeRule.setContent {
             MusicFreeTheme {
@@ -39,6 +65,9 @@ class PlayerNavBarTest {
             }
         }
 
+        composeRule.onNodeWithTag(PlayerNavDescriptionRowTestTag)
+            .assertIsDisplayed()
+            .assertHeightIsEqualTo(16.dp)
         composeRule.onNodeWithText("元力QQ").assertIsDisplayed()
         composeRule.onNodeWithTag(PlayerPlatformTagTestTag)
             .assertIsDisplayed()

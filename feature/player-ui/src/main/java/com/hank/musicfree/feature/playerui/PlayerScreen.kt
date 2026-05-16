@@ -65,8 +65,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -661,9 +664,11 @@ internal fun PlayerNavBar(
         ) {
             Text(
                 text = title,
-                color = Color.White,
-                fontSize = FontSizes.title,
-                fontWeight = FontWeight.SemiBold,
+                style = playerNavTextStyle(
+                    fontSize = FontSizes.title,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -673,14 +678,17 @@ internal fun PlayerNavBar(
                         .fillMaxWidth()
                         .padding(top = rpx(12))
                         .height(rpx(32))
+                        .testTag(PlayerNavDescriptionRowTestTag)
                         .padding(horizontal = rpx(40)),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = artist,
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = FontSizes.subTitle,
+                        style = playerNavTextStyle(
+                            fontSize = FontSizes.subTitle,
+                            color = Color.White.copy(alpha = 0.7f),
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
@@ -720,14 +728,30 @@ private fun PlayerPlatformTag(text: String) {
     ) {
         Text(
             text = text,
-            color = Color.White,
-            fontSize = FontSizes.tag,
+            style = playerNavTextStyle(
+                fontSize = FontSizes.tag,
+                color = Color.White,
+            ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
+@Suppress("DEPRECATION")
+private fun playerNavTextStyle(
+    fontSize: TextUnit,
+    color: Color,
+    fontWeight: FontWeight? = null,
+): TextStyle = TextStyle(
+    color = color,
+    fontSize = fontSize,
+    fontWeight = fontWeight,
+    lineHeight = fontSize,
+    platformStyle = PlatformTextStyle(includeFontPadding = false),
+)
+
+internal const val PlayerNavDescriptionRowTestTag = "player-nav-description-row"
 internal const val PlayerPlatformTagTestTag = "player-platform-tag"
 
 @Composable
