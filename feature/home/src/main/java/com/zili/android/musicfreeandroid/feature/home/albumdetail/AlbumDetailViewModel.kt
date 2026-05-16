@@ -107,7 +107,7 @@ class AlbumDetailViewModel @Inject constructor(
                 val resolvedAlbum = detail.albumItem ?: album
                 currentAlbum = resolvedAlbum
                 _uiState.value = _uiState.value.copy(
-                    title = resolvedAlbum?.title ?: _uiState.value.title,
+                    title = resolvedAlbum.title ?: _uiState.value.title,
                     albumItem = resolvedAlbum,
                     musicList = _uiState.value.musicList + detail.musicList,
                     isEnd = detail.isEnd,
@@ -171,7 +171,7 @@ class AlbumDetailViewModel @Inject constructor(
             val resolvedAlbum = detail.albumItem ?: seed
             currentAlbum = resolvedAlbum
             _uiState.value = AlbumDetailUiState(
-                title = resolvedAlbum?.title ?: route.title ?: "专辑详情",
+                title = resolvedAlbum.title ?: route.title ?: "专辑详情",
                 albumItem = resolvedAlbum,
                 loading = false,
                 musicList = detail.musicList,
