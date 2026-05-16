@@ -43,56 +43,56 @@ Do **not** use this plan to:
 
 | File | Responsibility |
 |---|---|
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt` | Add canonical mini player anchor constants without breaking existing home anchors |
+| `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt` | Add canonical mini player anchor constants without breaking existing home anchors |
 
 ### Home production code
 
 | File | Responsibility |
 |---|---|
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeVisualUiModel.kt` | New homepage-first-stage display model definitions |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactory.kt` | Stable mock data factory for nav, operations, tabs, and playlist rows |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt` | Container that owns local mock tab state and feeds mock UI models into content |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt` | Pure homepage shell that consumes `HomeVisualUiModel` instead of repository-backed state |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeNavBar.kt` | Tighten top chrome spacing and accept the display placeholder text from the UI model |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeOperations.kt` | Render operation cards from display-model entries and tighten card density |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsHeader.kt` | Keep tab/header visuals aligned with target screenshot |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsList.kt` | Render fixed mock rows and remove empty-state dependence from the home golden path |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSection.kt` | Remove embedded real create dialog behavior so header actions become pure callbacks |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeVisualUiModel.kt` | New homepage-first-stage display model definitions |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeMockVisualFactory.kt` | Stable mock data factory for nav, operations, tabs, and playlist rows |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt` | Container that owns local mock tab state and feeds mock UI models into content |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt` | Pure homepage shell that consumes `HomeVisualUiModel` instead of repository-backed state |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeNavBar.kt` | Tighten top chrome spacing and accept the display placeholder text from the UI model |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeOperations.kt` | Render operation cards from display-model entries and tighten card density |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsHeader.kt` | Keep tab/header visuals aligned with target screenshot |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsList.kt` | Render fixed mock rows and remove empty-state dependence from the home golden path |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSection.kt` | Remove embedded real create dialog behavior so header actions become pure callbacks |
 
 ### Player UI production code
 
 | File | Responsibility |
 |---|---|
 | `feature/player-ui/build.gradle.kts` | Add missing Compose unit-test dependencies for pure mini player content tests |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerUiModel.kt` | Pure display-model for the redesigned mini player bar |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerContent.kt` | New pure mini player composable with home-target structure and anchors |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayer.kt` | Real player-backed container that maps `PlayerState` into `MiniPlayerUiModel` |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayerUiModel.kt` | Pure display-model for the redesigned mini player bar |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContent.kt` | New pure mini player composable with home-target structure and anchors |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayer.kt` | Real player-backed container that maps `PlayerState` into `MiniPlayerUiModel` |
 
 ### App integration
 
 | File | Responsibility |
 |---|---|
-| `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt` | Render the mock home mini player on `HomeRoute`, keep the real mini player elsewhere, and host the home-only mock play state |
+| `app/src/main/java/com/hank/musicfree/MainActivity.kt` | Render the mock home mini player on `HomeRoute`, keep the real mini player elsewhere, and host the home-only mock play state |
 
 ### Tests
 
 | File | Responsibility |
 |---|---|
-| `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactoryTest.kt` | Lock the fixed homepage mock state contract |
-| `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSectionTest.kt` | Ensure sheet header actions are pure callbacks and no longer open the real create dialog |
-| `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenMockContentTest.kt` | Validate the homepage golden state renders rows instead of the empty state |
-| `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt` | Extend anchor uniqueness checks to include mini player anchors |
-| `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerContentTest.kt` | Validate mini player anchor wiring, callback behavior, and the absence of the old next-track control |
-| `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt` | Assert the home route still exposes the root structure and now also exposes the mock mini player anchors |
+| `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeMockVisualFactoryTest.kt` | Lock the fixed homepage mock state contract |
+| `feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSectionTest.kt` | Ensure sheet header actions are pure callbacks and no longer open the real create dialog |
+| `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenMockContentTest.kt` | Validate the homepage golden state renders rows instead of the empty state |
+| `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt` | Extend anchor uniqueness checks to include mini player anchors |
+| `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContentTest.kt` | Validate mini player anchor wiring, callback behavior, and the absence of the old next-track control |
+| `app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt` | Assert the home route still exposes the root structure and now also exposes the mock mini player anchors |
 
 ---
 
 ### Task 1: Add the Homepage Mock Display Model Surface
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeVisualUiModel.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactory.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactoryTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeVisualUiModel.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeMockVisualFactory.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeMockVisualFactoryTest.kt`
 
 - [ ] **Step 1: Write the failing mock-factory test**
 
@@ -126,7 +126,7 @@ Run:
 
 ```bash
 ./gradlew :feature:home:testDebugUnitTest \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeMockVisualFactoryTest"
+  --tests "com.hank.musicfree.feature.home.HomeMockVisualFactoryTest"
 ```
 
 Expected: FAIL because `HomeVisualUiModel` and `buildHomeVisualUiModel` do not exist yet.
@@ -168,9 +168,9 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeVisualUiModel.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactory.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactoryTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/HomeVisualUiModel.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/HomeMockVisualFactory.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/HomeMockVisualFactoryTest.kt
 git commit -m "feat(home): add homepage mock visual model"
 ```
 
@@ -179,9 +179,9 @@ git commit -m "feat(home): add homepage mock visual model"
 ### Task 2: Remove Embedded Real Sheet Actions From the Home Header
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSection.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSectionTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSection.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSectionTest.kt`
 
 - [ ] **Step 1: Write the failing sheet-header interaction test**
 
@@ -230,7 +230,7 @@ Run:
 
 ```bash
 ./gradlew :feature:home:testDebugUnitTest \
-  --tests "com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsSectionTest"
+  --tests "com.hank.musicfree.feature.home.sheets.HomeSheetsSectionTest"
 ```
 
 Expected: FAIL because `homeSheetsSection` still owns `CreatePlaylistDialog` state and does not expose pure action callbacks.
@@ -265,9 +265,9 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSection.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSectionTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSection.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSectionTest.kt
 git commit -m "refactor(home): make sheet header actions mock-safe"
 ```
 
@@ -276,13 +276,13 @@ git commit -m "refactor(home): make sheet header actions mock-safe"
 ### Task 3: Rewire the Homepage Body to the Mock Golden State and Tighten Layout
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeNavBar.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeOperations.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsHeader.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsList.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenMockContentTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeNavBar.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeOperations.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsHeader.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsList.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenMockContentTest.kt`
 
 - [ ] **Step 1: Write the failing homepage-content golden-state test**
 
@@ -326,7 +326,7 @@ Run:
 
 ```bash
 ./gradlew :feature:home:testDebugUnitTest \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeScreenMockContentTest"
+  --tests "com.hank.musicfree.feature.home.HomeScreenMockContentTest"
 ```
 
 Expected: FAIL because `HomeScreenContent` does not accept `visualUiModel` and the home route still renders repository-backed sheet state.
@@ -370,11 +370,11 @@ Run:
 
 ```bash
 ./gradlew :feature:home:testDebugUnitTest \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeMockVisualFactoryTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsSectionTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeScreenMockContentTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeScreenContentTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeIconButtonAccessibilityTest"
+  --tests "com.hank.musicfree.feature.home.HomeMockVisualFactoryTest" \
+  --tests "com.hank.musicfree.feature.home.sheets.HomeSheetsSectionTest" \
+  --tests "com.hank.musicfree.feature.home.HomeScreenMockContentTest" \
+  --tests "com.hank.musicfree.feature.home.HomeScreenContentTest" \
+  --tests "com.hank.musicfree.feature.home.HomeIconButtonAccessibilityTest"
 ```
 
 Expected: PASS.
@@ -382,13 +382,13 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeNavBar.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeOperations.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsHeader.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsList.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenMockContentTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeNavBar.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeOperations.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsHeader.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsList.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenMockContentTest.kt
 git commit -m "feat(home): switch homepage body to mock golden state"
 ```
 
@@ -397,13 +397,13 @@ git commit -m "feat(home): switch homepage body to mock golden state"
 ### Task 4: Extract Pure Mini Player Content and Canonical Anchors
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt`
 - Modify: `feature/player-ui/build.gradle.kts`
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerUiModel.kt`
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerContent.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayer.kt`
-- Test: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerContentTest.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayerUiModel.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContent.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayer.kt`
+- Test: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContentTest.kt`
 
 - [ ] **Step 1: Write the failing mini-player content test**
 
@@ -451,7 +451,7 @@ Run:
 
 ```bash
 ./gradlew :feature:player-ui:testDebugUnitTest \
-  --tests "com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayerContentTest"
+  --tests "com.hank.musicfree.feature.playerui.component.MiniPlayerContentTest"
 ```
 
 Expected: FAIL because `MiniPlayerContent`, `MiniPlayerUiModel`, and `FidelityAnchors.Player.*` do not exist yet, and the module lacks Compose UI unit-test dependencies.
@@ -502,10 +502,10 @@ Run:
 
 ```bash
 ./gradlew :feature:player-ui:testDebugUnitTest \
-  --tests "com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayerContentTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelTest" && \
+  --tests "com.hank.musicfree.feature.playerui.component.MiniPlayerContentTest" \
+  --tests "com.hank.musicfree.feature.playerui.PlayerViewModelTest" && \
 ./gradlew :feature:home:testDebugUnitTest \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeAnchorContractTest"
+  --tests "com.hank.musicfree.feature.home.HomeAnchorContractTest"
 ```
 
 Expected: PASS.
@@ -513,13 +513,13 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt \
+git add core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt \
   feature/player-ui/build.gradle.kts \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerUiModel.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerContent.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayer.kt \
-  feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerContentTest.kt
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayerUiModel.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContent.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayer.kt \
+  feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContentTest.kt
 git commit -m "feat(player-ui): extract mock-ready mini player content"
 ```
 
@@ -528,8 +528,8 @@ git commit -m "feat(player-ui): extract mock-ready mini player content"
 ### Task 5: Host the Home-Only Mock Mini Player and Re-verify the Home Route
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
-- Modify: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
+- Modify: `app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt`
 
 - [ ] **Step 1: Write the failing instrumented home-structure test update**
 
@@ -552,7 +552,7 @@ Run on the connected emulator/device:
 
 ```bash
 ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeFidelityHomeStructureTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeFidelityHomeStructureTest
 ```
 
 Expected: FAIL because the home route still renders the old player-backed bottom bar behavior and does not expose the new mini player anchors.
@@ -600,16 +600,16 @@ Run:
 
 ```bash
 ./gradlew :feature:home:testDebugUnitTest \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeMockVisualFactoryTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsSectionTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeScreenMockContentTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeAnchorContractTest" && \
+  --tests "com.hank.musicfree.feature.home.HomeMockVisualFactoryTest" \
+  --tests "com.hank.musicfree.feature.home.sheets.HomeSheetsSectionTest" \
+  --tests "com.hank.musicfree.feature.home.HomeScreenMockContentTest" \
+  --tests "com.hank.musicfree.feature.home.HomeAnchorContractTest" && \
 ./gradlew :feature:player-ui:testDebugUnitTest \
-  --tests "com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayerContentTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelTest" && \
+  --tests "com.hank.musicfree.feature.playerui.component.MiniPlayerContentTest" \
+  --tests "com.hank.musicfree.feature.playerui.PlayerViewModelTest" && \
 ./gradlew :app:assembleDebug && \
 ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeFidelityHomeStructureTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeFidelityHomeStructureTest
 ```
 
 Expected: all commands PASS.
@@ -620,7 +620,7 @@ Run:
 
 ```bash
 adb start-server
-adb -s emulator-5554 shell am start -S -n com.zili.android.musicfreeandroid/.MainActivity >/dev/null
+adb -s emulator-5554 shell am start -S -n com.hank.musicfree/.MainActivity >/dev/null
 sleep 3
 bash tools/home-fidelity/capture-homepage-android.sh emulator-5554 home-top home-scroll
 bash tools/home-fidelity/capture-homepage-android.sh emulator-5554 home-sheets sheets-list
@@ -635,8 +635,8 @@ Expected:
 - [ ] **Step 6: Commit**
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt \
-  app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt \
+git add app/src/main/java/com/hank/musicfree/MainActivity.kt \
+  app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt \
   docs/home-fidelity/homepage/android/home-top-home-scroll.png \
   docs/home-fidelity/homepage/android/home-top-home-scroll.xml \
   docs/home-fidelity/homepage/android/home-sheets-sheets-list.png \

@@ -13,9 +13,9 @@
 ### Task 1: 更新 contract tests
 
 **Files:**
-- Modify: `app/src/test/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitionsTest.kt`
-- Modify: `app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/UiNavAnimationDurationContractTest.kt`
-- Modify: `app/src/test/java/com/zili/android/musicfreeandroid/SplashScreenResourceContractTest.kt`
+- Modify: `app/src/test/java/com/hank/musicfree/navigation/MusicFreeNavTransitionsTest.kt`
+- Modify: `app/src/test/java/com/hank/musicfree/harness/contracts/UiNavAnimationDurationContractTest.kt`
+- Modify: `app/src/test/java/com/hank/musicfree/SplashScreenResourceContractTest.kt`
 
 - [ ] **Step 1: Write failing navigation duration tests**
 
@@ -55,7 +55,7 @@ Expected: FAIL because production duration is still `100` and Manifest does not 
 ### Task 2: 更新实现
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitions.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/MusicFreeNavTransitions.kt`
 - Modify: `app/src/main/AndroidManifest.xml`
 
 - [ ] **Step 1: Change transition duration constant**
@@ -160,7 +160,7 @@ Expected: BUILD SUCCESSFUL.
 Run:
 
 ```bash
-git diff -- app/src/main/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitions.kt app/src/main/AndroidManifest.xml app/src/test/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitionsTest.kt app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/UiNavAnimationDurationContractTest.kt app/src/test/java/com/zili/android/musicfreeandroid/SplashScreenResourceContractTest.kt docs/DOCS_STATUS.md docs/dev-harness/ui/rules.md docs/dev-harness/ui/incidents.md docs/dev-harness/incidents/index.md .agents/skills/ui-harness-skill/references/navigation-animation.md .agents/skills/ui-harness-skill/SKILL.md
+git diff -- app/src/main/java/com/hank/musicfree/navigation/MusicFreeNavTransitions.kt app/src/main/AndroidManifest.xml app/src/test/java/com/hank/musicfree/navigation/MusicFreeNavTransitionsTest.kt app/src/test/java/com/hank/musicfree/harness/contracts/UiNavAnimationDurationContractTest.kt app/src/test/java/com/hank/musicfree/SplashScreenResourceContractTest.kt docs/DOCS_STATUS.md docs/dev-harness/ui/rules.md docs/dev-harness/ui/incidents.md docs/dev-harness/incidents/index.md .agents/skills/ui-harness-skill/references/navigation-animation.md .agents/skills/ui-harness-skill/SKILL.md
 ```
 
 Expected: only duration, predictive back, tests, and matching docs changed.

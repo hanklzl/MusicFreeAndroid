@@ -24,8 +24,8 @@ spec: ../specs/2026-05-15-detail-header-rn-parity-design.md
 - RN 参考：`../MusicFree/src/components/musicSheetPage/components/header.tsx`、`../MusicFree/src/components/base/playAllBar.tsx`
 
 **交付物**：
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/PlayAllBar.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicSheetPageHeader.kt`
+- `core/src/main/java/com/hank/musicfree/core/ui/PlayAllBar.kt`
+- `core/src/main/java/com/hank/musicfree/core/ui/MusicSheetPageHeader.kt`
 
 **约束**：
 - 仅做 UI 与 lambda 上抛，不引入业务依赖
@@ -51,7 +51,7 @@ spec: ../specs/2026-05-15-detail-header-rn-parity-design.md
 - 现 `feature/home/pluginsheet/PluginSheetDetailScreen.kt` 中的 `PluginSheetMusicRow` + `pluginSheetPlatformTagText` + `pluginSheetDescription`
 
 **交付物**：
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/PluginMusicRow.kt`（新文件，包含 row + 两个 helper）
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/component/PluginMusicRow.kt`（新文件，包含 row + 两个 helper）
 - 移除 `PluginSheetDetailScreen.kt` 中旧的 row 与 helpers
 - 同时更新 `PluginSheetDetailScreen.kt` 调用点引用新位置
 
@@ -78,7 +78,7 @@ spec: ../specs/2026-05-15-detail-header-rn-parity-design.md
 - 现有 `AddToPlaylistSheetState.batch`（已实现）
 
 **交付物**：
-- 修改 `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- 修改 `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
 
 **约束**：
 - 改造 `addPendingToPlaylist`：
@@ -107,7 +107,7 @@ spec: ../specs/2026-05-15-detail-header-rn-parity-design.md
 - 现有 `PluginSheetDetailViewModel` 作为参照实现
 
 **交付物**：
-- 修改 `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailViewModel.kt`
+- 修改 `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt`
 - Hilt 注入：新增 `PlaylistRepository`
 
 **约束**：
@@ -127,7 +127,7 @@ spec: ../specs/2026-05-15-detail-header-rn-parity-design.md
 **目标**：在 Screen 中插入 Header + PlayAllBar，移除 AppBar 心形按钮，替换 row 为 `PluginMusicRow`。
 
 **交付物**：
-- 修改 `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
+- 修改 `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
 
 **约束**：
 - `MusicFreeScreenScaffold` 的 `actions` 改为空（或仅保留未来扩展的占位）
@@ -151,7 +151,7 @@ spec: ../specs/2026-05-15-detail-header-rn-parity-design.md
 **目标**：与 Step 5 同形结构；topList 不暴露心形按钮。
 
 **交付物**：
-- 修改 `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt`
+- 修改 `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt`
 
 **约束**：
 - 删除 `onOpenMusicDetail` 入参（行内使用 `PluginMusicRow` 的 more menu 体系）

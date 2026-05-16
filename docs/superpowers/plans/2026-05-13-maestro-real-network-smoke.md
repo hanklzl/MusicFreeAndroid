@@ -6,7 +6,7 @@
 
 **Architecture:** Add a small set of nonvisual Compose test anchors first so Maestro can use stable resource IDs instead of coordinates. Then add layered Maestro flows under `maestro/flows/smoke/`, a single bash runner that builds/installs/runs/captures evidence, and documentation that explains how to interpret real-network failures with `logcat` and structured logs.
 
-**Tech Stack:** Maestro YAML, Android Debug APK (`com.zili.android.musicfreeandroid.debug`), Bash, `adb`, `logcat`, Jetpack Compose `testTag` / `testTagsAsResourceId`, existing `MfLog` structured events.
+**Tech Stack:** Maestro YAML, Android Debug APK (`com.hank.musicfree.debug`), Bash, `adb`, `logcat`, Jetpack Compose `testTag` / `testTagsAsResourceId`, existing `MfLog` structured events.
 
 ---
 
@@ -21,17 +21,17 @@
 
 ## File Structure
 
-- Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
+- Modify `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
   - Add stable IDs for Maestro-facing dynamic rows and plugin management root.
-- Modify `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
+- Modify `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
   - Add `testTag` to music result rows, media result rows, and sheet result items.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt`
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt`
   - Add `testTag` to recommendation sheet grid items.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt`
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt`
   - Add `testTag` to top-list rows.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt`
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt`
   - Add a root `testTag` and `testTagsAsResourceId` semantics.
-- Modify `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt`
+- Modify `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt`
   - Extend uniqueness coverage for new anchors.
 - Create `maestro/flows/smoke/core/01_launch_default_plugins.yaml`
 - Create `maestro/flows/smoke/core/02_search_play.yaml`
@@ -46,16 +46,16 @@
 ## Task 1: Add Stable Maestro Anchors
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt`
 
 - [ ] **Step 1: Extend `FidelityAnchors` with Maestro-facing IDs**
 
-Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt` so the relevant objects include these constants:
+Modify `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt` so the relevant objects include these constants:
 
 ```kotlin
 object FidelityAnchors {
@@ -92,7 +92,7 @@ Keep all existing constants in `FidelityAnchors.kt`; insert only the new constan
 
 - [ ] **Step 2: Add search result tags**
 
-In `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`, update the `MediaResultItem`, `SheetResultItem`, and `MusicResultItem` composables.
+In `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`, update the `MediaResultItem`, `SheetResultItem`, and `MusicResultItem` composables.
 
 Change the `MediaResultItem` root `Row` modifier to:
 
@@ -129,7 +129,7 @@ modifier = Modifier
 
 - [ ] **Step 3: Add recommendation sheet item tag**
 
-In `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt`, update `RecommendSheetGridItem`.
+In `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt`, update `RecommendSheetGridItem`.
 
 Change the root `Column` modifier to:
 
@@ -143,7 +143,7 @@ The file already imports `testTag` and `FidelityAnchors`.
 
 - [ ] **Step 4: Add top-list row tag**
 
-In `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt`, update `TopListItemRow`.
+In `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt`, update `TopListItemRow`.
 
 Change the root `Row` modifier to:
 
@@ -159,12 +159,12 @@ The file already imports `testTag` and `FidelityAnchors`.
 
 - [ ] **Step 5: Add plugin management root tag**
 
-In `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt`, add imports:
+In `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt`, add imports:
 
 ```kotlin
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.FidelityAnchors
 ```
 
 Then change the `MusicFreeScreenScaffold` modifier from:
@@ -189,7 +189,7 @@ import androidx.compose.ui.platform.testTag
 
 - [ ] **Step 6: Extend anchor contract test**
 
-In `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt`, append the new anchors to the `expanded homepage fidelity anchors stay unique and non blank` list:
+In `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt`, append the new anchors to the `expanded homepage fidelity anchors stay unique and non blank` list:
 
 ```kotlin
 FidelityAnchors.Screen.PluginListRoot,
@@ -230,12 +230,12 @@ Expected: no violations. If the script prints existing unrelated violations, cop
 - [ ] **Step 9: Commit anchor changes**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt \
-  feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt \
+  feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt
 git commit -m "test(maestro): 补充 smoke 用例稳定锚点"
 ```
 
@@ -251,7 +251,7 @@ git commit -m "test(maestro): 补充 smoke 用例稳定锚点"
 Create `maestro/flows/smoke/core/01_launch_default_plugins.yaml`:
 
 ```yaml
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 name: smoke_core_launch_default_plugins
 tags:
   - smoke
@@ -279,7 +279,7 @@ tags:
 Create `maestro/flows/smoke/core/02_search_play.yaml`:
 
 ```yaml
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 name: smoke_core_search_play
 tags:
   - smoke
@@ -331,7 +331,7 @@ tags:
 Create `maestro/flows/smoke/core/03_settings_feedback_logs.yaml`:
 
 ```yaml
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 name: smoke_core_settings_feedback_logs
 tags:
   - smoke
@@ -419,7 +419,7 @@ git commit -m "test(maestro): 添加核心 smoke flows"
 Create `maestro/flows/smoke/extended/recommend_sheets.yaml`:
 
 ```yaml
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 name: smoke_extended_recommend_sheets
 tags:
   - smoke
@@ -462,7 +462,7 @@ tags:
 Create `maestro/flows/smoke/extended/top_list_detail.yaml`:
 
 ```yaml
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 name: smoke_extended_top_list_detail
 tags:
   - smoke
@@ -505,7 +505,7 @@ tags:
 Create `maestro/flows/smoke/extended/plugin_management.yaml`:
 
 ```yaml
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 name: smoke_extended_plugin_management
 tags:
   - smoke
@@ -567,7 +567,7 @@ tags:
 Create `maestro/flows/smoke/extended/player_queue.yaml`:
 
 ```yaml
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 name: smoke_extended_player_queue
 tags:
   - smoke
@@ -650,7 +650,7 @@ Create `scripts/maestro/run-smoke.sh`:
 set -u
 set -o pipefail
 
-APP_ID="com.zili.android.musicfreeandroid.debug"
+APP_ID="com.hank.musicfree.debug"
 APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
 SUITE="core"
 SKIP_BUILD=0
@@ -1008,7 +1008,7 @@ bash scripts/maestro/run-smoke.sh --suite core --serial <adb-serial>
 Debug 包名：
 
 ```text
-com.zili.android.musicfreeandroid.debug
+com.hank.musicfree.debug
 ```
 
 Debug APK 路径：
@@ -1364,7 +1364,7 @@ If no files changed after verification, do not create an empty commit.
   - No placeholder markers, deferred implementation notes, or vague “add broad coverage” steps.
   - All new files have complete contents in the task that creates them.
 - Type and name consistency:
-  - Debug package name is consistently `com.zili.android.musicfreeandroid.debug`.
+  - Debug package name is consistently `com.hank.musicfree.debug`.
   - New anchors match YAML selectors:
     - `search.result.musicRow`
     - `recommendSheets.item`

@@ -15,19 +15,19 @@
 Create:
 
 - `logging/build.gradle.kts`: Android library module for logging facade, Logan dependency, tests.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogCategory.kt`: stable category enum.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogLevel.kt`: `TRACE`, `DETAIL`, `ERROR`.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/MfLogger.kt`: public logging interface.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/MfLog.kt`: global facade with no-op fallback.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogEventFormatter.kt`: JSON line formatter.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LoggingConfig.kt`: Logan paths, key/IV, retention, app metadata.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LoggingInitializer.kt`: Logan initialization and uncaught exception handler.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LoganMfLogger.kt`: Logan-backed logger.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/FeedbackLogExporter.kt`: package export and cleanup service.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/FeedbackPackage.kt`: exported package metadata.
-- `logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogEventFormatterTest.kt`: formatter tests.
-- `logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogPrunerTest.kt`: retention and total-size tests.
-- `logging/src/test/java/com/zili/android/musicfreeandroid/logging/FeedbackLogExporterTest.kt`: zip/manifest tests.
+- `logging/src/main/java/com/hank/musicfree/logging/LogCategory.kt`: stable category enum.
+- `logging/src/main/java/com/hank/musicfree/logging/LogLevel.kt`: `TRACE`, `DETAIL`, `ERROR`.
+- `logging/src/main/java/com/hank/musicfree/logging/MfLogger.kt`: public logging interface.
+- `logging/src/main/java/com/hank/musicfree/logging/MfLog.kt`: global facade with no-op fallback.
+- `logging/src/main/java/com/hank/musicfree/logging/LogEventFormatter.kt`: JSON line formatter.
+- `logging/src/main/java/com/hank/musicfree/logging/LoggingConfig.kt`: Logan paths, key/IV, retention, app metadata.
+- `logging/src/main/java/com/hank/musicfree/logging/LoggingInitializer.kt`: Logan initialization and uncaught exception handler.
+- `logging/src/main/java/com/hank/musicfree/logging/LoganMfLogger.kt`: Logan-backed logger.
+- `logging/src/main/java/com/hank/musicfree/logging/FeedbackLogExporter.kt`: package export and cleanup service.
+- `logging/src/main/java/com/hank/musicfree/logging/FeedbackPackage.kt`: exported package metadata.
+- `logging/src/test/java/com/hank/musicfree/logging/LogEventFormatterTest.kt`: formatter tests.
+- `logging/src/test/java/com/hank/musicfree/logging/LogPrunerTest.kt`: retention and total-size tests.
+- `logging/src/test/java/com/hank/musicfree/logging/FeedbackLogExporterTest.kt`: zip/manifest tests.
 - `app/src/main/res/xml/feedback_file_paths.xml`: FileProvider cache path.
 - `tools/logan/README.md`: local decode instructions.
 - `tools/logan/decode-logan.sh`: local decode script wrapper.
@@ -38,21 +38,21 @@ Modify:
 - `gradle/libs.versions.toml`: add Logan artifact.
 - `app/build.gradle.kts`: add `:logging`, BuildConfig fields for Logan key/IV, Release fail-fast.
 - `app/src/main/AndroidManifest.xml`: add `FileProvider`.
-- `app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt`: initialize logging.
-- `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`: app lifecycle/permission logs.
+- `app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt`: initialize logging.
+- `app/src/main/java/com/hank/musicfree/MainActivity.kt`: app lifecycle/permission logs.
 - `feature/settings/build.gradle.kts`: add `:logging`.
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`: inject/export/clear logs.
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`: add share/clear entries and confirmation dialog.
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`: inject/export/clear logs.
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`: add share/clear entries and confirmation dialog.
 - `plugin/build.gradle.kts`, `feature/search/build.gradle.kts`, `feature/home/build.gradle.kts`, `player/build.gradle.kts`, `data/build.gradle.kts`: add `:logging` where instrumentation is added.
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`: replace first-phase raw `Log.*` with `MfLog`.
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`: add plugin API call events.
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngine.kt`: add JS console and engine error events.
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShim.kt`: add request/response events.
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/RequireShim.kt`: add module registration and asset read events.
-- `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`: add search/fallback/play resolution events.
-- `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`: add controller events.
-- `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackService.kt`: add service/session events.
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`: add import events.
+- `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`: replace first-phase raw `Log.*` with `MfLog`.
+- `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`: add plugin API call events.
+- `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsEngine.kt`: add JS console and engine error events.
+- `plugin/src/main/java/com/hank/musicfree/plugin/engine/AxiosShim.kt`: add request/response events.
+- `plugin/src/main/java/com/hank/musicfree/plugin/engine/RequireShim.kt`: add module registration and asset read events.
+- `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`: add search/fallback/play resolution events.
+- `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`: add controller events.
+- `player/src/main/java/com/hank/musicfree/player/service/PlaybackService.kt`: add service/session events.
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportViewModel.kt`: add import events.
 - `AGENTS.md`: add logging rules.
 
 ---
@@ -95,7 +95,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.logging"
+    namespace = "com.hank.musicfree.logging"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -220,19 +220,19 @@ git commit -m "build: add logging module and Logan dependency"
 ### Task 2: Logging Facade And JSON Formatter
 
 **Files:**
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogCategory.kt`
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogLevel.kt`
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/MfLogger.kt`
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/MfLog.kt`
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogEventFormatter.kt`
-- Test: `logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogEventFormatterTest.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/LogCategory.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/LogLevel.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/MfLogger.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/MfLog.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/LogEventFormatter.kt`
+- Test: `logging/src/test/java/com/hank/musicfree/logging/LogEventFormatterTest.kt`
 
 - [ ] **Step 1: Write formatter tests**
 
 Create `LogEventFormatterTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -305,7 +305,7 @@ Expected: FAIL because formatter classes do not exist.
 Create `LogLevel.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 enum class LogLevel(val wireName: String, val loganType: Int) {
     TRACE("trace", 1),
@@ -317,7 +317,7 @@ enum class LogLevel(val wireName: String, val loganType: Int) {
 Create `LogCategory.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 enum class LogCategory(val wireName: String) {
     APP("app"),
@@ -332,7 +332,7 @@ enum class LogCategory(val wireName: String) {
 Create `MfLogger.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 interface MfLogger {
     fun trace(category: LogCategory, event: String, fields: Map<String, Any?> = emptyMap())
@@ -352,7 +352,7 @@ interface MfLogger {
 Create `MfLog.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 object MfLog : MfLogger {
     @Volatile
@@ -406,7 +406,7 @@ private object NoOpLogger : MfLogger {
 Create `LogEventFormatter.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import org.json.JSONArray
 import org.json.JSONObject
@@ -477,7 +477,7 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add logging/src/main/java/com/zili/android/musicfreeandroid/logging logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogEventFormatterTest.kt
+git add logging/src/main/java/com/hank/musicfree/logging logging/src/test/java/com/hank/musicfree/logging/LogEventFormatterTest.kt
 git commit -m "feat(logging): add structured logging facade"
 ```
 
@@ -486,18 +486,18 @@ git commit -m "feat(logging): add structured logging facade"
 ### Task 3: Logan Backend, Initialization, Retention
 
 **Files:**
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LoggingConfig.kt`
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LoganMfLogger.kt`
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LoggingInitializer.kt`
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogPruner.kt`
-- Test: `logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogPrunerTest.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/LoggingConfig.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/LoganMfLogger.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/LoggingInitializer.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/LogPruner.kt`
+- Test: `logging/src/test/java/com/hank/musicfree/logging/LogPrunerTest.kt`
 
 - [ ] **Step 1: Write retention tests**
 
 Create `LogPrunerTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -548,7 +548,7 @@ Expected: FAIL because `LogPruner` does not exist.
 Create `LoggingConfig.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import java.io.File
 
@@ -570,7 +570,7 @@ data class LoggingConfig(
 Create `LogPruner.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import java.io.File
 import java.time.Clock
@@ -605,7 +605,7 @@ object LogPruner {
 Create `LoganMfLogger.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import com.dianping.logan.Logan
 
@@ -662,7 +662,7 @@ class LoganMfLogger(
 Create `LoggingInitializer.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import android.util.Log
 import com.dianping.logan.Logan
@@ -736,7 +736,7 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add logging/src/main/java/com/zili/android/musicfreeandroid/logging logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogPrunerTest.kt
+git add logging/src/main/java/com/hank/musicfree/logging logging/src/test/java/com/hank/musicfree/logging/LogPrunerTest.kt
 git commit -m "feat(logging): initialize Logan backend"
 ```
 
@@ -745,9 +745,9 @@ git commit -m "feat(logging): initialize Logan backend"
 ### Task 4: Feedback Package Export, FileProvider, Decode Tooling
 
 **Files:**
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/FeedbackPackage.kt`
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/FeedbackLogExporter.kt`
-- Test: `logging/src/test/java/com/zili/android/musicfreeandroid/logging/FeedbackLogExporterTest.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/FeedbackPackage.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/FeedbackLogExporter.kt`
+- Test: `logging/src/test/java/com/hank/musicfree/logging/FeedbackLogExporterTest.kt`
 - Modify: `app/src/main/AndroidManifest.xml`
 - Create: `app/src/main/res/xml/feedback_file_paths.xml`
 - Create: `tools/logan/README.md`
@@ -758,7 +758,7 @@ git commit -m "feat(logging): initialize Logan backend"
 Create `FeedbackLogExporterTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -814,7 +814,7 @@ Expected: FAIL because exporter classes do not exist.
 Create `FeedbackPackage.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import java.io.File
 
@@ -828,7 +828,7 @@ data class FeedbackPackage(
 Create `FeedbackLogExporter.kt` with zip creation, manifest creation, cleanup, and pruning:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import org.json.JSONArray
 import org.json.JSONObject
@@ -988,7 +988,7 @@ Expected: PASS and `BUILD SUCCESSFUL`.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add logging/src/main/java/com/zili/android/musicfreeandroid/logging/FeedbackPackage.kt logging/src/main/java/com/zili/android/musicfreeandroid/logging/FeedbackLogExporter.kt logging/src/test/java/com/zili/android/musicfreeandroid/logging/FeedbackLogExporterTest.kt app/src/main/AndroidManifest.xml app/src/main/res/xml/feedback_file_paths.xml tools/logan
+git add logging/src/main/java/com/hank/musicfree/logging/FeedbackPackage.kt logging/src/main/java/com/hank/musicfree/logging/FeedbackLogExporter.kt logging/src/test/java/com/hank/musicfree/logging/FeedbackLogExporterTest.kt app/src/main/AndroidManifest.xml app/src/main/res/xml/feedback_file_paths.xml tools/logan
 git commit -m "feat(logging): export feedback log packages"
 ```
 
@@ -997,11 +997,11 @@ git commit -m "feat(logging): export feedback log packages"
 ### Task 5: App And Settings Integration
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
-- Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
+- Modify: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt`
 
 - [ ] **Step 1: Add settings ViewModel tests**
 
@@ -1204,7 +1204,7 @@ Expected: PASS and `BUILD SUCCESSFUL`.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt logging/src/main/java/com/zili/android/musicfreeandroid/logging
+git add app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt app/src/main/java/com/hank/musicfree/MainActivity.kt feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt logging/src/main/java/com/hank/musicfree/logging
 git commit -m "feat(logging): add app initialization and feedback sharing"
 ```
 
@@ -1213,15 +1213,15 @@ git commit -m "feat(logging): add app initialization and feedback sharing"
 ### Task 6: First-Phase Core Path Instrumentation
 
 **Files:**
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngine.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShim.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/RequireShim.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackService.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsEngine.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/AxiosShim.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/RequireShim.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/service/PlaybackService.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportViewModel.kt`
 
 - [ ] **Step 1: Add a duration helper**
 
@@ -1441,8 +1441,8 @@ Install and launch debug APK on available device/emulator:
 
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell monkey -p com.zili.android.musicfreeandroid.debug 1
-adb shell run-as com.zili.android.musicfreeandroid.debug ls files/logan
+adb shell monkey -p com.hank.musicfree.debug 1
+adb shell run-as com.hank.musicfree.debug ls files/logan
 ```
 
 Expected: app launches and `files/logan` contains Logan output after startup.

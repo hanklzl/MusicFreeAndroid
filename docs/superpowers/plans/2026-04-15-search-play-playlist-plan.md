@@ -78,7 +78,7 @@ standard-quality.png → ic_quality_standard.png
 
 ## 步骤 1: 搜索历史 — DataStore 扩展
 
-### 文件: `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
+### 文件: `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
 
 **当前状态**: 78 行，包含 repeatMode/playQuality/shuffleEnabled/darkMode/currentMusicIndex/storageDirectoryUri
 
@@ -129,19 +129,19 @@ suspend fun clearSearchHistory() {
 
 ## 步骤 2: 搜索页 — SearchUiState 重写
 
-### 文件: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchUiState.kt`
+### 文件: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchUiState.kt`
 
 **当前状态**: 18 行，单一维度 sealed interface
 
 **完全重写为**:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.search
+package com.hank.musicfree.feature.search
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
-import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.plugin.api.AlbumItemBase
+import com.hank.musicfree.plugin.api.ArtistItemBase
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
 
 /** 搜索页整体页面状态 */
 enum class SearchPageStatus {
@@ -180,7 +180,7 @@ enum class SearchMediaType(val key: String, val label: String) {
 
 ## 步骤 3: 搜索页 — SearchViewModel 重写
 
-### 文件: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
+### 文件: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
 
 **当前状态**: 248 行，单插件搜索
 
@@ -402,7 +402,7 @@ implementation(project(":data"))
 
 ## 步骤 4: 搜索页 — SearchScreen 重写
 
-### 文件: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
+### 文件: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
 
 **当前状态**: 323 行，TopAppBar + OutlinedTextField + SegmentedButton + LazyColumn
 
@@ -471,7 +471,7 @@ SearchScreen
 
 ## 步骤 5: 播放器 — PlayerScreen 重写
 
-### 文件: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+### 文件: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
 
 **当前状态**: 291 行，Material3 TopAppBar + 纯色背景 + Slider + 5 个控制按钮
 
@@ -733,7 +733,7 @@ private fun PlayerControls(...) {
 
 ### 6.1 MiniPlayerContent.kt — 封面图加载
 
-**文件**: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerContent.kt`
+**文件**: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContent.kt`
 
 **当前第 80-94 行** (placeholder Box):
 ```kotlin
@@ -793,7 +793,7 @@ import androidx.compose.ui.layout.ContentScale
 
 ### 6.2 MainActivity.kt — 统一 MiniPlayer
 
-**文件**: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
+**文件**: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
 
 **删除第 55-56 行** (mock 状态变量):
 ```kotlin
@@ -833,7 +833,7 @@ bottomBar = {
 
 ### 7.1 MusicItemMediaExt.kt — URL 空值防护
 
-**文件**: `player/src/main/java/com/zili/android/musicfreeandroid/player/ext/MusicItemMediaExt.kt`
+**文件**: `player/src/main/java/com/hank/musicfree/player/ext/MusicItemMediaExt.kt`
 
 **当前第 11 行**: `url?.let { builder.setUri(it) }`
 
@@ -866,7 +866,7 @@ fun MusicItem.toMediaItem(): MediaItem {
 
 ### 7.2 PlayerController.kt — 错误事件
 
-**文件**: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
+**文件**: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
 
 **在类顶部添加** (现有 `_playerState` 附近):
 ```kotlin
@@ -927,7 +927,7 @@ val errorEvents: SharedFlow<String> = playerController.errorEvents
 
 ## 步骤 8: 页面过渡动画微调
 
-### 文件: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
+### 文件: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
 
 **当前第 67/73/78/84 行**: `tween(100)`
 

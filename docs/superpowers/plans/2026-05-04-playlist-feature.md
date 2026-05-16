@@ -23,47 +23,47 @@
 
 | 路径 | 责任 |
 |---|---|
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/model/SortMode.kt` | `SortMode` enum |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/db/SeedFavoriteCallback.kt` | Room callback，`onCreate` 时插入默认 favorite 行 |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStore.kt` | 封面图片 IO（拷贝/删除/路径） |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicItemMoreMenu.kt` | 4 个 surface 共用的歌曲行更多菜单 |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistBottomSheetContent.kt` | 4 个 surface 共用的"加入歌单"底部面板内容 |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailHeader.kt` | 详情页大封面 + 元数据 + 操作行 |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/SortModeDialog.kt` | 单选排序模式弹窗 |
+| `core/src/main/java/com/hank/musicfree/core/model/SortMode.kt` | `SortMode` enum |
+| `data/src/main/java/com/hank/musicfree/data/db/SeedFavoriteCallback.kt` | Room callback，`onCreate` 时插入默认 favorite 行 |
+| `data/src/main/java/com/hank/musicfree/data/cover/PlaylistCoverStore.kt` | 封面图片 IO（拷贝/删除/路径） |
+| `core/src/main/java/com/hank/musicfree/core/ui/MusicItemMoreMenu.kt` | 4 个 surface 共用的歌曲行更多菜单 |
+| `core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistBottomSheetContent.kt` | 4 个 surface 共用的"加入歌单"底部面板内容 |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailHeader.kt` | 详情页大封面 + 元数据 + 操作行 |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/SortModeDialog.kt` | 单选排序模式弹窗 |
 | `app/src/main/res/drawable/ic_*.xml`（多个） | 从 RN 取的图标资源 |
 
 修改文件（已存在，加列 / 加方法）：
 
 | 路径 | 改动概要 |
 |---|---|
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/model/Playlist.kt` | 加 `description / sortMode / createdAt / updatedAt / worksNum / isDefault / DEFAULT_FAVORITE_ID` |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/model/MusicItem.kt` | 加 `addedAt: Long = 0L` |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlaylistEntity.kt` | 加 `description / sortMode` 列 |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlaylistMusicCrossRef.kt` | 加 `addedAt` 列 |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt` | version `2 → 3` |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt` | 移除 `addMigrations(...)`；加 `.fallbackToDestructiveMigration()` + `.addCallback(SeedFavoriteCallback)`；提供 `PlaylistCoverStore` |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PlaylistDao.kt` | 加 `observePlaylist / isInPlaylist / observeIsInPlaylist / insertCrossRefIgnore / observeMusicWithAddedAt / setAllSortOrder` 等 |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/MusicDao.kt` | 加 `upsert(MusicItemEntity)` 方法（若不存在） |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt` | 重写实现，加业务规则 |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapper.kt` | 映射新字段；`MusicItem` 新 `addedAt` 字段 |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeViewModel.kt` | 注入 `PlaylistRepository`，暴露 playlists state；favorite 置顶排序 |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt` | 移除 `MINE_ROWS` 引用；wire `onCreateClick` |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModel.kt` | 加 `isFavorite: Boolean`；卡片渲染心形封面 |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactory.kt` | 删除 `MINE_ROWS`，仅保留 `STARRED_ROWS` |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt` | 整页重做（header + overflow + row ⋮ + empty state） |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt` | 状态扩展 `playlist / musics / sortMode` |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDialogs.kt` | `RenamePlaylistDialog` → `EditPlaylistDialog`（封面 + 描述）；删 `AddToPlaylistDialog` |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt` | 行末加 ⋮ + `MusicItemMoreMenu` |
-| `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt` | 替换 Toast 占位为 `MusicItemMoreMenu` 调用 |
-| `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt` | 注入 `PlaylistRepository`；加 add-to-playlist sheet 状态 |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt` | 标题旁 heart 按钮；overflow 加"加入歌单" |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt` | 注入 `PlaylistRepository`；暴露 `isCurrentFavorite` flow |
+| `core/src/main/java/com/hank/musicfree/core/model/Playlist.kt` | 加 `description / sortMode / createdAt / updatedAt / worksNum / isDefault / DEFAULT_FAVORITE_ID` |
+| `core/src/main/java/com/hank/musicfree/core/model/MusicItem.kt` | 加 `addedAt: Long = 0L` |
+| `data/src/main/java/com/hank/musicfree/data/db/entity/PlaylistEntity.kt` | 加 `description / sortMode` 列 |
+| `data/src/main/java/com/hank/musicfree/data/db/entity/PlaylistMusicCrossRef.kt` | 加 `addedAt` 列 |
+| `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt` | version `2 → 3` |
+| `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt` | 移除 `addMigrations(...)`；加 `.fallbackToDestructiveMigration()` + `.addCallback(SeedFavoriteCallback)`；提供 `PlaylistCoverStore` |
+| `data/src/main/java/com/hank/musicfree/data/db/dao/PlaylistDao.kt` | 加 `observePlaylist / isInPlaylist / observeIsInPlaylist / insertCrossRefIgnore / observeMusicWithAddedAt / setAllSortOrder` 等 |
+| `data/src/main/java/com/hank/musicfree/data/db/dao/MusicDao.kt` | 加 `upsert(MusicItemEntity)` 方法（若不存在） |
+| `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt` | 重写实现，加业务规则 |
+| `data/src/main/java/com/hank/musicfree/data/mapper/PlaylistMapper.kt` | 映射新字段；`MusicItem` 新 `addedAt` 字段 |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeViewModel.kt` | 注入 `PlaylistRepository`，暴露 playlists state；favorite 置顶排序 |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt` | 移除 `MINE_ROWS` 引用；wire `onCreateClick` |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModel.kt` | 加 `isFavorite: Boolean`；卡片渲染心形封面 |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeMockVisualFactory.kt` | 删除 `MINE_ROWS`，仅保留 `STARRED_ROWS` |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt` | 整页重做（header + overflow + row ⋮ + empty state） |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt` | 状态扩展 `playlist / musics / sortMode` |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDialogs.kt` | `RenamePlaylistDialog` → `EditPlaylistDialog`（封面 + 描述）；删 `AddToPlaylistDialog` |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt` | 行末加 ⋮ + `MusicItemMoreMenu` |
+| `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt` | 替换 Toast 占位为 `MusicItemMoreMenu` 调用 |
+| `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt` | 注入 `PlaylistRepository`；加 add-to-playlist sheet 状态 |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt` | 标题旁 heart 按钮；overflow 加"加入歌单" |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt` | 注入 `PlaylistRepository`；暴露 `isCurrentFavorite` flow |
 
 删除文件：
 
 | 路径 |
 |---|
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/db/migration/Migrations.kt` |
+| `data/src/main/java/com/hank/musicfree/data/db/migration/Migrations.kt` |
 | 旧 `AddToPlaylistDialog`（在 `PlaylistDialogs.kt` 内删除该 composable） |
 
 ---
@@ -73,14 +73,14 @@
 ### Task 1: SortMode enum
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/SortMode.kt`
-- Test: `core/src/test/java/com/zili/android/musicfreeandroid/core/model/SortModeTest.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/SortMode.kt`
+- Test: `core/src/test/java/com/hank/musicfree/core/model/SortModeTest.kt`
 
 - [ ] **Step 1.1: 写 SortModeTest**
 
 ```kotlin
-// core/src/test/java/com/zili/android/musicfreeandroid/core/model/SortModeTest.kt
-package com.zili.android.musicfreeandroid.core.model
+// core/src/test/java/com/hank/musicfree/core/model/SortModeTest.kt
+package com.hank.musicfree.core.model
 
 import org.junit.Test
 import org.junit.Assert.assertEquals
@@ -104,15 +104,15 @@ class SortModeTest {
 - [ ] **Step 1.2: Run — fails (类不存在)**
 
 ```bash
-./gradlew :core:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.core.model.SortModeTest"
+./gradlew :core:testDebugUnitTest --tests "com.hank.musicfree.core.model.SortModeTest"
 ```
 Expected: FAIL with `unresolved reference: SortMode`.
 
 - [ ] **Step 1.3: 实现 SortMode**
 
 ```kotlin
-// core/src/main/java/com/zili/android/musicfreeandroid/core/model/SortMode.kt
-package com.zili.android.musicfreeandroid.core.model
+// core/src/main/java/com/hank/musicfree/core/model/SortMode.kt
+package com.hank.musicfree.core.model
 
 enum class SortMode {
     Manual, Title, Artist, Album, Newest, Oldest;
@@ -124,15 +124,15 @@ enum class SortMode {
 - [ ] **Step 1.4: Run — pass**
 
 ```bash
-./gradlew :core:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.core.model.SortModeTest"
+./gradlew :core:testDebugUnitTest --tests "com.hank.musicfree.core.model.SortModeTest"
 ```
 Expected: PASS。
 
 - [ ] **Step 1.5: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/model/SortMode.kt \
-        core/src/test/java/com/zili/android/musicfreeandroid/core/model/SortModeTest.kt
+git add core/src/main/java/com/hank/musicfree/core/model/SortMode.kt \
+        core/src/test/java/com/hank/musicfree/core/model/SortModeTest.kt
 git commit -m "feat(core): add SortMode enum"
 ```
 
@@ -141,14 +141,14 @@ git commit -m "feat(core): add SortMode enum"
 ### Task 2: Playlist 域模型扩展
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/Playlist.kt`
-- Test: `core/src/test/java/com/zili/android/musicfreeandroid/core/model/PlaylistTest.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/model/Playlist.kt`
+- Test: `core/src/test/java/com/hank/musicfree/core/model/PlaylistTest.kt`
 
 - [ ] **Step 2.1: 写 PlaylistTest**
 
 ```kotlin
-// core/src/test/java/com/zili/android/musicfreeandroid/core/model/PlaylistTest.kt
-package com.zili.android.musicfreeandroid.core.model
+// core/src/test/java/com/hank/musicfree/core/model/PlaylistTest.kt
+package com.hank.musicfree.core.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -188,15 +188,15 @@ class PlaylistTest {
 - [ ] **Step 2.2: Run — fails**
 
 ```bash
-./gradlew :core:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.core.model.PlaylistTest"
+./gradlew :core:testDebugUnitTest --tests "com.hank.musicfree.core.model.PlaylistTest"
 ```
 Expected: FAIL（`description / sortMode / createdAt / updatedAt / worksNum / isDefault / DEFAULT_FAVORITE_ID / DEFAULT_FAVORITE_NAME` 未解析）。
 
 - [ ] **Step 2.3: 扩展 Playlist**
 
 ```kotlin
-// core/src/main/java/com/zili/android/musicfreeandroid/core/model/Playlist.kt
-package com.zili.android.musicfreeandroid.core.model
+// core/src/main/java/com/hank/musicfree/core/model/Playlist.kt
+package com.hank.musicfree.core.model
 
 data class Playlist(
     val id: String,
@@ -228,8 +228,8 @@ Expected: 都 PASS（默认值兼容旧 3 参数构造）。
 - [ ] **Step 2.5: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/model/Playlist.kt \
-        core/src/test/java/com/zili/android/musicfreeandroid/core/model/PlaylistTest.kt
+git add core/src/main/java/com/hank/musicfree/core/model/Playlist.kt \
+        core/src/test/java/com/hank/musicfree/core/model/PlaylistTest.kt
 git commit -m "feat(core): extend Playlist with description sortMode timestamps and isDefault"
 ```
 
@@ -238,12 +238,12 @@ git commit -m "feat(core): extend Playlist with description sortMode timestamps 
 ### Task 3: MusicItem.addedAt 字段
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/MusicItem.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/model/MusicItem.kt`
 
 - [ ] **Step 3.1: 添加 addedAt 字段（默认 0L 兼容现有调用）**
 
 ```kotlin
-// core/src/main/java/com/zili/android/musicfreeandroid/core/model/MusicItem.kt
+// core/src/main/java/com/hank/musicfree/core/model/MusicItem.kt
 data class MusicItem(
     val id: String,
     val platform: String,
@@ -269,7 +269,7 @@ Expected: 全 PASS（默认值兼容）。
 - [ ] **Step 3.3: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/model/MusicItem.kt
+git add core/src/main/java/com/hank/musicfree/core/model/MusicItem.kt
 git commit -m "feat(core): add MusicItem.addedAt for cross-ref-derived sort"
 ```
 
@@ -278,13 +278,13 @@ git commit -m "feat(core): add MusicItem.addedAt for cross-ref-derived sort"
 ### Task 4: PlaylistEntity 加列
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlaylistEntity.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/entity/PlaylistEntity.kt`
 
 - [ ] **Step 4.1: 加 description / sortMode 列**
 
 ```kotlin
-// data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlaylistEntity.kt
-package com.zili.android.musicfreeandroid.data.db.entity
+// data/src/main/java/com/hank/musicfree/data/db/entity/PlaylistEntity.kt
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -312,7 +312,7 @@ Expected: BUILD SUCCESSFUL。
 - [ ] **Step 4.3: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlaylistEntity.kt
+git add data/src/main/java/com/hank/musicfree/data/db/entity/PlaylistEntity.kt
 git commit -m "feat(data): add description and sortMode columns to PlaylistEntity"
 ```
 
@@ -321,13 +321,13 @@ git commit -m "feat(data): add description and sortMode columns to PlaylistEntit
 ### Task 5: PlaylistMusicCrossRef.addedAt 列
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlaylistMusicCrossRef.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/entity/PlaylistMusicCrossRef.kt`
 
 - [ ] **Step 5.1: 加 addedAt 列**
 
 ```kotlin
-// data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlaylistMusicCrossRef.kt
-package com.zili.android.musicfreeandroid.data.db.entity
+// data/src/main/java/com/hank/musicfree/data/db/entity/PlaylistMusicCrossRef.kt
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -369,7 +369,7 @@ data class PlaylistMusicCrossRef(
 
 ```bash
 ./gradlew :data:compileDebugKotlin
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlaylistMusicCrossRef.kt
+git add data/src/main/java/com/hank/musicfree/data/db/entity/PlaylistMusicCrossRef.kt
 git commit -m "feat(data): add addedAt column to PlaylistMusicCrossRef"
 ```
 
@@ -378,7 +378,7 @@ git commit -m "feat(data): add addedAt column to PlaylistMusicCrossRef"
 ### Task 6: AppDatabase version 2 → 3
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
 
 - [ ] **Step 6.1: 升 version**
 
@@ -415,7 +415,7 @@ Expected: BUILD SUCCESSFUL。
 - [ ] **Step 6.3: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt
+git add data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt
 git commit -m "feat(data): bump AppDatabase to version 3"
 ```
 
@@ -424,15 +424,15 @@ git commit -m "feat(data): bump AppDatabase to version 3"
 ### Task 7: SeedFavoriteCallback + DataModule destructive fallback
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/SeedFavoriteCallback.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`
-- Delete: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/migration/Migrations.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/SeedFavoriteCallback.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`
+- Delete: `data/src/main/java/com/hank/musicfree/data/db/migration/Migrations.kt`
 
 - [ ] **Step 7.1: 写 SeedFavoriteCallback**
 
 ```kotlin
-// data/src/main/java/com/zili/android/musicfreeandroid/data/db/SeedFavoriteCallback.kt
-package com.zili.android.musicfreeandroid.data.db
+// data/src/main/java/com/hank/musicfree/data/db/SeedFavoriteCallback.kt
+package com.hank.musicfree.data.db
 
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -459,8 +459,8 @@ object SeedFavoriteCallback : RoomDatabase.Callback() {
 - [ ] **Step 7.2: 改 DataModule（移除旧 migration，加 destructive fallback + callback）**
 
 ```kotlin
-// data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt
-package com.zili.android.musicfreeandroid.data.di
+// data/src/main/java/com/hank/musicfree/data/di/DataModule.kt
+package com.hank.musicfree.data.di
 
 import android.content.ContentResolver
 import android.content.Context
@@ -468,13 +468,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
-import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
-import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
-import com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDao
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.SeedFavoriteCallback
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.MusicDao
+import com.hank.musicfree.data.db.dao.PlaylistDao
+import com.hank.musicfree.data.db.dao.PlayQueueDao
+import com.hank.musicfree.data.db.dao.StarredSheetDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -529,8 +529,8 @@ object DataModule {
 - [ ] **Step 7.3: 删 Migrations.kt（包含子目录）**
 
 ```bash
-rm data/src/main/java/com/zili/android/musicfreeandroid/data/db/migration/Migrations.kt
-rmdir data/src/main/java/com/zili/android/musicfreeandroid/data/db/migration 2>/dev/null || true
+rm data/src/main/java/com/hank/musicfree/data/db/migration/Migrations.kt
+rmdir data/src/main/java/com/hank/musicfree/data/db/migration 2>/dev/null || true
 ```
 
 - [ ] **Step 7.4: grep 全仓库无 `MIGRATION_1_2` 残留**
@@ -550,9 +550,9 @@ Expected: BUILD SUCCESSFUL。
 - [ ] **Step 7.6: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/SeedFavoriteCallback.kt \
-        data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt
-git rm data/src/main/java/com/zili/android/musicfreeandroid/data/db/migration/Migrations.kt
+git add data/src/main/java/com/hank/musicfree/data/db/SeedFavoriteCallback.kt \
+        data/src/main/java/com/hank/musicfree/data/di/DataModule.kt
+git rm data/src/main/java/com/hank/musicfree/data/db/migration/Migrations.kt
 git commit -m "feat(data): seed favorite playlist on DB create; drop legacy migration"
 ```
 
@@ -563,7 +563,7 @@ git commit -m "feat(data): seed favorite playlist on DB create; drop legacy migr
 ### Task 8: PlaylistDao 新方法
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PlaylistDao.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/dao/PlaylistDao.kt`
 
 - [ ] **Step 8.1: 加方法（保留现有方法）**
 
@@ -653,7 +653,7 @@ Expected: BUILD SUCCESSFUL（如果 SQL 错会在此报错）。
 - [ ] **Step 8.3: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PlaylistDao.kt
+git add data/src/main/java/com/hank/musicfree/data/db/dao/PlaylistDao.kt
 git commit -m "feat(data): extend PlaylistDao with favorite/sort/upsert query helpers"
 ```
 
@@ -662,12 +662,12 @@ git commit -m "feat(data): extend PlaylistDao with favorite/sort/upsert query he
 ### Task 9: MusicDao.upsert（如不存在）
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/MusicDao.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/dao/MusicDao.kt`
 
 - [ ] **Step 9.1: 检查现状**
 
 ```bash
-grep -n "upsert\|@Upsert\|@Insert" data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/MusicDao.kt
+grep -n "upsert\|@Upsert\|@Insert" data/src/main/java/com/hank/musicfree/data/db/dao/MusicDao.kt
 ```
 
 如果已有 `upsert(MusicItemEntity)` 或 `@Upsert` 方法，跳过本任务并直接 commit step 9.4。
@@ -690,7 +690,7 @@ suspend fun upsert(item: MusicItemEntity)
 - [ ] **Step 9.4: Commit（仅当 9.2 实际新增了方法）**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/MusicDao.kt
+git add data/src/main/java/com/hank/musicfree/data/db/dao/MusicDao.kt
 git commit -m "feat(data): add MusicDao.upsert for playlist add path"
 ```
 
@@ -699,18 +699,18 @@ git commit -m "feat(data): add MusicDao.upsert for playlist add path"
 ### Task 10: PlaylistMapper 同步新字段
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapper.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapper.kt`（如存在；用于 `MusicItem.addedAt` 注入）
+- Modify: `data/src/main/java/com/hank/musicfree/data/mapper/PlaylistMapper.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/mapper/MusicItemMapper.kt`（如存在；用于 `MusicItem.addedAt` 注入）
 
 - [ ] **Step 10.1: 改 PlaylistMapper**
 
 ```kotlin
-// data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapper.kt
-package com.zili.android.musicfreeandroid.data.mapper
+// data/src/main/java/com/hank/musicfree/data/mapper/PlaylistMapper.kt
+package com.hank.musicfree.data.mapper
 
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.model.SortMode
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.model.SortMode
+import com.hank.musicfree.data.db.entity.PlaylistEntity
 
 fun Playlist.toEntity(createdAt: Long, updatedAt: Long): PlaylistEntity = PlaylistEntity(
     id = id,
@@ -760,9 +760,9 @@ fun MusicItemEntity.toModel(addedAt: Long = 0L, /* 其他依赖如 converters */
 - [ ] **Step 10.5: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapper.kt
+git add data/src/main/java/com/hank/musicfree/data/mapper/PlaylistMapper.kt
 # 若改了 MusicItemMapper：
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapper.kt
+git add data/src/main/java/com/hank/musicfree/data/mapper/MusicItemMapper.kt
 git commit -m "feat(data): map new Playlist fields and MusicItem.addedAt"
 ```
 
@@ -773,15 +773,15 @@ git commit -m "feat(data): map new Playlist fields and MusicItem.addedAt"
 ### Task 11: PlaylistCoverStore
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStore.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`（加 `@Provides`）
-- Test: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStoreTest.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/cover/PlaylistCoverStore.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`（加 `@Provides`）
+- Test: `data/src/androidTest/java/com/hank/musicfree/data/cover/PlaylistCoverStoreTest.kt`
 
 - [ ] **Step 11.1: 写 PlaylistCoverStore**
 
 ```kotlin
-// data/src/main/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStore.kt
-package com.zili.android.musicfreeandroid.data.cover
+// data/src/main/java/com/hank/musicfree/data/cover/PlaylistCoverStore.kt
+package com.hank.musicfree.data.cover
 
 import android.content.Context
 import android.net.Uri
@@ -843,8 +843,8 @@ class PlaylistCoverStore @Inject constructor(
 - [ ] **Step 11.3: 写 androidTest**
 
 ```kotlin
-// data/src/androidTest/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStoreTest.kt
-package com.zili.android.musicfreeandroid.data.cover
+// data/src/androidTest/java/com/hank/musicfree/data/cover/PlaylistCoverStoreTest.kt
+package com.hank.musicfree.data.cover
 
 import androidx.core.net.toUri
 import androidx.test.core.app.ApplicationProvider
@@ -893,15 +893,15 @@ class PlaylistCoverStoreTest {
 - [ ] **Step 11.4: Run instrumented test（需设备/模拟器）**
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStoreTest"
+./gradlew :data:connectedDebugAndroidTest --tests "com.hank.musicfree.data.cover.PlaylistCoverStoreTest"
 ```
 Expected: 3 PASS。
 
 - [ ] **Step 11.5: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStore.kt \
-        data/src/androidTest/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStoreTest.kt
+git add data/src/main/java/com/hank/musicfree/data/cover/PlaylistCoverStore.kt \
+        data/src/androidTest/java/com/hank/musicfree/data/cover/PlaylistCoverStoreTest.kt
 git commit -m "feat(data): add PlaylistCoverStore for cover image IO"
 ```
 
@@ -910,20 +910,20 @@ git commit -m "feat(data): add PlaylistCoverStore for cover image IO"
 ### Task 12: PlaylistRepository 重写 — 注入 + favorite 守卫 + sort + cover 操作
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryGuardsTest.kt`（新建；使用 mock dao）
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/repository/PlaylistRepositoryGuardsTest.kt`（新建；使用 mock dao）
 
 - [ ] **Step 12.1: 写守卫单测（mockk）**
 
 ```kotlin
-// data/src/test/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryGuardsTest.kt
-package com.zili.android.musicfreeandroid.data.repository
+// data/src/test/java/com/hank/musicfree/data/repository/PlaylistRepositoryGuardsTest.kt
+package com.hank.musicfree.data.repository
 
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStore
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
-import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.data.cover.PlaylistCoverStore
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.MusicDao
+import com.hank.musicfree.data.db.dao.PlaylistDao
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -956,7 +956,7 @@ class PlaylistRepositoryGuardsTest {
 
     @Test fun updatePlaylistInfo_allowsDescriptionEditOnFavorite() = runTest {
         coEvery { playlistDao.getPlaylistById("favorite") } returns
-            com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity(
+            com.hank.musicfree.data.db.entity.PlaylistEntity(
                 id = "favorite", name = "我喜欢", coverUri = null,
                 description = null, sortMode = "Manual", createdAt = 0L, updatedAt = 0L,
             )
@@ -974,27 +974,27 @@ class PlaylistRepositoryGuardsTest {
 - [ ] **Step 12.2: Run — fails（方法签名不存在）**
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryGuardsTest"
+./gradlew :data:testDebugUnitTest --tests "com.hank.musicfree.data.repository.PlaylistRepositoryGuardsTest"
 ```
 Expected: 编译错或 NSME。
 
 - [ ] **Step 12.3: 重写 PlaylistRepository**
 
 ```kotlin
-// data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt
-package com.zili.android.musicfreeandroid.data.repository
+// data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt
+package com.hank.musicfree.data.repository
 
 import android.net.Uri
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.model.SortMode
-import com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStore
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
-import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
-import com.zili.android.musicfreeandroid.data.mapper.toEntity
-import com.zili.android.musicfreeandroid.data.mapper.toModel
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.model.SortMode
+import com.hank.musicfree.data.cover.PlaylistCoverStore
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.MusicDao
+import com.hank.musicfree.data.db.dao.PlaylistDao
+import com.hank.musicfree.data.db.entity.PlaylistMusicCrossRef
+import com.hank.musicfree.data.mapper.toEntity
+import com.hank.musicfree.data.mapper.toModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -1178,7 +1178,7 @@ viewModelScope.launch {
 - [ ] **Step 12.4: Run — pass**
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryGuardsTest"
+./gradlew :data:testDebugUnitTest --tests "com.hank.musicfree.data.repository.PlaylistRepositoryGuardsTest"
 ```
 Expected: 3 PASS。
 
@@ -1192,8 +1192,8 @@ Expected: 现有测试也 PASS。如果现有 `PlaylistRepositoryTest.kt`（andr
 - [ ] **Step 12.6: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt \
-        data/src/test/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryGuardsTest.kt
+git add data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt \
+        data/src/test/java/com/hank/musicfree/data/repository/PlaylistRepositoryGuardsTest.kt
 git commit -m "feat(data): rewrite PlaylistRepository with favorite/sort/cover business rules"
 ```
 
@@ -1202,19 +1202,19 @@ git commit -m "feat(data): rewrite PlaylistRepository with favorite/sort/cover b
 ### Task 13: SortMode 比较器 + applySort
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/sort/SortMode.kt`（包内 sortMode comparator）
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/sort/SortModeApplyTest.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/sort/SortMode.kt`（包内 sortMode comparator）
+- Test: `data/src/test/java/com/hank/musicfree/data/sort/SortModeApplyTest.kt`
 
 > 命名注意：和 `:core/SortMode` 区分；该文件是 :data 内的扩展工具。
 
 - [ ] **Step 13.1: 写 SortModeApplyTest**
 
 ```kotlin
-// data/src/test/java/com/zili/android/musicfreeandroid/data/sort/SortModeApplyTest.kt
-package com.zili.android.musicfreeandroid.data.sort
+// data/src/test/java/com/hank/musicfree/data/sort/SortModeApplyTest.kt
+package com.hank.musicfree.data.sort
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.SortMode
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.SortMode
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -1268,18 +1268,18 @@ class SortModeApplyTest {
 - [ ] **Step 13.2: Run — fails**
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.data.sort.SortModeApplyTest"
+./gradlew :data:testDebugUnitTest --tests "com.hank.musicfree.data.sort.SortModeApplyTest"
 ```
 Expected: FAIL（`applySort` 未定义）。
 
 - [ ] **Step 13.3: 实现 applySort**
 
 ```kotlin
-// data/src/main/java/com/zili/android/musicfreeandroid/data/sort/SortMode.kt
-package com.zili.android.musicfreeandroid.data.sort
+// data/src/main/java/com/hank/musicfree/data/sort/SortMode.kt
+package com.hank.musicfree.data.sort
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.SortMode
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.SortMode
 import java.text.Collator
 import java.util.Locale
 
@@ -1298,7 +1298,7 @@ fun List<MusicItem>.applySort(mode: SortMode): List<MusicItem> = when (mode) {
 - [ ] **Step 13.4: Run — pass**
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.data.sort.SortModeApplyTest"
+./gradlew :data:testDebugUnitTest --tests "com.hank.musicfree.data.sort.SortModeApplyTest"
 ```
 Expected: 6 PASS。
 
@@ -1306,7 +1306,7 @@ Expected: 6 PASS。
 
 - [ ] **Step 13.5: 把 PlaylistRepository 的 `applySort` 引用切到这个工具**
 
-`PlaylistRepository` 中已 import `com.zili.android.musicfreeandroid.data.sort.applySort`（Task 12 写的代码已使用 `applySort`，确认 import 正确）。
+`PlaylistRepository` 中已 import `com.hank.musicfree.data.sort.applySort`（Task 12 写的代码已使用 `applySort`，确认 import 正确）。
 
 ```bash
 ./gradlew :data:compileDebugKotlin
@@ -1315,8 +1315,8 @@ Expected: 6 PASS。
 - [ ] **Step 13.6: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/sort/SortMode.kt \
-        data/src/test/java/com/zili/android/musicfreeandroid/data/sort/SortModeApplyTest.kt
+git add data/src/main/java/com/hank/musicfree/data/sort/SortMode.kt \
+        data/src/test/java/com/hank/musicfree/data/sort/SortModeApplyTest.kt
 git commit -m "feat(data): add SortMode applySort with Chinese collator"
 ```
 
@@ -1325,12 +1325,12 @@ git commit -m "feat(data): add SortMode applySort with Chinese collator"
 ### Task 14: PlaylistRepository 集成测试
 
 **Files:**
-- Modify or new: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`（已有同名文件，按需扩展）
+- Modify or new: `data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt`（已有同名文件，按需扩展）
 
 - [ ] **Step 14.1: 检查现有 androidTest**
 
 ```bash
-cat data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt
+cat data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt
 ```
 
 如果现有测试只覆盖旧接口，扩展加新断言；如果完全过期，重写。
@@ -1338,19 +1338,19 @@ cat data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/
 - [ ] **Step 14.2: 写完整端到端测试**
 
 ```kotlin
-// data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt
-package com.zili.android.musicfreeandroid.data.repository
+// data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt
+package com.hank.musicfree.data.repository
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.model.SortMode
-import com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStore
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.model.SortMode
+import com.hank.musicfree.data.cover.PlaylistCoverStore
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.SeedFavoriteCallback
+import com.hank.musicfree.data.db.converter.Converters
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -1443,14 +1443,14 @@ class PlaylistRepositoryTest {
 - [ ] **Step 14.3: Run instrumented**
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest"
+./gradlew :data:connectedDebugAndroidTest --tests "com.hank.musicfree.data.repository.PlaylistRepositoryTest"
 ```
 Expected: 全 PASS。
 
 - [ ] **Step 14.4: Commit**
 
 ```bash
-git add data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt
+git add data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt
 git commit -m "test(data): cover repository business rules with in-memory DB integration test"
 ```
 
@@ -1541,16 +1541,16 @@ git commit -m "feat(resources): import RN icons for playlist UI surfaces"
 ### Task 16: 共享 Composable — MusicItemMoreMenu
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicItemMoreMenu.kt`
-- Test: `core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/MusicItemMoreMenuTest.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/ui/MusicItemMoreMenu.kt`
+- Test: `core/src/androidTest/java/com/hank/musicfree/core/ui/MusicItemMoreMenuTest.kt`
 
 > 现有 `:core` 模块未必已配 Compose UI test 依赖；如缺，本 task 可暂用 `:feature:home` 的 androidTest 层托管。下面假设 `:core` 已能跑 ComposeTestRule（如 BOM 已含 ui-test-junit4）；如果不能，把测试文件挪到 `:feature:home/src/androidTest/...`。
 
 - [ ] **Step 16.1: 写 MusicItemMoreMenu**
 
 ```kotlin
-// core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicItemMoreMenu.kt
-package com.zili.android.musicfreeandroid.core.ui
+// core/src/main/java/com/hank/musicfree/core/ui/MusicItemMoreMenu.kt
+package com.hank.musicfree.core.ui
 
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -1638,8 +1638,8 @@ fun MusicItemMoreMenu(
 - [ ] **Step 16.2: 写 ComposeTestRule 测试**
 
 ```kotlin
-// core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/MusicItemMoreMenuTest.kt
-package com.zili.android.musicfreeandroid.core.ui
+// core/src/androidTest/java/com/hank/musicfree/core/ui/MusicItemMoreMenuTest.kt
+package com.hank.musicfree.core.ui
 
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.Color
@@ -1702,15 +1702,15 @@ class MusicItemMoreMenuTest {
 - [ ] **Step 16.3: Run**
 
 ```bash
-./gradlew :core:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.core.ui.MusicItemMoreMenuTest"
+./gradlew :core:connectedDebugAndroidTest --tests "com.hank.musicfree.core.ui.MusicItemMoreMenuTest"
 ```
 Expected: 3 PASS。
 
 - [ ] **Step 16.4: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicItemMoreMenu.kt \
-        core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/MusicItemMoreMenuTest.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/MusicItemMoreMenu.kt \
+        core/src/androidTest/java/com/hank/musicfree/core/ui/MusicItemMoreMenuTest.kt
 git commit -m "feat(core/ui): add shared MusicItemMoreMenu composable"
 ```
 
@@ -1719,14 +1719,14 @@ git commit -m "feat(core/ui): add shared MusicItemMoreMenu composable"
 ### Task 17: 共享 Composable — AddToPlaylistBottomSheetContent
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistBottomSheetContent.kt`
-- Test: `core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistBottomSheetContentTest.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistBottomSheetContent.kt`
+- Test: `core/src/androidTest/java/com/hank/musicfree/core/ui/AddToPlaylistBottomSheetContentTest.kt`
 
 - [ ] **Step 17.1: 写组件**
 
 ```kotlin
-// core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistBottomSheetContent.kt
-package com.zili.android.musicfreeandroid.core.ui
+// core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistBottomSheetContent.kt
+package com.hank.musicfree.core.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -1746,7 +1746,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.hank.musicfree.core.model.Playlist
 
 @Composable
 fun AddToPlaylistBottomSheetContent(
@@ -1799,8 +1799,8 @@ fun AddToPlaylistBottomSheetContent(
 - [ ] **Step 17.2: 写 ComposeTest**
 
 ```kotlin
-// core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistBottomSheetContentTest.kt
-package com.zili.android.musicfreeandroid.core.ui
+// core/src/androidTest/java/com/hank/musicfree/core/ui/AddToPlaylistBottomSheetContentTest.kt
+package com.hank.musicfree.core.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
@@ -1809,7 +1809,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.hank.musicfree.core.model.Playlist
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -1875,9 +1875,9 @@ class AddToPlaylistBottomSheetContentTest {
 - [ ] **Step 17.3: Run + Commit**
 
 ```bash
-./gradlew :core:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContentTest"
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistBottomSheetContent.kt \
-        core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistBottomSheetContentTest.kt
+./gradlew :core:connectedDebugAndroidTest --tests "com.hank.musicfree.core.ui.AddToPlaylistBottomSheetContentTest"
+git add core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistBottomSheetContent.kt \
+        core/src/androidTest/java/com/hank/musicfree/core/ui/AddToPlaylistBottomSheetContentTest.kt
 git commit -m "feat(core/ui): add AddToPlaylistBottomSheetContent composable"
 ```
 
@@ -1888,15 +1888,15 @@ git commit -m "feat(core/ui): add AddToPlaylistBottomSheetContent composable"
 ### Task 18: HomeViewModel 接 PlaylistRepository
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeViewModel.kt`
 
 - [ ] **Step 18.1: 注入 PlaylistRepository + 暴露 playlists state**
 
 读现有 `HomeViewModel.kt` 找到当前状态结构（应是 StateFlow<HomeUiState>）。在 ViewModel 中加：
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.data.repository.PlaylistRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -1929,7 +1929,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun addToPlaylist(playlistId: String, item: com.zili.android.musicfreeandroid.core.model.MusicItem) {
+    fun addToPlaylist(playlistId: String, item: com.hank.musicfree.core.model.MusicItem) {
         viewModelScope.launch { playlistRepository.addMusicToPlaylist(playlistId, item) }
     }
 }
@@ -1946,7 +1946,7 @@ Expected: BUILD + 测试 PASS。
 - [ ] **Step 18.3: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeViewModel.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/HomeViewModel.kt
 git commit -m "feat(home): expose live playlists from repository on HomeViewModel"
 ```
 
@@ -1955,8 +1955,8 @@ git commit -m "feat(home): expose live playlists from repository on HomeViewMode
 ### Task 19: HomeSheetUiModel.isFavorite + 心形封面渲染
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetCard.kt`（或卡片渲染所在文件 — 实际文件名见现有 home 模块结构）
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetCard.kt`（或卡片渲染所在文件 — 实际文件名见现有 home 模块结构）
 
 - [ ] **Step 19.1: 加 isFavorite 字段**
 
@@ -1997,7 +1997,7 @@ mv app/src/main/res/drawable/ic_playlist_favorite_cover.xml \
    core/src/main/res/drawable/ic_playlist_favorite_cover.xml
 ```
 
-并把 import 改为 `import com.zili.android.musicfreeandroid.core.R`。
+并把 import 改为 `import com.hank.musicfree.core.R`。
 
 - [ ] **Step 19.3: 同步映射逻辑**
 
@@ -2007,8 +2007,8 @@ mv app/src/main/res/drawable/ic_playlist_favorite_cover.xml \
 
 ```bash
 ./gradlew :feature:home:compileDebugKotlin
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModel.kt \
-        feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/*.kt \
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModel.kt \
+        feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/*.kt \
         core/src/main/res/drawable/ic_playlist_favorite_cover.xml
 git rm -f app/src/main/res/drawable/ic_playlist_favorite_cover.xml 2>/dev/null || true
 git commit -m "feat(home): render favorite playlist heart cover"
@@ -2019,15 +2019,15 @@ git commit -m "feat(home): render favorite playlist heart cover"
 ### Task 20: HomeScreen 接 ViewModel + 删除 MINE_ROWS
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactory.kt`（删除 MINE_ROWS）
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeMockVisualFactory.kt`（删除 MINE_ROWS）
 - Test: `feature/home/src/androidTest/.../HomeFavoritePinnedTest.kt`（新建）
 
 - [ ] **Step 20.1: 写 UI 测试 — 我喜欢必排第一**
 
 ```kotlin
-// feature/home/src/androidTest/java/com/zili/android/musicfreeandroid/feature/home/HomeFavoritePinnedTest.kt
-package com.zili.android.musicfreeandroid.feature.home
+// feature/home/src/androidTest/java/com/hank/musicfree/feature/home/HomeFavoritePinnedTest.kt
+package com.hank.musicfree.feature.home
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -2071,7 +2071,7 @@ val mineRows = playlists.map { it.toHomeSheetUiModel() }
 加扩展函数：
 
 ```kotlin
-private fun com.zili.android.musicfreeandroid.core.model.Playlist.toHomeSheetUiModel() = HomeSheetUiModel(
+private fun com.hank.musicfree.core.model.Playlist.toHomeSheetUiModel() = HomeSheetUiModel(
     id = id,
     title = name,
     coverUri = coverUri,
@@ -2124,9 +2124,9 @@ Expected: 无输出。
 ```bash
 ./gradlew :feature:home:assembleDebug
 ./gradlew :app:assembleDebug
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt \
-        feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactory.kt \
-        feature/home/src/androidTest/java/com/zili/android/musicfreeandroid/feature/home/HomeFavoritePinnedTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt \
+        feature/home/src/main/java/com/hank/musicfree/feature/home/HomeMockVisualFactory.kt \
+        feature/home/src/androidTest/java/com/hank/musicfree/feature/home/HomeFavoritePinnedTest.kt
 git commit -m "feat(home): replace mock playlists with live repository data, pin favorite"
 ```
 
@@ -2137,22 +2137,22 @@ git commit -m "feat(home): replace mock playlists with live repository data, pin
 ### Task 21: PlaylistDetailViewModel 状态扩展
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt`
 
 - [ ] **Step 21.1: 重写 ViewModel**
 
 ```kotlin
-// feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt
-package com.zili.android.musicfreeandroid.feature.home.playlist
+// feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt
+package com.hank.musicfree.feature.home.playlist
 
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.model.SortMode
-import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.model.SortMode
+import com.hank.musicfree.data.repository.PlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -2224,7 +2224,7 @@ class PlaylistDetailViewModel @Inject constructor(
 
 ```bash
 ./gradlew :feature:home:compileDebugKotlin
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt
 git commit -m "feat(home/playlist): expand PlaylistDetailViewModel with sort/info/delete actions"
 ```
 
@@ -2233,13 +2233,13 @@ git commit -m "feat(home/playlist): expand PlaylistDetailViewModel with sort/inf
 ### Task 22: PlaylistDetailHeader composable
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailHeader.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailHeader.kt`
 
 - [ ] **Step 22.1: 写 header**
 
 ```kotlin
-// feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailHeader.kt
-package com.zili.android.musicfreeandroid.feature.home.playlist
+// feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailHeader.kt
+package com.hank.musicfree.feature.home.playlist
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -2261,9 +2261,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.ui.CoverImage
-import com.zili.android.musicfreeandroid.feature.home.R
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.ui.CoverImage
+import com.hank.musicfree.feature.home.R
 
 @Composable
 fun PlaylistDetailHeader(
@@ -2279,7 +2279,7 @@ fun PlaylistDetailHeader(
     ) {
         if (playlist.isDefault && playlist.coverUri == null) {
             Icon(
-                painter = painterResource(id = com.zili.android.musicfreeandroid.core.R.drawable.ic_playlist_favorite_cover),
+                painter = painterResource(id = com.hank.musicfree.core.R.drawable.ic_playlist_favorite_cover),
                 contentDescription = null,
                 modifier = Modifier.size(160.dp),
             )
@@ -2341,7 +2341,7 @@ fun PlaylistDetailHeader(
 
 ```bash
 ./gradlew :feature:home:compileDebugKotlin
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailHeader.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailHeader.kt
 git commit -m "feat(home/playlist): add detail-page header composable"
 ```
 
@@ -2350,13 +2350,13 @@ git commit -m "feat(home/playlist): add detail-page header composable"
 ### Task 23: SortModeDialog
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/SortModeDialog.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/SortModeDialog.kt`
 
 - [ ] **Step 23.1: 写 dialog**
 
 ```kotlin
-// feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/SortModeDialog.kt
-package com.zili.android.musicfreeandroid.feature.home.playlist
+// feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/SortModeDialog.kt
+package com.hank.musicfree.feature.home.playlist
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -2371,7 +2371,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.model.SortMode
+import com.hank.musicfree.core.model.SortMode
 
 private val SortModeLabels = mapOf(
     SortMode.Manual to "手动排序",
@@ -2416,7 +2416,7 @@ fun SortModeDialog(
 
 ```bash
 ./gradlew :feature:home:compileDebugKotlin
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/SortModeDialog.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/SortModeDialog.kt
 git commit -m "feat(home/playlist): add SortModeDialog with 6 RN modes"
 ```
 
@@ -2425,7 +2425,7 @@ git commit -m "feat(home/playlist): add SortModeDialog with 6 RN modes"
 ### Task 24: PlaylistDialogs.kt 升级 EditPlaylistDialog（封面 + 描述）
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDialogs.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDialogs.kt`
 
 - [ ] **Step 24.1: 替换 RenamePlaylistDialog 为 EditPlaylistDialog**
 
@@ -2464,7 +2464,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.zili.android.musicfreeandroid.core.model.Playlist
+import com.hank.musicfree.core.model.Playlist
 
 @Composable
 fun EditPlaylistDialog(
@@ -2569,13 +2569,13 @@ Expected: 编译可能 fail（旧调用站尚未切换），grep 会列出剩余
 ### Task 25: PlaylistDetailScreen 整页重做
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
 
 - [ ] **Step 25.1: 完整重写（保留 route 入口签名 `PlaylistDetailScreen(onBack, onNavigateToPlayer, onNavigateToSearchMusicList, ...)`，改内部实现）**
 
 ```kotlin
-// feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt
-package com.zili.android.musicfreeandroid.feature.home.playlist
+// feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt
+package com.hank.musicfree.feature.home.playlist
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -2605,10 +2605,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.model.SortMode
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.model.SortMode
+import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 
 @Composable
 fun PlaylistDetailScreen(
@@ -2676,9 +2676,9 @@ fun PlaylistDetailScreen(
                             onClickRow = onNavigateToPlayer,
                             onAction = { action ->
                                 when (action) {
-                                    com.zili.android.musicfreeandroid.core.ui.MusicItemAction.ToggleFavorite ->
+                                    com.hank.musicfree.core.ui.MusicItemAction.ToggleFavorite ->
                                         viewModel.toggleFavorite(item)
-                                    com.zili.android.musicfreeandroid.core.ui.MusicItemAction.RemoveFromPlaylist ->
+                                    com.hank.musicfree.core.ui.MusicItemAction.RemoveFromPlaylist ->
                                         viewModel.removeFromPlaylist(item)
                                     // PlayNext / AddToPlaylist 由上层路由处理 — 见 Task 27
                                     else -> {}
@@ -2742,7 +2742,7 @@ private fun EmptyState(onSearchAdd: () -> Unit) {
 - [ ] **Step 25.2: 检查 MusicFreeScreenScaffold 签名**
 
 ```bash
-grep -A 10 "fun MusicFreeScreenScaffold" core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicFreeScreenScaffold.kt
+grep -A 10 "fun MusicFreeScreenScaffold" core/src/main/java/com/hank/musicfree/core/ui/MusicFreeScreenScaffold.kt
 ```
 
 如果当前 scaffold 不支持 `actions: @Composable RowScope.() -> Unit` 参数，扩展它：
@@ -2769,7 +2769,7 @@ fun MusicFreeScreenScaffold(
 private fun PlaylistRow(
     item: MusicItem,
     onClickRow: () -> Unit,
-    onAction: (com.zili.android.musicfreeandroid.core.ui.MusicItemAction) -> Unit,
+    onAction: (com.hank.musicfree.core.ui.MusicItemAction) -> Unit,
 ) {
     androidx.compose.foundation.layout.Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -2777,7 +2777,7 @@ private fun PlaylistRow(
             .fillMaxSize() // 行只占自己宽
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        com.zili.android.musicfreeandroid.core.ui.CoverImage(
+        com.hank.musicfree.core.ui.CoverImage(
             uri = item.artwork,
             modifier = Modifier.size(40.dp),
         )
@@ -2786,17 +2786,17 @@ private fun PlaylistRow(
             Text(item.title, style = MaterialTheme.typography.bodyLarge)
             Text(item.artist, style = MaterialTheme.typography.bodySmall)
         }
-        com.zili.android.musicfreeandroid.core.ui.MusicItemMoreMenu(
+        com.hank.musicfree.core.ui.MusicItemMoreMenu(
             actions = setOf(
-                com.zili.android.musicfreeandroid.core.ui.MusicItemAction.PlayNext,
-                com.zili.android.musicfreeandroid.core.ui.MusicItemAction.ToggleFavorite,
-                com.zili.android.musicfreeandroid.core.ui.MusicItemAction.AddToPlaylist,
-                com.zili.android.musicfreeandroid.core.ui.MusicItemAction.RemoveFromPlaylist,
+                com.hank.musicfree.core.ui.MusicItemAction.PlayNext,
+                com.hank.musicfree.core.ui.MusicItemAction.ToggleFavorite,
+                com.hank.musicfree.core.ui.MusicItemAction.AddToPlaylist,
+                com.hank.musicfree.core.ui.MusicItemAction.RemoveFromPlaylist,
             ),
             isFavorite = false, // TODO Task 27 接入真实 isFavorite flow
             onAction = onAction,
             triggerIcon = androidx.compose.ui.res.painterResource(
-                id = com.zili.android.musicfreeandroid.feature.home.R.drawable.ic_more_vert
+                id = com.hank.musicfree.feature.home.R.drawable.ic_more_vert
             ), // 若 :feature:home 没 ic_more_vert，从 :core 取
         )
     }
@@ -2814,9 +2814,9 @@ grep -rn "RenamePlaylistDialog\|AddToPlaylistDialog" --include="*.kt" .
 Expected: 0 输出 + BUILD SUCCESSFUL。
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDialogs.kt \
-        feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt \
-        core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicFreeScreenScaffold.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDialogs.kt \
+        feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt \
+        core/src/main/java/com/hank/musicfree/core/ui/MusicFreeScreenScaffold.kt
 git commit -m "feat(home/playlist): redesign detail screen with header/sort/edit and ⋮ row menu"
 ```
 
@@ -2827,15 +2827,15 @@ git commit -m "feat(home/playlist): redesign detail screen with header/sort/edit
 ### Task 26: 各 surface 共用的 add-to-playlist controller pattern
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistSheetState.kt`
 
 各 surface 的 ViewModel 都会持有一个 sheet state；统一抽 state 类型 + 工具：
 
 ```kotlin
-// core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt
-package com.zili.android.musicfreeandroid.core.ui
+// core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistSheetState.kt
+package com.hank.musicfree.core.ui
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 data class AddToPlaylistSheetState(
     val visible: Boolean = false,
@@ -2847,7 +2847,7 @@ data class AddToPlaylistSheetState(
 
 ```bash
 ./gradlew :core:compileDebugKotlin
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistSheetState.kt
 git commit -m "feat(core/ui): add AddToPlaylistSheetState data class"
 ```
 
@@ -2856,14 +2856,14 @@ git commit -m "feat(core/ui): add AddToPlaylistSheetState data class"
 ### Task 27: PlaylistDetailScreen 行 isFavorite + AddToPlaylist sheet 接入
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt`
 
 - [ ] **Step 27.1: VM 暴露 isFavorite per-item Flow + sheet state**
 
 ```kotlin
 // PlaylistDetailViewModel.kt 加：
-import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
+import com.hank.musicfree.core.ui.AddToPlaylistSheetState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -2895,13 +2895,13 @@ val allPlaylists by viewModel.allPlaylists.collectAsState()
 
 if (sheetState.visible) {
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = { viewModel.hideAddToPlaylistSheet() }) {
-        com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent(
+        com.hank.musicfree.core.ui.AddToPlaylistBottomSheetContent(
             playlists = allPlaylists,
             onSelect = { viewModel.addPendingToPlaylist(it.id) },
             onCreateNew = { /* 简化处理：调起 CreatePlaylistDialog 也可，这里先 trigger create + auto-add */ },
             folderPlusIcon = androidx.compose.ui.res.painterResource(R.drawable.ic_folder_plus),
             favoriteCoverIcon = androidx.compose.ui.res.painterResource(
-                com.zili.android.musicfreeandroid.core.R.drawable.ic_playlist_favorite_cover
+                com.hank.musicfree.core.R.drawable.ic_playlist_favorite_cover
             ),
         )
     }
@@ -2934,8 +2934,8 @@ val isFavorite by viewModel.isFavoriteFlow(item).collectAsState(initial = false)
 
 ```bash
 ./gradlew :feature:home:compileDebugKotlin
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt \
-        feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt \
+        feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt
 git commit -m "feat(home/playlist): wire isFavorite + AddToPlaylistBottomSheet on detail rows"
 ```
 
@@ -2944,8 +2944,8 @@ git commit -m "feat(home/playlist): wire isFavorite + AddToPlaylistBottomSheet o
 ### Task 28: SearchScreen 替换 Toast 占位
 
 **Files:**
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
 
 - [ ] **Step 28.1: SearchViewModel 注入 PlaylistRepository + sheet state**
 
@@ -2954,23 +2954,23 @@ git commit -m "feat(home/playlist): wire isFavorite + AddToPlaylistBottomSheet o
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     // 现有依赖
-    private val playlistRepository: com.zili.android.musicfreeandroid.data.repository.PlaylistRepository,
+    private val playlistRepository: com.hank.musicfree.data.repository.PlaylistRepository,
 ) : ViewModel() {
     val sheetState = kotlinx.coroutines.flow.MutableStateFlow(
-        com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState()
+        com.hank.musicfree.core.ui.AddToPlaylistSheetState()
     )
-    val allPlaylists: kotlinx.coroutines.flow.StateFlow<List<com.zili.android.musicfreeandroid.core.model.Playlist>> =
+    val allPlaylists: kotlinx.coroutines.flow.StateFlow<List<com.hank.musicfree.core.model.Playlist>> =
         playlistRepository.observeAllPlaylists()
             .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun isFavorite(item: com.zili.android.musicfreeandroid.core.model.MusicItem) = playlistRepository.isFavorite(item)
-    fun toggleFavorite(item: com.zili.android.musicfreeandroid.core.model.MusicItem) {
+    fun isFavorite(item: com.hank.musicfree.core.model.MusicItem) = playlistRepository.isFavorite(item)
+    fun toggleFavorite(item: com.hank.musicfree.core.model.MusicItem) {
         viewModelScope.launch { playlistRepository.toggleFavorite(item) }
     }
-    fun showAddSheet(item: com.zili.android.musicfreeandroid.core.model.MusicItem) {
-        sheetState.value = com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState(true, item)
+    fun showAddSheet(item: com.hank.musicfree.core.model.MusicItem) {
+        sheetState.value = com.hank.musicfree.core.ui.AddToPlaylistSheetState(true, item)
     }
-    fun hideAddSheet() { sheetState.value = com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState(false, null) }
+    fun hideAddSheet() { sheetState.value = com.hank.musicfree.core.ui.AddToPlaylistSheetState(false, null) }
     fun addPending(playlistId: String) {
         val item = sheetState.value.pendingItem ?: return
         viewModelScope.launch {
@@ -3018,7 +3018,7 @@ if (sheetState.visible) {
             onCreateNew = { /* 同 Task 27 createAndAdd 模式 */ },
             folderPlusIcon = painterResource(R.drawable.ic_folder_plus),
             favoriteCoverIcon = painterResource(
-                com.zili.android.musicfreeandroid.core.R.drawable.ic_playlist_favorite_cover
+                com.hank.musicfree.core.R.drawable.ic_playlist_favorite_cover
             ),
         )
     }
@@ -3029,8 +3029,8 @@ if (sheetState.visible) {
 
 ```bash
 ./gradlew :feature:search:compileDebugKotlin
-git add feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt \
-        feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt
+git add feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt \
+        feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt
 git commit -m "feat(search): replace add-to-playlist toast with real sheet, add favorite toggle"
 ```
 
@@ -3039,8 +3039,8 @@ git commit -m "feat(search): replace add-to-playlist toast with real sheet, add 
 ### Task 29: PluginSheetDetailScreen 行加 ⋮ 菜单
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`（如已存在；否则就在 screen 内 hoist 状态）
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`（如已存在；否则就在 screen 内 hoist 状态）
 
 - [ ] **Step 29.1: ViewModel 同 Task 28 模式 注入 PlaylistRepository + sheet state + isFavorite/toggleFavorite/showAddSheet/addPending**
 
@@ -3073,8 +3073,8 @@ MusicItemMoreMenu(
 
 ```bash
 ./gradlew :feature:home:compileDebugKotlin
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt \
-        feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt \
+        feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt
 git commit -m "feat(home/pluginsheet): add ⋮ menu with favorite + add-to-playlist on rows"
 ```
 
@@ -3083,8 +3083,8 @@ git commit -m "feat(home/pluginsheet): add ⋮ menu with favorite + add-to-playl
 ### Task 30: PlayerScreen heart icon + overflow 加入歌单
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
 
 > 文件路径以实际为准；`feature/player-ui` 模块结构按 grep 复核。
 
@@ -3092,7 +3092,7 @@ git commit -m "feat(home/pluginsheet): add ⋮ menu with favorite + add-to-playl
 
 ```kotlin
 // PlayerViewModel.kt
-import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.hank.musicfree.data.repository.PlaylistRepository
 // 假设现有 ViewModel 已暴露 currentItem: StateFlow<MusicItem?>
 
 val isCurrentFavorite: StateFlow<Boolean> = currentItem
@@ -3153,8 +3153,8 @@ DropdownMenuItem(
 
 ```bash
 ./gradlew :feature:player-ui:compileDebugKotlin
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt \
-        feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt \
+        feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt
 git commit -m "feat(player-ui): add heart favorite button and add-to-playlist overflow"
 ```
 
@@ -3185,7 +3185,7 @@ Expected: 全 PASS（除已 `@Ignore` 的 2 个 pre-existing breakages）。
 
 ```bash
 ./gradlew :app:installDebug
-adb shell am start -n com.zili.android.musicfreeandroid/.MainActivity
+adb shell am start -n com.hank.musicfree/.MainActivity
 ```
 
 按以下清单逐项验证（来自 spec "手工运行态验收"）：
@@ -3203,7 +3203,7 @@ adb shell am start -n com.zili.android.musicfreeandroid/.MainActivity
 - [ ] ⋮ → "编辑信息" → 改名、加描述、点 "更换封面" → 选图 → 保存 → header 立即刷新；favorite 歌单的 name 字段 readOnly
 - [ ] ⋮ → "删除歌单" → 确认 → 退出到首页 → 不见此歌单；favorite 时无 "删除歌单" 项
 - [ ] 杀 app 重开 → 自定义封面仍在；删了的歌单的封面文件已不在 `filesDir/playlist_covers/`
-- [ ] `adb shell pm clear com.zili.android.musicfreeandroid`（destructive fallback）→ 重启 app → "我喜欢" 仍是首项
+- [ ] `adb shell pm clear com.hank.musicfree`（destructive fallback）→ 重启 app → "我喜欢" 仍是首项
 
 - [ ] **Step 31.4: 标记 spec 验收闸门完成**
 

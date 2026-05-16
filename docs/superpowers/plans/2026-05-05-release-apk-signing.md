@@ -365,9 +365,9 @@ Run from the implementation worktree:
 
 ```bash
 export ANDROID_RELEASE_KEYSTORE_PATH="$HOME/.musicfree-android-signing/musicfree-release.jks"
-export ANDROID_RELEASE_STORE_PASSWORD="$(security find-generic-password -w -a musicfree-release -s com.zili.android.musicfreeandroid.release.storePassword)"
+export ANDROID_RELEASE_STORE_PASSWORD="$(security find-generic-password -w -a musicfree-release -s com.hank.musicfree.release.storePassword)"
 export ANDROID_RELEASE_KEY_ALIAS="musicfree-release"
-export ANDROID_RELEASE_KEY_PASSWORD="$(security find-generic-password -w -a musicfree-release -s com.zili.android.musicfreeandroid.release.keyPassword)"
+export ANDROID_RELEASE_KEY_PASSWORD="$(security find-generic-password -w -a musicfree-release -s com.hank.musicfree.release.keyPassword)"
 ```
 
 Expected: commands produce no output and do not print passwords.

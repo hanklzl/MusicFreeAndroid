@@ -12,10 +12,10 @@
 
 ## Files
 
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/more/PlayerMoreOptionsSheet.kt`
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/more/PlayerMoreOptionsSheetTest.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerOperationsBarTest.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/more/PlayerMoreOptionsSheet.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/more/PlayerMoreOptionsSheetTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerOperationsBarTest.kt`
 - Modify: `docs/DOCS_STATUS.md`
 
 ## Task 1: Add The Sheet Component

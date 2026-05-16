@@ -242,7 +242,7 @@ Pixel_10_Pro(AVD) - 17 Tests 0/15 completed. (0 skipped) (0 failed)
 
 ```bash
 ./gradlew :player:connectedDebugAndroidTest --no-daemon \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.player.controller.PlayerControllerTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.player.controller.PlayerControllerTest
 ```
 
 卡在 `Starting 9 tests ... Tests 0/9 completed`。对应测试代码：
@@ -426,7 +426,7 @@ PR 描述需明确："新增 feature androidTest runner 基线覆盖 4 个 featu
 ```bash
 ./gradlew :plugin:testDebugUnitTest                       # PASS
 ./gradlew :plugin:connectedAndroidTest                    # PASS（5 跑通，4 SKIPPED）
-./gradlew :plugin:connectedDebugAndroidTest -Pintegration=false -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeNetworkIntegrationTest
+./gradlew :plugin:connectedDebugAndroidTest -Pintegration=false -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginRuntimeNetworkIntegrationTest
                                                            # PASS（4 SKIPPED，确认 false 不触发真网络）
 ./gradlew :plugin:connectedAndroidTest -Pintegration      # PASS（9 全跑，需稳定网络 + kstore.vip 可达）
 ./gradlew connectedAndroidTest                            # 全仓库 PASS

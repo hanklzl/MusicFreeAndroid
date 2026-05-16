@@ -44,7 +44,7 @@ scripts/parity-audit/
   file_issue.py                         # 指纹 / 模板渲染 / 查重 / 决定 action / gh 调用
   audit.sh                              # 顶层入口：解析 --scope/--mode/--limit/--device，串起以上
 
-logging/src/main/java/com/zili/android/musicfreeandroid/logging/
+logging/src/main/java/com/hank/musicfree/logging/
   ParityEventSink.kt                    # 新增：把 MfLog 调用映射为 PARITY_EVT 结构化日志
 
 docs/parity-audit/
@@ -738,7 +738,7 @@ $ADB install -r -t "$ANDROID_APK" >&2
 
 echo "installed:"
 echo "  rn=fun.upup.musicfree"
-echo "  android=com.zili.android.musicfreeandroid.debug"
+echo "  android=com.hank.musicfree.debug"
 ```
 
 - [ ] **Step 4: 加可执行位**
@@ -856,7 +856,7 @@ git commit -m "feat(parity-audit): Maestro _lib 共享片段 (waypoint 锚点 + 
 - [ ] **Step 1: 探查 Android 侧"插件管理 → 从订阅安装"路径**
 
 在已装好两侧 APK 的模拟器上手动操作 Android 应用：
-1. 启动 `com.zili.android.musicfreeandroid.debug`
+1. 启动 `com.hank.musicfree.debug`
 2. 进入设置 → 插件管理 → 粘贴订阅 URL 安装
 
 每步记录可用 selector（优先 `text:` 完全匹配，次选 `id:`）。把这份 selector 序列写到 `install-plugins.android.yaml`：
@@ -864,7 +864,7 @@ git commit -m "feat(parity-audit): Maestro _lib 共享片段 (waypoint 锚点 + 
 ```yaml
 # maestro/flows/parity/_bootstrap/install-plugins.android.yaml
 # env: { PLUGIN_URL }
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 ---
 - launchApp:
     clearState: true
@@ -991,7 +991,7 @@ title: 首页冷启动落地
 priority: core
 page: home
 rn_appid: fun.upup.musicfree
-android_appid: com.zili.android.musicfreeandroid.debug
+android_appid: com.hank.musicfree.debug
 rn_flow: maestro/flows/parity/home_entry.rn.yaml
 android_flow: maestro/flows/parity/home_entry.android.yaml
 waypoints:
@@ -1072,7 +1072,7 @@ appId: fun.upup.musicfree
 
 ```yaml
 # maestro/flows/parity/home_entry.android.yaml
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 ---
 - runScript:
     file: _lib/mark_waypoint.js
@@ -1242,23 +1242,23 @@ git commit -m "feat(parity-audit): run-scenario.sh 编排 Maestro + logcat + 截
 ## Task 11: ParityEventSink Kotlin 实现（TDD）
 
 **Files:**
-- Modify: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/MfLog.kt`
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/ParityEventSink.kt`
-- Create: `logging/src/test/java/com/zili/android/musicfreeandroid/logging/ParityEventSinkTest.kt`
+- Modify: `logging/src/main/java/com/hank/musicfree/logging/MfLog.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/ParityEventSink.kt`
+- Create: `logging/src/test/java/com/hank/musicfree/logging/ParityEventSinkTest.kt`
 
 - [ ] **Step 1: 读 MfLog 当前接口**
 
-Read: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/MfLogger.kt`
-Read: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/MfLog.kt`
+Read: `logging/src/main/java/com/hank/musicfree/logging/MfLogger.kt`
+Read: `logging/src/main/java/com/hank/musicfree/logging/MfLog.kt`
 
 确认 `MfLog.info/error/warn` 的签名（参数大概率是 `event: String, fields: Map<String, Any?> = emptyMap()`），后续测试与实现以实际签名为准。
 
 - [ ] **Step 2: 写失败测试**
 
-`logging/src/test/java/com/zili/android/musicfreeandroid/logging/ParityEventSinkTest.kt`：
+`logging/src/test/java/com/hank/musicfree/logging/ParityEventSinkTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -1305,10 +1305,10 @@ Expected: 编译错或测试失败，因为 `ParityEventSink` 不存在。
 
 - [ ] **Step 4: 实现 ParityEventSink**
 
-`logging/src/main/java/com/zili/android/musicfreeandroid/logging/ParityEventSink.kt`：
+`logging/src/main/java/com/hank/musicfree/logging/ParityEventSink.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import org.json.JSONObject
 import java.security.MessageDigest
@@ -1421,10 +1421,10 @@ Expected: 全部 PASS。
 - [ ] **Step 8: Commit**
 
 ```bash
-git add logging/src/main/java/com/zili/android/musicfreeandroid/logging/ParityEventSink.kt \
-        logging/src/main/java/com/zili/android/musicfreeandroid/logging/MfLog.kt \
-        logging/src/test/java/com/zili/android/musicfreeandroid/logging/ParityEventSinkTest.kt \
-        app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApp.kt
+git add logging/src/main/java/com/hank/musicfree/logging/ParityEventSink.kt \
+        logging/src/main/java/com/hank/musicfree/logging/MfLog.kt \
+        logging/src/test/java/com/hank/musicfree/logging/ParityEventSinkTest.kt \
+        app/src/main/java/com/hank/musicfree/MusicFreeApp.kt
 git commit -m "feat(parity-audit): ParityEventSink 把 MfLog 映射为 PARITY_EVT 单行 JSON"
 ```
 

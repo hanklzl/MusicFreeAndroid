@@ -21,6 +21,6 @@
 
 ## 已完成静态闸门
 
-- `./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiTest --tests com.zili.android.musicfreeandroid.feature.home.recommendsheets.RecommendSheetsViewModelTest --tests com.zili.android.musicfreeandroid.feature.home.toplist.TopListViewModelTest --tests com.zili.android.musicfreeandroid.feature.home.toplist.TopListDisplayTextTest --tests com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStoreTest --tests com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedTest --tests com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedResolverTest`
-- `./gradlew :app:testDebugUnitTest --tests com.zili.android.musicfreeandroid.RoutesTest`
+- `./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityUiTest --tests com.hank.musicfree.feature.home.recommendsheets.RecommendSheetsViewModelTest --tests com.hank.musicfree.feature.home.toplist.TopListViewModelTest --tests com.hank.musicfree.feature.home.toplist.TopListDisplayTextTest --tests com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetSeedStoreTest --tests com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetRouteSeedTest --tests com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetRouteSeedResolverTest`
+- `./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.RoutesTest`
 - `./gradlew :app:assembleDebug`

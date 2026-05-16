@@ -16,4 +16,4 @@ $ADB install -r -t "$ANDROID_APK" >&2
 
 echo "installed:"
 echo "  rn=fun.upup.musicfree"
-echo "  android=com.zili.android.musicfreeandroid.debug"
+echo "  android=com.hank.musicfree.debug"

@@ -51,7 +51,7 @@
 
 ### `ListenEventEntity` 改动
 
-`data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/ListenEventEntity.kt`：
+`data/src/main/java/com/hank/musicfree/data/db/entity/ListenEventEntity.kt`：
 
 ```kotlin
 @Entity(
@@ -82,7 +82,7 @@ data class ListenEventEntity(
 
 ### `AppDatabase` 改动
 
-`data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`：
+`data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`：
 
 ```kotlin
 @Database(
@@ -96,7 +96,7 @@ DI Provider 的 `addMigrations(...)` 追加 `MIGRATION_10_11`。**不得**引入
 
 ### `MIGRATION_10_11`
 
-放在 `data/src/main/java/com/zili/android/musicfreeandroid/data/db/migration/`：
+放在 `data/src/main/java/com/hank/musicfree/data/db/migration/`：
 
 ```kotlin
 val MIGRATION_10_11 = object : Migration(10, 11) {
@@ -124,7 +124,7 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
 
 ### `splitArtists` 共享
 
-`splitArtists` 当前在 `player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ArtistSplitter.kt`。:data 无法依赖 :player。处理方式：
+`splitArtists` 当前在 `player/src/main/java/com/hank/musicfree/player/listening/ArtistSplitter.kt`。:data 无法依赖 :player。处理方式：
 
 **选 A（推荐）**：把 `ArtistSplitter.kt` 整体迁到 `:core`（或新建 `:core/text/ArtistSplitter.kt`），:player 与 :data 都依赖 :core。
 - 改动小：一个文件搬位置 + 包名修改 + 两处 import 更新（`:player/listening/ListenTracker.kt` 与 `:player/listening/ListenTrackerTest.kt`）。
@@ -136,7 +136,7 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
 
 ## §3 写入路径
 
-`player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ListenTracker.kt` 现有写入处（约 line 102-115）：
+`player/src/main/java/com/hank/musicfree/player/listening/ListenTracker.kt` 现有写入处（约 line 102-115）：
 
 ```kotlin
 val artists = splitArtists(s.item.artist)          // 已存在
@@ -164,7 +164,7 @@ val event = ListenEventEntity(
 
 ## §4 DAO 改造
 
-`data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDao.kt`：
+`data/src/main/java/com/hank/musicfree/data/db/dao/ListenStatsDao.kt`：
 
 ### 聚合改用 mergeKey
 
@@ -239,7 +239,7 @@ fun heatmapFlow(startMs: Long, endMs: Long, zoneOffsetMs: Long): Flow<List<DateB
 
 ## §5 Repository 改造
 
-`data/src/main/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepository.kt`：
+`data/src/main/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepository.kt`：
 
 ```kotlin
 fun statsForWindow(scope: TimeScope, anchor: LocalDate): Flow<ListenStatsSnapshot> {
@@ -419,9 +419,9 @@ rows.take(5).forEachIndexed { idx, row ->
 - 原 listen-stats 设计：`./2026-05-15-listen-stats-design.md`
 - AGENTS.md 数据库迁移规范：`../../../AGENTS.md`
 - 测试稳定性规则：`../../dev-harness/test/rules.md`
-- ArtistSplitter 当前位置：`player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ArtistSplitter.kt`
-- CoverImage：`core/src/main/java/com/zili/android/musicfreeandroid/core/ui/CoverImage.kt`
-- ListenStatsDao：`data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDao.kt`
-- ListenTracker：`player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ListenTracker.kt`
-- ListenEventEntity：`data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/ListenEventEntity.kt`
-- AppDatabase 当前 version=10：`data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt:45`
+- ArtistSplitter 当前位置：`player/src/main/java/com/hank/musicfree/player/listening/ArtistSplitter.kt`
+- CoverImage：`core/src/main/java/com/hank/musicfree/core/ui/CoverImage.kt`
+- ListenStatsDao：`data/src/main/java/com/hank/musicfree/data/db/dao/ListenStatsDao.kt`
+- ListenTracker：`player/src/main/java/com/hank/musicfree/player/listening/ListenTracker.kt`
+- ListenEventEntity：`data/src/main/java/com/hank/musicfree/data/db/entity/ListenEventEntity.kt`
+- AppDatabase 当前 version=10：`data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt:45`

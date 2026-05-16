@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.feature.home"
+    namespace = "com.hank.musicfree.feature.home"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1

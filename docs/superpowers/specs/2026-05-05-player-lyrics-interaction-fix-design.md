@@ -31,11 +31,11 @@
 
 Android 当前歌词实现已经具备歌词加载、自动搜索、翻译、字号、偏移、搜索关联、本地导入等基础能力：
 
-- 播放页入口：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- 播放页 ViewModel：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- 歌词加载器：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoader.kt`
-- 歌词内容组件：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt`
-- 歌词时序计算：`core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricTiming.kt`
+- 播放页入口：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- 播放页 ViewModel：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- 歌词加载器：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoader.kt`
+- 歌词内容组件：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt`
+- 歌词时序计算：`core/src/main/java/com/hank/musicfree/core/lyric/LyricTiming.kt`
 
 主要偏差集中在 UI 状态和手势滚动：
 

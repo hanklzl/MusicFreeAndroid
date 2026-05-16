@@ -19,43 +19,43 @@
 
 ## 文件结构
 
-- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
+- 修改： `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt`
   - 为插件元信息增加 `supportedMethods`。
-- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
+- 修改： `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
   - 加载插件时检测核心方法集合。
-- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
+- 修改： `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`
   - `importMusicSheet` 调用 `JsBridge` 时传入当前插件平台。
-- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
+- 修改： `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt`
   - `parseImportMusicSheetResult` 支持 fallback platform。
-- 修改： `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt`
+- 修改： `plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeTest.kt`
   - 覆盖导入歌单解析的平台兜底。
-- 修改： `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
+- 修改： `core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistSheetState.kt`
   - 单曲 pending 扩展为批量 pending。
-- 修改： `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
+- 修改： `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
   - 使用新的批量状态 helper，保持单曲行为。
-- 修改： `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
+- 修改： `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
   - 使用新的批量状态 helper，保持单曲行为。
-- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt`
+- 修改： `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt`
   - 使用新的批量状态 helper，保持单曲行为。
-- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- 修改： `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
   - 使用新的批量状态 helper，保持单曲行为。
-- 修改： `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
+- 修改： `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`
   - 覆盖 `pendingItems`。
-- 修改： `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
+- 修改： `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`
   - 注入 `AppDatabase`，批量写入使用 `withTransaction`。
-- 修改： `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`
+- 修改： `data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt`
   - 覆盖批量导入新增数、重复跳过、顺序保持。
-- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportModels.kt`
+- 创建： `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportModels.kt`
   - 导入 UI 状态、插件 UI 模型、事件模型。
-- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
+- 创建： `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportViewModel.kt`
   - 首页导入 flow 状态机。
-- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt`
+- 创建： `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportHost.kt`
   - Compose Host：插件列表底部面板、输入框、解析中、确认、添加到歌单面板。
-- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
+- 修改： `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
   - 接入 `PlaylistImportViewModel` 和 `PlaylistImportHost`。
-- 创建： `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModelTest.kt`
+- 创建： `feature/home/src/test/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportViewModelTest.kt`
   - 覆盖导入状态机。
-- 创建： `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHostTest.kt`
+- 创建： `feature/home/src/test/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportHostTest.kt`
   - 覆盖导入 UI 关键节点。
 - 修改： `docs/DOCS_STATUS.md`
   - plan 完成后确认 spec 已登记；本 plan 不需要登记为当前规范。
@@ -65,11 +65,11 @@
 ### 任务 1：插件导入解析和能力识别
 
 **文件：**
-- 修改： `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt`
-- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
-- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
-- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
-- 修改： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
+- 修改： `plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeTest.kt`
+- 修改： `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt`
+- 修改： `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`
+- 修改： `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt`
+- 修改： `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
 
 - [ ] **步骤 1：写失败测试，覆盖导入歌单平台兜底**
 
@@ -105,7 +105,7 @@ fun `parseImportMusicSheetResult keeps explicit non blank platform`() {
 运行：
 
 ```bash
-./gradlew :plugin:testDebugUnitTest --tests com.zili.android.musicfreeandroid.plugin.engine.JsBridgeTest
+./gradlew :plugin:testDebugUnitTest --tests com.hank.musicfree.plugin.engine.JsBridgeTest
 ```
 
 预期：失败，错误为 `parseImportMusicSheetResult` 没有 `fallbackPlatform` 参数。
@@ -199,7 +199,7 @@ supportedMethods = supportedMethods(),
 运行：
 
 ```bash
-./gradlew :plugin:testDebugUnitTest --tests com.zili.android.musicfreeandroid.plugin.engine.JsBridgeTest
+./gradlew :plugin:testDebugUnitTest --tests com.hank.musicfree.plugin.engine.JsBridgeTest
 ```
 
 预期：通过。
@@ -207,7 +207,7 @@ supportedMethods = supportedMethods(),
 - [ ] **步骤 6：提交**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeTest.kt
 git commit -m "feat(plugin): expose import sheet capability"
 ```
 
@@ -216,12 +216,12 @@ git commit -m "feat(plugin): expose import sheet capability"
 ### 任务 2：添加到歌单状态支持批量歌曲
 
 **文件：**
-- 修改： `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
-- 修改： `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- 修改： `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt`
-- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
-- 测试： `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
+- 修改： `core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistSheetState.kt`
+- 修改： `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- 修改： `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- 修改： `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt`
+- 修改： `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- 测试： `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`
 
 - [ ] **步骤 1：写失败测试，断言单曲入口写入 `pendingItems`**
 
@@ -239,7 +239,7 @@ assertEquals(listOf(item), s.pendingItems)
 运行：
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerViewModelTest
 ```
 
 预期：失败，错误为 `pendingItems` 未定义。
@@ -249,9 +249,9 @@ assertEquals(listOf(item), s.pendingItems)
 替换 `AddToPlaylistSheetState.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 /**
  * UI state for the "Add to playlist" bottom sheet, shared by all surfaces that
@@ -279,10 +279,10 @@ data class AddToPlaylistSheetState(
 把以下文件中的 `AddToPlaylistSheetState(visible = true, pendingItem = item)` 改为 `AddToPlaylistSheetState.single(item)`：
 
 ```text
-feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt
-feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt
-feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt
-feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt
+feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt
+feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt
+feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt
+feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt
 ```
 
 现有 `val item = _sheetState.value.pendingItem ?: return` 保持不变，因为兼容 getter 已保留。
@@ -292,8 +292,8 @@ feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/plugin
 运行：
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelTest
-./gradlew :feature:search:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerViewModelTest
+./gradlew :feature:search:testDebugUnitTest --tests com.hank.musicfree.feature.search.SearchViewModelTest
 ```
 
 预期：通过。
@@ -301,7 +301,7 @@ feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/plugin
 - [ ] **步骤 6：提交**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistSheetState.kt feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt
 git commit -m "feat(core): support batch add-to-playlist state"
 ```
 
@@ -310,8 +310,8 @@ git commit -m "feat(core): support batch add-to-playlist state"
 ### 任务 3：批量导入写入改为事务并返回新增数量
 
 **文件：**
-- 修改： `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
-- 修改： `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`
+- 修改： `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`
+- 修改： `data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt`
 
 - [ ] **步骤 1：写失败测试，覆盖新增数和重复跳过**
 
@@ -358,7 +358,7 @@ fun addMusicsToPlaylist_preservesImportOrderForManualSort() = runBlocking {
 运行：
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest
+./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.repository.PlaylistRepositoryTest
 ```
 
 预期：当前实现可能在无设备环境无法运行；有设备时应至少暴露批量事务和重复列表统计的实现差距。若无设备，继续实现后在最终验收记录“未运行 connected 测试：无设备”。
@@ -381,7 +381,7 @@ class PlaylistRepository @Inject constructor(
 
 ```kotlin
 import androidx.room.withTransaction
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
+import com.hank.musicfree.data.db.AppDatabase
 ```
 
 在 `PlaylistRepositoryTest.setup()` 中更新构造：
@@ -450,7 +450,7 @@ private suspend fun addMusicToPlaylistInternal(playlistId: String, item: MusicIt
 设备可用时再运行：
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest
+./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.repository.PlaylistRepositoryTest
 ```
 
 预期：通过。
@@ -458,7 +458,7 @@ private suspend fun addMusicToPlaylistInternal(playlistId: String, item: MusicIt
 - [ ] **步骤 6：提交**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt
+git add data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt
 git commit -m "feat(data): import playlist songs in batch"
 ```
 
@@ -467,23 +467,23 @@ git commit -m "feat(data): import playlist songs in batch"
 ### 任务 4：新增 PlaylistImportViewModel 状态机
 
 **文件：**
-- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportModels.kt`
-- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
-- 创建： `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModelTest.kt`
+- 创建： `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportModels.kt`
+- 创建： `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportViewModel.kt`
+- 创建： `feature/home/src/test/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportViewModelTest.kt`
 
 - [ ] **步骤 1：写 ViewModel 测试骨架和 helper**
 
 创建 `PlaylistImportViewModelTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.playlistimport
+package com.hank.musicfree.feature.home.playlistimport
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.data.repository.PlaylistRepository
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.manager.LoadedPlugin
+import com.hank.musicfree.plugin.manager.PluginManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -635,7 +635,7 @@ fun `addImportedItemsToPlaylist reports added and skipped counts`() = runTest {
 运行：
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportViewModelTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.playlistimport.PlaylistImportViewModelTest
 ```
 
 预期：失败，类和状态模型尚未创建。
@@ -645,9 +645,9 @@ fun `addImportedItemsToPlaylist reports added and skipped counts`() = runTest {
 创建 `PlaylistImportModels.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.playlistimport
+package com.hank.musicfree.feature.home.playlistimport
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 data class ImportCapablePlugin(
     val platform: String,
@@ -683,15 +683,15 @@ sealed interface PlaylistImportEvent {
 创建 `PlaylistImportViewModel.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.playlistimport
+package com.hank.musicfree.feature.home.playlistimport
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
-import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.ui.AddToPlaylistSheetState
+import com.hank.musicfree.data.repository.PlaylistRepository
+import com.hank.musicfree.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -831,7 +831,7 @@ class PlaylistImportViewModel @Inject constructor(
 运行：
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportViewModelTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.playlistimport.PlaylistImportViewModelTest
 ```
 
 预期：通过。
@@ -839,7 +839,7 @@ class PlaylistImportViewModel @Inject constructor(
 - [ ] **步骤 7：提交**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportModels.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModelTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportModels.kt feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportViewModel.kt feature/home/src/test/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportViewModelTest.kt
 git commit -m "feat(home): add playlist import state machine"
 ```
 
@@ -848,15 +848,15 @@ git commit -m "feat(home): add playlist import state machine"
 ### 任务 5：实现首页导入 UI Host 并接入 HomeScreen
 
 **文件：**
-- 创建： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt`
-- 修改： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
+- 创建： `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportHost.kt`
+- 修改： `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
 
 - [ ] **步骤 1：创建导入 UI Host**
 
 创建 `PlaylistImportHost.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.playlistimport
+package com.hank.musicfree.feature.home.playlistimport
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -891,9 +891,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.R
-import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent
-import com.zili.android.musicfreeandroid.feature.home.playlist.CreatePlaylistDialog
+import com.hank.musicfree.core.R
+import com.hank.musicfree.core.ui.AddToPlaylistBottomSheetContent
+import com.hank.musicfree.feature.home.playlist.CreatePlaylistDialog
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -940,13 +940,13 @@ fun PlaylistImportRoute(
 fun PlaylistImportHost(
     state: PlaylistImportState,
     sheetVisible: Boolean,
-    playlists: List<com.zili.android.musicfreeandroid.core.model.Playlist>,
+    playlists: List<com.hank.musicfree.core.model.Playlist>,
     onDismiss: () -> Unit,
     onSelectPlugin: (String) -> Unit,
     onSubmitUrl: (String) -> Unit,
     onConfirmFound: () -> Unit,
     onDismissTarget: () -> Unit,
-    onSelectTarget: (com.zili.android.musicfreeandroid.core.model.Playlist) -> Unit,
+    onSelectTarget: (com.hank.musicfree.core.model.Playlist) -> Unit,
     onCreateTarget: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1111,8 +1111,8 @@ private fun ImportUrlDialog(
 在 `HomeScreen.kt` imports 加入：
 
 ```kotlin
-import com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportRoute
-import com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportViewModel
+import com.hank.musicfree.feature.home.playlistimport.PlaylistImportRoute
+import com.hank.musicfree.feature.home.playlistimport.PlaylistImportViewModel
 ```
 
 在 `HomeScreen` 参数列表内保留现有 `viewModel`，函数体内创建导入 ViewModel：
@@ -1146,7 +1146,7 @@ PlaylistImportRoute(viewModel = importViewModel)
 - [ ] **步骤 4：提交**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportHost.kt feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt
 git commit -m "feat(home): wire playlist import UI"
 ```
 
@@ -1155,23 +1155,23 @@ git commit -m "feat(home): wire playlist import UI"
 ### 任务 6：UI 测试覆盖导入面板关键交互
 
 **文件：**
-- 创建： `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHostTest.kt`
+- 创建： `feature/home/src/test/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportHostTest.kt`
 
 - [ ] **步骤 1：写 UI 测试**
 
 创建 `PlaylistImportHostTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.playlistimport
+package com.hank.musicfree.feature.home.playlistimport
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.theme.MusicFreeTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -1301,7 +1301,7 @@ class PlaylistImportHostTest {
 运行：
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.playlistimport.PlaylistImportHostTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.playlistimport.PlaylistImportHostTest
 ```
 
 预期：通过。
@@ -1309,7 +1309,7 @@ class PlaylistImportHostTest {
 - [ ] **步骤 3：提交**
 
 ```bash
-git add feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHostTest.kt
+git add feature/home/src/test/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportHostTest.kt
 git commit -m "test(home): cover playlist import UI"
 ```
 
@@ -1318,11 +1318,11 @@ git commit -m "test(home): cover playlist import UI"
 ### 任务 7：集成回归和收口
 
 **文件：**
-- 检查： `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
-- 检查： `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
-- 检查： `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
-- 检查： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
-- 检查： `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt`
+- 检查： `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt`
+- 检查： `core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistSheetState.kt`
+- 检查： `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`
+- 检查： `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportViewModel.kt`
+- 检查： `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportHost.kt`
 
 - [ ] **步骤 1：运行模块单测**
 
@@ -1365,7 +1365,7 @@ adb devices
 若存在 `device` 状态的设备，运行：
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest
+./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.repository.PlaylistRepositoryTest
 ```
 
 预期：通过。

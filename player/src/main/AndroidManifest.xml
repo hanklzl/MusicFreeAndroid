@@ -7,7 +7,7 @@
 
     <application>
         <service
-            android:name="com.zili.android.musicfreeandroid.player.service.PlaybackService"
+            android:name="com.hank.musicfree.player.service.PlaybackService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true">
             <intent-filter>

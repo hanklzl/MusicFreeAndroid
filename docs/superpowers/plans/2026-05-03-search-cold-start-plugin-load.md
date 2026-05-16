@@ -12,18 +12,18 @@
 
 ## 文件结构
 
-- 修改 `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
+- 修改 `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
   - 负责搜索页状态、插件选择和搜索派发。
   - 新增 `pluginsReady` 与待执行搜索处理。
   - 插件来源从原始 `pluginManager.plugins` 切换为 `pluginManager.getSearchablePlugins()`。
-- 修改 `feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- 修改 `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
   - 为 `PluginManager.getSearchablePlugins()` 增加独立的 `searchablePluginFlow` 测试桩。
   - 覆盖冷启动空列表、真实无插件、插件稍后到达、插件管理层排序/过滤来源、待执行搜索回放。
 
 ## 任务 1：补齐冷启动加载态测试
 
 **文件：**
-- 修改：`feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- 修改：`feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
 
 - [ ] **步骤 1：增加协程测试辅助与可搜索插件流测试桩**
 
@@ -89,7 +89,7 @@ fun `initial empty searchable plugin flow stays editing while plugins are loadin
 运行：
 
 ```bash
-./gradlew :feature:search:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest.initial empty searchable plugin flow stays editing while plugins are loading'
+./gradlew :feature:search:testDebugUnitTest --tests 'com.hank.musicfree.feature.search.SearchViewModelTest.initial empty searchable plugin flow stays editing while plugins are loading'
 ```
 
 预期：失败。当前实现会把初始空插件列表转换为 `SearchPageStatus.NO_PLUGIN`。
@@ -117,7 +117,7 @@ fun `empty searchable plugin flow transitions to NO_PLUGIN after plugin load com
 运行：
 
 ```bash
-git add feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt
+git add feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt
 git commit -m "test(search): cover cold-start plugin loading state"
 ```
 
@@ -126,8 +126,8 @@ git commit -m "test(search): cover cold-start plugin loading state"
 ## 任务 2：实现插件加载完成状态
 
 **文件：**
-- 修改：`feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- 测试：`feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- 修改：`feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- 测试：`feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
 
 - [ ] **步骤 1：增加加载完成状态与待执行搜索字段**
 
@@ -235,7 +235,7 @@ private fun searchForMediaType(query: String, mediaType: SearchMediaType) {
 运行：
 
 ```bash
-./gradlew :feature:search:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest'
+./gradlew :feature:search:testDebugUnitTest --tests 'com.hank.musicfree.feature.search.SearchViewModelTest'
 ```
 
 预期：`SearchViewModelTest` 全部通过。
@@ -245,7 +245,7 @@ private fun searchForMediaType(query: String, mediaType: SearchMediaType) {
 运行：
 
 ```bash
-git add feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt
+git add feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt
 git commit -m "fix(search): wait for plugin load before no-plugin state"
 ```
 
@@ -254,7 +254,7 @@ git commit -m "fix(search): wait for plugin load before no-plugin state"
 ## 任务 3：补齐回归覆盖
 
 **文件：**
-- 修改：`feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- 修改：`feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
 
 - [ ] **步骤 1：更新现有测试的插件设置方式**
 
@@ -373,7 +373,7 @@ fun `pending search runs when searchable plugins arrive after submit`() = runTes
 运行：
 
 ```bash
-git add feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt
+git add feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt
 git commit -m "test(search): cover plugin load replay edge cases"
 ```
 
@@ -382,8 +382,8 @@ git commit -m "test(search): cover plugin load replay edge cases"
 ## 任务 4：最终验证
 
 **文件：**
-- 验证：`feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- 验证：`feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- 验证：`feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- 验证：`feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
 
 - [ ] **步骤 1：运行聚焦单元测试**
 

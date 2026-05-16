@@ -12,25 +12,25 @@
 
 ## Files
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/SearchResult.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- Modify: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchUiState.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/navigation/SearchNavigation.kt`
-- Modify: `feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/navigation/AlbumDetailSeedStore.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/navigation/ArtistDetailSeedStore.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailViewModel.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/navigation/AlbumDetailSeedStoreTest.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/navigation/ArtistDetailSeedStoreTest.kt`
-- Modify route tests under `app/src/test/java/com/zili/android/musicfreeandroid/`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/api/SearchResult.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- Modify: `plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeTest.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchUiState.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/navigation/SearchNavigation.kt`
+- Modify: `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/navigation/AlbumDetailSeedStore.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/navigation/ArtistDetailSeedStore.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailViewModel.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/albumdetail/navigation/AlbumDetailSeedStoreTest.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/artistdetail/navigation/ArtistDetailSeedStoreTest.kt`
+- Modify route tests under `app/src/test/java/com/hank/musicfree/`
 
 ## Task 1: Typed Plugin Search Results
 

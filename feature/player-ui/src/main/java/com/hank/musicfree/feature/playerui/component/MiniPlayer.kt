@@ -1,0 +1,55 @@
+package com.hank.musicfree.feature.playerui.component
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hank.musicfree.feature.playerui.PlayerViewModel
+import com.hank.musicfree.feature.playerui.component.queue.PlayQueueSheet
+import com.hank.musicfree.player.model.PlayerState
+
+internal fun PlayerState.toMiniPlayerUiModel(): MiniPlayerUiModel = MiniPlayerUiModel(
+    coverUri = currentItem?.artwork,
+    title = currentItem?.title ?: "",
+    artist = currentItem?.artist ?: "",
+    isPlaying = isPlaying,
+    progress = if (duration > 0L) position.toFloat() / duration else 0f,
+    hasPrev = true,
+    hasNext = true,
+    prevTitle = null,
+    nextTitle = null,
+)
+
+@Composable
+fun MiniPlayer(
+    onNavigateToPlayer: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: PlayerViewModel = hiltViewModel(),
+) {
+    val state by viewModel.playerState.collectAsStateWithLifecycle()
+
+    if (!state.hasMedia) return
+
+    var showQueueSheet by remember { mutableStateOf(false) }
+
+    MiniPlayerContent(
+        uiModel = state.toMiniPlayerUiModel(),
+        onOpenPlayer = onNavigateToPlayer,
+        onTogglePlayPause = viewModel::togglePlayPause,
+        onOpenQueue = { showQueueSheet = true },
+        onSkipNext = {},
+        onSkipPrev = {},
+        modifier = modifier,
+    )
+
+    if (showQueueSheet) {
+        PlayQueueSheet(
+            viewModel = viewModel,
+            onDismiss = { showQueueSheet = false },
+        )
+    }
+}

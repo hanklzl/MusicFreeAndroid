@@ -16,9 +16,9 @@
 ### Step 1 — Parser 修复（core 层）
 
 文件：
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricParser.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricDocument.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricTiming.kt`
+- `core/src/main/java/com/hank/musicfree/core/lyric/LyricParser.kt`
+- `core/src/main/java/com/hank/musicfree/core/model/LyricDocument.kt`
+- `core/src/main/java/com/hank/musicfree/core/lyric/LyricTiming.kt`
 
 变更：
 1. `LyricParser.timestampTokenRegex` 扩展为 `\\[(?:\\d+:){0,2}\\d+(?:\\.\\d+)?]`。
@@ -32,8 +32,8 @@
 ### Step 2 — 单测覆盖
 
 文件：
-- `core/src/test/java/com/zili/android/musicfreeandroid/core/lyric/LyricParserTest.kt`
-- `core/src/test/java/com/zili/android/musicfreeandroid/core/lyric/LyricTimingTest.kt`
+- `core/src/test/java/com/hank/musicfree/core/lyric/LyricParserTest.kt`
+- `core/src/test/java/com/hank/musicfree/core/lyric/LyricTimingTest.kt`
 
 新增用例：
 - `parsesSecondOnlyTimestamp`、`parsesFractionalSecondOnlyTimestamp`、`stripsSecondOnlyTimestampInRenderedText`、`mixedFormatsLrcIsTimed`、`secondOnlyTranslationLineMergesWithBaseTimestamp`。
@@ -48,7 +48,7 @@
 - `docs/dev-harness/incidents/INC-2026-0017.md`（新增）
 - `docs/dev-harness/incidents/index.md`（追加索引行）
 - `docs/dev-harness/player/rules.md`（追加 `#rule-lyric-parser-supports-second-only-timestamp` 段）
-- `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/harness/contracts/LyricTimestampFormatContractTest.kt`（新增）
+- `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/harness/contracts/LyricTimestampFormatContractTest.kt`（新增）
 
 contract test 内容：
 - 加载一组黄金样本（含 `[265.35]`、`[m:ss.xx]`、混合），调用 `LyricParser.parse`，断言：

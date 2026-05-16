@@ -9,7 +9,7 @@
 
 RN 原版 [MusicFree](https://github.com/maotoumao/MusicFree) 没有此功能；这是 Android 端超出 parity 的新增能力。
 
-当前 db 没有任何"播放事件"事实表：`PlayerController.playHistory` 是内存 `MutableStateFlow<List<MusicItem>>`（`player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt:102`），重启即丢；`HistoryRoute` 仅消费这个内存源（`feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryViewModel.kt`）。本 spec 引入持久化的 `listen_event` 事件流，作为统计能力的事实基础；history 仍走原来内存路径，不动。
+当前 db 没有任何"播放事件"事实表：`PlayerController.playHistory` 是内存 `MutableStateFlow<List<MusicItem>>`（`player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt:102`），重启即丢；`HistoryRoute` 仅消费这个内存源（`feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryViewModel.kt`）。本 spec 引入持久化的 `listen_event` 事件流，作为统计能力的事实基础；history 仍走原来内存路径，不动。
 
 ## 目标
 
@@ -93,7 +93,7 @@ RN 原版 [MusicFree](https://github.com/maotoumao/MusicFree) 没有此功能；
 
 ### `AppDatabase` 改动
 
-`data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt` 当前 `version = 9`，bump 到 `10`；entities 列表追加两项；增加 `migrations = arrayOf(MIGRATION_9_10)` 挂载（如尚未启用 migration array，需要同时改造 DI Provider 调用 `Room.databaseBuilder(...).addMigrations(MIGRATION_9_10).build()`，**不要使用 `fallbackToDestructiveMigration()`**）。
+`data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt` 当前 `version = 9`，bump 到 `10`；entities 列表追加两项；增加 `migrations = arrayOf(MIGRATION_9_10)` 挂载（如尚未启用 migration array，需要同时改造 DI Provider 调用 `Room.databaseBuilder(...).addMigrations(MIGRATION_9_10).build()`，**不要使用 `fallbackToDestructiveMigration()`**）。
 
 ### `ListenEventEntity`（主表，每次有效收听一条）
 
@@ -437,7 +437,7 @@ data class Distribution<T>(val items: List<Bucket<T>>, val coverage: Float)  // 
 ```
 feature/listen-stats/
 ├── build.gradle.kts                   # 依赖 :core :data；非 :player
-└── src/main/java/com/zili/android/musicfreeandroid/feature/liststats/
+└── src/main/java/com/hank/musicfree/feature/liststats/
     ├── ListenStatsScreen.kt
     ├── ListenStatsViewModel.kt
     ├── ListenStatsScreenState.kt
@@ -708,10 +708,10 @@ fun buildHomeDrawerUiModel(...): HomeDrawerUiModel = HomeDrawerUiModel(
 
 ## 参考
 
-- 项目主题：`core/src/main/java/com/zili/android/musicfreeandroid/core/theme/MusicFreeColors.kt` — `primary = #F17D34`
-- 现有 PlayerController listener 钩子：`player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt:814`
-- 现有 history（不动）：`feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryViewModel.kt`
-- 现有抽屉 ui model：`feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerNavigation.kt`
+- 项目主题：`core/src/main/java/com/hank/musicfree/core/theme/MusicFreeColors.kt` — `primary = #F17D34`
+- 现有 PlayerController listener 钩子：`player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt:814`
+- 现有 history（不动）：`feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryViewModel.kt`
+- 现有抽屉 ui model：`feature/home/src/main/java/com/hank/musicfree/feature/home/HomeDrawerNavigation.kt`
 - RN 源类型（参考歌曲字段）：`../MusicFree/src/types/music.d.ts`
 - 项目数据库迁移规范：`../../../AGENTS.md` §「数据库迁移规范」
 - UI Harness 规则：`../../dev-harness/ui/rules.md`

@@ -408,4 +408,4 @@ sealed interface PluginOperationUiState {
 - 插件卡片导入单曲/歌单解析成功后复用 `AddToPlaylistBottomSheetContent`，可选择已有歌单或新建歌单写入；新建歌单后导入失败会删除刚创建的空歌单并保留待导入项。
 - 收尾静态验证已通过：
   `./gradlew :core:test :plugin:test :feature:settings:testDebugUnitTest :feature:search:testDebugUnitTest :feature:home:testDebugUnitTest :downloader:test :player:testDebugUnitTest :app:assembleDebug`
-- 基础运行态验证已通过：Debug APK 成功安装到 `emulator-5554`，`com.zili.android.musicfreeandroid.debug/com.zili.android.musicfreeandroid.MainActivity` 可启动并获得前台焦点。插件导入、音源重定向和播放/下载端到端仍需真实插件数据做手动验收。
+- 基础运行态验证已通过：Debug APK 成功安装到 `emulator-5554`，`com.hank.musicfree.debug/com.hank.musicfree.MainActivity` 可启动并获得前台焦点。插件导入、音源重定向和播放/下载端到端仍需真实插件数据做手动验收。

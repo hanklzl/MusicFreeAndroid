@@ -1,7 +1,7 @@
 # maestro/flows/parity/_bootstrap/install-plugins.android.yaml
 # env: { PLUGIN_URL }
 # NOTE: selector 为占位 placeholder。真机/模拟器跑前必须按 uiautomator dump 替换为可用项。
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 ---
 - launchApp:
     clearState: true

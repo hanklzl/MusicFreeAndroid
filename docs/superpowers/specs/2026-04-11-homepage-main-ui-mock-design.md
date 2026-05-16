@@ -44,13 +44,13 @@
 
 当前 Android 参考：
 
-- `../../../feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
-- `../../../feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt`
-- `../../../feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeNavBar.kt`
-- `../../../feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeOperations.kt`
-- `../../../feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsHeader.kt`
-- `../../../feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsList.kt`
-- `../../../feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayer.kt`
+- `../../../feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
+- `../../../feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt`
+- `../../../feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeNavBar.kt`
+- `../../../feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeOperations.kt`
+- `../../../feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsHeader.kt`
+- `../../../feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsList.kt`
+- `../../../feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayer.kt`
 
 ## 当前问题归纳
 

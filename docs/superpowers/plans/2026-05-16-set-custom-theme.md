@@ -28,51 +28,51 @@ cd .worktrees/set-custom-theme
 
 | 路径 | 责任 |
 |---|---|
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/runtime/SelectedTheme.kt` | enum + storageKey 映射 |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/runtime/ThemeUiState.kt` | UI state + BackgroundInfo |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/runtime/ColorMath.kt` | grayRate/darken/saturate/parseHex/toHexString 纯函数 |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/runtime/ApplyOverrides.kt` | `applyOverrides(base, map) -> MusicFreeColors` |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/runtime/ThemeRepository.kt` | 接口 |
-| `core/src/test/java/com/zili/android/musicfreeandroid/core/theme/runtime/ColorMathTest.kt` | |
-| `core/src/test/java/com/zili/android/musicfreeandroid/core/theme/runtime/ApplyOverridesTest.kt` | |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/theme/DefaultThemeRepository.kt` | 实现，桥接 AppPreferences + ColorMath + isSystemInDark |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/theme/ThemeColorsJson.kt` | Map<String,String> ↔ JSON helper |
-| `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/theme/DefaultThemeRepositoryTest.kt` | runTest + Turbine |
-| `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/theme/ThemeColorsJsonTest.kt` | |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/themesetting/ThemeSettingsContent.kt` | 顶层 Composable，替换原 SettingsScreen.kt Theme 分支 |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/themesetting/ThemeSettingsViewModel.kt` | followSystem/selected/ system dark 注入 |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/themesetting/ThemeCard.kt` | 单张主题卡 |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/SetCustomThemeScreen.kt` | 全屏页 |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/SetCustomThemeViewModel.kt` | sliders/colors/pickImage |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/BackgroundPickerSection.kt` | 顶部 460×690 rpx 图片选择区 |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/BlurOpacitySliders.kt` | 两条 slider |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/ConfigurableColorGrid.kt` | 13 个 ColorRow |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/ColorPickerBottomSheet.kt` | HSV + alpha + 文本 + 预设 |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/PaletteExtractor.kt` | 图片 → bitmap → Palette → PaletteColors（含 inSampleSize 缩放） |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/DerivedThemeColors.kt` | RN body.tsx:65-108 抽色推导 |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/navigation/SetCustomThemeNavigation.kt` | NavGraphBuilder ext |
-| `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/themesetting/ThemeSettingsViewModelTest.kt` | |
-| `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/themesetting/ThemeSettingsContentTest.kt` (Robolectric) | |
-| `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/SetCustomThemeViewModelTest.kt` | |
-| `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/DerivedThemeColorsTest.kt` | |
-| `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/setcustomtheme/SetCustomThemeContentTest.kt` (Robolectric) | |
-| `app/src/main/java/com/zili/android/musicfreeandroid/ThemeBackgroundLayer.kt` | 仅在自定义主题且 url 存在时绘制 AsyncImage + blur + alpha |
+| `core/src/main/java/com/hank/musicfree/core/theme/runtime/SelectedTheme.kt` | enum + storageKey 映射 |
+| `core/src/main/java/com/hank/musicfree/core/theme/runtime/ThemeUiState.kt` | UI state + BackgroundInfo |
+| `core/src/main/java/com/hank/musicfree/core/theme/runtime/ColorMath.kt` | grayRate/darken/saturate/parseHex/toHexString 纯函数 |
+| `core/src/main/java/com/hank/musicfree/core/theme/runtime/ApplyOverrides.kt` | `applyOverrides(base, map) -> MusicFreeColors` |
+| `core/src/main/java/com/hank/musicfree/core/theme/runtime/ThemeRepository.kt` | 接口 |
+| `core/src/test/java/com/hank/musicfree/core/theme/runtime/ColorMathTest.kt` | |
+| `core/src/test/java/com/hank/musicfree/core/theme/runtime/ApplyOverridesTest.kt` | |
+| `data/src/main/java/com/hank/musicfree/data/repository/theme/DefaultThemeRepository.kt` | 实现，桥接 AppPreferences + ColorMath + isSystemInDark |
+| `data/src/main/java/com/hank/musicfree/data/repository/theme/ThemeColorsJson.kt` | Map<String,String> ↔ JSON helper |
+| `data/src/test/java/com/hank/musicfree/data/repository/theme/DefaultThemeRepositoryTest.kt` | runTest + Turbine |
+| `data/src/test/java/com/hank/musicfree/data/repository/theme/ThemeColorsJsonTest.kt` | |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/themesetting/ThemeSettingsContent.kt` | 顶层 Composable，替换原 SettingsScreen.kt Theme 分支 |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/themesetting/ThemeSettingsViewModel.kt` | followSystem/selected/ system dark 注入 |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/themesetting/ThemeCard.kt` | 单张主题卡 |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/setcustomtheme/SetCustomThemeScreen.kt` | 全屏页 |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/setcustomtheme/SetCustomThemeViewModel.kt` | sliders/colors/pickImage |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/setcustomtheme/BackgroundPickerSection.kt` | 顶部 460×690 rpx 图片选择区 |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/setcustomtheme/BlurOpacitySliders.kt` | 两条 slider |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/setcustomtheme/ConfigurableColorGrid.kt` | 13 个 ColorRow |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/setcustomtheme/ColorPickerBottomSheet.kt` | HSV + alpha + 文本 + 预设 |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/setcustomtheme/PaletteExtractor.kt` | 图片 → bitmap → Palette → PaletteColors（含 inSampleSize 缩放） |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/setcustomtheme/DerivedThemeColors.kt` | RN body.tsx:65-108 抽色推导 |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/setcustomtheme/navigation/SetCustomThemeNavigation.kt` | NavGraphBuilder ext |
+| `feature/settings/src/test/java/com/hank/musicfree/feature/settings/themesetting/ThemeSettingsViewModelTest.kt` | |
+| `feature/settings/src/test/java/com/hank/musicfree/feature/settings/themesetting/ThemeSettingsContentTest.kt` (Robolectric) | |
+| `feature/settings/src/test/java/com/hank/musicfree/feature/settings/setcustomtheme/SetCustomThemeViewModelTest.kt` | |
+| `feature/settings/src/test/java/com/hank/musicfree/feature/settings/setcustomtheme/DerivedThemeColorsTest.kt` | |
+| `feature/settings/src/test/java/com/hank/musicfree/feature/settings/setcustomtheme/SetCustomThemeContentTest.kt` (Robolectric) | |
+| `app/src/main/java/com/hank/musicfree/ThemeBackgroundLayer.kt` | 仅在自定义主题且 url 存在时绘制 AsyncImage + blur + alpha |
 
 ### 改动文件
 
 | 路径 | 改动 |
 |---|---|
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/MusicFreeTheme.kt` | 增加 `MusicFreeTheme(themeState, content)` 签名；保留无参旧签名用于 @Preview |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt` | 加 `SetCustomThemeRoute` |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt` | `Screen.SetCustomThemeRoot` + `Settings.ThemeSection*` / `ThemeCard*` / `ThemeFollowSystemSwitch` + `object SetCustomTheme` |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt` | 6 个新 Flow + 6 个 setter |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt` | `@Provides ThemeRepository` 绑定 DefaultThemeRepository |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt` | 增加 `onNavigateToSetCustomTheme` 参数；`SettingsType.Theme` 分支改成 `ThemeSettingsContent(...)` |
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/navigation/SettingsNavigation.kt` | 增加 `onNavigateToSetCustomTheme` 透传 |
+| `core/src/main/java/com/hank/musicfree/core/theme/MusicFreeTheme.kt` | 增加 `MusicFreeTheme(themeState, content)` 签名；保留无参旧签名用于 @Preview |
+| `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt` | 加 `SetCustomThemeRoute` |
+| `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt` | `Screen.SetCustomThemeRoot` + `Settings.ThemeSection*` / `ThemeCard*` / `ThemeFollowSystemSwitch` + `object SetCustomTheme` |
+| `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt` | 6 个新 Flow + 6 个 setter |
+| `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt` | `@Provides ThemeRepository` 绑定 DefaultThemeRepository |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt` | 增加 `onNavigateToSetCustomTheme` 参数；`SettingsType.Theme` 分支改成 `ThemeSettingsContent(...)` |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/navigation/SettingsNavigation.kt` | 增加 `onNavigateToSetCustomTheme` 透传 |
 | `feature/settings/build.gradle.kts` | 加 `implementation(libs.androidx.palette)`（如未存在）+ coil-compose 已有，确认 |
 | `app/build.gradle.kts` | 无新模块依赖；如果 palette 需要在 :app 暴露则补 |
-| `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt` | 注入 `ThemeRepository`；收集 state；`MusicFreeTheme(themeState)`；followSystem 联动 |
-| `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt` | `setCustomThemeScreen(...)` + 在 `settingsScreen(...)` 调用里传 `onNavigateToSetCustomTheme` |
+| `app/src/main/java/com/hank/musicfree/MainActivity.kt` | 注入 `ThemeRepository`；收集 state；`MusicFreeTheme(themeState)`；followSystem 联动 |
+| `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt` | `setCustomThemeScreen(...)` + 在 `settingsScreen(...)` 调用里传 `onNavigateToSetCustomTheme` |
 
 每个 task 自含；step 之间允许并行（同一 task 内串行）。
 
@@ -81,19 +81,19 @@ cd .worktrees/set-custom-theme
 ## Task 1: 新增运行时主题原语 + ColorMath
 
 **Files (create):**
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/runtime/SelectedTheme.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/runtime/ThemeUiState.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/runtime/ColorMath.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/runtime/ApplyOverrides.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/runtime/ThemeRepository.kt`
-- `core/src/test/java/com/zili/android/musicfreeandroid/core/theme/runtime/ColorMathTest.kt`
-- `core/src/test/java/com/zili/android/musicfreeandroid/core/theme/runtime/ApplyOverridesTest.kt`
+- `core/src/main/java/com/hank/musicfree/core/theme/runtime/SelectedTheme.kt`
+- `core/src/main/java/com/hank/musicfree/core/theme/runtime/ThemeUiState.kt`
+- `core/src/main/java/com/hank/musicfree/core/theme/runtime/ColorMath.kt`
+- `core/src/main/java/com/hank/musicfree/core/theme/runtime/ApplyOverrides.kt`
+- `core/src/main/java/com/hank/musicfree/core/theme/runtime/ThemeRepository.kt`
+- `core/src/test/java/com/hank/musicfree/core/theme/runtime/ColorMathTest.kt`
+- `core/src/test/java/com/hank/musicfree/core/theme/runtime/ApplyOverridesTest.kt`
 
 - [ ] **Step 1: SelectedTheme + ThemeUiState + ThemeRepository 接口**
 
 ```kotlin
 // SelectedTheme.kt
-package com.zili.android.musicfreeandroid.core.theme.runtime
+package com.hank.musicfree.core.theme.runtime
 enum class SelectedTheme(val storageKey: String) {
     P_LIGHT("p-light"), P_DARK("p-dark"), CUSTOM("custom");
     companion object {
@@ -193,12 +193,12 @@ const val CONFIGURABLE_COLOR_KEYS = listOf(
 ## Task 2: AppPreferences 扩展 + DefaultThemeRepository
 
 **Files (create / modify):**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/theme/ThemeColorsJson.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/theme/DefaultThemeRepository.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`
-- Create: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/theme/DefaultThemeRepositoryTest.kt`
-- Create: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/theme/ThemeColorsJsonTest.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/repository/theme/ThemeColorsJson.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/repository/theme/DefaultThemeRepository.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`
+- Create: `data/src/test/java/com/hank/musicfree/data/repository/theme/DefaultThemeRepositoryTest.kt`
+- Create: `data/src/test/java/com/hank/musicfree/data/repository/theme/ThemeColorsJsonTest.kt`
 
 - [ ] **Step 1: AppPreferences 新增字段**
 
@@ -325,8 +325,8 @@ abstract fun bindThemeRepository(impl: DefaultThemeRepository): ThemeRepository
 ## Task 3: MusicFreeTheme 状态化 + ThemeBackgroundLayer
 
 **Files (create / modify):**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/MusicFreeTheme.kt`
-- Create: `app/src/main/java/com/zili/android/musicfreeandroid/ThemeBackgroundLayer.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/theme/MusicFreeTheme.kt`
+- Create: `app/src/main/java/com/hank/musicfree/ThemeBackgroundLayer.kt`
 
 - [ ] **Step 1: 增加状态化签名**
 
@@ -378,9 +378,9 @@ fun ThemeBackgroundLayer(info: BackgroundInfo?, modifier: Modifier = Modifier) {
 ## Task 4: MainActivity 集成 + 路由
 
 **Files (modify):**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
 
 - [ ] **Step 1: Routes 加 SetCustomThemeRoute**
 

@@ -36,68 +36,68 @@ git status --short
 
 新建：
 
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricParser.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricTiming.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/model/ParsedLyricLine.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricDocument.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricSourceInfo.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/model/RawLyricPayload.kt`
-- `core/src/test/java/com/zili/android/musicfreeandroid/core/lyric/LyricParserTest.kt`
-- `core/src/test/java/com/zili/android/musicfreeandroid/core/lyric/LyricTimingTest.kt`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/LyricCacheEntity.kt`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/LyricCacheDao.kt`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/LyricCacheMapper.kt`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/LyricRepository.kt`
-- `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/LyricCacheDaoTest.kt`
-- `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/LyricRepositoryTest.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/LyricLoadState.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/LyricSearchModels.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoader.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsUiState.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperations.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricSearchSheet.kt`
-- `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoaderTest.kt`
+- `core/src/main/java/com/hank/musicfree/core/lyric/LyricParser.kt`
+- `core/src/main/java/com/hank/musicfree/core/lyric/LyricTiming.kt`
+- `core/src/main/java/com/hank/musicfree/core/model/ParsedLyricLine.kt`
+- `core/src/main/java/com/hank/musicfree/core/model/LyricDocument.kt`
+- `core/src/main/java/com/hank/musicfree/core/model/LyricSourceInfo.kt`
+- `core/src/main/java/com/hank/musicfree/core/model/RawLyricPayload.kt`
+- `core/src/test/java/com/hank/musicfree/core/lyric/LyricParserTest.kt`
+- `core/src/test/java/com/hank/musicfree/core/lyric/LyricTimingTest.kt`
+- `data/src/main/java/com/hank/musicfree/data/db/entity/LyricCacheEntity.kt`
+- `data/src/main/java/com/hank/musicfree/data/db/dao/LyricCacheDao.kt`
+- `data/src/main/java/com/hank/musicfree/data/mapper/LyricCacheMapper.kt`
+- `data/src/main/java/com/hank/musicfree/data/repository/LyricRepository.kt`
+- `data/src/androidTest/java/com/hank/musicfree/data/db/dao/LyricCacheDaoTest.kt`
+- `data/src/androidTest/java/com/hank/musicfree/data/repository/LyricRepositoryTest.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/LyricLoadState.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/LyricSearchModels.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoader.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsUiState.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperations.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricSearchSheet.kt`
+- `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoaderTest.kt`
 
 修改：
 
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginModels.kt`
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
-- `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt`
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
-- `data/src/test/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferencesTest.kt`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/db/converter/Converters.kt`
+- `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginModels.kt`
+- `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt`
+- `plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeTest.kt`
+- `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
+- `data/src/test/java/com/hank/musicfree/data/datastore/AppPreferencesTest.kt`
+- `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
+- `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`
+- `data/src/main/java/com/hank/musicfree/data/db/converter/Converters.kt`
 - `feature/player-ui/build.gradle.kts`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`
 - 仅当实施过程中 plan/spec 状态变化时修改 `docs/DOCS_STATUS.md`。
 
 ## 任务 1：Core 歌词领域模型与解析器
 
 **文件：**
 
-- 新建：`core/src/main/java/com/zili/android/musicfreeandroid/core/model/ParsedLyricLine.kt`
-- 新建：`core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricSourceInfo.kt`
-- 新建：`core/src/main/java/com/zili/android/musicfreeandroid/core/model/RawLyricPayload.kt`
-- 新建：`core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricDocument.kt`
-- 新建：`core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricParser.kt`
-- 新建：`core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricTiming.kt`
-- 测试：`core/src/test/java/com/zili/android/musicfreeandroid/core/lyric/LyricParserTest.kt`
-- 测试：`core/src/test/java/com/zili/android/musicfreeandroid/core/lyric/LyricTimingTest.kt`
+- 新建：`core/src/main/java/com/hank/musicfree/core/model/ParsedLyricLine.kt`
+- 新建：`core/src/main/java/com/hank/musicfree/core/model/LyricSourceInfo.kt`
+- 新建：`core/src/main/java/com/hank/musicfree/core/model/RawLyricPayload.kt`
+- 新建：`core/src/main/java/com/hank/musicfree/core/model/LyricDocument.kt`
+- 新建：`core/src/main/java/com/hank/musicfree/core/lyric/LyricParser.kt`
+- 新建：`core/src/main/java/com/hank/musicfree/core/lyric/LyricTiming.kt`
+- 测试：`core/src/test/java/com/hank/musicfree/core/lyric/LyricParserTest.kt`
+- 测试：`core/src/test/java/com/hank/musicfree/core/lyric/LyricTimingTest.kt`
 
 - [ ] **步骤 1：编写解析器测试**
 
-新建 `core/src/test/java/com/zili/android/musicfreeandroid/core/lyric/LyricParserTest.kt`：
+新建 `core/src/test/java/com/hank/musicfree/core/lyric/LyricParserTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.lyric
+package com.hank.musicfree.core.lyric
 
-import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
-import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
+import com.hank.musicfree.core.model.LyricSourceInfo
+import com.hank.musicfree.core.model.RawLyricPayload
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -183,12 +183,12 @@ class LyricParserTest {
 
 - [ ] **步骤 2：编写时序测试**
 
-新建 `core/src/test/java/com/zili/android/musicfreeandroid/core/lyric/LyricTimingTest.kt`：
+新建 `core/src/test/java/com/hank/musicfree/core/lyric/LyricTimingTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.lyric
+package com.hank.musicfree.core.lyric
 
-import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
+import com.hank.musicfree.core.model.ParsedLyricLine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -251,10 +251,10 @@ class LyricTimingTest {
 
 - [ ] **步骤 4：新增领域模型**
 
-新建 `core/src/main/java/com/zili/android/musicfreeandroid/core/model/ParsedLyricLine.kt`：
+新建 `core/src/main/java/com/hank/musicfree/core/model/ParsedLyricLine.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 data class ParsedLyricLine(
     val index: Int,
@@ -264,10 +264,10 @@ data class ParsedLyricLine(
 )
 ```
 
-新建 `core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricSourceInfo.kt`：
+新建 `core/src/main/java/com/hank/musicfree/core/model/LyricSourceInfo.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 sealed interface LyricSourceInfo {
     data class Plugin(val platform: String) : LyricSourceInfo
@@ -279,10 +279,10 @@ sealed interface LyricSourceInfo {
 }
 ```
 
-新建 `core/src/main/java/com/zili/android/musicfreeandroid/core/model/RawLyricPayload.kt`：
+新建 `core/src/main/java/com/hank/musicfree/core/model/RawLyricPayload.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 data class RawLyricPayload(
     val rawLrc: String? = null,
@@ -291,10 +291,10 @@ data class RawLyricPayload(
 )
 ```
 
-新建 `core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricDocument.kt`：
+新建 `core/src/main/java/com/hank/musicfree/core/model/LyricDocument.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 data class LyricDocument(
     val musicId: String,
@@ -313,15 +313,15 @@ data class LyricDocument(
 
 - [ ] **步骤 5：新增解析器和时序实现**
 
-新建 `core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricParser.kt`：
+新建 `core/src/main/java/com/hank/musicfree/core/lyric/LyricParser.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.lyric
+package com.hank.musicfree.core.lyric
 
-import com.zili.android.musicfreeandroid.core.model.LyricDocument
-import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
-import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
-import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
+import com.hank.musicfree.core.model.LyricDocument
+import com.hank.musicfree.core.model.LyricSourceInfo
+import com.hank.musicfree.core.model.ParsedLyricLine
+import com.hank.musicfree.core.model.RawLyricPayload
 
 object LyricParser {
     private val timeRegex = Regex("""\[(\d{1,2}:)?(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?]""")
@@ -417,12 +417,12 @@ object LyricParser {
 }
 ```
 
-新建 `core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricTiming.kt`：
+新建 `core/src/main/java/com/hank/musicfree/core/lyric/LyricTiming.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.lyric
+package com.hank.musicfree.core.lyric
 
-import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
+import com.hank.musicfree.core.model.ParsedLyricLine
 
 object LyricTiming {
     fun currentLineIndex(
@@ -462,14 +462,14 @@ object LyricTiming {
 - [ ] **步骤 7：提交**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/model/ParsedLyricLine.kt \
-  core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricSourceInfo.kt \
-  core/src/main/java/com/zili/android/musicfreeandroid/core/model/RawLyricPayload.kt \
-  core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricDocument.kt \
-  core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricParser.kt \
-  core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricTiming.kt \
-  core/src/test/java/com/zili/android/musicfreeandroid/core/lyric/LyricParserTest.kt \
-  core/src/test/java/com/zili/android/musicfreeandroid/core/lyric/LyricTimingTest.kt
+git add core/src/main/java/com/hank/musicfree/core/model/ParsedLyricLine.kt \
+  core/src/main/java/com/hank/musicfree/core/model/LyricSourceInfo.kt \
+  core/src/main/java/com/hank/musicfree/core/model/RawLyricPayload.kt \
+  core/src/main/java/com/hank/musicfree/core/model/LyricDocument.kt \
+  core/src/main/java/com/hank/musicfree/core/lyric/LyricParser.kt \
+  core/src/main/java/com/hank/musicfree/core/lyric/LyricTiming.kt \
+  core/src/test/java/com/hank/musicfree/core/lyric/LyricParserTest.kt \
+  core/src/test/java/com/hank/musicfree/core/lyric/LyricTimingTest.kt
 git commit -m "feat(core): add lyric parser domain"
 ```
 
@@ -477,9 +477,9 @@ git commit -m "feat(core): add lyric parser domain"
 
 **文件：**
 
-- 修改：`plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginModels.kt`
-- 修改：`plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
-- 修改：`plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt`
+- 修改：`plugin/src/main/java/com/hank/musicfree/plugin/api/PluginModels.kt`
+- 修改：`plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt`
+- 修改：`plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeTest.kt`
 
 - [ ] **步骤 1：扩展插件测试**
 
@@ -523,7 +523,7 @@ fun `parseLyricResult parses trans alias`() {
 
 - [ ] **步骤 3：扩展 `LyricResult`**
 
-修改 `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginModels.kt`：
+修改 `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginModels.kt`：
 
 ```kotlin
 data class LyricResult(
@@ -570,9 +570,9 @@ fun parseLyricResult(map: Map<String, Any?>): LyricResult {
 - [ ] **步骤 6：提交**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginModels.kt \
-  plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt \
-  plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/api/PluginModels.kt \
+  plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt \
+  plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeTest.kt
 git commit -m "feat(plugin): parse lyric translation payloads"
 ```
 
@@ -580,8 +580,8 @@ git commit -m "feat(plugin): parse lyric translation payloads"
 
 **文件：**
 
-- 修改：`data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
-- 修改：`data/src/test/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferencesTest.kt`
+- 修改：`data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
+- 修改：`data/src/test/java/com/hank/musicfree/data/datastore/AppPreferencesTest.kt`
 
 - [ ] **步骤 1：新增失败的偏好测试**
 
@@ -683,8 +683,8 @@ val KEY_LYRIC_AUTO_SEARCH_ENABLED = booleanPreferencesKey("lyric_auto_search_ena
 - [ ] **步骤 5：提交**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt \
-  data/src/test/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferencesTest.kt
+git add data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt \
+  data/src/test/java/com/hank/musicfree/data/datastore/AppPreferencesTest.kt
 git commit -m "feat(data): add lyric preferences"
 ```
 
@@ -692,26 +692,26 @@ git commit -m "feat(data): add lyric preferences"
 
 **文件：**
 
-- 新建：`data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/LyricCacheEntity.kt`
-- 新建：`data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/LyricCacheDao.kt`
-- 修改：`data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
-- 修改：`data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`
-- 修改：`data/src/main/java/com/zili/android/musicfreeandroid/data/db/converter/Converters.kt`
-- 新建：`data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/LyricCacheDaoTest.kt`
-- Schema: `data/schemas/com.zili.android.musicfreeandroid.data.db.AppDatabase/4.json`
+- 新建：`data/src/main/java/com/hank/musicfree/data/db/entity/LyricCacheEntity.kt`
+- 新建：`data/src/main/java/com/hank/musicfree/data/db/dao/LyricCacheDao.kt`
+- 修改：`data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
+- 修改：`data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`
+- 修改：`data/src/main/java/com/hank/musicfree/data/db/converter/Converters.kt`
+- 新建：`data/src/androidTest/java/com/hank/musicfree/data/db/dao/LyricCacheDaoTest.kt`
+- Schema: `data/schemas/com.hank.musicfree.data.db.AppDatabase/4.json`
 
 - [ ] **步骤 1：新增 DAO 测试**
 
 新建 `LyricCacheDaoTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.entity.LyricCacheEntity
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.entity.LyricCacheEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -804,7 +804,7 @@ class LyricCacheDaoTest {
 运行：
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.db.dao.LyricCacheDaoTest
+./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.db.dao.LyricCacheDaoTest
 ```
 
 预期：编译失败，提示 `LyricCacheEntity`、`LyricCacheDao`、`AppDatabase.lyricCacheDao()` 不存在。若未连接设备，运行 `./gradlew :data:compileDebugAndroidTestKotlin`，预期同样出现这些 unresolved reference 错误。
@@ -814,7 +814,7 @@ class LyricCacheDaoTest {
 新建 `LyricCacheEntity.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.entity
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.Entity
 
@@ -840,12 +840,12 @@ data class LyricCacheEntity(
 新建 `LyricCacheDao.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
-import com.zili.android.musicfreeandroid.data.db.entity.LyricCacheEntity
+import com.hank.musicfree.data.db.entity.LyricCacheEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -961,7 +961,7 @@ fun jsonToMusicItem(json: String?): MusicItem? {
 新增 import：
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 ```
 
 - [ ] **步骤 6：运行 Room 编译并生成 schema**
@@ -975,14 +975,14 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 预期：
 
 - `BUILD SUCCESSFUL`.
-- `data/schemas/com.zili.android.musicfreeandroid.data.db.AppDatabase/4.json` 已生成。
+- `data/schemas/com.hank.musicfree.data.db.AppDatabase/4.json` 已生成。
 
 - [ ] **步骤 7：运行 DAO 测试**
 
 有设备或模拟器时运行：
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.db.dao.LyricCacheDaoTest
+./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.db.dao.LyricCacheDaoTest
 ```
 
 没有设备时运行：
@@ -999,13 +999,13 @@ import com.zili.android.musicfreeandroid.core.model.MusicItem
 - [ ] **步骤 8：提交**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/LyricCacheEntity.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/LyricCacheDao.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/db/converter/Converters.kt \
-  data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/LyricCacheDaoTest.kt \
-  data/schemas/com.zili.android.musicfreeandroid.data.db.AppDatabase/4.json
+git add data/src/main/java/com/hank/musicfree/data/db/entity/LyricCacheEntity.kt \
+  data/src/main/java/com/hank/musicfree/data/db/dao/LyricCacheDao.kt \
+  data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt \
+  data/src/main/java/com/hank/musicfree/data/di/DataModule.kt \
+  data/src/main/java/com/hank/musicfree/data/db/converter/Converters.kt \
+  data/src/androidTest/java/com/hank/musicfree/data/db/dao/LyricCacheDaoTest.kt \
+  data/schemas/com.hank.musicfree.data.db.AppDatabase/4.json
 git commit -m "feat(data): add lyric cache table"
 ```
 
@@ -1013,25 +1013,25 @@ git commit -m "feat(data): add lyric cache table"
 
 **文件：**
 
-- 新建：`data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/LyricCacheMapper.kt`
-- 新建：`data/src/main/java/com/zili/android/musicfreeandroid/data/repository/LyricRepository.kt`
-- 新建：`data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/LyricRepositoryTest.kt`
+- 新建：`data/src/main/java/com/hank/musicfree/data/mapper/LyricCacheMapper.kt`
+- 新建：`data/src/main/java/com/hank/musicfree/data/repository/LyricRepository.kt`
+- 新建：`data/src/androidTest/java/com/hank/musicfree/data/repository/LyricRepositoryTest.kt`
 
 - [ ] **步骤 1：新增 repository 测试**
 
 新建 `LyricRepositoryTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.repository
+package com.hank.musicfree.data.repository
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.hank.musicfree.core.model.LyricSourceInfo
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RawLyricPayload
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.converter.Converters
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -1138,12 +1138,12 @@ class LyricRepositoryTest {
 新建 `LyricCacheMapper.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.mapper
+package com.hank.musicfree.data.mapper
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.entity.LyricCacheEntity
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RawLyricPayload
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.entity.LyricCacheEntity
 
 data class LyricCache(
     val musicId: String,
@@ -1181,16 +1181,16 @@ fun LyricCacheEntity.toModel(converters: Converters): LyricCache = LyricCache(
 新建 `LyricRepository.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.repository
+package com.hank.musicfree.data.repository
 
-import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.dao.LyricCacheDao
-import com.zili.android.musicfreeandroid.data.db.entity.LyricCacheEntity
-import com.zili.android.musicfreeandroid.data.mapper.LyricCache
-import com.zili.android.musicfreeandroid.data.mapper.toModel
+import com.hank.musicfree.core.model.LyricSourceInfo
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RawLyricPayload
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.LyricCacheDao
+import com.hank.musicfree.data.db.entity.LyricCacheEntity
+import com.hank.musicfree.data.mapper.LyricCache
+import com.hank.musicfree.data.mapper.toModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -1321,7 +1321,7 @@ private fun LyricSourceInfo.titleOrNull(): String? = when (this) {
 若当前有可用设备或模拟器：
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.LyricRepositoryTest
+./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.repository.LyricRepositoryTest
 ```
 
 预期： `BUILD SUCCESSFUL`.
@@ -1329,9 +1329,9 @@ private fun LyricSourceInfo.titleOrNull(): String? = when (this) {
 - [ ] **步骤 5：提交**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/LyricCacheMapper.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/repository/LyricRepository.kt \
-  data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/LyricRepositoryTest.kt
+git add data/src/main/java/com/hank/musicfree/data/mapper/LyricCacheMapper.kt \
+  data/src/main/java/com/hank/musicfree/data/repository/LyricRepository.kt \
+  data/src/androidTest/java/com/hank/musicfree/data/repository/LyricRepositoryTest.kt
 git commit -m "feat(data): add lyric repository"
 ```
 
@@ -1339,9 +1339,9 @@ git commit -m "feat(data): add lyric repository"
 
 **文件：**
 
-- 修改：`plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- 测试：`plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerUpdateFlowTest.kt`
-- 后续使用场景：`feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoaderTest.kt` 由任务 7 覆盖。
+- 修改：`plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- 测试：`plugin/src/test/java/com/hank/musicfree/plugin/manager/PluginManagerUpdateFlowTest.kt`
+- 后续使用场景：`feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoaderTest.kt` 由任务 7 覆盖。
 
 - [ ] **步骤 1：新增方法**
 
@@ -1371,7 +1371,7 @@ fun getLyricSearchablePlugins(): Flow<List<LoadedPlugin>> =
 - [ ] **步骤 3：提交**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt
 git commit -m "feat(plugin): expose lyric-searchable plugins"
 ```
 
@@ -1380,10 +1380,10 @@ git commit -m "feat(plugin): expose lyric-searchable plugins"
 **文件：**
 
 - 修改：`feature/player-ui/build.gradle.kts`
-- 新建：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/LyricLoadState.kt`
-- 新建：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/LyricSearchModels.kt`
-- 新建：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoader.kt`
-- 新建：`feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoaderTest.kt`
+- 新建：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/LyricLoadState.kt`
+- 新建：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/LyricSearchModels.kt`
+- 新建：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoader.kt`
+- 新建：`feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoaderTest.kt`
 
 - [ ] **步骤 1：新增 plugin 依赖**
 
@@ -1398,18 +1398,18 @@ implementation(project(":plugin"))
 新建 `PlayerLyricLoaderTest.kt`，包含三个初始测试：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.lyrics
+package com.hank.musicfree.feature.playerui.lyrics
 
-import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
-import com.zili.android.musicfreeandroid.data.mapper.LyricCache
-import com.zili.android.musicfreeandroid.data.repository.LyricRepository
-import com.zili.android.musicfreeandroid.plugin.api.LyricResult
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.api.SearchResult
-import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.core.model.LyricSourceInfo
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RawLyricPayload
+import com.hank.musicfree.data.mapper.LyricCache
+import com.hank.musicfree.data.repository.LyricRepository
+import com.hank.musicfree.plugin.api.LyricResult
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.api.SearchResult
+import com.hank.musicfree.plugin.manager.LoadedPlugin
+import com.hank.musicfree.plugin.manager.PluginManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -1563,10 +1563,10 @@ private fun plugin(
 新建 `LyricLoadState.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.lyrics
+package com.hank.musicfree.feature.playerui.lyrics
 
-import com.zili.android.musicfreeandroid.core.model.LyricDocument
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.LyricDocument
+import com.hank.musicfree.core.model.MusicItem
 
 sealed interface LyricLoadState {
     data object NoTrack : LyricLoadState
@@ -1584,10 +1584,10 @@ sealed interface LyricLoadState {
 新建 `LyricSearchModels.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.lyrics
+package com.hank.musicfree.feature.playerui.lyrics
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.plugin.api.PluginInfo
 
 data class LyricSearchGroup(
     val plugin: PluginInfo,
@@ -1601,16 +1601,16 @@ data class LyricSearchGroup(
 新建 `PlayerLyricLoader.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.lyrics
+package com.hank.musicfree.feature.playerui.lyrics
 
-import com.zili.android.musicfreeandroid.core.lyric.LyricParser
-import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RawLyricPayload
-import com.zili.android.musicfreeandroid.data.mapper.LyricCache
-import com.zili.android.musicfreeandroid.data.repository.LyricRepository
-import com.zili.android.musicfreeandroid.plugin.api.LyricResult
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.core.lyric.LyricParser
+import com.hank.musicfree.core.model.LyricSourceInfo
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RawLyricPayload
+import com.hank.musicfree.data.mapper.LyricCache
+import com.hank.musicfree.data.repository.LyricRepository
+import com.hank.musicfree.plugin.api.LyricResult
+import com.hank.musicfree.plugin.manager.PluginManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -1666,7 +1666,7 @@ class PlayerLyricLoader @Inject constructor(
 
     suspend fun associateLyric(music: MusicItem, target: MusicItem) = lyricRepository.associateLyric(music, target)
     suspend fun clearAssociatedLyric(music: MusicItem) = lyricRepository.clearAssociatedLyric(music)
-    suspend fun importLocalLyric(music: MusicItem, rawText: String, kind: com.zili.android.musicfreeandroid.data.repository.LocalLyricKind) =
+    suspend fun importLocalLyric(music: MusicItem, rawText: String, kind: com.hank.musicfree.data.repository.LocalLyricKind) =
         lyricRepository.importLocalLyric(music, rawText, kind)
     suspend fun deleteLocalLyric(music: MusicItem) = lyricRepository.deleteLocalLyric(music)
     suspend fun setLyricOffset(music: MusicItem, offsetMs: Long) = lyricRepository.setLyricOffset(music, offsetMs)
@@ -1721,10 +1721,10 @@ private fun RawLyricPayload.hasText() = !rawLrc.isNullOrBlank() || !rawLrcTxt.is
 
 ```bash
 git add feature/player-ui/build.gradle.kts \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/LyricLoadState.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/LyricSearchModels.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoader.kt \
-  feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoaderTest.kt
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/LyricLoadState.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/LyricSearchModels.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoader.kt \
+  feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoaderTest.kt
 git commit -m "feat(player-ui): add lyric loader"
 ```
 
@@ -1732,9 +1732,9 @@ git commit -m "feat(player-ui): add lyric loader"
 
 **文件：**
 
-- 新建：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsUiState.kt`
-- 修改：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- 修改：`feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
+- 新建：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsUiState.kt`
+- 修改：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- 修改：`feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`
 
 - [ ] **步骤 1：新增 ViewModel 测试**
 
@@ -1799,9 +1799,9 @@ whenever(appPreferences.lyricDetailFontSize).thenReturn(flowOf(1))
 新建 `PlayerLyricsUiState.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.lyrics
+package com.hank.musicfree.feature.playerui.lyrics
 
-import com.zili.android.musicfreeandroid.core.model.LyricDocument
+import com.hank.musicfree.core.model.LyricDocument
 
 data class PlayerLyricsUiState(
     val loadState: LyricLoadState = LyricLoadState.NoTrack,
@@ -1896,9 +1896,9 @@ fun seekToLyricLine(lineTimeMs: Long) {
 - [ ] **步骤 6：提交**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsUiState.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt \
-  feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsUiState.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt \
+  feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt
 git commit -m "feat(player-ui): expose lyrics state"
 ```
 
@@ -1906,9 +1906,9 @@ git commit -m "feat(player-ui): expose lyrics state"
 
 **文件：**
 
-- 新建：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt`
-- 新建：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperations.kt`
-- 修改：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+- 新建：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt`
+- 新建：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperations.kt`
+- 修改：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
 
 - [ ] **步骤 1：创建 `PlayerLyricsContent`**
 
@@ -2083,9 +2083,9 @@ when (contentPage) {
 - [ ] **步骤 5：提交**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperations.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperations.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt
 git commit -m "feat(player-ui): render playback lyrics"
 ```
 
@@ -2093,9 +2093,9 @@ git commit -m "feat(player-ui): render playback lyrics"
 
 **文件：**
 
-- 新建：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricSearchSheet.kt`
-- 修改：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- 修改：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
+- 新建：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricSearchSheet.kt`
+- 修改：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- 修改：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
 
 - [ ] **步骤 1：新增 ViewModel action**
 
@@ -2238,9 +2238,9 @@ AlertDialog(
 - [ ] **步骤 6：提交**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricSearchSheet.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricSearchSheet.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt
 git commit -m "feat(player-ui): add lyric operations"
 ```
 
@@ -2293,7 +2293,7 @@ adb devices
 
 ```bash
 ./gradlew :app:installDebug
-adb shell am start -n com.zili.android.musicfreeandroid/.MainActivity
+adb shell am start -n com.hank.musicfree/.MainActivity
 ```
 
 手动验收：

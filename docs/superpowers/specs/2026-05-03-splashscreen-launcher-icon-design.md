@@ -55,7 +55,7 @@ SplashScreen 由 AndroidX 与系统控制显示时机。实现不调用 `setKeep
 
 ### Activity
 
-- `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
+- `app/src/main/java/com/hank/musicfree/MainActivity.kt`
   - 引入 `androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen`。
   - 在 `onCreate()` 中、`super.onCreate(savedInstanceState)` 前调用 `installSplashScreen()`。
   - 保留现有 `enableEdgeToEdge()` 与 Compose `setContent` 流程。

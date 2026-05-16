@@ -1,0 +1,78 @@
+package com.hank.musicfree.feature.home
+
+import com.hank.musicfree.core.ui.FidelityAnchors
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class HomeAnchorContractTest {
+
+    @Test
+    fun `required home anchors are unique and non blank`() {
+        val anchors = listOf(
+            FidelityAnchors.Screen.HomeRoot,
+            FidelityAnchors.Home.NavBarRoot,
+            FidelityAnchors.Home.NavBarMenu,
+            FidelityAnchors.Home.NavBarSearch,
+            FidelityAnchors.Home.OperationsRoot,
+            FidelityAnchors.Home.OperationsRecommendSheets,
+            FidelityAnchors.Home.OperationsTopList,
+            FidelityAnchors.Home.OperationsHistory,
+            FidelityAnchors.Home.OperationsLocalMusic,
+            FidelityAnchors.Home.SheetsRoot,
+            FidelityAnchors.Home.SheetsMineTab,
+            FidelityAnchors.Home.SheetsStarredTab,
+            FidelityAnchors.Home.SheetsCreate,
+            FidelityAnchors.Home.SheetsImport,
+            FidelityAnchors.Home.DrawerRoot,
+            FidelityAnchors.Home.DrawerTitle,
+            FidelityAnchors.Home.DrawerSettings,
+            FidelityAnchors.Home.DrawerPluginManagement,
+            FidelityAnchors.Home.DrawerPermissions,
+            FidelityAnchors.Player.FullscreenRoot,
+            FidelityAnchors.Player.MiniRoot,
+            FidelityAnchors.Player.MiniPlayPause,
+            FidelityAnchors.Player.MiniQueue,
+        )
+
+        assertEquals(anchors.size, anchors.toSet().size)
+        assertTrue(anchors.all { it.isNotBlank() })
+    }
+
+    @Test
+    fun `DrawerMeListenStats anchor exists in drawer ui model`() {
+        val model = buildHomeDrawerUiModel("1.0", "")
+        val anchors = model.sections.flatMap { it.items }.map { it.anchorTag }
+        assertTrue(
+            FidelityAnchors.Home.DrawerMeListenStats in anchors
+        )
+    }
+
+    @Test
+    fun `expanded homepage fidelity anchors stay unique and non blank`() {
+        val anchors = listOf(
+            FidelityAnchors.Home.DrawerSettingsBasic,
+            FidelityAnchors.Home.DrawerSettingsPlugin,
+            FidelityAnchors.Home.DrawerSettingsTheme,
+            FidelityAnchors.Home.DrawerOtherScheduleClose,
+            FidelityAnchors.Home.DrawerOtherBackup,
+            FidelityAnchors.Home.DrawerOtherPermissions,
+            FidelityAnchors.Home.DrawerSoftwareCheckUpdate,
+            FidelityAnchors.Home.DrawerSoftwareAbout,
+            FidelityAnchors.Panel.TimingCloseRoot,
+            FidelityAnchors.Dialog.UpdateCheckRoot,
+            FidelityAnchors.Settings.ThemeEntry,
+            FidelityAnchors.Settings.BackupEntry,
+            FidelityAnchors.Settings.AboutEntry,
+            FidelityAnchors.Screen.PluginListRoot,
+            FidelityAnchors.Search.ResultMusicRow,
+            FidelityAnchors.Search.ResultMediaRow,
+            FidelityAnchors.Search.ResultSheetItem,
+            FidelityAnchors.RecommendSheets.Item,
+            FidelityAnchors.TopList.Item,
+        )
+
+        assertEquals(anchors.size, anchors.toSet().size)
+        assertTrue(anchors.all { it.isNotBlank() })
+    }
+}

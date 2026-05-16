@@ -17,6 +17,6 @@
 13. `userVariables`（读写存储）
 14. `subscription`（订阅源能力）
 
-实际能力以 `:plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginApi.kt` 为准；本表是 RN 对齐参考，不覆盖代码。
+实际能力以 `:plugin/src/main/java/com/hank/musicfree/plugin/api/PluginApi.kt` 为准；本表是 RN 对齐参考，不覆盖代码。
 
 require shim 支持：`cheerio`、`crypto-js`、`dayjs`、`axios`、`qs`、`he`、`big-integer`。

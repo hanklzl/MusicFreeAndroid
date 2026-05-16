@@ -27,7 +27,7 @@
 
 ### 包名约定
 
-所有代码位于 `com.zili.android.musicfreeandroid` 下，模块名对应子包：
+所有代码位于 `com.hank.musicfree` 下，模块名对应子包：
 - `:plugin` → `.plugin.*`
 - `:feature:settings` → `.feature.settings.*`
 - `:core` → `.core.*`
@@ -90,10 +90,10 @@
 ## Task 1: PluginMetaStore — DataStore 持久化层
 
 **Files:**
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStore.kt`
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/PluginMetaModule.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/meta/PluginMetaStore.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/di/PluginMetaModule.kt`
 - Modify: `plugin/build.gradle.kts`
-- Create: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStoreTest.kt`
+- Create: `plugin/src/test/java/com/hank/musicfree/plugin/meta/PluginMetaStoreTest.kt`
 
 ### 背景
 
@@ -117,10 +117,10 @@ testImplementation(libs.kotlinx.coroutines.test)
 
 - [ ] **Step 2: 创建 PluginMetaModule 提供 DataStore 实例**
 
-创建 `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/PluginMetaModule.kt`：
+创建 `plugin/src/main/java/com/hank/musicfree/plugin/di/PluginMetaModule.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.di
+package com.hank.musicfree.plugin.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -158,17 +158,17 @@ object PluginMetaModule {
 
 - [ ] **Step 3: 创建 PluginMetaStore**
 
-创建 `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStore.kt`：
+创建 `plugin/src/main/java/com/hank/musicfree/plugin/meta/PluginMetaStore.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.meta
+package com.hank.musicfree.plugin.meta
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import com.zili.android.musicfreeandroid.plugin.di.PluginMetaDataStore
+import com.hank.musicfree.plugin.di.PluginMetaDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
@@ -289,10 +289,10 @@ class PluginMetaStore @Inject constructor(
 
 - [ ] **Step 4: 编写 PluginMetaStore 测试**
 
-创建 `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStoreTest.kt`：
+创建 `plugin/src/test/java/com/hank/musicfree/plugin/meta/PluginMetaStoreTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.meta
+package com.hank.musicfree.plugin.meta
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -464,9 +464,9 @@ Expected: 全部 PASS（11 个测试）
 
 ```bash
 git add plugin/build.gradle.kts \
-  plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStore.kt \
-  plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/PluginMetaModule.kt \
-  plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStoreTest.kt
+  plugin/src/main/java/com/hank/musicfree/plugin/meta/PluginMetaStore.kt \
+  plugin/src/main/java/com/hank/musicfree/plugin/di/PluginMetaModule.kt \
+  plugin/src/test/java/com/hank/musicfree/plugin/meta/PluginMetaStoreTest.kt
 git commit -m "feat(plugin): add PluginMetaStore for plugin metadata persistence"
 ```
 
@@ -475,8 +475,8 @@ git commit -m "feat(plugin): add PluginMetaStore for plugin metadata persistence
 ## Task 2: PluginInfo 字段补全 + extractPluginInfo 改造
 
 **Files:**
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt` (extractPluginInfo 方法，约第 758-796 行)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt` (extractPluginInfo 方法，约第 758-796 行)
 
 ### 背景
 
@@ -486,10 +486,10 @@ git commit -m "feat(plugin): add PluginMetaStore for plugin metadata persistence
 
 - [ ] **Step 1: 修改 PluginInfo 数据类**
 
-修改 `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`：
+修改 `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.api
+package com.hank.musicfree.plugin.api
 
 data class PluginInfo(
     val platform: String,
@@ -618,8 +618,8 @@ Expected: 全部 PASS
 - [ ] **Step 5: 提交**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt \
-  plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt \
+  plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt
 git commit -m "feat(plugin): add appVersion/primaryKey/defaultSearchType/cacheControl/hints to PluginInfo"
 ```
 
@@ -628,7 +628,7 @@ git commit -m "feat(plugin): add appVersion/primaryKey/defaultSearchType/cacheCo
 ## Task 3: env 注入补全
 
 **Files:**
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt` (loadPluginFromFile 方法，约第 698-753 行)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt` (loadPluginFromFile 方法，约第 698-753 行)
 
 ### 背景
 
@@ -676,7 +676,7 @@ class PluginManager @Inject constructor(
 
 添加 import：
 ```kotlin
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.hank.musicfree.plugin.meta.PluginMetaStore
 ```
 
 - [ ] **Step 2: 修改 loadPluginFromFile 中的 env 注入**
@@ -846,7 +846,7 @@ Expected: 全部 PASS（PluginMetaStore 测试 + 现有测试）
 - [ ] **Step 5: 提交**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt
 git commit -m "feat(plugin): inject full env object (appVersion, lang, getUserVariables) into JS plugins"
 ```
 
@@ -855,7 +855,7 @@ git commit -m "feat(plugin): inject full env object (appVersion, lang, getUserVa
 ## Task 4: PluginManager 整合 PluginMetaStore — 排序/过滤 API
 
 **Files:**
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
 
 ### 背景
 
@@ -936,7 +936,7 @@ Expected: 全部 PASS
 - [ ] **Step 4: 提交**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt
 git commit -m "feat(plugin): add getSortedEnabledPlugins/getSearchablePlugins/setPluginEnabled/setPluginOrder"
 ```
 
@@ -945,10 +945,10 @@ git commit -m "feat(plugin): add getSortedEnabledPlugins/getSearchablePlugins/se
 ## Task 5: 路由定义 + reorderable 依赖 + 页面切换动画
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
 - Modify: `gradle/libs.versions.toml`
 - Modify: `feature/settings/build.gradle.kts`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
 
 ### 背景
 
@@ -958,7 +958,7 @@ Navigation Compose 2.9.0 支持在 `NavHost` 或每个 `composable` 上设置 `e
 
 - [ ] **Step 1: 添加路由定义**
 
-在 `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt` 文件末尾（`ArtistDetailRoute` 之后）追加：
+在 `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt` 文件末尾（`ArtistDetailRoute` 之后）追加：
 
 ```kotlin
 @Serializable
@@ -995,15 +995,15 @@ implementation(libs.reorderable)
 
 - [ ] **Step 4: 配置全局页面切换动画**
 
-修改 `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`。
+修改 `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`。
 
 添加 import：
 ```kotlin
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
-import com.zili.android.musicfreeandroid.core.navigation.PluginListRoute
-import com.zili.android.musicfreeandroid.core.navigation.PluginSortRoute
-import com.zili.android.musicfreeandroid.core.navigation.PluginSubscriptionRoute
+import com.hank.musicfree.core.navigation.PluginListRoute
+import com.hank.musicfree.core.navigation.PluginSortRoute
+import com.hank.musicfree.core.navigation.PluginSubscriptionRoute
 ```
 
 修改 NavHost 配置，从：
@@ -1063,10 +1063,10 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 6: 提交**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt \
+git add core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt \
   gradle/libs.versions.toml \
   feature/settings/build.gradle.kts \
-  app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt
+  app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt
 git commit -m "feat: add plugin management routes, global slide animation, reorderable dependency"
 ```
 
@@ -1075,10 +1075,10 @@ git commit -m "feat: add plugin management routes, global slide animation, reord
 ## Task 6: PluginListScreen + PluginListViewModel
 
 **Files:**
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt`
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt`
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/navigation/PluginListNavigation.kt`
-- Create: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModelTest.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/navigation/PluginListNavigation.kt`
+- Create: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModelTest.kt`
 
 ### 背景
 
@@ -1088,16 +1088,16 @@ git commit -m "feat: add plugin management routes, global slide animation, reord
 
 - [ ] **Step 1: 创建 PluginListViewModel**
 
-创建 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt`：
+创建 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginlist
+package com.hank.musicfree.feature.settings.pluginlist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.plugin.meta.PluginMetaStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -1266,10 +1266,10 @@ class PluginListViewModel @Inject constructor(
 
 - [ ] **Step 2: 创建 PluginListScreen**
 
-创建 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt`：
+创建 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginlist
+package com.hank.musicfree.feature.settings.pluginlist
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -1291,7 +1291,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.ui.rpx
+import com.hank.musicfree.core.ui.rpx
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1611,15 +1611,15 @@ private fun InstallLocalDialog(
 
 - [ ] **Step 3: 创建导航注册**
 
-创建 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/navigation/PluginListNavigation.kt`：
+创建 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/navigation/PluginListNavigation.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginlist.navigation
+package com.hank.musicfree.feature.settings.pluginlist.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.PluginListRoute
-import com.zili.android.musicfreeandroid.feature.settings.pluginlist.PluginListScreen
+import com.hank.musicfree.core.navigation.PluginListRoute
+import com.hank.musicfree.feature.settings.pluginlist.PluginListScreen
 
 fun NavGraphBuilder.pluginListScreen(
     onBack: () -> Unit,
@@ -1649,7 +1649,7 @@ Expected: BUILD SUCCESSFUL（可能需要修复 import 和 API 不匹配问题�
 - [ ] **Step 5: 提交**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/
 git commit -m "feat(settings): add PluginListScreen with enable/disable, install, update, uninstall"
 ```
 
@@ -1658,9 +1658,9 @@ git commit -m "feat(settings): add PluginListScreen with enable/disable, install
 ## Task 7: PluginSortScreen + PluginSortViewModel
 
 **Files:**
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/PluginSortViewModel.kt`
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/PluginSortScreen.kt`
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/navigation/PluginSortNavigation.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/PluginSortViewModel.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/PluginSortScreen.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/navigation/PluginSortNavigation.kt`
 
 ### 背景
 
@@ -1668,14 +1668,14 @@ git commit -m "feat(settings): add PluginListScreen with enable/disable, install
 
 - [ ] **Step 1: 创建 PluginSortViewModel**
 
-创建 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/PluginSortViewModel.kt`：
+创建 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/PluginSortViewModel.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginsort
+package com.hank.musicfree.feature.settings.pluginsort
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -1725,10 +1725,10 @@ class PluginSortViewModel @Inject constructor(
 
 - [ ] **Step 2: 创建 PluginSortScreen**
 
-创建 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/PluginSortScreen.kt`：
+创建 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/PluginSortScreen.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginsort
+package com.hank.musicfree.feature.settings.pluginsort
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -1743,7 +1743,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.ui.rpx
+import com.hank.musicfree.core.ui.rpx
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -1823,15 +1823,15 @@ fun PluginSortScreen(
 
 - [ ] **Step 3: 创建导航注册**
 
-创建 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/navigation/PluginSortNavigation.kt`：
+创建 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/navigation/PluginSortNavigation.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginsort.navigation
+package com.hank.musicfree.feature.settings.pluginsort.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.PluginSortRoute
-import com.zili.android.musicfreeandroid.feature.settings.pluginsort.PluginSortScreen
+import com.hank.musicfree.core.navigation.PluginSortRoute
+import com.hank.musicfree.feature.settings.pluginsort.PluginSortScreen
 
 fun NavGraphBuilder.pluginSortScreen(
     onBack: () -> Unit,
@@ -1853,7 +1853,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 5: 提交**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/
 git commit -m "feat(settings): add PluginSortScreen with drag-to-reorder"
 ```
 
@@ -1862,9 +1862,9 @@ git commit -m "feat(settings): add PluginSortScreen with drag-to-reorder"
 ## Task 8: PluginSubscriptionScreen + PluginSubscriptionViewModel
 
 **Files:**
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/PluginSubscriptionViewModel.kt`
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/PluginSubscriptionScreen.kt`
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/navigation/PluginSubscriptionNavigation.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/PluginSubscriptionViewModel.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/PluginSubscriptionScreen.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/navigation/PluginSubscriptionNavigation.kt`
 
 ### 背景
 
@@ -1872,16 +1872,16 @@ git commit -m "feat(settings): add PluginSortScreen with drag-to-reorder"
 
 - [ ] **Step 1: 创建 PluginSubscriptionViewModel**
 
-创建 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/PluginSubscriptionViewModel.kt`：
+创建 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/PluginSubscriptionViewModel.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginsub
+package com.hank.musicfree.feature.settings.pluginsub
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
-import com.zili.android.musicfreeandroid.plugin.meta.SubscriptionItem
+import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.plugin.meta.PluginMetaStore
+import com.hank.musicfree.plugin.meta.SubscriptionItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -1918,10 +1918,10 @@ class PluginSubscriptionViewModel @Inject constructor(
 
 - [ ] **Step 2: 创建 PluginSubscriptionScreen**
 
-创建 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/PluginSubscriptionScreen.kt`：
+创建 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/PluginSubscriptionScreen.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginsub
+package com.hank.musicfree.feature.settings.pluginsub
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -1943,8 +1943,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.ui.rpx
-import com.zili.android.musicfreeandroid.plugin.meta.SubscriptionItem
+import com.hank.musicfree.core.ui.rpx
+import com.hank.musicfree.plugin.meta.SubscriptionItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -2110,15 +2110,15 @@ fun PluginSubscriptionScreen(
 
 - [ ] **Step 3: 创建导航注册**
 
-创建 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/navigation/PluginSubscriptionNavigation.kt`：
+创建 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/navigation/PluginSubscriptionNavigation.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginsub.navigation
+package com.hank.musicfree.feature.settings.pluginsub.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.PluginSubscriptionRoute
-import com.zili.android.musicfreeandroid.feature.settings.pluginsub.PluginSubscriptionScreen
+import com.hank.musicfree.core.navigation.PluginSubscriptionRoute
+import com.hank.musicfree.feature.settings.pluginsub.PluginSubscriptionScreen
 
 fun NavGraphBuilder.pluginSubscriptionScreen(
     onBack: () -> Unit,
@@ -2140,7 +2140,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 5: 提交**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/
 git commit -m "feat(settings): add PluginSubscriptionScreen with CRUD for subscription sources"
 ```
 
@@ -2149,10 +2149,10 @@ git commit -m "feat(settings): add PluginSubscriptionScreen with CRUD for subscr
 ## Task 9: AppNavHost 注册新页面 + SettingsScreen 迁移
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/navigation/SettingsNavigation.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/navigation/SettingsNavigation.kt`
 
 ### 背景
 
@@ -2160,15 +2160,15 @@ git commit -m "feat(settings): add PluginSubscriptionScreen with CRUD for subscr
 
 - [ ] **Step 1: 修改 SettingsNavigation 添加新回调**
 
-修改 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/navigation/SettingsNavigation.kt`：
+修改 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/navigation/SettingsNavigation.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.navigation
+package com.hank.musicfree.feature.settings.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
-import com.zili.android.musicfreeandroid.feature.settings.SettingsScreen
+import com.hank.musicfree.core.navigation.SettingsRoute
+import com.hank.musicfree.feature.settings.SettingsScreen
 
 fun NavGraphBuilder.settingsScreen(
     onBack: () -> Unit,
@@ -2191,7 +2191,7 @@ fun NavGraphBuilder.settingsScreen(
 
 - [ ] **Step 2: 精简 SettingsScreen**
 
-修改 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`。
+修改 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`。
 
 核心改动：
 1. 添加 `onNavigateToPluginList: () -> Unit` 参数
@@ -2219,7 +2219,7 @@ item {
 
 - [ ] **Step 3: 精简 SettingsViewModel**
 
-修改 `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`。
+修改 `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`。
 
 移除：
 - `plugins` StateFlow（第 44-46 行）
@@ -2241,13 +2241,13 @@ item {
 
 - [ ] **Step 4: 在 AppNavHost 中注册新页面**
 
-修改 `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`。
+修改 `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`。
 
 添加 import：
 ```kotlin
-import com.zili.android.musicfreeandroid.feature.settings.pluginlist.navigation.pluginListScreen
-import com.zili.android.musicfreeandroid.feature.settings.pluginsort.navigation.pluginSortScreen
-import com.zili.android.musicfreeandroid.feature.settings.pluginsub.navigation.pluginSubscriptionScreen
+import com.hank.musicfree.feature.settings.pluginlist.navigation.pluginListScreen
+import com.hank.musicfree.feature.settings.pluginsort.navigation.pluginSortScreen
+import com.hank.musicfree.feature.settings.pluginsub.navigation.pluginSubscriptionScreen
 ```
 
 修改 `settingsScreen` 调用，添加新回调：
@@ -2296,10 +2296,10 @@ Expected: PASS（SettingsViewModelTest 可能需要更新以反映移除的方�
 - [ ] **Step 7: 提交**
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/navigation/SettingsNavigation.kt
+git add app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/navigation/SettingsNavigation.kt
 git commit -m "refactor(settings): migrate plugin management to dedicated pages, simplify SettingsScreen"
 ```
 
@@ -2308,9 +2308,9 @@ git commit -m "refactor(settings): migrate plugin management to dedicated pages,
 ## Task 10: 更新现有测试 + 新增 ViewModel 测试
 
 **Files:**
-- Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt`
-- Create: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModelTest.kt`
-- Create: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/PluginSubscriptionViewModelTest.kt`
+- Modify: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt`
+- Create: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModelTest.kt`
+- Create: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginsub/PluginSubscriptionViewModelTest.kt`
 
 ### 背景
 
@@ -2318,21 +2318,21 @@ SettingsViewModelTest 中测试了被移除的插件操作方法（如 `installD
 
 - [ ] **Step 1: 清理 SettingsViewModelTest**
 
-检查 `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt` 中引用 `installFromUrl`、`installDefaultSubscription`、`updatePlugin`、`uninstallPlugin`、`InstallState` 的测试用例，将它们**删除**。保留与 `storageAccessState` 相关的测试。
+检查 `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt` 中引用 `installFromUrl`、`installDefaultSubscription`、`updatePlugin`、`uninstallPlugin`、`InstallState` 的测试用例，将它们**删除**。保留与 `storageAccessState` 相关的测试。
 
 如果清理后文件中没有剩余测试，可以保留文件骨架或删除整个文件。
 
 - [ ] **Step 2: 创建 PluginListViewModelTest**
 
-创建 `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModelTest.kt`：
+创建 `feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModelTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginlist
+package com.hank.musicfree.feature.settings.pluginlist
 
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.manager.LoadedPlugin
+import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.plugin.meta.PluginMetaStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -2343,7 +2343,7 @@ import org.junit.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
-import com.zili.android.musicfreeandroid.feature.settings.MainDispatcherRule
+import com.hank.musicfree.feature.settings.MainDispatcherRule
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PluginListViewModelTest {

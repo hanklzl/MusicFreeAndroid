@@ -21,14 +21,14 @@
 
 Android 当前相关代码：
 
-- 播放详情页入口：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- 播放详情页 ViewModel：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- 播放控制器：`player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- 播放队列：`player/src/main/java/com/zili/android/musicfreeandroid/player/queue/PlayQueue.kt`
-- 播放状态：`player/src/main/java/com/zili/android/musicfreeandroid/player/model/PlayerState.kt`
-- 播放模式模型：`core/src/main/java/com/zili/android/musicfreeandroid/core/model/RepeatMode.kt`
-- 歌词内容组件：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt`
-- 歌词点击返回相关测试：`feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContentTest.kt`
+- 播放详情页入口：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- 播放详情页 ViewModel：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- 播放控制器：`player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- 播放队列：`player/src/main/java/com/hank/musicfree/player/queue/PlayQueue.kt`
+- 播放状态：`player/src/main/java/com/hank/musicfree/player/model/PlayerState.kt`
+- 播放模式模型：`core/src/main/java/com/hank/musicfree/core/model/RepeatMode.kt`
+- 歌词内容组件：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt`
+- 歌词点击返回相关测试：`feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContentTest.kt`
 
 已确认事实：
 
@@ -43,7 +43,7 @@ Android 当前相关代码：
 - `PlayerLyricsContentTest` 当前已有“点击歌词文本返回封面”的测试，focused test 已通过：
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsContentTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.lyrics.PlayerLyricsContentTest
 ```
 
 RN 原版参考：

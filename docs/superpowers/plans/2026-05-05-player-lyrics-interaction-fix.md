@@ -12,35 +12,35 @@
 
 ## File Structure
 
-- Create `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsInteraction.kt`
+- Create `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsInteraction.kt`
   - Pure helpers and test tags for lyric scroll gates, center-line targeting, no-lyric/search nodes, and overlay eligibility.
-- Create `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsInteractionTest.kt`
+- Create `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsInteractionTest.kt`
   - JVM tests for the pure helpers.
-- Modify `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt`
+- Modify `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt`
   - Use interaction helpers, split no-lyric UI, add centered programmatic scroll, distinguish user scroll from programmatic scroll, update overlay layout, add highlight animation.
-- Modify `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+- Modify `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
   - Pass `state.isPlaying` into `PlayerLyricsContent`.
-- Modify `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
+- Modify `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
   - Stabilize presentation state so same-track transient loading does not erase displayed lyrics.
-- Modify `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContentTest.kt`
+- Modify `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContentTest.kt`
   - Compose tests for split no-lyric UI, tap behavior, manual overlay, and no overlay during programmatic scroll.
-- Modify `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoaderTest.kt`
+- Modify `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoaderTest.kt`
   - Add loader regression coverage for no-lyric finality and ready-state stability.
 
 ## Task 1: Pure Lyric Interaction Helpers
 
 **Files:**
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsInteraction.kt`
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsInteractionTest.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsInteraction.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsInteractionTest.kt`
 
 - [ ] **Step 1: Write failing helper tests**
 
-Create `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsInteractionTest.kt`:
+Create `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsInteractionTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.lyrics
+package com.hank.musicfree.feature.playerui.lyrics
 
-import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
+import com.hank.musicfree.core.model.ParsedLyricLine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -208,12 +208,12 @@ Expected: FAIL with unresolved references such as `initialLyricScrollIndex`, `Vi
 
 - [ ] **Step 3: Add helper implementation**
 
-Create `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsInteraction.kt`:
+Create `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsInteraction.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.lyrics
+package com.hank.musicfree.feature.playerui.lyrics
 
-import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
+import com.hank.musicfree.core.model.ParsedLyricLine
 import kotlin.math.abs
 
 internal const val PlayerLyricsContentTestTag = "player.lyrics.content"
@@ -337,17 +337,17 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsInteraction.kt \
-  feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsInteractionTest.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsInteraction.kt \
+  feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsInteractionTest.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt
 git commit -m "test(player): add lyric interaction helpers"
 ```
 
 ## Task 2: Stabilize Lyric Presentation State
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoaderTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoaderTest.kt`
 
 - [ ] **Step 1: Add loader regression tests**
 
@@ -532,17 +532,17 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoader.kt \
-  feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoaderTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoader.kt \
+  feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoaderTest.kt
 git commit -m "fix(player): stabilize lyric loading presentation"
 ```
 
 ## Task 3: Split No-Lyric Status and Search Action
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContentTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContentTest.kt`
 
 - [ ] **Step 1: Add Compose tests for no-lyric split**
 
@@ -693,18 +693,18 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt \
-  feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContentTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt \
+  feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContentTest.kt
 git commit -m "fix(player): split lyric empty state actions"
 ```
 
 ## Task 4: Centered Auto-Follow, Manual Overlay, and Smooth Highlight
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsUiState.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContentTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsUiState.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContentTest.kt`
 
 - [ ] **Step 1: Add Compose tests for overlay gates and seek button**
 
@@ -782,10 +782,10 @@ Expected: FAIL because `PlayerLyricsContent` has no `isPlaying` parameter and `P
 Modify `PlayerLyricsUiState.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.lyrics
+package com.hank.musicfree.feature.playerui.lyrics
 
-import com.zili.android.musicfreeandroid.core.model.LyricDocument
-import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
+import com.hank.musicfree.core.model.LyricDocument
+import com.hank.musicfree.core.model.ParsedLyricLine
 
 data class PlayerLyricsUiState(
     val loadState: LyricLoadState = LyricLoadState.NoTrack,
@@ -1138,10 +1138,10 @@ Expected: PASS.
 - [ ] **Step 18: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContent.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsUiState.kt \
-  feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt \
-  feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContentTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContent.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsUiState.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt \
+  feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContentTest.kt
 git commit -m "fix(player): align lyric scroll and seek overlay"
 ```
 
@@ -1208,8 +1208,8 @@ Manual runtime checklist:
 If Step 1 or Step 2 required fixes, commit them:
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui \
-  feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui \
+  feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics
 git commit -m "fix(player): finish lyric interaction verification"
 ```
 

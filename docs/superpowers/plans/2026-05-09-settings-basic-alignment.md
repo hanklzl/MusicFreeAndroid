@@ -23,50 +23,50 @@ Do not implement excluded runtime systems in this plan.
 
 ## File Structure
 
-- Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
+- Modify `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
   - Owns `SettingsType` and typed `SettingsRoute`.
-- Modify `app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt`
+- Modify `app/src/test/java/com/hank/musicfree/RoutesTest.kt`
   - Proves typed settings routes serialize and default to Basic.
-- Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
+- Modify `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
   - Adds Basic settings anchors and preserves existing settings entry anchors.
 - Modify `feature/settings/build.gradle.kts`
   - Adds Robolectric Compose UI test dependencies.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`
   - Owns `BasicSettingsUiState` and DataStore-backed setters.
-- Modify `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt`
+- Modify `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt`
   - Verifies Basic settings state and setters.
-- Create `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/components/SettingsRows.kt`
+- Create `feature/settings/src/main/java/com/hank/musicfree/feature/settings/components/SettingsRows.kt`
   - Reusable card and row components for settings pages.
-- Create `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/components/SettingsRowsTest.kt`
+- Create `feature/settings/src/test/java/com/hank/musicfree/feature/settings/components/SettingsRowsTest.kt`
   - Verifies row enabled/disabled behavior.
-- Create `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/BasicSettingsContent.kt`
+- Create `feature/settings/src/main/java/com/hank/musicfree/feature/settings/BasicSettingsContent.kt`
   - Stateless Basic settings content with RN section order.
-- Create `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/BasicSettingsContentTest.kt`
+- Create `feature/settings/src/test/java/com/hank/musicfree/feature/settings/BasicSettingsContentTest.kt`
   - Verifies section visibility, enabled rows, disabled rows, and dialog behavior.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
   - Switches between `SettingsType` pages.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/navigation/SettingsNavigation.kt`
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/navigation/SettingsNavigation.kt`
   - Passes route type into `SettingsScreen`.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
   - Sends drawer settings entries to typed settings routes.
-- Modify `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
+- Modify `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
   - Navigates to typed settings routes and keeps plugin list navigation.
-- Modify `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt`
+- Modify `app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt`
   - Verifies drawer entries land on the right typed settings pages.
 
 ## Task 1: Typed Settings Route
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
-- Modify: `app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
+- Modify: `app/src/test/java/com/hank/musicfree/RoutesTest.kt`
 
 - [ ] **Step 1: Write failing route serialization tests**
 
-Update imports in `app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt`:
+Update imports in `app/src/test/java/com/hank/musicfree/RoutesTest.kt`:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
-import com.zili.android.musicfreeandroid.core.navigation.SettingsType
+import com.hank.musicfree.core.navigation.SettingsRoute
+import com.hank.musicfree.core.navigation.SettingsType
 ```
 
 Replace the existing `SettingsRoute is serializable` test with:
@@ -102,14 +102,14 @@ fun `SettingsRoute serializes every supported type`() {
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.RoutesTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.RoutesTest"
 ```
 
 Expected: compile failure mentioning unresolved `SettingsType` or no constructor for `SettingsRoute()`.
 
 - [ ] **Step 3: Implement typed route**
 
-In `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`, replace:
+In `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`, replace:
 
 ```kotlin
 @Serializable
@@ -139,7 +139,7 @@ data class SettingsRoute(
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.RoutesTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.RoutesTest"
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -147,14 +147,14 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 5: Commit typed route**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt
+git add core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt app/src/test/java/com/hank/musicfree/RoutesTest.kt
 git commit -m "feat(settings): add typed settings route"
 ```
 
 ## Task 2: Settings Anchors And Test Dependencies
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
 - Modify: `feature/settings/build.gradle.kts`
 
 - [ ] **Step 1: Add anchors for typed settings pages**
@@ -212,15 +212,15 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 4: Commit anchors and dependencies**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt feature/settings/build.gradle.kts
+git add core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt feature/settings/build.gradle.kts
 git commit -m "test(settings): add anchors and compose test support"
 ```
 
 ## Task 3: Basic Settings ViewModel State
 
 **Files:**
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`
-- Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`
+- Modify: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt`
 
 - [ ] **Step 1: Add failing ViewModel tests**
 
@@ -234,7 +234,7 @@ fun `basic settings state exposes default runtime-backed preferences`() = runTes
     val state = viewModel.basicSettingsUiState.value
 
     assertEquals(3, state.maxDownload)
-    assertEquals(com.zili.android.musicfreeandroid.core.model.PlayQuality.STANDARD, state.defaultDownloadQuality)
+    assertEquals(com.hank.musicfree.core.model.PlayQuality.STANDARD, state.defaultDownloadQuality)
     assertEquals(false, state.useCellularDownload)
     assertEquals(true, state.lyricAutoSearchEnabled)
     assertTrue(!state.storageAccessState.isConfigured)
@@ -246,13 +246,13 @@ fun `basic settings setters persist runtime-backed preferences`() = runTest(main
     val viewModel = createViewModel(appPreferences)
 
     viewModel.setMaxDownload(7)
-    viewModel.setDefaultDownloadQuality(com.zili.android.musicfreeandroid.core.model.PlayQuality.SUPER)
+    viewModel.setDefaultDownloadQuality(com.hank.musicfree.core.model.PlayQuality.SUPER)
     viewModel.setUseCellularDownload(true)
     viewModel.setLyricAutoSearchEnabled(false)
     advanceUntilIdle()
 
     assertEquals(7, appPreferences.maxDownload.first())
-    assertEquals(com.zili.android.musicfreeandroid.core.model.PlayQuality.SUPER, appPreferences.defaultDownloadQuality.first())
+    assertEquals(com.hank.musicfree.core.model.PlayQuality.SUPER, appPreferences.defaultDownloadQuality.first())
     assertEquals(true, appPreferences.useCellularDownload.first())
     assertEquals(false, appPreferences.lyricAutoSearchEnabled.first())
 }
@@ -263,7 +263,7 @@ fun `basic settings setters persist runtime-backed preferences`() = runTest(main
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.settings.SettingsViewModelTest"
+./gradlew :feature:settings:testDebugUnitTest --tests "com.hank.musicfree.feature.settings.SettingsViewModelTest"
 ```
 
 Expected: compile failure for unresolved `basicSettingsUiState` and `setLyricAutoSearchEnabled`.
@@ -273,13 +273,13 @@ Expected: compile failure for unresolved `basicSettingsUiState` and `setLyricAut
 Replace `SettingsViewModel.kt` with this content:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings
+package com.hank.musicfree.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.storage.DocumentTreeDirectory
-import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.storage.DocumentTreeDirectory
+import com.hank.musicfree.data.datastore.AppPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -359,7 +359,7 @@ class SettingsViewModel @Inject constructor(
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.settings.SettingsViewModelTest"
+./gradlew :feature:settings:testDebugUnitTest --tests "com.hank.musicfree.feature.settings.SettingsViewModelTest"
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -367,22 +367,22 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 5: Commit ViewModel state**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt
 git commit -m "feat(settings): expose basic settings state"
 ```
 
 ## Task 4: Reusable Settings Rows
 
 **Files:**
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/components/SettingsRows.kt`
-- Create: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/components/SettingsRowsTest.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/components/SettingsRows.kt`
+- Create: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/components/SettingsRowsTest.kt`
 
 - [ ] **Step 1: Write row component tests**
 
 Create `SettingsRowsTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.components
+package com.hank.musicfree.feature.settings.components
 
 import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
@@ -390,7 +390,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -480,7 +480,7 @@ class SettingsRowsTest {
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.settings.components.SettingsRowsTest"
+./gradlew :feature:settings:testDebugUnitTest --tests "com.hank.musicfree.feature.settings.components.SettingsRowsTest"
 ```
 
 Expected: compile failure for unresolved row components.
@@ -490,7 +490,7 @@ Expected: compile failure for unresolved row components.
 Create `SettingsRows.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.components
+package com.hank.musicfree.feature.settings.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -511,9 +511,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import com.zili.android.musicfreeandroid.core.theme.FontSizes
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.hank.musicfree.core.theme.FontSizes
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.rpx
 
 @Composable
 fun SettingSectionCard(
@@ -656,7 +656,7 @@ private fun SettingRowShell(
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.settings.components.SettingsRowsTest"
+./gradlew :feature:settings:testDebugUnitTest --tests "com.hank.musicfree.feature.settings.components.SettingsRowsTest"
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -664,31 +664,31 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 5: Commit row components**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/components/SettingsRows.kt feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/components/SettingsRowsTest.kt
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/components/SettingsRows.kt feature/settings/src/test/java/com/hank/musicfree/feature/settings/components/SettingsRowsTest.kt
 git commit -m "feat(settings): add reusable setting rows"
 ```
 
 ## Task 5: Basic Settings Content
 
 **Files:**
-- Create: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/BasicSettingsContent.kt`
-- Create: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/BasicSettingsContentTest.kt`
+- Create: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/BasicSettingsContent.kt`
+- Create: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/BasicSettingsContentTest.kt`
 
 - [ ] **Step 1: Write Basic content tests**
 
 Create `BasicSettingsContentTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings
+package com.hank.musicfree.feature.settings
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.ui.FidelityAnchors
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -768,7 +768,7 @@ class BasicSettingsContentTest {
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.settings.BasicSettingsContentTest"
+./gradlew :feature:settings:testDebugUnitTest --tests "com.hank.musicfree.feature.settings.BasicSettingsContentTest"
 ```
 
 Expected: compile failure for unresolved `BasicSettingsContent`.
@@ -778,7 +778,7 @@ Expected: compile failure for unresolved `BasicSettingsContent`.
 Create `BasicSettingsContent.kt` with this content:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings
+package com.hank.musicfree.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
@@ -797,13 +797,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.theme.rpx
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
-import com.zili.android.musicfreeandroid.feature.settings.components.SettingActionRow
-import com.zili.android.musicfreeandroid.feature.settings.components.SettingSectionCard
-import com.zili.android.musicfreeandroid.feature.settings.components.SettingSwitchRow
-import com.zili.android.musicfreeandroid.feature.settings.components.SettingValueRow
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.theme.rpx
+import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.feature.settings.components.SettingActionRow
+import com.hank.musicfree.feature.settings.components.SettingSectionCard
+import com.hank.musicfree.feature.settings.components.SettingSwitchRow
+import com.hank.musicfree.feature.settings.components.SettingValueRow
 
 private data class Choice<T>(
     val value: T,
@@ -1014,7 +1014,7 @@ private fun PlayQuality.label(): String = when (this) {
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.settings.BasicSettingsContentTest"
+./gradlew :feature:settings:testDebugUnitTest --tests "com.hank.musicfree.feature.settings.BasicSettingsContentTest"
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1022,22 +1022,22 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 5: Commit Basic content**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/BasicSettingsContent.kt feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/BasicSettingsContentTest.kt
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/BasicSettingsContent.kt feature/settings/src/test/java/com/hank/musicfree/feature/settings/BasicSettingsContentTest.kt
 git commit -m "feat(settings): add basic settings content"
 ```
 
 ## Task 6: Typed Settings Screen
 
 **Files:**
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/navigation/SettingsNavigation.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/navigation/SettingsNavigation.kt`
 
 - [ ] **Step 1: Update `SettingsScreen` signature and content**
 
 Replace `SettingsScreen.kt` with a typed wrapper. Keep imports minimal and remove unused Material3 segmented/slider imports from the old screen.
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings
+package com.hank.musicfree.feature.settings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -1059,12 +1059,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.navigation.SettingsType
-import com.zili.android.musicfreeandroid.core.theme.FontSizes
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.theme.rpx
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.navigation.SettingsType
+import com.hank.musicfree.core.theme.FontSizes
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.rpx
+import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 
 @Composable
 fun SettingsScreen(
@@ -1189,13 +1189,13 @@ private fun SettingsType.title(): String = when (this) {
 Replace `SettingsNavigation.kt` with:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.navigation
+package com.hank.musicfree.feature.settings.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
-import com.zili.android.musicfreeandroid.feature.settings.SettingsScreen
+import com.hank.musicfree.core.navigation.SettingsRoute
+import com.hank.musicfree.feature.settings.SettingsScreen
 
 fun NavGraphBuilder.settingsScreen(
     onBack: () -> Unit,
@@ -1231,23 +1231,23 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 4: Commit typed settings screen**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/navigation/SettingsNavigation.kt
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt feature/settings/src/main/java/com/hank/musicfree/feature/settings/navigation/SettingsNavigation.kt
 git commit -m "feat(settings): render typed settings pages"
 ```
 
 ## Task 7: Drawer And App Navigation Wiring
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
-- Modify: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
+- Modify: `app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt`
 
 - [ ] **Step 1: Update app navigation callback shape**
 
 In `AppNavHost.kt`, import `SettingsType`:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.navigation.SettingsType
+import com.hank.musicfree.core.navigation.SettingsType
 ```
 
 Update the `homeScreen` call to pass typed settings navigation:
@@ -1279,7 +1279,7 @@ onNavigateToSettings: (SettingsType) -> Unit,
 Add import:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.navigation.SettingsType
+import com.hank.musicfree.core.navigation.SettingsType
 ```
 
 Replace the current drawer settings branch with:
@@ -1360,7 +1360,7 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 5: Commit navigation wiring**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt
 git commit -m "feat(settings): wire drawer to typed settings"
 ```
 
@@ -1380,7 +1380,7 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 2: Run app route tests**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.RoutesTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.RoutesTest"
 ```
 
 Expected: `BUILD SUCCESSFUL`.
@@ -1404,7 +1404,7 @@ adb devices
 If at least one device or emulator is listed as `device`, run:
 
 ```bash
-./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeEntryNavigationTest
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeEntryNavigationTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.

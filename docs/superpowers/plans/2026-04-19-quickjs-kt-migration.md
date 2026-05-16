@@ -25,7 +25,7 @@
 | `plugin/.../manager/PluginManager.kt` | 修改 | 适配新的 JsEngine / shim 注册方式 |
 | `plugin/src/main/assets/jslibs/cheerio.min.js` | 新增 | cheerio standalone bundle |
 
-路径前缀：`plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/`
+路径前缀：`plugin/src/main/java/com/hank/musicfree/plugin/`
 
 ---
 
@@ -123,12 +123,12 @@ git commit -m "feat(plugin): add cheerio standalone bundle to assets"
 ### Task 3: 重写 JsEngine
 
 **Files:**
-- Rewrite: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngine.kt`
+- Rewrite: `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsEngine.kt`
 
 - [ ] **Step 1: 完整重写 JsEngine.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.engine
+package com.hank.musicfree.plugin.engine
 
 import android.util.Log
 import com.dokar.quickjs.QuickJs
@@ -232,7 +232,7 @@ Expected: JsEngine.kt 本身无编译错误，错误来自 LoadedPlugin.kt / Plu
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngine.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/engine/JsEngine.kt
 git commit -m "refactor(plugin): rewrite JsEngine on quickjs-kt"
 ```
 
@@ -241,12 +241,12 @@ git commit -m "refactor(plugin): rewrite JsEngine on quickjs-kt"
 ### Task 4: 重写 AxiosShim
 
 **Files:**
-- Rewrite: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShim.kt`
+- Rewrite: `plugin/src/main/java/com/hank/musicfree/plugin/engine/AxiosShim.kt`
 
 - [ ] **Step 1: 完整重写 AxiosShim.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.engine
+package com.hank.musicfree.plugin.engine
 
 import android.util.Log
 import com.dokar.quickjs.binding.JsObject
@@ -577,7 +577,7 @@ object AxiosShim {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShim.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/engine/AxiosShim.kt
 git commit -m "refactor(plugin): rewrite AxiosShim with async HTTP via quickjs-kt"
 ```
 
@@ -586,12 +586,12 @@ git commit -m "refactor(plugin): rewrite AxiosShim with async HTTP via quickjs-k
 ### Task 5: 重写 RequireShim
 
 **Files:**
-- Rewrite: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/RequireShim.kt`
+- Rewrite: `plugin/src/main/java/com/hank/musicfree/plugin/engine/RequireShim.kt`
 
 - [ ] **Step 1: 完整重写 RequireShim.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.engine
+package com.hank.musicfree.plugin.engine
 
 import android.content.Context
 import android.util.Log
@@ -751,7 +751,7 @@ object RequireShim {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/RequireShim.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/engine/RequireShim.kt
 git commit -m "refactor(plugin): rewrite RequireShim for quickjs-kt, add cheerio module"
 ```
 
@@ -760,35 +760,35 @@ git commit -m "refactor(plugin): rewrite RequireShim for quickjs-kt, add cheerio
 ### Task 6: 重写 LoadedPlugin
 
 **Files:**
-- Rewrite: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
+- Rewrite: `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`
 
 - [ ] **Step 1: 完整重写 LoadedPlugin.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.manager
+package com.hank.musicfree.plugin.manager
 
 import android.util.Log
 import com.dokar.quickjs.binding.JsObject
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.plugin.api.AlbumInfoResult
-import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
-import com.zili.android.musicfreeandroid.plugin.api.ArtistItemBase
-import com.zili.android.musicfreeandroid.plugin.api.ArtistWorksResult
-import com.zili.android.musicfreeandroid.plugin.api.LyricResult
-import com.zili.android.musicfreeandroid.plugin.api.MusicComment
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetInfoResult
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
-import com.zili.android.musicfreeandroid.plugin.api.PaginationResult
-import com.zili.android.musicfreeandroid.plugin.api.PluginApi
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.api.RecommendSheetTagsResult
-import com.zili.android.musicfreeandroid.plugin.api.SearchResult
-import com.zili.android.musicfreeandroid.plugin.api.TopListDetailResult
-import com.zili.android.musicfreeandroid.plugin.engine.JsBridge
-import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.plugin.api.AlbumInfoResult
+import com.hank.musicfree.plugin.api.AlbumItemBase
+import com.hank.musicfree.plugin.api.ArtistItemBase
+import com.hank.musicfree.plugin.api.ArtistWorksResult
+import com.hank.musicfree.plugin.api.LyricResult
+import com.hank.musicfree.plugin.api.MusicComment
+import com.hank.musicfree.plugin.api.MusicSheetGroupItem
+import com.hank.musicfree.plugin.api.MusicSheetInfoResult
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.plugin.api.PaginationResult
+import com.hank.musicfree.plugin.api.PluginApi
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.api.RecommendSheetTagsResult
+import com.hank.musicfree.plugin.api.SearchResult
+import com.hank.musicfree.plugin.api.TopListDetailResult
+import com.hank.musicfree.plugin.engine.JsBridge
+import com.hank.musicfree.plugin.engine.JsEngine
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 
@@ -1127,7 +1127,7 @@ class LoadedPlugin(
 - [ ] **Step 2: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt
 git commit -m "refactor(plugin): rewrite LoadedPlugin for quickjs-kt with native Promise and getMediaSource fallback"
 ```
 
@@ -1136,7 +1136,7 @@ git commit -m "refactor(plugin): rewrite LoadedPlugin for quickjs-kt with native
 ### Task 7: 适配 PluginManager
 
 **Files:**
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
 
 - [ ] **Step 1: 更新 imports**
 
@@ -1144,9 +1144,9 @@ git commit -m "refactor(plugin): rewrite LoadedPlugin for quickjs-kt with native
 
 确保以下 import 存在（大部分已存在）：
 ```kotlin
-import com.zili.android.musicfreeandroid.plugin.engine.AxiosShim
-import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
-import com.zili.android.musicfreeandroid.plugin.engine.RequireShim
+import com.hank.musicfree.plugin.engine.AxiosShim
+import com.hank.musicfree.plugin.engine.JsEngine
+import com.hank.musicfree.plugin.engine.RequireShim
 ```
 
 - [ ] **Step 2: 重写 loadPluginFromFile 方法（第 765-843 行）**
@@ -1296,7 +1296,7 @@ Expected: 零匹配。如果有残留引用，清理掉。
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt
 git commit -m "refactor(plugin): adapt PluginManager for quickjs-kt engine"
 ```
 

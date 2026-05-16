@@ -141,7 +141,7 @@ BT=$(ls -1d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
 预期输出包含：
 
 ```
-package: name='com.zili.android.musicfreeandroid.debug' ...
+package: name='com.hank.musicfree.debug' ...
 application-label:'MF音乐(D)'
 ```
 
@@ -243,7 +243,7 @@ BT=$(ls -1d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
 
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell monkey -p com.zili.android.musicfreeandroid.debug -c android.intent.category.LAUNCHER 1
+adb shell monkey -p com.hank.musicfree.debug -c android.intent.category.LAUNCHER 1
 ```
 
 人工目检桌面：标签为 `MF音乐(D)`，图标右下角红圆 D 徽章可见。若设备为 Pixel-style 圆形蒙版与 MIUI/EMUI 水滴蒙版各检一次。截图保留作为 PR 证据。
@@ -566,7 +566,7 @@ BT=$(ls -1d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
 预期：
 
 ```
-package: name='com.zili.android.musicfreeandroid' ...
+package: name='com.hank.musicfree' ...
 application-label:'MF音乐'
 ```
 

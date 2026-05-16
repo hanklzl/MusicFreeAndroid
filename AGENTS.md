@@ -201,8 +201,8 @@ Room Entity 不直接暴露给上层；通过 mapper 转换为 domain model。Re
 
 为避免进度信息过期，后续请优先以以下代码事实为准：
 
-- 路由定义：`core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
-- 实际挂载：`app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
+- 路由定义：`core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
+- 实际挂载：`app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
 
 ## 当前优先事项（长期有效）
 

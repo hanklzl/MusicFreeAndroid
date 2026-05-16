@@ -6,7 +6,7 @@
 **关联**:
 
 - 上游参考：`../MusicFree/src/core/pluginManager/`、`../MusicFree/src/types/plugin.d.ts`
-- 当前实现：`plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/`
+- 当前实现：`plugin/src/main/java/com/hank/musicfree/plugin/`
 - 历史相关：[`2026-04-14-plugin-management-design.md`](2026-04-14-plugin-management-design.md)、[`2026-04-19-quickjs-threading-fix-design.md`](2026-04-19-quickjs-threading-fix-design.md)、[`2026-05-04-test-suite-rehabilitation-design.md`](2026-05-04-test-suite-rehabilitation-design.md)
 - Harness 强约束：[`docs/dev-harness/plugin/rules.md`](../../dev-harness/plugin/rules.md)、[`docs/dev-harness/test/rules.md`](../../dev-harness/test/rules.md)
 
@@ -710,7 +710,7 @@ resolve(item, quality):
 ### 11.2 数据库迁移
 
 - Room schema v7 → v8，直接修改 entity；**不写 Migration**（依据 user memory：开发期直接改 entity）。
-- 开发期需手动 `adb shell pm clear com.zili.android.musicfreeandroid` 或重装 APK。
+- 开发期需手动 `adb shell pm clear com.hank.musicfree` 或重装 APK。
 - Schema 导出文件（`data/schemas/<DatabaseFqcn>/8.json`）随实现一同提交。
 
 ### 11.3 DataStore 兼容

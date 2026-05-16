@@ -18,34 +18,34 @@
 
 ### Create
 
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/model/StarredKind.kt` — `object StarredKind { SHEET, ALBUM }`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumStarredMapper.kt` — `AlbumItemBase ↔ StarredSheet`
-- `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumStarredMapperTest.kt`
-- `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModelTest.kt`
-- `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetMapperJvmTest.kt`
+- `core/src/main/java/com/hank/musicfree/core/model/StarredKind.kt` — `object StarredKind { SHEET, ALBUM }`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumStarredMapper.kt` — `AlbumItemBase ↔ StarredSheet`
+- `feature/home/src/test/java/com/hank/musicfree/feature/home/albumdetail/AlbumStarredMapperTest.kt`
+- `feature/home/src/test/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModelTest.kt`
+- `data/src/test/java/com/hank/musicfree/data/repository/StarredSheetMapperJvmTest.kt`
 
 ### Modify
 
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/model/StarredSheet.kt` — add `kind: String = StarredKind.SHEET`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/StarredSheetEntity.kt` — add `kind: String`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt` — `version = 7`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/StarredSheetMapper.kt` — round-trip `kind`
-- `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetRepositoryJvmTest.kt` — add `kind` coverage
-- `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/StarredSheetDaoTest.kt` — add `kind` coverage
-- `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetRepositoryTest.kt` — add `kind` end-to-end
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetStarredMapper.kt` — set `kind = StarredKind.SHEET`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt` — inject `StarredSheetRepository`, expose `isAlbumStarred` + `toggleAlbumStarred()`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt` — heart `IconButton` in scaffold actions
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModel.kt` — add `kind`, add `toAlbumItemBase()`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsList.kt` — branch by `kind`, wire trash click
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSection.kt` — propagate new callbacks
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsViewModel.kt` — add `unstar(item)`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt` — provide unstar dialog + onOpenStarredAlbum callback
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt` — propagate new callbacks
-- `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsViewModelTest.kt` — cover album row + unstar
-- `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModelTest.kt` — cover album mapping
-- `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetStarredMapperTest.kt` — assert `kind == SHEET`
-- `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt` — pass `onNavigateToStarredAlbum`
+- `core/src/main/java/com/hank/musicfree/core/model/StarredSheet.kt` — add `kind: String = StarredKind.SHEET`
+- `data/src/main/java/com/hank/musicfree/data/db/entity/StarredSheetEntity.kt` — add `kind: String`
+- `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt` — `version = 7`
+- `data/src/main/java/com/hank/musicfree/data/mapper/StarredSheetMapper.kt` — round-trip `kind`
+- `data/src/test/java/com/hank/musicfree/data/repository/StarredSheetRepositoryJvmTest.kt` — add `kind` coverage
+- `data/src/androidTest/java/com/hank/musicfree/data/db/dao/StarredSheetDaoTest.kt` — add `kind` coverage
+- `data/src/androidTest/java/com/hank/musicfree/data/repository/StarredSheetRepositoryTest.kt` — add `kind` end-to-end
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetStarredMapper.kt` — set `kind = StarredKind.SHEET`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt` — inject `StarredSheetRepository`, expose `isAlbumStarred` + `toggleAlbumStarred()`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt` — heart `IconButton` in scaffold actions
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModel.kt` — add `kind`, add `toAlbumItemBase()`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsList.kt` — branch by `kind`, wire trash click
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSection.kt` — propagate new callbacks
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsViewModel.kt` — add `unstar(item)`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt` — provide unstar dialog + onOpenStarredAlbum callback
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt` — propagate new callbacks
+- `feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetsViewModelTest.kt` — cover album row + unstar
+- `feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModelTest.kt` — cover album mapping
+- `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetStarredMapperTest.kt` — assert `kind == SHEET`
+- `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt` — pass `onNavigateToStarredAlbum`
 
 ---
 
@@ -83,12 +83,12 @@ All file paths in remaining tasks are relative to this worktree root.
 ## Task 2: Add `StarredKind` constant
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/StarredKind.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/StarredKind.kt`
 
 - [ ] **Step 1: Create the file**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 object StarredKind {
     const val SHEET: String = "sheet"
@@ -104,7 +104,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 3: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/model/StarredKind.kt
+git add core/src/main/java/com/hank/musicfree/core/model/StarredKind.kt
 git commit -m "feat(core): add StarredKind discriminator constants"
 ```
 
@@ -113,17 +113,17 @@ git commit -m "feat(core): add StarredKind discriminator constants"
 ## Task 3: Extend `StarredSheet` and `StarredSheetEntity` with `kind`
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/StarredSheet.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/StarredSheetEntity.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/StarredSheetMapper.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/model/StarredSheet.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/entity/StarredSheetEntity.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/mapper/StarredSheetMapper.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
 
 - [ ] **Step 1: Add `kind` to `StarredSheet`**
 
-Replace the entire body of `core/src/main/java/com/zili/android/musicfreeandroid/core/model/StarredSheet.kt` with:
+Replace the entire body of `core/src/main/java/com/hank/musicfree/core/model/StarredSheet.kt` with:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 data class StarredSheet(
     val id: String,
@@ -144,13 +144,13 @@ data class StarredSheet(
 
 - [ ] **Step 2: Add `kind` to `StarredSheetEntity`**
 
-Replace the entire body of `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/StarredSheetEntity.kt` with:
+Replace the entire body of `data/src/main/java/com/hank/musicfree/data/db/entity/StarredSheetEntity.kt` with:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.entity
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.Entity
-import com.zili.android.musicfreeandroid.core.model.StarredKind
+import com.hank.musicfree.core.model.StarredKind
 
 @Entity(
     tableName = "starred_sheets",
@@ -175,14 +175,14 @@ data class StarredSheetEntity(
 
 - [ ] **Step 3: Round-trip `kind` in mapper**
 
-Replace `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/StarredSheetMapper.kt` with:
+Replace `data/src/main/java/com/hank/musicfree/data/mapper/StarredSheetMapper.kt` with:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.mapper
+package com.hank.musicfree.data.mapper
 
-import com.zili.android.musicfreeandroid.core.model.StarredSheet
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.entity.StarredSheetEntity
+import com.hank.musicfree.core.model.StarredSheet
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.entity.StarredSheetEntity
 
 fun StarredSheet.toEntity(createdAt: Long, updatedAt: Long, converters: Converters): StarredSheetEntity = StarredSheetEntity(
     id = id,
@@ -217,7 +217,7 @@ fun StarredSheetEntity.toModel(converters: Converters): StarredSheet = StarredSh
 
 - [ ] **Step 4: Bump DB version 6 → 7**
 
-Edit `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`. Change the line `version = 6,` to `version = 7,` inside `@Database(...)`.
+Edit `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`. Change the line `version = 6,` to `version = 7,` inside `@Database(...)`.
 
 - [ ] **Step 5: Compile data module**
 
@@ -227,10 +227,10 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 6: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/model/StarredSheet.kt \
-        data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/StarredSheetEntity.kt \
-        data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/StarredSheetMapper.kt \
-        data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt
+git add core/src/main/java/com/hank/musicfree/core/model/StarredSheet.kt \
+        data/src/main/java/com/hank/musicfree/data/db/entity/StarredSheetEntity.kt \
+        data/src/main/java/com/hank/musicfree/data/mapper/StarredSheetMapper.kt \
+        data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt
 git commit -m "feat(data): add kind discriminator to StarredSheet (sheet|album), bump DB v7"
 ```
 
@@ -239,19 +239,19 @@ git commit -m "feat(data): add kind discriminator to StarredSheet (sheet|album),
 ## Task 4: Mapper unit test (TDD: write the test first)
 
 **Files:**
-- Create: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetMapperJvmTest.kt`
+- Create: `data/src/test/java/com/hank/musicfree/data/repository/StarredSheetMapperJvmTest.kt`
 
 - [ ] **Step 1: Write the test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.repository
+package com.hank.musicfree.data.repository
 
 import com.google.gson.Gson
-import com.zili.android.musicfreeandroid.core.model.StarredKind
-import com.zili.android.musicfreeandroid.core.model.StarredSheet
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.mapper.toEntity
-import com.zili.android.musicfreeandroid.data.mapper.toModel
+import com.hank.musicfree.core.model.StarredKind
+import com.hank.musicfree.core.model.StarredSheet
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.mapper.toEntity
+import com.hank.musicfree.data.mapper.toModel
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -303,13 +303,13 @@ class StarredSheetMapperJvmTest {
 
 - [ ] **Step 2: Run the test**
 
-Run: `./gradlew :data:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.data.repository.StarredSheetMapperJvmTest"`
+Run: `./gradlew :data:testDebugUnitTest --tests "com.hank.musicfree.data.repository.StarredSheetMapperJvmTest"`
 Expected: BUILD SUCCESSFUL with 2 tests passed.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add data/src/test/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetMapperJvmTest.kt
+git add data/src/test/java/com/hank/musicfree/data/repository/StarredSheetMapperJvmTest.kt
 git commit -m "test(data): cover StarredSheet kind round-trip in mapper"
 ```
 
@@ -318,9 +318,9 @@ git commit -m "test(data): cover StarredSheet kind round-trip in mapper"
 ## Task 5: Update existing repository / DAO tests for `kind`
 
 **Files:**
-- Modify: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetRepositoryJvmTest.kt`
-- Modify: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/StarredSheetDaoTest.kt`
-- Modify: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetRepositoryTest.kt`
+- Modify: `data/src/test/java/com/hank/musicfree/data/repository/StarredSheetRepositoryJvmTest.kt`
+- Modify: `data/src/androidTest/java/com/hank/musicfree/data/db/dao/StarredSheetDaoTest.kt`
+- Modify: `data/src/androidTest/java/com/hank/musicfree/data/repository/StarredSheetRepositoryTest.kt`
 
 - [ ] **Step 1: Read each existing test file**
 
@@ -337,13 +337,13 @@ fun `toggle persists album kind and same identity replaces sheet kind`() = runTe
     val album = StarredSheet(
         id = "id-1", platform = "qq",
         title = "AlbumOne", artist = null, coverUri = null, sourceUrl = null,
-        kind = com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+        kind = com.hank.musicfree.core.model.StarredKind.ALBUM,
     )
     repo.toggle(album)
-    assertEquals(com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+    assertEquals(com.hank.musicfree.core.model.StarredKind.ALBUM,
         repo.observeAll().first().single().kind)
 
-    val asSheet = album.copy(kind = com.zili.android.musicfreeandroid.core.model.StarredKind.SHEET)
+    val asSheet = album.copy(kind = com.hank.musicfree.core.model.StarredKind.SHEET)
     repo.toggle(asSheet) // same (id, platform) ⇒ deletes
     assertEquals(0, repo.observeAll().first().size)
 }
@@ -359,10 +359,10 @@ Append to `StarredSheetDaoTest.kt`:
 @Test
 fun upsert_storesKindAlbum_andRoundTripsThroughObserveAll() = runTest {
     dao.upsert(entity(id = "alb-1", updatedAt = 1000L).copy(
-        kind = com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+        kind = com.hank.musicfree.core.model.StarredKind.ALBUM,
     ))
     val stored = dao.observeAll().first().single()
-    assertEquals(com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM, stored.kind)
+    assertEquals(com.hank.musicfree.core.model.StarredKind.ALBUM, stored.kind)
 }
 ```
 
@@ -376,12 +376,12 @@ fun starringAlbumThenUnstarPreservesAlbumKindThenRemovesRow() = runTest {
     val albumModel = StarredSheet(
         id = "alb-9", platform = "qq",
         title = "AlbumNine", artist = "X", coverUri = null, sourceUrl = null,
-        kind = com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+        kind = com.hank.musicfree.core.model.StarredKind.ALBUM,
     )
     repository.toggle(albumModel)
     val first = repository.observeAll().first()
     assertEquals(1, first.size)
-    assertEquals(com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM, first.single().kind)
+    assertEquals(com.hank.musicfree.core.model.StarredKind.ALBUM, first.single().kind)
 
     repository.toggle(albumModel)
     assertEquals(0, repository.observeAll().first().size)
@@ -396,9 +396,9 @@ Expected: all green.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add data/src/test/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetRepositoryJvmTest.kt \
-        data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/StarredSheetDaoTest.kt \
-        data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetRepositoryTest.kt
+git add data/src/test/java/com/hank/musicfree/data/repository/StarredSheetRepositoryJvmTest.kt \
+        data/src/androidTest/java/com/hank/musicfree/data/db/dao/StarredSheetDaoTest.kt \
+        data/src/androidTest/java/com/hank/musicfree/data/repository/StarredSheetRepositoryTest.kt
 git commit -m "test(data): cover album kind across DAO + repository tests"
 ```
 
@@ -409,15 +409,15 @@ git commit -m "test(data): cover album kind across DAO + repository tests"
 ## Task 6: Update `PluginSheetStarredMapper` to set `kind = SHEET`
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetStarredMapper.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetStarredMapperTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetStarredMapper.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetStarredMapperTest.kt`
 
 - [ ] **Step 1: Update the test first**
 
 Open `PluginSheetStarredMapperTest.kt`, locate the assertion block for the `MusicSheetItemBase.toStarredSheet()` direction, and add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.StarredKind
+import com.hank.musicfree.core.model.StarredKind
 // ...
 assertEquals(StarredKind.SHEET, starred.kind)
 ```
@@ -426,7 +426,7 @@ If the test doesn't already cover the forward direction, add a small `@Test` tha
 
 - [ ] **Step 2: Run the test (must fail until Step 3)**
 
-Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.pluginsheet.PluginSheetStarredMapperTest"`
+Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.pluginsheet.PluginSheetStarredMapperTest"`
 Expected: failure on the new assertion (default-arg may already be `SHEET`, in which case test passes immediately — that's fine, treat Step 3 as a no-op explicit annotation).
 
 - [ ] **Step 3: Make the mapper explicit**
@@ -441,7 +441,7 @@ internal fun MusicSheetItemBase.toStarredSheet(): StarredSheet = StarredSheet(
     artist = artist,
     coverUri = coverImg,
     sourceUrl = raw["sourceUrl"] as? String,
-    kind = com.zili.android.musicfreeandroid.core.model.StarredKind.SHEET,
+    kind = com.hank.musicfree.core.model.StarredKind.SHEET,
     description = description,
     artwork = artwork,
     worksNum = worksNum,
@@ -456,8 +456,8 @@ Same command as Step 2. Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetStarredMapper.kt \
-        feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetStarredMapperTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetStarredMapper.kt \
+        feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetStarredMapperTest.kt
 git commit -m "feat(home): tag plugin sheet starred mapper with kind=SHEET"
 ```
 
@@ -466,16 +466,16 @@ git commit -m "feat(home): tag plugin sheet starred mapper with kind=SHEET"
 ## Task 7: Add `AlbumStarredMapper` (TDD)
 
 **Files:**
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumStarredMapperTest.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumStarredMapper.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/albumdetail/AlbumStarredMapperTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumStarredMapper.kt`
 
 - [ ] **Step 1: Write the failing test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.albumdetail
+package com.hank.musicfree.feature.home.albumdetail
 
-import com.zili.android.musicfreeandroid.core.model.StarredKind
-import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
+import com.hank.musicfree.core.model.StarredKind
+import com.hank.musicfree.plugin.api.AlbumItemBase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -536,17 +536,17 @@ class AlbumStarredMapperTest {
 
 - [ ] **Step 2: Run, verify failure**
 
-Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.albumdetail.AlbumStarredMapperTest"`
+Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.albumdetail.AlbumStarredMapperTest"`
 Expected: compilation fails (no `toStarredSheet` extension).
 
 - [ ] **Step 3: Implement the mapper**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.albumdetail
+package com.hank.musicfree.feature.home.albumdetail
 
-import com.zili.android.musicfreeandroid.core.model.StarredKind
-import com.zili.android.musicfreeandroid.core.model.StarredSheet
-import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
+import com.hank.musicfree.core.model.StarredKind
+import com.hank.musicfree.core.model.StarredSheet
+import com.hank.musicfree.plugin.api.AlbumItemBase
 
 internal fun AlbumItemBase.toStarredSheet(): StarredSheet = StarredSheet(
     id = id,
@@ -570,8 +570,8 @@ Same command as Step 2. Expected: 2 tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumStarredMapper.kt \
-        feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumStarredMapperTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumStarredMapper.kt \
+        feature/home/src/test/java/com/hank/musicfree/feature/home/albumdetail/AlbumStarredMapperTest.kt
 git commit -m "feat(home): add AlbumItemBase->StarredSheet mapper with kind=ALBUM"
 ```
 
@@ -580,8 +580,8 @@ git commit -m "feat(home): add AlbumItemBase->StarredSheet mapper with kind=ALBU
 ## Task 8: `AlbumDetailViewModel` star observation + toggle (TDD)
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt`
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModelTest.kt`
 
 The harness rule (`docs/dev-harness/test/rules.md` #1) requires `MainDispatcherRule + runTest + advanceUntilIdle` and forbids `runBlocking { ... .first { predicate } }`.
 
@@ -593,18 +593,18 @@ Expected: a `MainDispatcherRule.kt` next to existing tests. Note its package —
 - [ ] **Step 2: Write the failing test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.albumdetail
+package com.hank.musicfree.feature.home.albumdetail
 
 import androidx.lifecycle.SavedStateHandle
-import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
-import com.zili.android.musicfreeandroid.core.model.StarredKind
-import com.zili.android.musicfreeandroid.core.model.StarredSheet
-import com.zili.android.musicfreeandroid.core.navigation.AlbumDetailRoute
-import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
-import com.zili.android.musicfreeandroid.data.repository.StarredSheetRepository
-import com.zili.android.musicfreeandroid.downloader.Downloader
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.core.media.MediaSourceResolver
+import com.hank.musicfree.core.model.StarredKind
+import com.hank.musicfree.core.model.StarredSheet
+import com.hank.musicfree.core.navigation.AlbumDetailRoute
+import com.hank.musicfree.data.datastore.AppPreferences
+import com.hank.musicfree.data.repository.StarredSheetRepository
+import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.player.controller.PlayerController
+import com.hank.musicfree.plugin.manager.PluginManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -724,18 +724,18 @@ If the file `PluginSheetDetailViewModelTest.kt` does not exist, search any test 
 
 - [ ] **Step 3: Run, expect failure**
 
-Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.albumdetail.AlbumDetailViewModelTest"`
+Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.albumdetail.AlbumDetailViewModelTest"`
 Expected: compile error (`AlbumDetailViewModel` ctor signature mismatch + missing `isAlbumStarred` / `toggleAlbumStarred`).
 
 - [ ] **Step 4: Modify `AlbumDetailViewModel`**
 
-Open `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt`. Apply these edits:
+Open `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`. Apply these edits:
 
 1. Add imports near the top (group with existing imports):
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.StarredSheet
-import com.zili.android.musicfreeandroid.data.repository.StarredSheetRepository
+import com.hank.musicfree.core.model.StarredSheet
+import com.hank.musicfree.data.repository.StarredSheetRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 ```
@@ -779,14 +779,14 @@ Expected: BUILD SUCCESSFUL.
 
 - [ ] **Step 6: Run the new test**
 
-Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.albumdetail.AlbumDetailViewModelTest"`
+Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.albumdetail.AlbumDetailViewModelTest"`
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt \
-        feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModelTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt \
+        feature/home/src/test/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModelTest.kt
 git commit -m "feat(home): wire AlbumDetailViewModel star observation + toggle"
 ```
 
@@ -795,8 +795,8 @@ git commit -m "feat(home): wire AlbumDetailViewModel star observation + toggle"
 ## Task 9: `AlbumDetailScreen` heart action + log event
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`
 
 - [ ] **Step 1: Add log event in ViewModel**
 
@@ -809,11 +809,11 @@ fun toggleAlbumStarred() {
     val wasStarred = isAlbumStarred.value
     viewModelScope.launch {
         starredSheetRepository.toggle(starred)
-        com.zili.android.musicfreeandroid.logging.MfLog.detail(
-            category = com.zili.android.musicfreeandroid.logging.LogCategory.APP,
+        com.hank.musicfree.logging.MfLog.detail(
+            category = com.hank.musicfree.logging.LogCategory.APP,
             event = if (wasStarred) "starred_removed" else "starred_added",
             fields = mapOf(
-                "kind" to com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM,
+                "kind" to com.hank.musicfree.core.model.StarredKind.ALBUM,
                 "platform" to starred.platform,
                 "id" to starred.id,
                 "source" to "detail_album",
@@ -832,7 +832,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.painterResource
-import com.zili.android.musicfreeandroid.core.R
+import com.hank.musicfree.core.R
 ```
 
 Inside the `AlbumDetailScreen(...)` composable, before the `MusicFreeScreenScaffold(...)` call, add:
@@ -878,8 +878,8 @@ Expected: all green (existing tests + new ones).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt \
-        feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt \
+        feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt
 git commit -m "feat(home): add heart star button to AlbumDetailScreen with logging"
 ```
 
@@ -888,16 +888,16 @@ git commit -m "feat(home): add heart star button to AlbumDetailScreen with loggi
 ## Task 10: `HomeSheetUiModel` carries `kind`, `toAlbumItemBase()`
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModel.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModel.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModelTest.kt`
 
 - [ ] **Step 1: Update test (add new assertion + new test for album conversion)**
 
 Open `HomeSheetUiModelTest.kt`. Add to the existing class:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.StarredKind
-import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
+import com.hank.musicfree.core.model.StarredKind
+import com.hank.musicfree.plugin.api.AlbumItemBase
 
 @Test
 fun `fromStarredSheet propagates kind ALBUM`() {
@@ -940,7 +940,7 @@ fun `toAlbumItemBase reconstructs identity and merges sourceUrl`() {
 
 - [ ] **Step 2: Run test, verify failure**
 
-Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModelTest"`
+Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.sheets.HomeSheetUiModelTest"`
 Expected: compile failure on `kind` parameter / `toAlbumItemBase()`.
 
 - [ ] **Step 3: Modify `HomeSheetUiModel.kt`**
@@ -948,13 +948,13 @@ Expected: compile failure on `kind` parameter / `toAlbumItemBase()`.
 Replace the file content with:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.sheets
+package com.hank.musicfree.feature.home.sheets
 
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.model.StarredKind
-import com.zili.android.musicfreeandroid.core.model.StarredSheet
-import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.model.StarredKind
+import com.hank.musicfree.core.model.StarredSheet
+import com.hank.musicfree.plugin.api.AlbumItemBase
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
 
 data class HomeSheetUiModel(
     val id: String,
@@ -1043,8 +1043,8 @@ Run: same as Step 2.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModel.kt \
-        feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModelTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModel.kt \
+        feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModelTest.kt
 git commit -m "feat(home): HomeSheetUiModel carries kind and converts to AlbumItemBase"
 ```
 
@@ -1053,20 +1053,20 @@ git commit -m "feat(home): HomeSheetUiModel carries kind and converts to AlbumIt
 ## Task 11: Wire trash + branch nav in `HomeSheetsList`, `HomeSheetsSection`, ViewModel, Screen
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsList.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSection.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsList.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSection.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetsViewModelTest.kt`
 
 - [ ] **Step 1: Update `HomeSheetsViewModelTest.kt` to cover `unstar` (TDD)**
 
 Append to the existing test class:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.StarredKind
-import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
+import com.hank.musicfree.core.model.StarredKind
+import com.hank.musicfree.feature.home.sheets.HomeSheetTab
 import org.mockito.kotlin.verify
 
 @Test
@@ -1118,7 +1118,7 @@ fun `unstar ignores rows without platform`() = runTest {
 
 - [ ] **Step 2: Run test, expect compile fail (no `unstar` method)**
 
-Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModelTest"`
+Run: `./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.sheets.HomeSheetsViewModelTest"`
 Expected: compile fail.
 
 - [ ] **Step 3: Add `unstar` to `HomeSheetsViewModel.kt`**
@@ -1130,8 +1130,8 @@ fun unstar(item: HomeSheetUiModel) {
     val platform = item.platform ?: return
     viewModelScope.launch {
         starredSheetRepository.deleteByIdAndPlatform(id = item.id, platform = platform)
-        com.zili.android.musicfreeandroid.logging.MfLog.detail(
-            category = com.zili.android.musicfreeandroid.logging.LogCategory.APP,
+        com.hank.musicfree.logging.MfLog.detail(
+            category = com.hank.musicfree.logging.LogCategory.APP,
             event = "starred_removed",
             fields = mapOf(
                 "kind" to item.kind,
@@ -1173,7 +1173,7 @@ fun LazyListScope.homeSheetsList(
                 if (item.tab == HomeSheetTab.Mine) {
                     onOpenMineSheet(item.id)
                 } else when (item.kind) {
-                    com.zili.android.musicfreeandroid.core.model.StarredKind.ALBUM ->
+                    com.hank.musicfree.core.model.StarredKind.ALBUM ->
                         onOpenStarredAlbum(item)
                     else -> onOpenStarredSheet(item)
                 }
@@ -1325,8 +1325,8 @@ Also add a log for the dialog showing — inside the `onTrashClick` lambda set i
 ```kotlin
 onTrashClick = { row ->
     pendingUnstar = row
-    com.zili.android.musicfreeandroid.logging.MfLog.detail(
-        category = com.zili.android.musicfreeandroid.logging.LogCategory.APP,
+    com.hank.musicfree.logging.MfLog.detail(
+        category = com.hank.musicfree.logging.LogCategory.APP,
         event = "starred_unstar_confirm_shown",
         fields = mapOf(
             "kind" to row.kind,
@@ -1339,7 +1339,7 @@ onTrashClick = { row ->
 
 - [ ] **Step 8: Update `AppNavHost.kt` to provide `onNavigateToStarredAlbum`**
 
-Open `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`. Locate the `HomeScreen(...)` invocation around the existing `onNavigateToStarredSheet = { row -> ... PluginSheetSeedStore.put(...) }` block. Right after that callback, add:
+Open `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`. Locate the `HomeScreen(...)` invocation around the existing `onNavigateToStarredSheet = { row -> ... PluginSheetSeedStore.put(...) }` block. Right after that callback, add:
 
 ```kotlin
 onNavigateToStarredAlbum = { row ->
@@ -1361,7 +1361,7 @@ onNavigateToStarredAlbum = { row ->
 },
 ```
 
-Required imports (verify they are already there from Step `grep -n` earlier — `AlbumDetailRoute`, `AlbumDetailSeedStore` — both exist; just add `import com.zili.android.musicfreeandroid.feature.home.sheets.toAlbumItemBase`).
+Required imports (verify they are already there from Step `grep -n` earlier — `AlbumDetailRoute`, `AlbumDetailSeedStore` — both exist; just add `import com.hank.musicfree.feature.home.sheets.toAlbumItemBase`).
 
 - [ ] **Step 9: Compile and run all home tests**
 
@@ -1374,13 +1374,13 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 10: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsList.kt \
-        feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSection.kt \
-        feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsViewModel.kt \
-        feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt \
-        feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt \
-        feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsViewModelTest.kt \
-        app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsList.kt \
+        feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSection.kt \
+        feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsViewModel.kt \
+        feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt \
+        feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt \
+        feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetsViewModelTest.kt \
+        app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt
 git commit -m "feat(home): branch starred row nav by kind, wire unstar dialog with logging"
 ```
 
@@ -1389,7 +1389,7 @@ git commit -m "feat(home): branch starred row nav by kind, wire unstar dialog wi
 ## Task 12: Add `starred_added` log to plugin sheet detail toggle
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
 
 The spec calls for symmetric logging on the existing sheet toggle path.
 
@@ -1403,11 +1403,11 @@ fun toggleSheetStarred() {
     val wasStarred = isSheetStarred.value
     viewModelScope.launch {
         starredSheetRepository.toggle(sheet)
-        com.zili.android.musicfreeandroid.logging.MfLog.detail(
-            category = com.zili.android.musicfreeandroid.logging.LogCategory.APP,
+        com.hank.musicfree.logging.MfLog.detail(
+            category = com.hank.musicfree.logging.LogCategory.APP,
             event = if (wasStarred) "starred_removed" else "starred_added",
             fields = mapOf(
-                "kind" to com.zili.android.musicfreeandroid.core.model.StarredKind.SHEET,
+                "kind" to com.hank.musicfree.core.model.StarredKind.SHEET,
                 "platform" to sheet.platform,
                 "id" to sheet.id,
                 "source" to "detail_sheet",
@@ -1425,7 +1425,7 @@ Expected: green.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt
 git commit -m "feat(home): log starred_added/removed on plugin sheet detail toggle"
 ```
 

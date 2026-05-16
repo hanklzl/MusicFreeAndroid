@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.updater"
+    namespace = "com.hank.musicfree.updater"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1

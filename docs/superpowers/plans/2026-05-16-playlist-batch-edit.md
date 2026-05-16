@@ -12,21 +12,21 @@
 
 ## File Structure
 
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
   - 在 AppBar 更多菜单中增加“批量编辑”项，点击调用既有 `onNavigateToMusicListEditorLite(playlist.id)`。
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreenTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreenTest.kt`
   - 用 fake ViewModel 或 injectable state 验证菜单项显示与导航回调。
-- Modify if needed: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
+- Modify if needed: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
   - 若当前 Composable 不便测试，抽出一个内部 `PlaylistDetailContent` / `PlaylistDetailRouteContent`，保持 production 行为不变。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
   - 将已有歌单批量添加从逐首 `addMusicToPlaylist()` 改为一次 `addMusicsToPlaylist()`。
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt`
   - 更新 verify，确保目标歌单批量添加走事务化 API。
 
 ### Task 1: 写入口测试
 
 **Files:**
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreenTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreenTest.kt`
 - Modify if needed: `PlaylistDetailScreen.kt`
 
 - [ ] **Step 1: 写失败测试**
@@ -73,7 +73,7 @@ Expected: FAIL，因为 `PlaylistDetailContent` / “批量编辑”入口尚不
 ### Task 2: 实现菜单入口
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
 
 - [ ] **Step 1: 抽出可测试内容层**
 
@@ -108,8 +108,8 @@ Expected: PASS。
 ### Task 3: 批量添加已有歌单走事务 API
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt`
 
 - [ ] **Step 1: 更新失败测试**
 

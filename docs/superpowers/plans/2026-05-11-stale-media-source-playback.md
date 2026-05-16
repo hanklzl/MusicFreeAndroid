@@ -12,28 +12,28 @@
 
 ## File Structure
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceService.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/media/PluginMediaSourceService.kt`
   - Responsibility: 对插件歌曲执行音源重定向、源插件回退和音质 fallback；本次允许已有 URL 的 item 继续刷新。
-- Modify: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceServiceTest.kt`
+- Modify: `plugin/src/test/java/com/hank/musicfree/plugin/media/PluginMediaSourceServiceTest.kt`
   - Responsibility: 覆盖已有 URL 的歌曲仍调用插件解析。
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
   - Responsibility: 最终播放前刷新非本地歌曲音源，注册 headers/userAgent，并在解析失败时决定是否回退旧 URL。
-- Modify: `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerNotificationControlsTest.kt`
+- Modify: `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerNotificationControlsTest.kt`
   - Responsibility: 覆盖队列/通知播放路径对已有 URL 的歌曲仍刷新。
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/MusicItemEntity.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/entity/MusicItemEntity.kt`
   - Responsibility: 为 Room 中的音乐条目保存插件扩展 raw 字段。
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapper.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/mapper/MusicItemMapper.kt`
   - Responsibility: 在模型和 entity 间转换 raw JSON。
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
   - Responsibility: 升级 Room schema version。
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapperTest.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/mapper/MusicItemMapperTest.kt`
   - Responsibility: 验证 raw round-trip。
 
 ## Task 1: Plugin Media Source Service
 
 **Files:**
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceService.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceServiceTest.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/media/PluginMediaSourceService.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/media/PluginMediaSourceServiceTest.kt`
 
 - [ ] **Step 1: Write the failing test**
 
@@ -56,7 +56,7 @@ fun `resolves plugin item even when it already has stale url`() = runTest {
 Run:
 
 ```bash
-./gradlew :plugin:testDebugUnitTest --tests com.zili.android.musicfreeandroid.plugin.media.PluginMediaSourceServiceTest --no-daemon
+./gradlew :plugin:testDebugUnitTest --tests com.hank.musicfree.plugin.media.PluginMediaSourceServiceTest --no-daemon
 ```
 
 Expected: FAIL because `service.resolve(...)` returns `null` when the input item already has `url`.
@@ -78,7 +78,7 @@ Do not change redirect order, disabled-plugin checks, or quality fallback.
 Run:
 
 ```bash
-./gradlew :plugin:testDebugUnitTest --tests com.zili.android.musicfreeandroid.plugin.media.PluginMediaSourceServiceTest --no-daemon
+./gradlew :plugin:testDebugUnitTest --tests com.hank.musicfree.plugin.media.PluginMediaSourceServiceTest --no-daemon
 ```
 
 Expected: PASS.
@@ -86,8 +86,8 @@ Expected: PASS.
 ## Task 2: Player Controller Playback Boundary
 
 **Files:**
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Test: `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerNotificationControlsTest.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Test: `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerNotificationControlsTest.kt`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -98,7 +98,7 @@ Add tests to `PlayerControllerNotificationControlsTest` covering stale URL refre
 Run:
 
 ```bash
-./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.controller.PlayerControllerNotificationControlsTest --no-daemon
+./gradlew :player:testDebugUnitTest --tests com.hank.musicfree.player.controller.PlayerControllerNotificationControlsTest --no-daemon
 ```
 
 Expected: FAIL because `PlayerController.resolvePlayableItem` returns nonblank-URL items before invoking the resolver, and because `trackHeaderRegistry` is not yet a constructor parameter.
@@ -118,7 +118,7 @@ Change `resolvePlayableItem(item)` so non-local items attempt resolver first, us
 Run:
 
 ```bash
-./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.controller.PlayerControllerNotificationControlsTest --no-daemon
+./gradlew :player:testDebugUnitTest --tests com.hank.musicfree.player.controller.PlayerControllerNotificationControlsTest --no-daemon
 ```
 
 Expected: PASS.
@@ -126,10 +126,10 @@ Expected: PASS.
 ## Task 3: Persist MusicItem raw
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/MusicItemEntity.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapper.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapperTest.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/entity/MusicItemEntity.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/mapper/MusicItemMapper.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/mapper/MusicItemMapperTest.kt`
 
 - [ ] **Step 1: Write the failing test**
 
@@ -140,7 +140,7 @@ Add a nested `raw` value to the existing `model to entity and back preserves all
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests com.zili.android.musicfreeandroid.data.mapper.MusicItemMapperTest --no-daemon
+./gradlew :data:testDebugUnitTest --tests com.hank.musicfree.data.mapper.MusicItemMapperTest --no-daemon
 ```
 
 Expected: FAIL because `MusicItemEntity` does not persist `raw`.
@@ -176,7 +176,7 @@ version = 8,
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests com.zili.android.musicfreeandroid.data.mapper.MusicItemMapperTest --no-daemon
+./gradlew :data:testDebugUnitTest --tests com.hank.musicfree.data.mapper.MusicItemMapperTest --no-daemon
 ```
 
 Expected: PASS.
@@ -189,7 +189,7 @@ Expected: PASS.
 - [ ] **Step 1: Run plugin targeted tests**
 
 ```bash
-./gradlew :plugin:testDebugUnitTest --tests com.zili.android.musicfreeandroid.plugin.media.PluginMediaSourceServiceTest --no-daemon
+./gradlew :plugin:testDebugUnitTest --tests com.hank.musicfree.plugin.media.PluginMediaSourceServiceTest --no-daemon
 ```
 
 Expected: PASS.
@@ -197,7 +197,7 @@ Expected: PASS.
 - [ ] **Step 2: Run data mapper tests**
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests com.zili.android.musicfreeandroid.data.mapper.MusicItemMapperTest --no-daemon
+./gradlew :data:testDebugUnitTest --tests com.hank.musicfree.data.mapper.MusicItemMapperTest --no-daemon
 ```
 
 Expected: PASS.

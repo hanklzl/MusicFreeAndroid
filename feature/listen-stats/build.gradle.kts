@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.feature.listenstats"
+    namespace = "com.hank.musicfree.feature.listenstats"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1

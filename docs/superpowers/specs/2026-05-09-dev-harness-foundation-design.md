@@ -353,7 +353,7 @@ ViewModel 单测里同时出现 `runBlocking` 与 `Flow.first { ... }` 自旋谓
 默认放 JVM 单测，原因：在 `:app:testDebugUnitTest` 等已有 task 内运行，无需 emulator，CI 极快。只有真的需要 Compose UI / Media3 controller 真实状态的 case 才用 `androidTest`，归 nightly / instrumented 通道，不进 dev-harness gate 必跳作业。
 
 ```text
-<module>/src/test/java/com/zili/android/musicfreeandroid/<module>/harness/contracts/
+<module>/src/test/java/com/hank/musicfree/<module>/harness/contracts/
   <Area><Concern>ContractTest.kt
 ```
 

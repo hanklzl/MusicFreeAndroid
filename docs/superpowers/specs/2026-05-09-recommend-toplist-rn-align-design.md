@@ -109,7 +109,7 @@ tag 区保持 Android 已有 `RecommendTag` 数据结构，但视觉更接近 RN
 
 ### 详情 seed store
 
-新增 `PluginSheetSeedStore`，默认放在 `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/`，结构参考现有 `MusicDetailSeedStore`：
+新增 `PluginSheetSeedStore`，默认放在 `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/`，结构参考现有 `MusicDetailSeedStore`：
 
 ```kotlin
 object PluginSheetSeedStore {

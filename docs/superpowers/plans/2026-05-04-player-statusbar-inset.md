@@ -13,8 +13,8 @@
 **前置上下文：**
 - 设计输入：`docs/superpowers/specs/2026-05-04-player-statusbar-inset-design.md`
 - UI Harness 当前规范：`docs/ui-harness/screen-chrome-rules.md`
-- 播放器页面代码：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- App 顶层 safe inset 代码：`app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
+- 播放器页面代码：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- App 顶层 safe inset 代码：`app/src/main/java/com/hank/musicfree/MainActivity.kt`
 - RN 对照实现：`../MusicFree/src/pages/musicDetail/index.tsx` 和 `../MusicFree/src/pages/musicDetail/components/navBar.tsx`
 
 **已完成准备：**
@@ -35,14 +35,14 @@
 ### 任务 1：新增失败的 inset 测试
 
 **文件：**
-- 新建：`feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreenInsetsTest.kt`
+- 新建：`feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerScreenInsetsTest.kt`
 
 - [ ] **步骤 1：编写失败测试**
 
-创建 `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreenInsetsTest.kt`：
+创建 `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerScreenInsetsTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui
+package com.hank.musicfree.feature.playerui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -54,7 +54,7 @@ import androidx.compose.ui.test.assertTopPositionInRootIsEqualTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -103,7 +103,7 @@ class PlayerScreenInsetsTest {
 运行：
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.playerui.PlayerScreenInsetsTest"
+./gradlew :feature:player-ui:testDebugUnitTest --tests "com.hank.musicfree.feature.playerui.PlayerScreenInsetsTest"
 ```
 
 预期：`FAIL`，原因是 `PlayerContentLayer` 尚未定义。
@@ -111,22 +111,22 @@ class PlayerScreenInsetsTest {
 ### 任务 2：给播放器内容层应用顶部 inset
 
 **文件：**
-- 修改：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- 测试：`feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreenInsetsTest.kt`
+- 修改：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- 测试：`feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerScreenInsetsTest.kt`
 
 - [ ] **步骤 0：确认当前 PlayerScreen 结构**
 
 运行：
 
 ```bash
-sed -n '1,170p' feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt
+sed -n '1,170p' feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt
 ```
 
 预期：`PlayerScreen` 的根节点是 `Box(modifier = Modifier.fillMaxSize())`，Layer 1 和 Layer 2 是背景层，Layer 3 是承载 `PlayerNavBar`、封面、操作栏、进度条和播放控制的 `Column`。
 
 - [ ] **步骤 1：增加 Compose window inset 所需 imports**
 
-在 `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt` 中，把以下 imports 加到现有 `androidx.compose.foundation.layout` imports 旁边：
+在 `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt` 中，把以下 imports 加到现有 `androidx.compose.foundation.layout` imports 旁边：
 
 ```kotlin
 import androidx.compose.foundation.layout.ColumnScope
@@ -184,7 +184,7 @@ internal fun PlayerContentLayer(
 运行：
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.playerui.PlayerScreenInsetsTest"
+./gradlew :feature:player-ui:testDebugUnitTest --tests "com.hank.musicfree.feature.playerui.PlayerScreenInsetsTest"
 ```
 
 预期：`BUILD SUCCESSFUL`。
@@ -202,15 +202,15 @@ internal fun PlayerContentLayer(
 ### 任务 3：构建与运行态验收
 
 **文件：**
-- 校验：`app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
-- 校验：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+- 校验：`app/src/main/java/com/hank/musicfree/MainActivity.kt`
+- 校验：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
 
 - [ ] **步骤 1：确认 MainActivity 顶部 inset 策略未变化**
 
 运行：
 
 ```bash
-sed -n '70,95p' app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt
+sed -n '70,95p' app/src/main/java/com/hank/musicfree/MainActivity.kt
 ```
 
 预期输出仍包含：
@@ -226,7 +226,7 @@ contentWindowInsets = WindowInsets.safeDrawing.only(
 运行：
 
 ```bash
-rg -n "Layer 1|Layer 2|Layer 3|PlayerContentLayer|fillMaxSize|windowInsetsPadding" feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt
+rg -n "Layer 1|Layer 2|Layer 3|PlayerContentLayer|fillMaxSize|windowInsetsPadding" feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt
 ```
 
 预期：Layer 1 和 Layer 2 仍使用 `fillMaxSize()`，只有 `PlayerContentLayer` 使用 `windowInsetsPadding`。
@@ -255,7 +255,7 @@ adb devices
 
 ```bash
 ./gradlew :app:installDebug
-adb shell am start -n com.zili.android.musicfreeandroid.debug/com.zili.android.musicfreeandroid.MainActivity
+adb shell am start -n com.hank.musicfree.debug/com.hank.musicfree.MainActivity
 ```
 
 手动验收：
@@ -269,15 +269,15 @@ adb shell am start -n com.zili.android.musicfreeandroid.debug/com.zili.android.m
 ### 任务 4：提交实现
 
 **文件：**
-- 修改：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- 新建：`feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreenInsetsTest.kt`
+- 修改：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- 新建：`feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerScreenInsetsTest.kt`
 
 - [ ] **步骤 1：检查 diff**
 
 运行：
 
 ```bash
-git diff -- feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreenInsetsTest.kt
+git diff -- feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerScreenInsetsTest.kt
 ```
 
 预期：diff 只新增 `PlayerContentLayer`、将其应用到 Layer 3 内容层，并新增聚焦测试。
@@ -287,7 +287,7 @@ git diff -- feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/fe
 运行：
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreenInsetsTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerScreenInsetsTest.kt
 git commit -m "fix(player-ui): keep player content below status bar"
 ```
 

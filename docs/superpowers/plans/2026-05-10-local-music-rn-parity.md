@@ -12,26 +12,26 @@
 
 ## Files
 
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModel.kt`
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModelTest.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicContent.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/navigation/LocalNavigation.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListSourceLoaderTest.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt`
-- Modify: `app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalMusicViewModel.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/local/LocalMusicViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalMusicContent.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/navigation/LocalNavigation.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListSourceLoaderTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt`
+- Modify: `app/src/test/java/com/hank/musicfree/RoutesTest.kt`
 
 ## Task 1: Local-Library Routes and Search Source
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt`
-- Test: `app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListSourceLoaderTest.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt`
+- Test: `app/src/test/java/com/hank/musicfree/RoutesTest.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListSourceLoaderTest.kt`
 
 - [ ] **Step 1: Write failing route tests**
 
@@ -46,8 +46,8 @@ Change `local library source returns empty list in minimal foundation implementa
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests com.zili.android.musicfreeandroid.RoutesTest
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusicListSourceLoaderTest
+./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.RoutesTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.searchmusiclist.SearchMusicListSourceLoaderTest
 ```
 
 Expected: route local-library editor test fails because factory/properties do not exist; source loader test fails because local source returns an empty list.
@@ -98,8 +98,8 @@ Run the same two commands. Expected: both pass.
 ## Task 2: Persistent Local Music ViewModel
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModel.kt`
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModelTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalMusicViewModel.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/local/LocalMusicViewModelTest.kt`
 
 - [ ] **Step 1: Write failing ViewModel tests**
 
@@ -116,7 +116,7 @@ Cover these behaviors:
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.local.LocalMusicViewModelTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.local.LocalMusicViewModelTest
 ```
 
 Expected: fails because `LocalMusicViewModel` does not exist.
@@ -145,9 +145,9 @@ Run the same test command. Expected: pass.
 ## Task 3: Themed Local AppBar and RN Actions
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/navigation/LocalNavigation.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/navigation/LocalNavigation.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
 
 - [ ] **Step 1: Write failing compile-facing changes**
 
@@ -201,8 +201,8 @@ Expected: pass after adapting imports and callbacks.
 ## Task 4: Local-Library Batch Edit
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt`
 
 - [ ] **Step 1: Write failing local editor tests**
 
@@ -224,7 +224,7 @@ Verify local source uses `musicRepository.observeByPlatform("local")`, `playlist
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.musiclisteditor.MusicListEditorLiteViewModelTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.musiclisteditor.MusicListEditorLiteViewModelTest
 ```
 
 Expected: fails because the ViewModel does not accept `MusicRepository` and always uses playlist repository.
@@ -254,9 +254,9 @@ Run the same test command. Expected: pass.
 ## Task 5: Local Row Remove Action and Verification
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicContent.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalMusicContent.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/local/LocalMusicViewModelTest.kt`
 
 - [ ] **Step 1: Add local removal to options**
 
@@ -267,7 +267,7 @@ When long-pressing a local row, the options sheet must offer removing the row fr
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.local.LocalMusicViewModelTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.local.LocalMusicViewModelTest
 ```
 
 Expected: pass.

@@ -16,16 +16,16 @@
 
 ## File Structure
 
-- Modify `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+- Modify `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
   - Add local test tags for operation slots and visual content.
   - Replace the cover operation row's raw `IconButton` / `Text` mix with fixed-size operation slots.
   - Render `ic_quality_standard.png` and `ic_rate_100.png` at `rpx(52)`.
-- Modify `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperations.kt`
+- Modify `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperations.kt`
   - Replace text glyph controls with fixed-size RN-equivalent icons.
   - Add fixed-size operation slots and test tags for lyric operations.
-- Create `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerOperationsBarTest.kt`
+- Create `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerOperationsBarTest.kt`
   - Verify cover operation row height, slot count, and visual content sizes.
-- Create `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperationsTest.kt`
+- Create `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperationsTest.kt`
   - Verify lyric operation row height, slot count, icon sizes, and click callbacks.
 - Create `core/src/main/res/drawable/ic_font_size.xml`
 - Create `core/src/main/res/drawable/ic_arrows_left_right.xml`
@@ -34,15 +34,15 @@
 ## Task 1: Add Failing Operation-Row Size Tests
 
 **Files:**
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerOperationsBarTest.kt`
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperationsTest.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerOperationsBarTest.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperationsTest.kt`
 
 - [ ] **Step 1: Add cover operation row tests**
 
-Create `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerOperationsBarTest.kt`:
+Create `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerOperationsBarTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui
+package com.hank.musicfree.feature.playerui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -53,7 +53,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -149,10 +149,10 @@ class PlayerOperationsBarTest {
 
 - [ ] **Step 2: Add lyric operation row tests**
 
-Create `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperationsTest.kt`:
+Create `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperationsTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.lyrics
+package com.hank.musicfree.feature.playerui.lyrics
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -163,7 +163,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -284,15 +284,15 @@ Expected: compilation fails because the new test tags do not exist yet, or asser
 - [ ] **Step 4: Commit failing tests**
 
 ```bash
-git add feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerOperationsBarTest.kt feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperationsTest.kt
+git add feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerOperationsBarTest.kt feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperationsTest.kt
 git commit -m "test: cover player operation row sizing"
 ```
 
 ## Task 2: Implement RN-Aligned Operation Slots
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperations.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperations.kt`
 - Create: `core/src/main/res/drawable/ic_font_size.xml`
 - Create: `core/src/main/res/drawable/ic_arrows_left_right.xml`
 - Create: `core/src/main/res/drawable/ic_translation.xml`
@@ -522,7 +522,7 @@ Add imports:
 
 ```kotlin
 import androidx.annotation.DrawableRes
-import com.zili.android.musicfreeandroid.core.theme.IconSizes
+import com.hank.musicfree.core.theme.IconSizes
 ```
 
 - [ ] **Step 5: Replace lyric row content**
@@ -563,7 +563,7 @@ Expected: PASS.
 - [ ] **Step 7: Commit implementation**
 
 ```bash
-git add core/src/main/res/drawable/ic_font_size.xml core/src/main/res/drawable/ic_arrows_left_right.xml core/src/main/res/drawable/ic_translation.xml feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperations.kt
+git add core/src/main/res/drawable/ic_font_size.xml core/src/main/res/drawable/ic_arrows_left_right.xml core/src/main/res/drawable/ic_translation.xml feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperations.kt
 git commit -m "fix: align player operation button sizes"
 ```
 
@@ -609,7 +609,7 @@ Expected: all checks pass. In particular, no new raw `TopAppBarDefaults.topAppBa
 Run:
 
 ```bash
-git diff HEAD~3..HEAD -- feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperations.kt core/src/main/res/drawable
+git diff HEAD~3..HEAD -- feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperations.kt core/src/main/res/drawable
 ```
 
 Expected: diff is limited to operation-row sizing, icon/image rendering, tests, docs, and the three required drawables.

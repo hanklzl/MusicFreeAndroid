@@ -69,7 +69,7 @@ bash scripts/maestro/run-smoke.sh --suite core --serial <adb-serial>
 Debug 包名：
 
 ```text
-com.zili.android.musicfreeandroid.debug
+com.hank.musicfree.debug
 ```
 
 Debug APK 路径：

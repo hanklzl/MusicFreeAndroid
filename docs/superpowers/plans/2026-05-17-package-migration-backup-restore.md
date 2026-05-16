@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the old-package migration release backup/restore feature so users can export a `.mfbackup` from `com.zili.android.musicfreeandroid` and later import it into the new package.
+**Goal:** Build the old-package migration release backup/restore feature so users can export a `.mfbackup` from `com.hank.musicfree` and later import it into the new package.
 
 **Architecture:** The `:data` module owns backup archive format, file enumeration, restore staging, and pending restore records. `:app` calls a file-only startup applier from `Application.attachBaseContext()` before Hilt can instantiate Room/DataStore. `:feature:settings` owns the `SettingsType.Backup` UI, system document launchers, confirmation dialog, and ViewModel state.
 
@@ -12,53 +12,53 @@
 
 ## File Structure
 
-- Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupManifest.kt`
+- Create `data/src/main/java/com/hank/musicfree/data/backup/BackupManifest.kt`
   - Serializable archive manifest and file entry models.
-- Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchivePaths.kt`
+- Create `data/src/main/java/com/hank/musicfree/data/backup/BackupArchivePaths.kt`
   - Path whitelist, safe entry validation, SHA-256 helpers, and target relative paths.
-- Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupFileSetProvider.kt`
+- Create `data/src/main/java/com/hank/musicfree/data/backup/BackupFileSetProvider.kt`
   - Enumerates `musicfree.db`, `app_preferences.preferences_pb`, `files/plugins`, `files/playlist_covers`, and `theme_background.*`.
-- Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveWriter.kt`
+- Create `data/src/main/java/com/hank/musicfree/data/backup/BackupArchiveWriter.kt`
   - Writes `.mfbackup` ZIP and manifest.
-- Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveReader.kt`
+- Create `data/src/main/java/com/hank/musicfree/data/backup/BackupArchiveReader.kt`
   - Validates and extracts backup ZIP into staging.
-- Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/PendingRestoreStore.kt`
+- Create `data/src/main/java/com/hank/musicfree/data/backup/PendingRestoreStore.kt`
   - Reads/writes `files/backup_restore/pending.json` and `last-status.json`.
-- Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/StartupBackupRestore.kt`
+- Create `data/src/main/java/com/hank/musicfree/data/backup/StartupBackupRestore.kt`
   - Static file-only cold-start applier used by `Application.attachBaseContext()`.
-- Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupRepository.kt`
+- Create `data/src/main/java/com/hank/musicfree/data/backup/BackupRepository.kt`
   - Hilt-facing export/stage/register repository.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`
+- Modify `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`
   - Provide `BackupRepository` and metadata provider.
-- Modify `app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt`
+- Modify `app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt`
   - Call startup restore in `attachBaseContext()` before `onCreate()`.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`
   - Add backup/restore UI state and actions.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
   - Replace backup placeholder with real backup screen and system document launchers.
-- Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
+- Modify `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
   - Add stable backup/restore tags.
 - Test files:
-  - `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchivePathsTest.kt`
-  - `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveWriterTest.kt`
-  - `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveReaderTest.kt`
-  - `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/StartupBackupRestoreTest.kt`
-  - Extend `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt`
-  - Extend `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreenTest.kt`
+  - `data/src/test/java/com/hank/musicfree/data/backup/BackupArchivePathsTest.kt`
+  - `data/src/test/java/com/hank/musicfree/data/backup/BackupArchiveWriterTest.kt`
+  - `data/src/test/java/com/hank/musicfree/data/backup/BackupArchiveReaderTest.kt`
+  - `data/src/test/java/com/hank/musicfree/data/backup/StartupBackupRestoreTest.kt`
+  - Extend `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt`
+  - Extend `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsScreenTest.kt`
 
 ## Task 1: Archive Manifest And Path Safety
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupManifest.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchivePaths.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchivePathsTest.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/backup/BackupManifest.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/backup/BackupArchivePaths.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/backup/BackupArchivePathsTest.kt`
 
 - [ ] **Step 1: Write failing path validation tests**
 
-Create `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchivePathsTest.kt`:
+Create `data/src/test/java/com/hank/musicfree/data/backup/BackupArchivePathsTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -103,17 +103,17 @@ class BackupArchivePathsTest {
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.BackupArchivePathsTest' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.BackupArchivePathsTest' --no-daemon
 ```
 
 Expected: FAIL with unresolved reference `BackupArchivePaths`.
 
 - [ ] **Step 3: Add manifest models**
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupManifest.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/backup/BackupManifest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import kotlinx.serialization.Serializable
 
@@ -148,10 +148,10 @@ data class BackupAppMetadata(
 
 - [ ] **Step 4: Add path whitelist and SHA-256 helper**
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchivePaths.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/backup/BackupArchivePaths.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import java.io.InputStream
 import java.security.MessageDigest
@@ -209,7 +209,7 @@ object BackupArchivePaths {
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.BackupArchivePathsTest' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.BackupArchivePathsTest' --no-daemon
 ```
 
 Expected: PASS.
@@ -217,25 +217,25 @@ Expected: PASS.
 - [ ] **Step 6: Commit task 1**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupManifest.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchivePaths.kt \
-  data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchivePathsTest.kt
+git add data/src/main/java/com/hank/musicfree/data/backup/BackupManifest.kt \
+  data/src/main/java/com/hank/musicfree/data/backup/BackupArchivePaths.kt \
+  data/src/test/java/com/hank/musicfree/data/backup/BackupArchivePathsTest.kt
 git commit -m "feat(backup): 定义迁移包 manifest 与路径白名单"
 ```
 
 ## Task 2: Export File Set And Archive Writer
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupFileSetProvider.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveWriter.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveWriterTest.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/backup/BackupFileSetProvider.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/backup/BackupArchiveWriter.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/backup/BackupArchiveWriterTest.kt`
 
 - [ ] **Step 1: Write failing writer tests**
 
-Create `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveWriterTest.kt`:
+Create `data/src/test/java/com/hank/musicfree/data/backup/BackupArchiveWriterTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -286,7 +286,7 @@ class BackupArchiveWriterTest {
                 output = output,
                 files = provider.collect(),
                 metadata = BackupAppMetadata(
-                    packageName = "com.zili.android.musicfreeandroid",
+                    packageName = "com.hank.musicfree",
                     versionName = "1.0.2",
                     versionCode = 10002,
                 ),
@@ -312,7 +312,7 @@ class BackupArchiveWriterTest {
                 .readText()
             val manifest = json.decodeFromString<BackupManifest>(manifestText)
             assertEquals(BackupManifest.CURRENT_SCHEMA_VERSION, manifest.schemaVersion)
-            assertEquals("com.zili.android.musicfreeandroid", manifest.sourcePackageName)
+            assertEquals("com.hank.musicfree", manifest.sourcePackageName)
             assertEquals("1.0.2", manifest.appVersionName)
             assertEquals(10002, manifest.appVersionCode)
             assertEquals(11, manifest.databaseVersion)
@@ -329,17 +329,17 @@ class BackupArchiveWriterTest {
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.BackupArchiveWriterTest' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.BackupArchiveWriterTest' --no-daemon
 ```
 
 Expected: FAIL with unresolved references `BackupFileSetProvider` and `BackupArchiveWriter`.
 
 - [ ] **Step 3: Add file-set provider**
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupFileSetProvider.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/backup/BackupFileSetProvider.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import java.io.File
 
@@ -418,10 +418,10 @@ class BackupFileSetProvider(
 
 - [ ] **Step 4: Add archive writer**
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveWriter.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/backup/BackupArchiveWriter.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -476,7 +476,7 @@ class BackupArchiveWriter(
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.BackupArchiveWriterTest' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.BackupArchiveWriterTest' --no-daemon
 ```
 
 Expected: PASS.
@@ -484,24 +484,24 @@ Expected: PASS.
 - [ ] **Step 6: Commit task 2**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupFileSetProvider.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveWriter.kt \
-  data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveWriterTest.kt
+git add data/src/main/java/com/hank/musicfree/data/backup/BackupFileSetProvider.kt \
+  data/src/main/java/com/hank/musicfree/data/backup/BackupArchiveWriter.kt \
+  data/src/test/java/com/hank/musicfree/data/backup/BackupArchiveWriterTest.kt
 git commit -m "feat(backup): 导出迁移包文件集"
 ```
 
 ## Task 3: Archive Reader And Restore Staging
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveReader.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveReaderTest.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/backup/BackupArchiveReader.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/backup/BackupArchiveReaderTest.kt`
 
 - [ ] **Step 1: Write failing reader validation tests**
 
-Create `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveReaderTest.kt`:
+Create `data/src/test/java/com/hank/musicfree/data/backup/BackupArchiveReaderTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -543,7 +543,7 @@ class BackupArchiveReaderTest {
         )
 
         assertEquals("restore-1", staged.id)
-        assertEquals("com.zili.android.musicfreeandroid", staged.manifest.sourcePackageName)
+        assertEquals("com.hank.musicfree", staged.manifest.sourcePackageName)
         assertTrue(File(staged.directory, BackupArchivePaths.DB).isFile)
         assertTrue(File(staged.directory, BackupArchivePaths.DATASTORE).isFile)
         assertTrue(File(staged.directory, "files/plugins/wy.js").isFile)
@@ -577,7 +577,7 @@ class BackupArchiveReaderTest {
         val archive = tmp.newFile("bad-hash.mfbackup")
         val manifest = BackupManifest(
             schemaVersion = BackupManifest.CURRENT_SCHEMA_VERSION,
-            sourcePackageName = "com.zili.android.musicfreeandroid",
+            sourcePackageName = "com.hank.musicfree",
             createdAt = "2026-05-17T00:00:00Z",
             appVersionName = "1.0.2",
             appVersionCode = 10002,
@@ -621,7 +621,7 @@ class BackupArchiveReaderTest {
         }
         val manifest = BackupManifest(
             schemaVersion = BackupManifest.CURRENT_SCHEMA_VERSION,
-            sourcePackageName = "com.zili.android.musicfreeandroid",
+            sourcePackageName = "com.hank.musicfree",
             createdAt = "2026-05-17T00:00:00Z",
             appVersionName = "1.0.2",
             appVersionCode = 10002,
@@ -647,17 +647,17 @@ class BackupArchiveReaderTest {
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.BackupArchiveReaderTest' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.BackupArchiveReaderTest' --no-daemon
 ```
 
 Expected: FAIL with unresolved references `BackupArchiveReader` and `BackupArchiveException`.
 
 - [ ] **Step 3: Add reader and staging result**
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveReader.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/backup/BackupArchiveReader.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -766,7 +766,7 @@ class BackupArchiveReader(
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.BackupArchiveReaderTest' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.BackupArchiveReaderTest' --no-daemon
 ```
 
 Expected: PASS.
@@ -774,24 +774,24 @@ Expected: PASS.
 - [ ] **Step 5: Commit task 3**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveReader.kt \
-  data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupArchiveReaderTest.kt
+git add data/src/main/java/com/hank/musicfree/data/backup/BackupArchiveReader.kt \
+  data/src/test/java/com/hank/musicfree/data/backup/BackupArchiveReaderTest.kt
 git commit -m "feat(backup): 校验并暂存迁移包"
 ```
 
 ## Task 4: Pending Restore Store And Cold Startup Applier
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/PendingRestoreStore.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/StartupBackupRestore.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/StartupBackupRestoreTest.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/backup/PendingRestoreStore.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/backup/StartupBackupRestore.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/backup/StartupBackupRestoreTest.kt`
 
 - [ ] **Step 1: Write failing cold-start applier tests**
 
-Create `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/StartupBackupRestoreTest.kt`:
+Create `data/src/test/java/com/hank/musicfree/data/backup/StartupBackupRestoreTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.serialization.json.Json
@@ -845,17 +845,17 @@ class StartupBackupRestoreTest {
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.StartupBackupRestoreTest' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.StartupBackupRestoreTest' --no-daemon
 ```
 
 Expected: FAIL with unresolved references `BackupPrivateLayout`, `PendingRestoreStore`, `PendingRestoreRecord`, and `StartupBackupRestore`.
 
 - [ ] **Step 3: Add pending restore store**
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/PendingRestoreStore.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/backup/PendingRestoreStore.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -914,10 +914,10 @@ class PendingRestoreStore(
 
 - [ ] **Step 4: Add startup applier**
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/StartupBackupRestore.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/backup/StartupBackupRestore.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import android.content.Context
 import kotlinx.serialization.json.Json
@@ -1021,7 +1021,7 @@ object StartupBackupRestore {
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.StartupBackupRestoreTest' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.StartupBackupRestoreTest' --no-daemon
 ```
 
 Expected: PASS.
@@ -1029,26 +1029,26 @@ Expected: PASS.
 - [ ] **Step 6: Commit task 4**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/backup/PendingRestoreStore.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/backup/StartupBackupRestore.kt \
-  data/src/test/java/com/zili/android/musicfreeandroid/data/backup/StartupBackupRestoreTest.kt
+git add data/src/main/java/com/hank/musicfree/data/backup/PendingRestoreStore.kt \
+  data/src/main/java/com/hank/musicfree/data/backup/StartupBackupRestore.kt \
+  data/src/test/java/com/hank/musicfree/data/backup/StartupBackupRestoreTest.kt
 git commit -m "feat(backup): 支持冷启动恢复待导入数据"
 ```
 
 ## Task 5: Backup Repository, Hilt Wiring, And Startup Hook
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupRepository.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt`
-- Test: extend data backup tests through repository unit tests in `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupRepositoryTest.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/backup/BackupRepository.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt`
+- Test: extend data backup tests through repository unit tests in `data/src/test/java/com/hank/musicfree/data/backup/BackupRepositoryTest.kt`
 
 - [ ] **Step 1: Write failing repository test**
 
-Create `data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupRepositoryTest.kt`:
+Create `data/src/test/java/com/hank/musicfree/data/backup/BackupRepositoryTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
@@ -1082,7 +1082,7 @@ class BackupRepositoryTest {
             contentResolver = context.contentResolver,
             databaseCheckpoint = { },
             layout = BackupPrivateLayout(filesDir = filesDir, databaseFile = db),
-            appMetadata = BackupAppMetadata("com.zili.android.musicfreeandroid", "1.0.2", 10002),
+            appMetadata = BackupAppMetadata("com.hank.musicfree", "1.0.2", 10002),
             databaseVersion = 11,
             json = Json { ignoreUnknownKeys = true },
         )
@@ -1099,24 +1099,24 @@ class BackupRepositoryTest {
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.BackupRepositoryTest' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.BackupRepositoryTest' --no-daemon
 ```
 
 Expected: FAIL with unresolved references `DefaultBackupRepository` and `exportTo`.
 
 - [ ] **Step 3: Add repository**
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupRepository.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/backup/BackupRepository.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.backup
+package com.hank.musicfree.data.backup
 
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.logging.LogCategory
-import com.zili.android.musicfreeandroid.logging.MfLog
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -1211,16 +1211,16 @@ fun AppDatabase.checkpointWal() {
 
 - [ ] **Step 4: Wire Hilt providers**
 
-Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`.
+Modify `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`.
 
 Add imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.data.backup.BackupAppMetadata
-import com.zili.android.musicfreeandroid.data.backup.BackupPrivateLayout
-import com.zili.android.musicfreeandroid.data.backup.BackupRepository
-import com.zili.android.musicfreeandroid.data.backup.DefaultBackupRepository
-import com.zili.android.musicfreeandroid.data.backup.checkpointWal
+import com.hank.musicfree.data.backup.BackupAppMetadata
+import com.hank.musicfree.data.backup.BackupPrivateLayout
+import com.hank.musicfree.data.backup.BackupRepository
+import com.hank.musicfree.data.backup.DefaultBackupRepository
+import com.hank.musicfree.data.backup.checkpointWal
 import kotlinx.serialization.json.Json
 ```
 
@@ -1273,13 +1273,13 @@ Add providers inside `object DataModule`:
 
 - [ ] **Step 5: Add startup hook before Hilt-created data is used**
 
-Modify `app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt`.
+Modify `app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt`.
 
 Add imports:
 
 ```kotlin
 import android.content.Context
-import com.zili.android.musicfreeandroid.data.backup.StartupBackupRestore
+import com.hank.musicfree.data.backup.StartupBackupRestore
 ```
 
 Add override before `onCreate()`:
@@ -1298,7 +1298,7 @@ Keep existing `onCreate()` order unchanged.
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.BackupRepositoryTest' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.BackupRepositoryTest' --no-daemon
 ./gradlew :app:compileDebugKotlin --no-daemon
 ```
 
@@ -1307,18 +1307,18 @@ Expected: both PASS.
 - [ ] **Step 7: Commit task 5**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/backup/BackupRepository.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt \
-  app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt \
-  data/src/test/java/com/zili/android/musicfreeandroid/data/backup/BackupRepositoryTest.kt
+git add data/src/main/java/com/hank/musicfree/data/backup/BackupRepository.kt \
+  data/src/main/java/com/hank/musicfree/data/di/DataModule.kt \
+  app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt \
+  data/src/test/java/com/hank/musicfree/data/backup/BackupRepositoryTest.kt
 git commit -m "feat(backup): 接入备份仓库与启动恢复"
 ```
 
 ## Task 6: Settings ViewModel Backup State
 
 **Files:**
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`
-- Test: extend `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`
+- Test: extend `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt`
 
 - [ ] **Step 1: Write failing ViewModel tests**
 
@@ -1348,7 +1348,7 @@ Append tests to `SettingsViewModelTest`:
             advanceUntilIdle()
 
             assertTrue(viewModel.backupRestoreUiState.value.restoreConfirmationVisible)
-            assertEquals("com.zili.android.musicfreeandroid", viewModel.backupRestoreUiState.value.restoreSourcePackageName)
+            assertEquals("com.hank.musicfree", viewModel.backupRestoreUiState.value.restoreSourcePackageName)
 
             viewModel.confirmRestore()
             advanceUntilIdle()
@@ -1383,7 +1383,7 @@ Add fake class:
 
         private val manifest = BackupManifest(
             schemaVersion = BackupManifest.CURRENT_SCHEMA_VERSION,
-            sourcePackageName = "com.zili.android.musicfreeandroid",
+            sourcePackageName = "com.hank.musicfree",
             createdAt = "2026-05-17T00:00:00Z",
             appVersionName = "1.0.2",
             appVersionCode = 10002,
@@ -1414,11 +1414,11 @@ Add fake class:
 Add imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.data.backup.BackupArchivePaths
-import com.zili.android.musicfreeandroid.data.backup.BackupManifest
-import com.zili.android.musicfreeandroid.data.backup.BackupManifestFile
-import com.zili.android.musicfreeandroid.data.backup.BackupRepository
-import com.zili.android.musicfreeandroid.data.backup.StagedRestore
+import com.hank.musicfree.data.backup.BackupArchivePaths
+import com.hank.musicfree.data.backup.BackupManifest
+import com.hank.musicfree.data.backup.BackupManifestFile
+import com.hank.musicfree.data.backup.BackupRepository
+import com.hank.musicfree.data.backup.StagedRestore
 ```
 
 - [ ] **Step 2: Run ViewModel test to verify it fails**
@@ -1426,7 +1426,7 @@ import com.zili.android.musicfreeandroid.data.backup.StagedRestore
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.settings.SettingsViewModelTest' --no-daemon
+./gradlew :feature:settings:testDebugUnitTest --tests 'com.hank.musicfree.feature.settings.SettingsViewModelTest' --no-daemon
 ```
 
 Expected: FAIL with constructor mismatch and unresolved `backupRestoreUiState`.
@@ -1439,8 +1439,8 @@ Add imports:
 
 ```kotlin
 import android.net.Uri
-import com.zili.android.musicfreeandroid.data.backup.BackupRepository
-import com.zili.android.musicfreeandroid.data.backup.StagedRestore
+import com.hank.musicfree.data.backup.BackupRepository
+import com.hank.musicfree.data.backup.StagedRestore
 ```
 
 Add data class near other UI states:
@@ -1558,7 +1558,7 @@ Add actions before `private companion object`:
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.settings.SettingsViewModelTest' --no-daemon
+./gradlew :feature:settings:testDebugUnitTest --tests 'com.hank.musicfree.feature.settings.SettingsViewModelTest' --no-daemon
 ```
 
 Expected: PASS.
@@ -1566,17 +1566,17 @@ Expected: PASS.
 - [ ] **Step 5: Commit task 6**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt \
-  feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt \
+  feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt
 git commit -m "feat(settings): 接入备份恢复状态"
 ```
 
 ## Task 7: Backup Settings UI
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
-- Test: extend `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreenTest.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
+- Test: extend `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsScreenTest.kt`
 
 - [ ] **Step 1: Write failing UI test**
 
@@ -1585,11 +1585,11 @@ Add imports in `SettingsScreenTest.kt`:
 ```kotlin
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithText
-import com.zili.android.musicfreeandroid.data.backup.BackupRepository
-import com.zili.android.musicfreeandroid.data.backup.BackupManifest
-import com.zili.android.musicfreeandroid.data.backup.BackupManifestFile
-import com.zili.android.musicfreeandroid.data.backup.BackupArchivePaths
-import com.zili.android.musicfreeandroid.data.backup.StagedRestore
+import com.hank.musicfree.data.backup.BackupRepository
+import com.hank.musicfree.data.backup.BackupManifest
+import com.hank.musicfree.data.backup.BackupManifestFile
+import com.hank.musicfree.data.backup.BackupArchivePaths
+import com.hank.musicfree.data.backup.StagedRestore
 ```
 
 Add test:
@@ -1616,7 +1616,7 @@ Add fake:
     private class FakeBackupRepository : BackupRepository {
         private val manifest = BackupManifest(
             schemaVersion = BackupManifest.CURRENT_SCHEMA_VERSION,
-            sourcePackageName = "com.zili.android.musicfreeandroid",
+            sourcePackageName = "com.hank.musicfree",
             createdAt = "2026-05-17T00:00:00Z",
             appVersionName = "1.0.2",
             appVersionCode = 10002,
@@ -1636,14 +1636,14 @@ Add fake:
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.settings.SettingsScreenTest.backup type renders backup restore actions' --no-daemon
+./gradlew :feature:settings:testDebugUnitTest --tests 'com.hank.musicfree.feature.settings.SettingsScreenTest.backup type renders backup restore actions' --no-daemon
 ```
 
 Expected: FAIL with unresolved tags `BackupCreate` / `BackupRestore` and missing UI.
 
 - [ ] **Step 3: Add stable anchors**
 
-Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt` inside `object Settings`:
+Modify `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt` inside `object Settings`:
 
 ```kotlin
         const val BackupCreate = "settings.backup.create"
@@ -1653,7 +1653,7 @@ Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnc
 
 - [ ] **Step 4: Add backup screen UI**
 
-Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`.
+Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`.
 
 Add imports:
 
@@ -1815,7 +1815,7 @@ private fun BackupRestoreConfirmDialog(
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.settings.SettingsScreenTest' --no-daemon
+./gradlew :feature:settings:testDebugUnitTest --tests 'com.hank.musicfree.feature.settings.SettingsScreenTest' --no-daemon
 ```
 
 Expected: PASS.
@@ -1823,9 +1823,9 @@ Expected: PASS.
 - [ ] **Step 6: Commit task 7**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt \
-  feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreenTest.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt \
+  feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsScreenTest.kt
 git commit -m "feat(settings): 实现备份与恢复入口"
 ```
 
@@ -1840,7 +1840,7 @@ git commit -m "feat(settings): 实现备份与恢复入口"
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.data.backup.*' --no-daemon
+./gradlew :data:testDebugUnitTest --tests 'com.hank.musicfree.data.backup.*' --no-daemon
 ```
 
 Expected: PASS.
@@ -1850,7 +1850,7 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.settings.SettingsViewModelTest' --tests 'com.zili.android.musicfreeandroid.feature.settings.SettingsScreenTest' --no-daemon
+./gradlew :feature:settings:testDebugUnitTest --tests 'com.hank.musicfree.feature.settings.SettingsViewModelTest' --tests 'com.hank.musicfree.feature.settings.SettingsScreenTest' --no-daemon
 ```
 
 Expected: PASS.
@@ -1896,15 +1896,15 @@ Expected:
 If Step 1-5 required fixes, commit the concrete touched areas:
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt \
-  core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/backup \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt \
-  data/src/test/java/com/zili/android/musicfreeandroid/data/backup \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt \
-  feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreenTest.kt \
-  feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt
+git add app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt \
+  core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt \
+  data/src/main/java/com/hank/musicfree/data/backup \
+  data/src/main/java/com/hank/musicfree/data/di/DataModule.kt \
+  data/src/test/java/com/hank/musicfree/data/backup \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt \
+  feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsScreenTest.kt \
+  feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt
 git commit -m "fix(backup): 修正备份恢复验收问题"
 ```
 

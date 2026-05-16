@@ -161,7 +161,7 @@ title: 首页推荐位首屏加载
 priority: core                  # core | non-core
 page: home
 rn_appid: fun.upup.musicfree
-android_appid: com.zili.android.musicfreeandroid.debug
+android_appid: com.hank.musicfree.debug
 rn_flow: maestro/flows/parity/home_recommend_first_load.rn.yaml
 android_flow: maestro/flows/parity/home_recommend_first_load.android.yaml
 waypoints:

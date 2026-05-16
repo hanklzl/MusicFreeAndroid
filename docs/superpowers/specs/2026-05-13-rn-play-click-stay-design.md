@@ -21,18 +21,18 @@ RN 侧已确认的行为：
 
 Android 当前相关入口：
 
-- `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailScreen.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayer.kt`
-- `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
+- `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailScreen.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayer.kt`
+- `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
 
 ## 目标
 

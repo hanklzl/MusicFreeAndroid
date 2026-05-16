@@ -41,7 +41,7 @@ guard 当前 manual：未来 contract-test 可静态扫 `ModalDrawerSheet` / `Mo
 - guard:
     type: grep + manual
 - signature: |
-    grep -nE 'WindowInsetsSides\.Top' app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt
+    grep -nE 'WindowInsetsSides\.Top' app/src/main/java/com/hank/musicfree/MainActivity.kt
 - fix_ref: docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md#mainactivity-设计
 
 ### 根因
@@ -73,7 +73,7 @@ manual 部分用于审查 `MainActivity` 替代写法（例如自定义 modifier
     grep -rEn 'TopAppBarDefaults\.topAppBarColors\(' \
       --include='*.kt' \
       --exclude-dir=build --exclude-dir=.worktrees --exclude-dir=.gradle . \
-      | grep -v 'core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicFreeScreenChrome.kt'
+      | grep -v 'core/src/main/java/com/hank/musicfree/core/ui/MusicFreeScreenChrome.kt'
 - fix_ref: docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md#公共-compose-api-设计
 
 ### 根因
@@ -97,7 +97,7 @@ manual 部分用于审查 `MainActivity` 替代写法（例如自定义 modifier
 - rule_ref: docs/dev-harness/ui/rules.md#rule-nav-animation-rn-android
 - guard:
     type: contract-test
-    target: app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/UiNavAnimationDurationContractTest.kt
+    target: app/src/test/java/com/hank/musicfree/harness/contracts/UiNavAnimationDurationContractTest.kt
 - fix_ref: docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md#screen-切换动画设计
 
 ### 根因

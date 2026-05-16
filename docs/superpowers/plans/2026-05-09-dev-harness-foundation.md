@@ -40,11 +40,11 @@
 | `.agents/skills/harness-curator-skill/**` | PR 2 | Plus curate-workflow / drift-detection refs |
 | `.claude/skills/<name>` | PR 2 | Symlink → `.agents/skills/<name>` |
 | `.codex/skills/<name>` | PR 2 | Symlink → `.agents/skills/<name>` |
-| `app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/TestRunTestIdiomContractTest.kt` | PR 3 | Guards INC-2026-0001 |
+| `app/src/test/java/com/hank/musicfree/harness/contracts/TestRunTestIdiomContractTest.kt` | PR 3 | Guards INC-2026-0001 |
 | `app/src/test/.../harness/contracts/PlayerControllerSetupContractTest.kt` | PR 3 | Guards INC-2026-0002 |
 | `app/src/test/.../harness/contracts/FeatureAndroidTestRunnerBaselineContractTest.kt` | PR 3 | Guards INC-2026-0005 |
 | `app/src/test/.../harness/contracts/UiNavAnimationDurationContractTest.kt` | PR 3 | Thin wrapper for INC-2026-0006 |
-| `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/PluginDataStoreIsolationContractTest.kt` | PR 3 | Guards INC-2026-0004 |
+| `plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/PluginDataStoreIsolationContractTest.kt` | PR 3 | Guards INC-2026-0004 |
 | `plugin/src/test/.../harness/contracts/PluginNetworkTestGateContractTest.kt` | PR 3 | Guards INC-2026-0010 |
 | `feature/player-ui/src/test/.../harness/contracts/LyricFollowDebounceContractTest.kt` | PR 3 | Thin wrapper for INC-2026-0012 |
 
@@ -240,7 +240,7 @@ implemented_by: INC-2026-0006
 
 implemented_by: INC-2026-0007
 
-普通 AppBar 页面 MUST 使用 `com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold` 或 `MusicFreeTopAppBar`。
+普通 AppBar 页面 MUST 使用 `com.hank.musicfree.core.ui.MusicFreeScreenScaffold` 或 `MusicFreeTopAppBar`。
 
 普通 AppBar 页面 MUST NOT 直接手写以下模式：
 
@@ -673,7 +673,7 @@ EOF
 - rule_ref: docs/dev-harness/test/rules.md#rule-feature-androidtest-baseline
 - guard:
     type: contract-test
-    target: app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/FeatureAndroidTestRunnerBaselineContractTest.kt
+    target: app/src/test/java/com/hank/musicfree/harness/contracts/FeatureAndroidTestRunnerBaselineContractTest.kt
 - fix_ref: docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md#2-pr-1--group-d-feature-androidtest-runner-基线
 
 ### 根因
@@ -697,7 +697,7 @@ EOF
 - rule_ref: docs/dev-harness/test/rules.md#rule-datastore-per-instance-isolation
 - guard:
     type: contract-test
-    target: plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/PluginDataStoreIsolationContractTest.kt
+    target: plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/PluginDataStoreIsolationContractTest.kt
 - fix_ref: docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md#5-3-1-instrumentation-datastore-隔离
 
 ### 根因
@@ -750,7 +750,7 @@ instrumentation test 中静态文件名 + 多 `@Test` 方法 + 未关闭 dataSto
 - rule_ref: docs/dev-harness/test/rules.md#rule-no-runblocking-mainthread-in-instrumentation
 - guard:
     type: contract-test
-    target: app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/PlayerControllerSetupContractTest.kt
+    target: app/src/test/java/com/hank/musicfree/harness/contracts/PlayerControllerSetupContractTest.kt
 - fix_ref: docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md#4-6-2-playercontrollertest-setup-死锁根因与修复
 
 ### 根因
@@ -774,7 +774,7 @@ instrumentation test 中嵌套 `mainExecutor.execute { runBlocking { ... } }` �
 - rule_ref: docs/dev-harness/test/rules.md#rule-runtest-mandatory
 - guard:
     type: contract-test
-    target: app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/TestRunTestIdiomContractTest.kt
+    target: app/src/test/java/com/hank/musicfree/harness/contracts/TestRunTestIdiomContractTest.kt
 - fix_ref: docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md#3-pr-1--group-c-runtest-迁移
 
 ### 根因
@@ -826,7 +826,7 @@ EOF
 - guard:
     type: grep + manual
 - signature: |
-    grep -nE 'WindowInsetsSides\.Top' app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt
+    grep -nE 'WindowInsetsSides\.Top' app/src/main/java/com/hank/musicfree/MainActivity.kt
 - fix_ref: docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md#mainactivity-设计
 
 ### 根因
@@ -858,7 +858,7 @@ manual 部分用于审查 `MainActivity` 替代写法（例如自定义 modifier
     grep -rEn 'TopAppBarDefaults\.topAppBarColors\(' \
       --include='*.kt' \
       --exclude-dir=build --exclude-dir=.worktrees --exclude-dir=.gradle . \
-      | grep -v 'core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicFreeScreenChrome.kt'
+      | grep -v 'core/src/main/java/com/hank/musicfree/core/ui/MusicFreeScreenChrome.kt'
 - fix_ref: docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md#公共-compose-api-设计
 
 ### 根因
@@ -882,7 +882,7 @@ manual 部分用于审查 `MainActivity` 替代写法（例如自定义 modifier
 - rule_ref: docs/dev-harness/ui/rules.md#rule-nav-animation-100ms
 - guard:
     type: contract-test
-    target: app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/UiNavAnimationDurationContractTest.kt
+    target: app/src/test/java/com/hank/musicfree/harness/contracts/UiNavAnimationDurationContractTest.kt
 - fix_ref: docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md#screen-切换动画设计
 
 ### 根因
@@ -933,7 +933,7 @@ EOF
 - rule_ref: docs/dev-harness/plugin/rules.md#rule-network-test-gated
 - guard:
     type: contract-test
-    target: plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/PluginNetworkTestGateContractTest.kt
+    target: plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/PluginNetworkTestGateContractTest.kt
 - fix_ref: docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md#5-3--pintegration-门控机制
 
 ### 根因
@@ -1011,7 +1011,7 @@ EOF
 - rule_ref: docs/dev-harness/player/rules.md#rule-lyric-follow-debounce
 - guard:
     type: contract-test
-    target: feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/harness/contracts/LyricFollowDebounceContractTest.kt
+    target: feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/harness/contracts/LyricFollowDebounceContractTest.kt
 - fix_ref: docs/superpowers/specs/2026-05-05-player-lyrics-interaction-fix-design.md
 
 ### 根因
@@ -1836,7 +1836,7 @@ fun MyScreen(
 ```markdown
 # Navigation Animation
 
-集中入口：`app/src/main/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitions.kt`。
+集中入口：`app/src/main/java/com/hank/musicfree/navigation/MusicFreeNavTransitions.kt`。
 
 约束：
 
@@ -1871,7 +1871,7 @@ contract test 守门：`UiNavAnimationDurationContractTest`（PR 3 起生效，�
 ```markdown
 # Fidelity Anchors
 
-`core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt` 是首页 UI fidelity 与 contract 测试断言的 anchor 表。
+`core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt` 是首页 UI fidelity 与 contract 测试断言的 anchor 表。
 
 约束：
 
@@ -1964,7 +1964,7 @@ Cross-tool guidance for the plugin engine, manager, and integration tests.
 13. `userVariables`（读写存储）
 14. `subscription`（订阅源能力）
 
-实际能力以 `:plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginApi.kt` 为准；本表是 RN 对齐参考，不覆盖代码。
+实际能力以 `:plugin/src/main/java/com/hank/musicfree/plugin/api/PluginApi.kt` 为准；本表是 RN 对齐参考，不覆盖代码。
 
 require shim 支持：`cheerio`、`crypto-js`、`dayjs`、`axios`、`qs`、`he`、`big-integer`。
 ```
@@ -1982,7 +1982,7 @@ require shim 支持：`cheerio`、`crypto-js`、`dayjs`、`axios`、`qs`、`he`�
 
 guard 当前 manual：harness-curator-skill 巡检会显式列 INC-2026-0009 提醒人工复核；再现一次跨线程崩溃即升级为 contract-test。
 
-实现入口：`:plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/`。
+实现入口：`:plugin/src/main/java/com/hank/musicfree/plugin/engine/`。
 ```
 
 - [ ] **Step 4: Write `references/mock-webserver-recipe.md`**
@@ -2816,12 +2816,12 @@ cd .worktrees/feat-dev-harness-contracts
 ### Task 3.2: Add `TestRunTestIdiomContractTest` (Guards INC-2026-0001)
 
 **Files:**
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/TestRunTestIdiomContractTest.kt`
+- Create: `app/src/test/java/com/hank/musicfree/harness/contracts/TestRunTestIdiomContractTest.kt`
 
 - [ ] **Step 1: Write the test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.harness.contracts
+package com.hank.musicfree.harness.contracts
 
 import org.junit.Test
 import java.io.File
@@ -2874,7 +2874,7 @@ class TestRunTestIdiomContractTest {
 - [ ] **Step 2: Run the test**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.harness.contracts.TestRunTestIdiomContractTest' --no-daemon
+./gradlew :app:testDebugUnitTest --tests 'com.hank.musicfree.harness.contracts.TestRunTestIdiomContractTest' --no-daemon
 ```
 
 Expected: PASS (since `2026-05-04-test-suite-rehab` already removed all violations).
@@ -2884,7 +2884,7 @@ If FAIL: open the listed file(s) and migrate them to the runTest idiom. Re-run u
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/TestRunTestIdiomContractTest.kt
+git add app/src/test/java/com/hank/musicfree/harness/contracts/TestRunTestIdiomContractTest.kt
 git commit -m "$(cat <<'EOF'
 test(harness): add TestRunTestIdiomContractTest guarding INC-2026-0001
 
@@ -2896,12 +2896,12 @@ EOF
 ### Task 3.3: Add `PlayerControllerSetupContractTest` (Guards INC-2026-0002)
 
 **Files:**
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/PlayerControllerSetupContractTest.kt`
+- Create: `app/src/test/java/com/hank/musicfree/harness/contracts/PlayerControllerSetupContractTest.kt`
 
 - [ ] **Step 1: Write the test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.harness.contracts
+package com.hank.musicfree.harness.contracts
 
 import org.junit.Test
 import java.io.File
@@ -2961,8 +2961,8 @@ class PlayerControllerSetupContractTest {
 - [ ] **Step 2: Run and commit**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.harness.contracts.PlayerControllerSetupContractTest' --no-daemon
-git add app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/PlayerControllerSetupContractTest.kt
+./gradlew :app:testDebugUnitTest --tests 'com.hank.musicfree.harness.contracts.PlayerControllerSetupContractTest' --no-daemon
+git add app/src/test/java/com/hank/musicfree/harness/contracts/PlayerControllerSetupContractTest.kt
 git commit -m "$(cat <<'EOF'
 test(harness): add PlayerControllerSetupContractTest guarding INC-2026-0002
 
@@ -2976,12 +2976,12 @@ Expected: PASS.
 ### Task 3.4: Add `FeatureAndroidTestRunnerBaselineContractTest` (Guards INC-2026-0005)
 
 **Files:**
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/FeatureAndroidTestRunnerBaselineContractTest.kt`
+- Create: `app/src/test/java/com/hank/musicfree/harness/contracts/FeatureAndroidTestRunnerBaselineContractTest.kt`
 
 - [ ] **Step 1: Write the test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.harness.contracts
+package com.hank.musicfree.harness.contracts
 
 import org.junit.Test
 import java.io.File
@@ -3034,8 +3034,8 @@ class FeatureAndroidTestRunnerBaselineContractTest {
 - [ ] **Step 2: Run and commit**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.harness.contracts.FeatureAndroidTestRunnerBaselineContractTest' --no-daemon
-git add app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/FeatureAndroidTestRunnerBaselineContractTest.kt
+./gradlew :app:testDebugUnitTest --tests 'com.hank.musicfree.harness.contracts.FeatureAndroidTestRunnerBaselineContractTest' --no-daemon
+git add app/src/test/java/com/hank/musicfree/harness/contracts/FeatureAndroidTestRunnerBaselineContractTest.kt
 git commit -m "$(cat <<'EOF'
 test(harness): add FeatureAndroidTestRunnerBaselineContractTest guarding INC-2026-0005
 
@@ -3049,14 +3049,14 @@ Expected: PASS.
 ### Task 3.5: Add `UiNavAnimationDurationContractTest` (Guards INC-2026-0006)
 
 **Files:**
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/UiNavAnimationDurationContractTest.kt`
+- Create: `app/src/test/java/com/hank/musicfree/harness/contracts/UiNavAnimationDurationContractTest.kt`
 
 - [ ] **Step 1: Write the thin wrapper**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.harness.contracts
+package com.hank.musicfree.harness.contracts
 
-import com.zili.android.musicfreeandroid.navigation.MusicFreeScreenTransitionDurationMillis
+import com.hank.musicfree.navigation.MusicFreeScreenTransitionDurationMillis
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -3081,8 +3081,8 @@ class UiNavAnimationDurationContractTest {
 - [ ] **Step 2: Run and commit**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.harness.contracts.UiNavAnimationDurationContractTest' --no-daemon
-git add app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/UiNavAnimationDurationContractTest.kt
+./gradlew :app:testDebugUnitTest --tests 'com.hank.musicfree.harness.contracts.UiNavAnimationDurationContractTest' --no-daemon
+git add app/src/test/java/com/hank/musicfree/harness/contracts/UiNavAnimationDurationContractTest.kt
 git commit -m "$(cat <<'EOF'
 test(harness): add UiNavAnimationDurationContractTest thin wrapper for INC-2026-0006
 
@@ -3096,12 +3096,12 @@ Expected: PASS.
 ### Task 3.6: Add `PluginDataStoreIsolationContractTest` (Guards INC-2026-0004)
 
 **Files:**
-- Create: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/PluginDataStoreIsolationContractTest.kt`
+- Create: `plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/PluginDataStoreIsolationContractTest.kt`
 
 - [ ] **Step 1: Write the test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.harness.contracts
+package com.hank.musicfree.plugin.harness.contracts
 
 import org.junit.Test
 import java.io.File
@@ -3158,8 +3158,8 @@ class PluginDataStoreIsolationContractTest {
 - [ ] **Step 2: Run and commit**
 
 ```bash
-./gradlew :plugin:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.plugin.harness.contracts.PluginDataStoreIsolationContractTest' --no-daemon
-git add plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/PluginDataStoreIsolationContractTest.kt
+./gradlew :plugin:testDebugUnitTest --tests 'com.hank.musicfree.plugin.harness.contracts.PluginDataStoreIsolationContractTest' --no-daemon
+git add plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/PluginDataStoreIsolationContractTest.kt
 git commit -m "$(cat <<'EOF'
 test(harness): add PluginDataStoreIsolationContractTest guarding INC-2026-0004
 
@@ -3173,12 +3173,12 @@ Expected: PASS.
 ### Task 3.7: Add `PluginNetworkTestGateContractTest` (Guards INC-2026-0010)
 
 **Files:**
-- Create: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/PluginNetworkTestGateContractTest.kt`
+- Create: `plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/PluginNetworkTestGateContractTest.kt`
 
 - [ ] **Step 1: Write the test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.harness.contracts
+package com.hank.musicfree.plugin.harness.contracts
 
 import org.junit.Test
 import java.io.File
@@ -3234,8 +3234,8 @@ class PluginNetworkTestGateContractTest {
 - [ ] **Step 2: Run and commit**
 
 ```bash
-./gradlew :plugin:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.plugin.harness.contracts.PluginNetworkTestGateContractTest' --no-daemon
-git add plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/PluginNetworkTestGateContractTest.kt
+./gradlew :plugin:testDebugUnitTest --tests 'com.hank.musicfree.plugin.harness.contracts.PluginNetworkTestGateContractTest' --no-daemon
+git add plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/PluginNetworkTestGateContractTest.kt
 git commit -m "$(cat <<'EOF'
 test(harness): add PluginNetworkTestGateContractTest guarding INC-2026-0010
 
@@ -3249,12 +3249,12 @@ Expected: PASS.
 ### Task 3.8: Add `LyricFollowDebounceContractTest` (Guards INC-2026-0012)
 
 **Files:**
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/harness/contracts/LyricFollowDebounceContractTest.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/harness/contracts/LyricFollowDebounceContractTest.kt`
 
 - [ ] **Step 1: Write the thin wrapper**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.harness.contracts
+package com.hank.musicfree.feature.playerui.harness.contracts
 
 import org.junit.Test
 import java.io.File
@@ -3308,7 +3308,7 @@ class LyricFollowDebounceContractTest {
 - [ ] **Step 2: Verify the substring patterns match real files**
 
 ```bash
-ls feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/ 2>&1 | head
+ls feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/ 2>&1 | head
 find feature/player-ui/src/test -name '*LyricFollow*Test.kt'
 find feature/player-ui/src/test -name '*LyricSeekOverlay*Test.kt'
 find feature/player-ui/src/test -name 'MiniPlayerContentTest.kt'
@@ -3319,8 +3319,8 @@ If any returned path is empty, the contract will fail. Confirm the files exist (
 - [ ] **Step 3: Run and commit**
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.playerui.harness.contracts.LyricFollowDebounceContractTest' --no-daemon
-git add feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/harness/contracts/LyricFollowDebounceContractTest.kt
+./gradlew :feature:player-ui:testDebugUnitTest --tests 'com.hank.musicfree.feature.playerui.harness.contracts.LyricFollowDebounceContractTest' --no-daemon
+git add feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/harness/contracts/LyricFollowDebounceContractTest.kt
 git commit -m "$(cat <<'EOF'
 test(harness): add LyricFollowDebounceContractTest guarding INC-2026-0012
 
@@ -3351,13 +3351,13 @@ grep -E '^- guard:|^    target:' docs/dev-harness/{test,ui,plugin,player}/incide
 
 ```bash
 for path in \
-  app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/TestRunTestIdiomContractTest.kt \
-  app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/PlayerControllerSetupContractTest.kt \
-  app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/FeatureAndroidTestRunnerBaselineContractTest.kt \
-  app/src/test/java/com/zili/android/musicfreeandroid/harness/contracts/UiNavAnimationDurationContractTest.kt \
-  plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/PluginDataStoreIsolationContractTest.kt \
-  plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/PluginNetworkTestGateContractTest.kt \
-  feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/harness/contracts/LyricFollowDebounceContractTest.kt; do
+  app/src/test/java/com/hank/musicfree/harness/contracts/TestRunTestIdiomContractTest.kt \
+  app/src/test/java/com/hank/musicfree/harness/contracts/PlayerControllerSetupContractTest.kt \
+  app/src/test/java/com/hank/musicfree/harness/contracts/FeatureAndroidTestRunnerBaselineContractTest.kt \
+  app/src/test/java/com/hank/musicfree/harness/contracts/UiNavAnimationDurationContractTest.kt \
+  plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/PluginDataStoreIsolationContractTest.kt \
+  plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/PluginNetworkTestGateContractTest.kt \
+  feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/harness/contracts/LyricFollowDebounceContractTest.kt; do
   test -f "$path" && echo "OK: $path" || echo "MISSING: $path"
 done
 ```
@@ -3507,7 +3507,7 @@ Documented for completeness; not actionable inside this plan.
 
 **3. Type / signature consistency:**
 - `MusicFreeScreenTransitionDurationMillis` referenced in 3.5 ✓ exists at `app/src/main/.../navigation/MusicFreeNavTransitions.kt` (verified during writing-plans research).
-- Package paths used for contract tests (`com.zili.android.musicfreeandroid.harness.contracts`, `...plugin.harness.contracts`, `...feature.playerui.harness.contracts`) match the gradle filter `*harness.contracts.*`.
+- Package paths used for contract tests (`com.hank.musicfree.harness.contracts`, `...plugin.harness.contracts`, `...feature.playerui.harness.contracts`) match the gradle filter `*harness.contracts.*`.
 - `pluginNetworkTests` runner arg referenced consistently in 3.7 (test) and `plugin/build.gradle.kts` (per spec §5.3).
 - `MainDispatcherRule` left as-is (no dedup); plan does not introduce a new copy.
 

@@ -10,23 +10,23 @@
 
 ### 文件清单与编辑指令
 
-**P1-A. `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`**
+**P1-A. `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`**
 
 - `enum class SettingsType`（line 84-90）删除 `Plugin,`。
 - 不动 `SettingsRoute`。
 
-**P1-B. `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`**
+**P1-B. `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`**
 
 - 删除 `Settings.PluginRoot`（line 118）。
 - 删除 `Settings.PluginManagementEntry`（line 122）。
 - 不要在 `FidelityAnchors.Home` 删除已有 `DrawerSettingsPlugin`（抽屉条目本身仍存在）。
 
-**P1-C. `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`**
+**P1-C. `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`**
 
 - 删除 `when (type) { ... SettingsType.Plugin -> SettingsTypeEntryContent(...) }` 整个 case（line 133-141）。
 - 删除 `private fun SettingsType.title()` 中 `SettingsType.Plugin -> "插件管理"` 行（line 263）。
 
-**P1-D. `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`**
+**P1-D. `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`**
 
 - 在 `@Composable fun HomeScreen(...)` 参数表里新增 `onNavigateToPluginList: () -> Unit`（紧邻 `onNavigateToSettings` 之后）。
 - 修改 line 98：
@@ -35,12 +35,12 @@
   ```
 - grep `HomeScreen(` 其他调用点（Preview、Test），全部补齐新参数。
 
-**P1-E. `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/navigation/HomeNavigation.kt`**
+**P1-E. `feature/home/src/main/java/com/hank/musicfree/feature/home/navigation/HomeNavigation.kt`**
 
 - `fun NavGraphBuilder.homeScreen(...)` 参数表新增 `onNavigateToPluginList: () -> Unit`。
 - 在 composable 调用 `HomeScreen(...)` 处透传。
 
-**P1-F. `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`**
+**P1-F. `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`**
 
 - `homeScreen(...)` 调用块内新增：
   ```kotlin
@@ -49,7 +49,7 @@
 
 ### 测试改动
 
-**P1-T1. `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt`**
+**P1-T1. `app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt`**
 
 - 重写 `settingsPluginEntry_exposesSettingsPluginAnchor` → 改名 `settingsPluginEntry_opensPluginListRoot`：
   ```kotlin
@@ -61,15 +61,15 @@
   ```
 - 不再断言 `Screen.SettingsRoot` 或 `Settings.PluginRoot`、`Settings.PluginManagementEntry`。
 
-**P1-T2. `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreenTest.kt`**
+**P1-T2. `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsScreenTest.kt`**
 
 - 删除 line 60-70 附近使用 `SettingsType.Plugin` 的整个 `@Test` 函数。
 
-**P1-T3. `core/src/test/java/com/zili/android/musicfreeandroid/core/ui/PluginSearchPlayAnchorContractTest.kt`**
+**P1-T3. `core/src/test/java/com/hank/musicfree/core/ui/PluginSearchPlayAnchorContractTest.kt`**
 
 - 从断言列表中移除 `FidelityAnchors.Settings.PluginManagementEntry`。
 
-**P1-T4. `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt`**
+**P1-T4. `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt`**
 
 - 从断言列表中移除 `FidelityAnchors.Settings.PluginManagementEntry`。
 
@@ -84,7 +84,7 @@
 
 ### 文件清单与编辑指令
 
-**P2-A. `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt`**
+**P2-A. `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt`**
 
 定位在 `val pluginItems: StateFlow<List<PluginUiItem>> = combine(...)`（line 160-189）。
 
@@ -112,7 +112,7 @@ val pluginItems: StateFlow<List<PluginUiItem>> = combine(
 
 ### 测试改动
 
-**P2-T1. `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModelTest.kt`**
+**P2-T1. `feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModelTest.kt`**
 
 - 先 `Read` 文件，确认 fixture（fake `PluginManager`）当前 `plugins` 流如何构造。
 - 新增测试用例：

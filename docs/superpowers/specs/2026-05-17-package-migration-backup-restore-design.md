@@ -2,12 +2,12 @@
 
 - **状态**：当前规范（草案）
 - **日期**：2026-05-17
-- **适用范围**：旧包 `com.zili.android.musicfreeandroid` 迁移版的备份导出与恢复导入能力；后续新包 `com.hank.musicfree` 可复用恢复入口导入同一格式的迁移包。
+- **适用范围**：旧包 `com.hank.musicfree` 迁移版的备份导出与恢复导入能力；后续新包 `com.hank.musicfree` 可复用恢复入口导入同一格式的迁移包。
 - **不在范围**：本次不修改 `applicationId`、Gradle namespace、Kotlin package 路径，也不实现新包发布。
 
 ## 1. 背景与目标
 
-计划将应用的发布包名从旧包 `com.zili.android.musicfreeandroid` 迁移到新包 `com.hank.musicfree`，并在后续把源码与文档引用统一到 `com.hank.musicfree` 包名前缀。Android 会把不同 `applicationId` 视为两个独立应用，新包无法直接读取旧包私有目录下的 Room 数据库、DataStore、插件文件、封面和主题背景。
+计划将应用的发布包名从旧包 `com.hank.musicfree` 迁移到新包 `com.hank.musicfree`，并在后续把源码与文档引用统一到 `com.hank.musicfree` 包名前缀。Android 会把不同 `applicationId` 视为两个独立应用，新包无法直接读取旧包私有目录下的 Room 数据库、DataStore、插件文件、封面和主题背景。
 
 本次先实现旧包迁移版：保持旧包 `applicationId` 不变，落地“备份与恢复”功能，让在野用户可以在旧包中导出迁移包。后续新包安装后，使用同一恢复入口导入迁移包，完成跨包数据迁移。
 
@@ -62,7 +62,7 @@ files/theme_background.*
 `manifest.json` 至少包含：
 
 - `schemaVersion`：迁移包格式版本，首版为 `1`。
-- `sourcePackageName`：导出来源包名，旧包迁移版为 `com.zili.android.musicfreeandroid`。
+- `sourcePackageName`：导出来源包名，旧包迁移版为 `com.hank.musicfree`。
 - `createdAt`：ISO-8601 UTC 时间。
 - `appVersionName` / `appVersionCode`：导出来源应用版本。
 - `databaseVersion`：当前 Room schema 版本。

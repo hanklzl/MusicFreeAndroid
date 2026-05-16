@@ -1,6 +1,6 @@
 # Fidelity Anchors
 
-`core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt` 是首页 UI fidelity 与 contract 测试断言的 anchor 表。
+`core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt` 是首页 UI fidelity 与 contract 测试断言的 anchor 表。
 
 约束：
 

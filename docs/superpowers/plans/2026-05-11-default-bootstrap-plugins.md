@@ -15,12 +15,12 @@
 | Action | File | Responsibility |
 |---|---|---|
 | Modify | `app/build.gradle.kts` | Add `kotlinx.coroutines.test` + `mockito.kotlin` to testImplementation |
-| Create | `app/src/main/java/com/zili/android/musicfreeandroid/di/ApplicationScope.kt` | Hilt `@Qualifier` annotation |
-| Create | `app/src/main/java/com/zili/android/musicfreeandroid/di/CoroutineModule.kt` | Hilt `@Provides` for app-scoped `CoroutineScope` |
-| Create | `app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPlugins.kt` | The editable URL list (commented out for release) |
-| Create | `app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapper.kt` | Reconcile logic |
-| Modify | `app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt` | `@Inject` bootstrapper + call `start()` |
-| Create | `app/src/test/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapperTest.kt` | Unit tests |
+| Create | `app/src/main/java/com/hank/musicfree/di/ApplicationScope.kt` | Hilt `@Qualifier` annotation |
+| Create | `app/src/main/java/com/hank/musicfree/di/CoroutineModule.kt` | Hilt `@Provides` for app-scoped `CoroutineScope` |
+| Create | `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPlugins.kt` | The editable URL list (commented out for release) |
+| Create | `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt` | Reconcile logic |
+| Modify | `app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt` | `@Inject` bootstrapper + call `start()` |
+| Create | `app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapperTest.kt` | Unit tests |
 | Modify | `docs/dev-harness/plugin/rules.md` | New MUST rule about release-time URL list cleanup |
 
 ---
@@ -63,14 +63,14 @@ git commit -m "build(app): add coroutines-test and mockito-kotlin for unit tests
 ## Task 2: Add `ApplicationScope` qualifier + `CoroutineModule`
 
 **Files:**
-- Create: `app/src/main/java/com/zili/android/musicfreeandroid/di/ApplicationScope.kt`
-- Create: `app/src/main/java/com/zili/android/musicfreeandroid/di/CoroutineModule.kt`
+- Create: `app/src/main/java/com/hank/musicfree/di/ApplicationScope.kt`
+- Create: `app/src/main/java/com/hank/musicfree/di/CoroutineModule.kt`
 
 - [ ] **Step 1: Create the qualifier annotation**
 
 ```kotlin
-// app/src/main/java/com/zili/android/musicfreeandroid/di/ApplicationScope.kt
-package com.zili.android.musicfreeandroid.di
+// app/src/main/java/com/hank/musicfree/di/ApplicationScope.kt
+package com.hank.musicfree.di
 
 import javax.inject.Qualifier
 
@@ -82,8 +82,8 @@ annotation class ApplicationScope
 - [ ] **Step 2: Create the Hilt module providing the scope**
 
 ```kotlin
-// app/src/main/java/com/zili/android/musicfreeandroid/di/CoroutineModule.kt
-package com.zili.android.musicfreeandroid.di
+// app/src/main/java/com/hank/musicfree/di/CoroutineModule.kt
+package com.hank.musicfree.di
 
 import dagger.Module
 import dagger.Provides
@@ -118,7 +118,7 @@ Expected: BUILD SUCCESSFUL. (KSP runs Hilt aggregating processor — any qualifi
 - [ ] **Step 4: Commit**
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/di/
+git add app/src/main/java/com/hank/musicfree/di/
 git commit -m "feat(app): add ApplicationScope qualifier and CoroutineModule"
 ```
 
@@ -127,13 +127,13 @@ git commit -m "feat(app): add ApplicationScope qualifier and CoroutineModule"
 ## Task 3: Add `DefaultPlugins` URL list
 
 **Files:**
-- Create: `app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPlugins.kt`
+- Create: `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPlugins.kt`
 
 - [ ] **Step 1: Create the file**
 
 ```kotlin
-// app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPlugins.kt
-package com.zili.android.musicfreeandroid.bootstrap
+// app/src/main/java/com/hank/musicfree/bootstrap/DefaultPlugins.kt
+package com.hank.musicfree.bootstrap
 
 /**
  * Developer / test fixture: URLs reconciled on every cold start by
@@ -165,7 +165,7 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPlugins.kt
+git add app/src/main/java/com/hank/musicfree/bootstrap/DefaultPlugins.kt
 git commit -m "feat(app): add DefaultPlugins fixture list for dev bootstrap"
 ```
 
@@ -182,21 +182,21 @@ This task adds the bootstrapper class one behavior at a time, each verified by a
 - Emits structured `MfLog` events.
 
 **Files:**
-- Create: `app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapper.kt`
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapperTest.kt`
+- Create: `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt`
+- Create: `app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapperTest.kt`
 
 ### Task 4a — Empty lists are a no-op
 
 - [ ] **Step 1: Write failing test (creates the test file)**
 
 ```kotlin
-// app/src/test/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapperTest.kt
-package com.zili.android.musicfreeandroid.bootstrap
+// app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapperTest.kt
+package com.hank.musicfree.bootstrap
 
-import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
-import com.zili.android.musicfreeandroid.plugin.meta.SubscriptionItem
+import com.hank.musicfree.plugin.manager.LoadedPlugin
+import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.plugin.meta.PluginMetaStore
+import com.hank.musicfree.plugin.meta.SubscriptionItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -238,7 +238,7 @@ class DefaultPluginsBootstrapperTest {
 - [ ] **Step 2: Run the test — verify it fails**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapperTest.reconcile_emptyLists_isNoOp"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest.reconcile_emptyLists_isNoOp"
 ```
 
 Expected: compile error — `DefaultPluginsBootstrapper` symbol not found.
@@ -246,13 +246,13 @@ Expected: compile error — `DefaultPluginsBootstrapper` symbol not found.
 - [ ] **Step 3: Create the minimal bootstrapper**
 
 ```kotlin
-// app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapper.kt
-package com.zili.android.musicfreeandroid.bootstrap
+// app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt
+package com.hank.musicfree.bootstrap
 
 import androidx.annotation.VisibleForTesting
-import com.zili.android.musicfreeandroid.di.ApplicationScope
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.hank.musicfree.di.ApplicationScope
+import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.plugin.meta.PluginMetaStore
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -277,7 +277,7 @@ class DefaultPluginsBootstrapper @Inject constructor(
 - [ ] **Step 4: Run the test — verify it passes**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapperTest.reconcile_emptyLists_isNoOp"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest.reconcile_emptyLists_isNoOp"
 ```
 
 Expected: PASS.
@@ -285,8 +285,8 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapper.kt \
-       app/src/test/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapperTest.kt
+git add app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt \
+       app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapperTest.kt
 git commit -m "test(app): DefaultPluginsBootstrapper no-ops on empty lists"
 ```
 
@@ -343,7 +343,7 @@ import org.mockito.kotlin.doReturn
 - [ ] **Step 2: Run tests — verify both fail**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapperTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest"
 ```
 
 Expected: `reconcile_installsMissingSubscription` fails (no install call); `reconcile_skipsAlreadyInstalledSubscription` passes by accident.
@@ -353,8 +353,8 @@ Expected: `reconcile_installsMissingSubscription` fails (no install call); `reco
 Update `DefaultPluginsBootstrapper.reconcile` body to:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.logging.LogCategory
-import com.zili.android.musicfreeandroid.logging.MfLog
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
 import kotlinx.coroutines.flow.first
 
 @VisibleForTesting
@@ -413,7 +413,7 @@ internal suspend fun reconcile(
 - [ ] **Step 4: Run tests — both pass**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapperTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest"
 ```
 
 Expected: all 3 tests pass.
@@ -421,8 +421,8 @@ Expected: all 3 tests pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapper.kt \
-       app/src/test/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapperTest.kt
+git add app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt \
+       app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapperTest.kt
 git commit -m "feat(app): reconcile missing subscriptions on bootstrap"
 ```
 
@@ -475,8 +475,8 @@ Add the helper at the bottom of the test class:
 ```kotlin
     private fun stubLoadedPluginWithSource(sourceUrl: String): LoadedPlugin {
         val plugin = mock<LoadedPlugin>()
-        val source = com.zili.android.musicfreeandroid.plugin.manager.PluginInstallSource(
-            type = com.zili.android.musicfreeandroid.plugin.manager.PluginInstallSourceType.PLUGIN_URL,
+        val source = com.hank.musicfree.plugin.manager.PluginInstallSource(
+            type = com.hank.musicfree.plugin.manager.PluginInstallSourceType.PLUGIN_URL,
             value = sourceUrl,
         )
         whenever(plugin.installSource).thenReturn(source)
@@ -487,7 +487,7 @@ Add the helper at the bottom of the test class:
 - [ ] **Step 2: Run tests — verify the install test fails**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapperTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest"
 ```
 
 Expected: `reconcile_installsMissingPlugin` fails (no install + no ensurePluginsLoaded); skip test passes by accident.
@@ -548,7 +548,7 @@ Append to the body of `reconcile` (after the subscription loop, before the funct
 - [ ] **Step 4: Run tests — all 5 pass**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapperTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest"
 ```
 
 Expected: 5/5 pass.
@@ -556,8 +556,8 @@ Expected: 5/5 pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapper.kt \
-       app/src/test/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapperTest.kt
+git add app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt \
+       app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapperTest.kt
 git commit -m "feat(app): reconcile missing single plugins on bootstrap"
 ```
 
@@ -615,7 +615,7 @@ Append:
 - [ ] **Step 2: Run — verify they pass**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapperTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest"
 ```
 
 Expected: 7/7 pass. (The reconcile loop already uses `runCatching`, so these tests verify behavior that's already correct — they exist as regression guards. If they fail, the catch was lost.)
@@ -623,7 +623,7 @@ Expected: 7/7 pass. (The reconcile loop already uses `runCatching`, so these tes
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/src/test/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapperTest.kt
+git add app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapperTest.kt
 git commit -m "test(app): bootstrap continues after per-url failure"
 ```
 
@@ -632,8 +632,8 @@ git commit -m "test(app): bootstrap continues after per-url failure"
 ## Task 5: Add `start()` + wire into `MusicFreeApplication`
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapper.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt`
 
 - [ ] **Step 1: Add `start()` method to bootstrapper**
 
@@ -663,7 +663,7 @@ First read the current file to confirm content; it should match the snippet belo
 **Edit A** — at the top of the file, after the existing imports, add two imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapper
+import com.hank.musicfree.bootstrap.DefaultPluginsBootstrapper
 import javax.inject.Inject
 ```
 
@@ -719,8 +719,8 @@ Expected: all bootstrap tests still pass; no other :app tests broken.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsBootstrapper.kt \
-       app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt
+git add app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt \
+       app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt
 git commit -m "feat(app): launch default plugin bootstrap from Application.onCreate"
 ```
 
@@ -740,7 +740,7 @@ Open the file in edit mode and append exactly this block as the final section (a
 ```markdown
 ## 默认引导插件 (dev fixture) {#rule-default-bootstrap-plugins-list}
 
-- `app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPlugins.kt` 中的 `subscriptionUrls` 与 `pluginUrls` 列表是 dev / test fixture，由 `DefaultPluginsBootstrapper` 在 `MusicFreeApplication.onCreate()` 触发，每次冷启动 reconcile。
+- `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPlugins.kt` 中的 `subscriptionUrls` 与 `pluginUrls` 列表是 dev / test fixture，由 `DefaultPluginsBootstrapper` 在 `MusicFreeApplication.onCreate()` 触发，每次冷启动 reconcile。
 - MUST：发布构建前必须人工把两个 list 改成 `emptyList()` 或全行 `//` 注释。任何 release tag 携带未清空的列表都视为违规。
 - MUST NOT：不得在该文件中引入按 buildType / BuildConfig 切换的"自动剥离"逻辑——保留"必须手动改 + 人工 review 一次"的语义，避免把策略埋进 gradle。
 - 适用范围：`:app/bootstrap/`、`MusicFreeApplication.onCreate()`、任何调用 `DefaultPluginsBootstrapper.start()` 的入口。
@@ -796,7 +796,7 @@ Expected: BUILD SUCCESSFUL. Note the APK path output.
 
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell pm clear com.zili.android.musicfreeandroid
+adb shell pm clear com.hank.musicfree
 ```
 
 (Use the actual `applicationId` from `app/build.gradle.kts` if different.)
@@ -805,7 +805,7 @@ adb shell pm clear com.zili.android.musicfreeandroid
 
 ```bash
 adb logcat -c
-adb shell am start -n com.zili.android.musicfreeandroid/.MainActivity
+adb shell am start -n com.hank.musicfree/.MainActivity
 adb logcat | grep -E "default_plugin_bootstrap"
 ```
 
@@ -827,9 +827,9 @@ Open the app → 设置 → 插件. Expected:
 - [ ] **Step 7: Idempotency check (Scenario 3)**
 
 ```bash
-adb shell am force-stop com.zili.android.musicfreeandroid
+adb shell am force-stop com.hank.musicfree
 adb logcat -c
-adb shell am start -n com.zili.android.musicfreeandroid/.MainActivity
+adb shell am start -n com.hank.musicfree/.MainActivity
 adb logcat | grep -E "default_plugin_bootstrap"
 ```
 
@@ -844,9 +844,9 @@ In the app, open 插件管理 → uninstall `wy.js` → force-stop → restart. 
 ```bash
 adb shell svc wifi disable
 adb shell svc data disable
-adb shell pm clear com.zili.android.musicfreeandroid
+adb shell pm clear com.hank.musicfree
 adb logcat -c
-adb shell am start -n com.zili.android.musicfreeandroid/.MainActivity
+adb shell am start -n com.hank.musicfree/.MainActivity
 adb logcat | grep -E "default_plugin_bootstrap"
 ```
 
@@ -876,9 +876,9 @@ Rebuild + reinstall + clear data + cold start:
 ```bash
 ./gradlew :app:assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell pm clear com.zili.android.musicfreeandroid
+adb shell pm clear com.hank.musicfree
 adb logcat -c
-adb shell am start -n com.zili.android.musicfreeandroid/.MainActivity
+adb shell am start -n com.hank.musicfree/.MainActivity
 adb logcat | grep -E "default_plugin_bootstrap"
 ```
 
@@ -887,7 +887,7 @@ Expected: no `default_plugin_bootstrap_*` events at all. No plugins auto-install
 Then **revert** the temporary edit:
 
 ```bash
-git checkout app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPlugins.kt
+git checkout app/src/main/java/com/hank/musicfree/bootstrap/DefaultPlugins.kt
 ```
 
 - [ ] **Step 11: Final commit + log**

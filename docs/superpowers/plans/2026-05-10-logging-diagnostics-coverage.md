@@ -20,37 +20,37 @@
 
 - `.agents/skills/logging-skill/SKILL.md` — repo-level logging workflow skill.
 - `.codex/skills/logging-skill/SKILL.md` — Codex-discoverable copy of the logging skill.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogFields.kt` — stable field-name constants and small helpers.
-- `logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogFieldsTest.kt` — helper/category tests.
+- `logging/src/main/java/com/hank/musicfree/logging/LogFields.kt` — stable field-name constants and small helpers.
+- `logging/src/test/java/com/hank/musicfree/logging/LogFieldsTest.kt` — helper/category tests.
 
 ### Modify
 
 - `docs/superpowers/plans/2026-05-10-logging-diagnostics-coverage.md` — this plan only until implementation begins.
-- `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogCategory.kt`
-- `logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogEventFormatterTest.kt`
+- `logging/src/main/java/com/hank/musicfree/logging/LogCategory.kt`
+- `logging/src/test/java/com/hank/musicfree/logging/LogEventFormatterTest.kt`
 - `data/build.gradle.kts`
 - `downloader/build.gradle.kts`
 - `feature/player-ui/build.gradle.kts`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStore.kt`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/*.kt` where listed below
-- `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngine.kt`
-- `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/MediaStoreMusicWriter.kt`
-- `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/io/OkHttpDownloader.kt`
-- `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/io/NetworkMonitor.kt`
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShim.kt`
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngine.kt`
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/RequireShim.kt`
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStore.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/**/*.kt` ViewModels listed in Task 4
-- `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/**/*.kt` ViewModels listed in Task 4
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoader.kt`
-- `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackService.kt`
+- `data/src/main/java/com/hank/musicfree/data/cover/PlaylistCoverStore.kt`
+- `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
+- `data/src/main/java/com/hank/musicfree/data/repository/*.kt` where listed below
+- `downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadEngine.kt`
+- `downloader/src/main/java/com/hank/musicfree/downloader/engine/MediaStoreMusicWriter.kt`
+- `downloader/src/main/java/com/hank/musicfree/downloader/io/OkHttpDownloader.kt`
+- `downloader/src/main/java/com/hank/musicfree/downloader/io/NetworkMonitor.kt`
+- `plugin/src/main/java/com/hank/musicfree/plugin/engine/AxiosShim.kt`
+- `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsEngine.kt`
+- `plugin/src/main/java/com/hank/musicfree/plugin/engine/RequireShim.kt`
+- `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`
+- `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- `plugin/src/main/java/com/hank/musicfree/plugin/meta/PluginMetaStore.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/**/*.kt` ViewModels listed in Task 4
+- `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/**/*.kt` ViewModels listed in Task 4
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoader.kt`
+- `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- `player/src/main/java/com/hank/musicfree/player/service/PlaybackService.kt`
 - Existing focused tests in touched modules when the implementation adds assertions.
 
 ---
@@ -71,19 +71,19 @@
 ## Task 1: Logging Foundations And Skill
 
 **Files:**
-- Create: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogFields.kt`
-- Create: `logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogFieldsTest.kt`
+- Create: `logging/src/main/java/com/hank/musicfree/logging/LogFields.kt`
+- Create: `logging/src/test/java/com/hank/musicfree/logging/LogFieldsTest.kt`
 - Create: `.agents/skills/logging-skill/SKILL.md`
 - Create: `.codex/skills/logging-skill/SKILL.md`
-- Modify: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogCategory.kt`
-- Modify: `logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogEventFormatterTest.kt`
+- Modify: `logging/src/main/java/com/hank/musicfree/logging/LogCategory.kt`
+- Modify: `logging/src/test/java/com/hank/musicfree/logging/LogEventFormatterTest.kt`
 
 - [ ] **Step 1: Add failing logging foundation tests**
 
-Create `logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogFieldsTest.kt`:
+Create `logging/src/test/java/com/hank/musicfree/logging/LogFieldsTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -129,7 +129,7 @@ class LogFieldsTest {
 }
 ```
 
-Append one assertion to `logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogEventFormatterTest.kt` in `formats supported field types`:
+Append one assertion to `logging/src/test/java/com/hank/musicfree/logging/LogEventFormatterTest.kt` in `formats supported field types`:
 
 ```kotlin
 assertEquals("success", LogFields.Result.SUCCESS)
@@ -143,10 +143,10 @@ Expected: compile/test failure because `LogCategory.DATA` and `LogFields` do not
 
 - [ ] **Step 3: Add diagnostic categories**
 
-Replace `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogCategory.kt` with:
+Replace `logging/src/main/java/com/hank/musicfree/logging/LogCategory.kt` with:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 enum class LogCategory(val wireName: String) {
     APP("app"),
@@ -166,10 +166,10 @@ enum class LogCategory(val wireName: String) {
 
 - [ ] **Step 4: Add field helper object**
 
-Create `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogFields.kt`:
+Create `logging/src/main/java/com/hank/musicfree/logging/LogFields.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.logging
+package com.hank.musicfree.logging
 
 import java.net.URI
 
@@ -283,10 +283,10 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogCategory.kt \
-  logging/src/main/java/com/zili/android/musicfreeandroid/logging/LogFields.kt \
-  logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogFieldsTest.kt \
-  logging/src/test/java/com/zili/android/musicfreeandroid/logging/LogEventFormatterTest.kt \
+git add logging/src/main/java/com/hank/musicfree/logging/LogCategory.kt \
+  logging/src/main/java/com/hank/musicfree/logging/LogFields.kt \
+  logging/src/test/java/com/hank/musicfree/logging/LogFieldsTest.kt \
+  logging/src/test/java/com/hank/musicfree/logging/LogEventFormatterTest.kt \
   .agents/skills/logging-skill/SKILL.md \
   .codex/skills/logging-skill/SKILL.md
 git commit -m "feat(logging): add diagnostic categories and workflow skill"
@@ -297,12 +297,12 @@ git commit -m "feat(logging): add diagnostic categories and workflow skill"
 ## Task 2: Plugin And Network Diagnostics
 
 **Files:**
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShim.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngine.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/RequireShim.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStore.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/AxiosShim.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsEngine.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/RequireShim.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/meta/PluginMetaStore.kt`
 - Test: existing `plugin/src/test/**`
 
 - [ ] **Step 1: Read plugin rules**
@@ -422,7 +422,7 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 9: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin logging/src/main/java/com/zili/android/musicfreeandroid/logging
+git add plugin/src/main/java/com/hank/musicfree/plugin logging/src/main/java/com/hank/musicfree/logging
 git commit -m "feat(plugin): enrich plugin and network diagnostic logs"
 ```
 
@@ -433,18 +433,18 @@ git commit -m "feat(plugin): enrich plugin and network diagnostic logs"
 **Files:**
 - Modify: `data/build.gradle.kts`
 - Modify: `downloader/build.gradle.kts`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStore.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/MusicRepository.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetRepository.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlayQueueRepository.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/LyricRepository.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/MediaCacheRepository.kt`
-- Modify: `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngine.kt`
-- Modify: `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/MediaStoreMusicWriter.kt`
-- Modify: `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/io/OkHttpDownloader.kt`
-- Modify: `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/io/NetworkMonitor.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/cover/PlaylistCoverStore.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/MusicRepository.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/StarredSheetRepository.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/PlayQueueRepository.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/LyricRepository.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/MediaCacheRepository.kt`
+- Modify: `downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadEngine.kt`
+- Modify: `downloader/src/main/java/com/hank/musicfree/downloader/engine/MediaStoreMusicWriter.kt`
+- Modify: `downloader/src/main/java/com/hank/musicfree/downloader/io/OkHttpDownloader.kt`
+- Modify: `downloader/src/main/java/com/hank/musicfree/downloader/io/NetworkMonitor.kt`
 
 - [ ] **Step 1: Add module dependencies**
 
@@ -543,25 +543,25 @@ git commit -m "feat(logging): cover data file io and download diagnostics"
 ## Task 4: Feature ViewModel Diagnostics
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musicdetail/MusicDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/downloading/DownloadingViewModel.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteViewModel.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/PluginSubscriptionViewModel.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/PluginSortViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalMusicViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/musicdetail/MusicDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/downloading/DownloadingViewModel.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/fileselector/FileSelectorLiteViewModel.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/PluginSubscriptionViewModel.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/PluginSortViewModel.kt`
 
 - [ ] **Step 1: Read test rules**
 
@@ -641,10 +641,10 @@ git commit -m "feat(logging): add feature viewmodel diagnostics"
 
 **Files:**
 - Modify: `feature/player-ui/build.gradle.kts`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoader.kt`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackService.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoader.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/service/PlaybackService.kt`
 
 - [ ] **Step 1: Read player rules**
 

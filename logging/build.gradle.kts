@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.logging"
+    namespace = "com.hank.musicfree.logging"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1

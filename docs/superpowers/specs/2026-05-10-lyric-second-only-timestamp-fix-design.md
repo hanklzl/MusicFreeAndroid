@@ -10,7 +10,7 @@
 
 ## 1. 背景
 
-播放器全屏歌词出现回归（截图：每行歌词前显示 `[265.35]` 这样的原始时间戳，且点击切到歌词页时立刻跳到最后一行并高亮该行，播放过程中也不滚动）。原版 RN 通过 `src/utils/lrcParser.ts` 中 `const timeReg = /\[[\d:.]+\]/g;` 接受纯秒小数格式（例如 `[265.35]`），而当前 Android 实现 `core/src/main/java/com/zili/android/musicfreeandroid/core/lyric/LyricParser.kt` 必须出现至少一个冒号才认作时间戳，因此漏过此格式。
+播放器全屏歌词出现回归（截图：每行歌词前显示 `[265.35]` 这样的原始时间戳，且点击切到歌词页时立刻跳到最后一行并高亮该行，播放过程中也不滚动）。原版 RN 通过 `src/utils/lrcParser.ts` 中 `const timeReg = /\[[\d:.]+\]/g;` 接受纯秒小数格式（例如 `[265.35]`），而当前 Android 实现 `core/src/main/java/com/hank/musicfree/core/lyric/LyricParser.kt` 必须出现至少一个冒号才认作时间戳，因此漏过此格式。
 
 本设计仅就 LRC 解析与时间索引修复，不动播放器 UI 渲染。
 

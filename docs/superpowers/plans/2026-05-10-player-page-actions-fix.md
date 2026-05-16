@@ -16,26 +16,26 @@
 
 | Module | Files Created | Files Modified |
 | --- | --- | --- |
-| `:core` | `core/src/main/java/com/zili/android/musicfreeandroid/core/model/PlaybackSpeeds.kt` | `core/src/main/java/com/zili/android/musicfreeandroid/core/model/PlayQuality.kt` (add `wireName()` extension if missing — actually already implemented inline; defer) |
-| `:data` | none | `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt` |
-| `:player` | none | `player/src/main/java/com/zili/android/musicfreeandroid/player/model/PlayerState.kt`, `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`, new `player/src/test/java/.../controller/PlayerControllerSpeedTest.kt` |
-| `:feature:player-ui` | `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/quality/MusicQualitySheet.kt`, `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/rate/PlayRateSheet.kt`, `feature/player-ui/src/test/java/.../component/quality/MusicQualitySheetTest.kt`, `feature/player-ui/src/test/java/.../component/rate/PlayRateSheetTest.kt` | `feature/player-ui/build.gradle.kts`, `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`, `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`, `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt` |
+| `:core` | `core/src/main/java/com/hank/musicfree/core/model/PlaybackSpeeds.kt` | `core/src/main/java/com/hank/musicfree/core/model/PlayQuality.kt` (add `wireName()` extension if missing — actually already implemented inline; defer) |
+| `:data` | none | `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt` |
+| `:player` | none | `player/src/main/java/com/hank/musicfree/player/model/PlayerState.kt`, `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`, new `player/src/test/java/.../controller/PlayerControllerSpeedTest.kt` |
+| `:feature:player-ui` | `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/quality/MusicQualitySheet.kt`, `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/rate/PlayRateSheet.kt`, `feature/player-ui/src/test/java/.../component/quality/MusicQualitySheetTest.kt`, `feature/player-ui/src/test/java/.../component/rate/PlayRateSheetTest.kt` | `feature/player-ui/build.gradle.kts`, `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`, `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`, `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt` |
 
 ---
 
 ## Task 1: core PlaybackSpeeds + data AppPreferences.playRate
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/PlaybackSpeeds.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferencesPlayRateTest.kt` (new)
+- Create: `core/src/main/java/com/hank/musicfree/core/model/PlaybackSpeeds.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/datastore/AppPreferencesPlayRateTest.kt` (new)
 
 ### Steps
 
 - [ ] **Step 1: Create `PlaybackSpeeds.kt`**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 object PlaybackSpeeds {
     /** Speeds aligned with RN [50, 75, 100, 125, 150, 175, 200] / 100. */
@@ -46,13 +46,13 @@ object PlaybackSpeeds {
 
 - [ ] **Step 2: Add `playRate` flow + setter to `AppPreferences.kt`**
 
-In `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`:
+In `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`:
 
 Add the following imports if not present:
 
 ```kotlin
 import androidx.datastore.preferences.core.floatPreferencesKey
-import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
+import com.hank.musicfree.core.model.PlaybackSpeeds
 ```
 
 Add a new flow + setter just below `setPlayQuality`:
@@ -77,14 +77,14 @@ private val KEY_PLAY_RATE = floatPreferencesKey("play_rate")
 
 - [ ] **Step 3: Write failing test for AppPreferences.playRate**
 
-Create `data/src/test/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferencesPlayRateTest.kt`:
+Create `data/src/test/java/com/hank/musicfree/data/datastore/AppPreferencesPlayRateTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.datastore
+package com.hank.musicfree.data.datastore
 
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
+import com.hank.musicfree.core.model.PlaybackSpeeds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -143,9 +143,9 @@ Expected: `BUILD SUCCESSFUL`.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/model/PlaybackSpeeds.kt \
-        data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt \
-        data/src/test/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferencesPlayRateTest.kt
+git add core/src/main/java/com/hank/musicfree/core/model/PlaybackSpeeds.kt \
+        data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt \
+        data/src/test/java/com/hank/musicfree/data/datastore/AppPreferencesPlayRateTest.kt
 git commit -m "$(cat <<'EOF'
 feat(core,data): add PlaybackSpeeds + AppPreferences.playRate
 
@@ -159,22 +159,22 @@ EOF
 ## Task 2: player module — PlayerState.playbackSpeed, PlayerController.setPlaybackSpeed + changeQuality
 
 **Files:**
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/model/PlayerState.kt`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Test: `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerSpeedTest.kt` (new)
+- Modify: `player/src/main/java/com/hank/musicfree/player/model/PlayerState.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Test: `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerSpeedTest.kt` (new)
 
 ### Steps
 
 - [ ] **Step 1: Add `playbackSpeed` field to PlayerState**
 
-Replace `player/src/main/java/com/zili/android/musicfreeandroid/player/model/PlayerState.kt` body:
+Replace `player/src/main/java/com/hank/musicfree/player/model/PlayerState.kt` body:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.model
+package com.hank.musicfree.player.model
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlaybackSpeeds
+import com.hank.musicfree.core.model.RepeatMode
 
 data class PlayerState(
     val currentItem: MusicItem? = null,
@@ -196,12 +196,12 @@ data class PlayerState(
 
 - [ ] **Step 2: Add backing field + emitState wiring in PlayerController**
 
-In `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`:
+In `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`:
 
 Just below the existing private vars `repeatMode` and `shuffleEnabled` (around line 72-73), add:
 
 ```kotlin
-    private var playbackSpeed: Float = com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds.DEFAULT
+    private var playbackSpeed: Float = com.hank.musicfree.core.model.PlaybackSpeeds.DEFAULT
 ```
 
 In `emitState()` (around line 533-543), update the `PlayerState(...)` construction to include `playbackSpeed = playbackSpeed`. The full updated function:
@@ -249,7 +249,7 @@ import androidx.media3.common.PlaybackParameters
 Insert right after `setPlaybackSpeed`:
 
 ```kotlin
-    fun changeQuality(quality: com.zili.android.musicfreeandroid.core.model.PlayQuality) {
+    fun changeQuality(quality: com.hank.musicfree.core.model.PlayQuality) {
         val item = playQueue.currentItem ?: return
         val expectedIndex = playQueue.currentIndex
         val savedPosition = mediaController?.currentPosition?.coerceAtLeast(0L) ?: 0L
@@ -286,14 +286,14 @@ Insert right after `setPlaybackSpeed`:
 
 - [ ] **Step 5: Write failing tests for setPlaybackSpeed**
 
-Create `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerSpeedTest.kt`:
+Create `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerSpeedTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.controller
+package com.hank.musicfree.player.controller
 
 import android.content.Context
-import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
-import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import com.hank.musicfree.core.model.PlaybackSpeeds
+import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -360,9 +360,9 @@ Expected: `BUILD SUCCESSFUL` — all existing tests still pass and new `PlayerCo
 - [ ] **Step 7: Commit**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/model/PlayerState.kt \
-        player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt \
-        player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerSpeedTest.kt
+git add player/src/main/java/com/hank/musicfree/player/model/PlayerState.kt \
+        player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt \
+        player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerSpeedTest.kt
 git commit -m "$(cat <<'EOF'
 feat(player): add playbackSpeed state + setPlaybackSpeed + changeQuality
 
@@ -377,8 +377,8 @@ EOF
 
 **Files:**
 - Modify: `feature/player-ui/build.gradle.kts`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`
 
 ### Steps
 
@@ -392,32 +392,32 @@ In `feature/player-ui/build.gradle.kts`, locate the `dependencies { ... }` block
 
 - [ ] **Step 2: Modify PlayerViewModel — add downloader injection + new state + methods**
 
-Replace the entire body of `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt` with:
+Replace the entire body of `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt` with:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui
+package com.hank.musicfree.feature.playerui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.lyric.LyricTiming
-import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
-import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
-import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
-import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
-import com.zili.android.musicfreeandroid.downloader.Downloader
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
-import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
-import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricSearchGroup
-import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
-import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueUiModel
-import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsUiState
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
-import com.zili.android.musicfreeandroid.player.model.PlayerState
-import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.model.PlaybackSpeeds
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.lyric.LyricTiming
+import com.hank.musicfree.core.ui.AddToPlaylistSheetState
+import com.hank.musicfree.data.datastore.AppPreferences
+import com.hank.musicfree.data.repository.LocalLyricKind
+import com.hank.musicfree.data.repository.PlaylistRepository
+import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.downloader.model.MediaKey
+import com.hank.musicfree.feature.playerui.lyrics.LyricLoadState
+import com.hank.musicfree.feature.playerui.lyrics.LyricSearchGroup
+import com.hank.musicfree.feature.playerui.lyrics.PlayerLyricLoader
+import com.hank.musicfree.feature.playerui.component.queue.PlayQueueUiModel
+import com.hank.musicfree.feature.playerui.lyrics.PlayerLyricsUiState
+import com.hank.musicfree.player.controller.PlayerController
+import com.hank.musicfree.player.model.PlayerState
+import com.hank.musicfree.player.queue.PlayQueueSnapshot
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -767,17 +767,17 @@ Remove the unused `import kotlinx.coroutines.flow.merge`.
 
 - [ ] **Step 3: Update PlayerViewModelTest with new mocks + tests**
 
-In `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`:
+In `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`:
 
 Add these imports (after existing imports):
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
-import com.zili.android.musicfreeandroid.downloader.Downloader
-import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
-import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.model.PlaybackSpeeds
+import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.downloader.engine.DownloadEvent
+import com.hank.musicfree.downloader.model.DownloadTaskUi
+import com.hank.musicfree.downloader.model.MediaKey
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
@@ -932,8 +932,8 @@ Expected: `BUILD SUCCESSFUL`. If tests fail, inspect the actual error and adjust
 
 ```bash
 git add feature/player-ui/build.gradle.kts \
-        feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt \
-        feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt
+        feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt \
+        feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt
 git commit -m "$(cat <<'EOF'
 feat(player-ui): harden favorite + add quality/speed/download VM state
 
@@ -947,17 +947,17 @@ EOF
 ## Task 4: feature/player-ui — MusicQualitySheet + PlayRateSheet composables
 
 **Files:**
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/quality/MusicQualitySheet.kt`
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/rate/PlayRateSheet.kt`
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/quality/MusicQualitySheetTest.kt`
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/rate/PlayRateSheetTest.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/quality/MusicQualitySheet.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/rate/PlayRateSheet.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/quality/MusicQualitySheetTest.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/rate/PlayRateSheetTest.kt`
 
 ### Steps
 
 - [ ] **Step 1: Create `MusicQualitySheet.kt`**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component.quality
+package com.hank.musicfree.feature.playerui.component.quality
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -979,11 +979,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import com.zili.android.musicfreeandroid.core.R
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.model.QualityInfo
-import com.zili.android.musicfreeandroid.core.theme.IconSizes
-import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.hank.musicfree.core.R
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.model.QualityInfo
+import com.hank.musicfree.core.theme.IconSizes
+import com.hank.musicfree.core.theme.rpx
 
 enum class MusicQualitySheetMode { Play, Download }
 
@@ -1093,7 +1093,7 @@ Verify `R.drawable.ic_check` exists; if not, run `find core -name "ic_check*.xml
 - [ ] **Step 2: Create `PlayRateSheet.kt`**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component.rate
+package com.hank.musicfree.feature.playerui.component.rate
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -1115,10 +1115,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import com.zili.android.musicfreeandroid.core.R
-import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
-import com.zili.android.musicfreeandroid.core.theme.IconSizes
-import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.hank.musicfree.core.R
+import com.hank.musicfree.core.model.PlaybackSpeeds
+import com.hank.musicfree.core.theme.IconSizes
+import com.hank.musicfree.core.theme.rpx
 
 const val PlayRateSheetTestTag = "player.rate.sheet"
 const val PlayRateSheetItemTestTagPrefix = "player.rate.sheet.item."
@@ -1198,15 +1198,15 @@ internal fun PlayRateSheetContent(
 - [ ] **Step 3: Write `MusicQualitySheetTest.kt` (Robolectric Compose)**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component.quality
+package com.hank.musicfree.feature.playerui.component.quality
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.model.QualityInfo
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.model.QualityInfo
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -1283,14 +1283,14 @@ class MusicQualitySheetTest {
 - [ ] **Step 4: Write `PlayRateSheetTest.kt`**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component.rate
+package com.hank.musicfree.feature.playerui.component.rate
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
+import com.hank.musicfree.core.model.PlaybackSpeeds
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -1340,10 +1340,10 @@ Expected: `BUILD SUCCESSFUL`. If `R.drawable.ic_check` is missing, switch to mat
 - [ ] **Step 6: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/quality/MusicQualitySheet.kt \
-        feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/rate/PlayRateSheet.kt \
-        feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/quality/MusicQualitySheetTest.kt \
-        feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/rate/PlayRateSheetTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/quality/MusicQualitySheet.kt \
+        feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/rate/PlayRateSheet.kt \
+        feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/quality/MusicQualitySheetTest.kt \
+        feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/rate/PlayRateSheetTest.kt
 git commit -m "$(cat <<'EOF'
 feat(player-ui): add MusicQualitySheet + PlayRateSheet composables
 
@@ -1357,7 +1357,7 @@ EOF
 ## Task 5: feature/player-ui — Wire PlayerScreen / PlayerOperationsBar
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
 
 ### Steps
 
@@ -1470,10 +1470,10 @@ private fun formatSpeedLabel(speed: Float): String =
 Add the import at the top:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.feature.playerui.component.quality.MusicQualitySheet
-import com.zili.android.musicfreeandroid.feature.playerui.component.quality.MusicQualitySheetMode
-import com.zili.android.musicfreeandroid.feature.playerui.component.rate.PlayRateSheet
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.feature.playerui.component.quality.MusicQualitySheet
+import com.hank.musicfree.feature.playerui.component.quality.MusicQualitySheetMode
+import com.hank.musicfree.feature.playerui.component.rate.PlayRateSheet
 ```
 
 - [ ] **Step 2: Wire sheet hosts in `PlayerScreen` body**
@@ -1591,8 +1591,8 @@ Similarly for `PlayerCoverPageContent(...)` test call sites.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt \
-        feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt \
+        feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/
 git commit -m "$(cat <<'EOF'
 feat(player-ui): wire quality/download/speed actions on PlayerScreen
 

@@ -34,8 +34,8 @@ Android `JsBridge` 当前用 `map["id"]?.toString()` 生成 domain ID。QuickJS 
 
 ## 实施计划
 
-1. 在 `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt` 添加失败测试，覆盖数值型整数 ID 解析和 round trip 回传。
-2. 在 `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt` 增加统一 ID 字符串规范化 helper。
+1. 在 `plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeTest.kt` 添加失败测试，覆盖数值型整数 ID 解析和 round trip 回传。
+2. 在 `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt` 增加统一 ID 字符串规范化 helper。
 3. 将 `MusicItem`、`MusicSheetItemBase`、`AlbumItemBase`、`ArtistItemBase`、`MusicComment` 的 `id` 解析切到该 helper。
 4. 验证 `:plugin:testDebugUnitTest`、`:feature:home:testDebugUnitTest`、`scripts/dev-harness/check.sh` 和 `:app:assembleDebug`。
 

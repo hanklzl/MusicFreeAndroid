@@ -4,7 +4,7 @@ title: 首页冷启动落地
 priority: core
 page: home
 rn_appid: fun.upup.musicfree
-android_appid: com.zili.android.musicfreeandroid.debug
+android_appid: com.hank.musicfree.debug
 rn_flow: maestro/flows/parity/home_entry.rn.yaml
 android_flow: maestro/flows/parity/home_entry.android.yaml
 waypoints:

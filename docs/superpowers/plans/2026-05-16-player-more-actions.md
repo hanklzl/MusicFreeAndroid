@@ -13,8 +13,8 @@
 ### Task 1: 队列 addNext RN 去重语义
 
 **Files:**
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/queue/PlayQueue.kt`
-- Modify: `player/src/test/java/com/zili/android/musicfreeandroid/player/queue/PlayQueueTest.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/queue/PlayQueue.kt`
+- Modify: `player/src/test/java/com/hank/musicfree/player/queue/PlayQueueTest.kt`
 
 - [ ] 新增测试：队列中已存在目标歌曲时，`addNext(target)` 先移除旧位置再插入当前歌曲后一位，队列中只保留一份。
 - [ ] 修改 `PlayQueue.addNext`：按 `id/platform` 匹配旧项，保留当前项索引语义，目标等于当前项时不复制当前项。
@@ -23,8 +23,8 @@
 ### Task 2: 单曲媒体缓存删除 API
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/MediaCacheRepository.kt`
-- Modify: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/MediaCacheRepositoryDeleteTest.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/MediaCacheRepository.kt`
+- Modify: `data/src/test/java/com/hank/musicfree/data/repository/MediaCacheRepositoryDeleteTest.kt`
 
 - [ ] 新增 `MediaCacheRepository.deleteItem(platform: String, id: String)`，内部调用 `dao.delete(platform, id)` 并 `memory.remove(memoryKey(platform, id))`。
 - [ ] 增加结构化日志 `delete_media_cache_item`，字段包含 `platform`、`itemId`、`result`、`durationMs`，失败时 `MfLog.error`。
@@ -34,9 +34,9 @@
 ### Task 3: PlayerViewModel 业务动作
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelQueueTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelQueueTest.kt`
 
 - [ ] 注入 `MediaCacheRepository`，同步所有测试 fixture。
 - [ ] 新增 `playCurrentNext()`，无当前歌曲时记录 skipped；有当前歌曲时调用 `playerController.addNextInQueue(item)` 并记录 `player_add_next`。
@@ -48,9 +48,9 @@
 ### Task 4: 更多面板 UI 与 PlayerScreen 接线
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/more/PlayerMoreOptionsSheet.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/more/PlayerMoreOptionsSheetTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/more/PlayerMoreOptionsSheet.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/more/PlayerMoreOptionsSheetTest.kt`
 
 - [ ] 给 sheet 增加参数：`isDownloaded`、`onPlayNext`、`onAddToPlaylist`、`onDownload`、`onClearPluginCache`。
 - [ ] 在作者/专辑后、歌词类动作前插入四行：`下一首播放`、`加入歌单`、`下载` 或禁用的 `已下载`、`清除插件缓存(播放异常时使用)`。

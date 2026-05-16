@@ -16,7 +16,7 @@
 - 每次 `push` 自动触发 Debug APK 构建。
 - 保留 `workflow_dispatch`，允许手动触发同一套构建。
 - 产出 `:app:assembleDebug` 的 APK artifact。
-- Debug 包名为 `com.zili.android.musicfreeandroid.debug`。
+- Debug 包名为 `com.hank.musicfree.debug`。
 
 ## 不在本次范围
 
@@ -47,7 +47,7 @@
 applicationIdSuffix = ".debug"
 ```
 
-由于 `defaultConfig.applicationId` 是 `com.zili.android.musicfreeandroid`，Debug APK 最终 `applicationId` 为 `com.zili.android.musicfreeandroid.debug`。
+由于 `defaultConfig.applicationId` 是 `com.hank.musicfree`，Debug APK 最终 `applicationId` 为 `com.hank.musicfree.debug`。
 
 ## 风险与处理
 

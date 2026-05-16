@@ -125,17 +125,17 @@ git commit -m "chore(player): add Media3, coroutines, and test dependencies"
 ## 任务 2：定义 PlaybackState 和 PlayerState
 
 **文件：**
-- 创建：`player/src/main/java/com/zili/android/musicfreeandroid/player/model/PlaybackState.kt`
-- 创建：`player/src/main/java/com/zili/android/musicfreeandroid/player/model/PlayerState.kt`
-- 测试：`player/src/test/java/com/zili/android/musicfreeandroid/player/model/PlayerStateTest.kt`
+- 创建：`player/src/main/java/com/hank/musicfree/player/model/PlaybackState.kt`
+- 创建：`player/src/main/java/com/hank/musicfree/player/model/PlayerState.kt`
+- 测试：`player/src/test/java/com/hank/musicfree/player/model/PlayerStateTest.kt`
 
 - [ ] **步骤 1：编写 PlayerState 单元测试**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.model
+package com.hank.musicfree.player.model
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RepeatMode
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -190,7 +190,7 @@ class PlayerStateTest {
 - [ ] **步骤 3：实现 PlaybackState 枚举**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.model
+package com.hank.musicfree.player.model
 
 /**
  * 映射 Media3 Player.STATE_* 常量。
@@ -212,10 +212,10 @@ enum class PlaybackState {
 - [ ] **步骤 4：实现 PlayerState 数据类**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.model
+package com.hank.musicfree.player.model
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RepeatMode
 
 data class PlayerState(
     val currentItem: MusicItem? = null,
@@ -242,8 +242,8 @@ data class PlayerState(
 - [ ] **步骤 6：提交**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/model/ \
-       player/src/test/java/com/zili/android/musicfreeandroid/player/model/
+git add player/src/main/java/com/hank/musicfree/player/model/ \
+       player/src/test/java/com/hank/musicfree/player/model/
 git commit -m "feat(player): add PlaybackState enum and PlayerState data class"
 ```
 
@@ -252,8 +252,8 @@ git commit -m "feat(player): add PlaybackState enum and PlayerState data class"
 ## 任务 3：实现 PlayQueue
 
 **文件：**
-- 创建：`player/src/main/java/com/zili/android/musicfreeandroid/player/queue/PlayQueue.kt`
-- 测试：`player/src/test/java/com/zili/android/musicfreeandroid/player/queue/PlayQueueTest.kt`
+- 创建：`player/src/main/java/com/hank/musicfree/player/queue/PlayQueue.kt`
+- 测试：`player/src/test/java/com/hank/musicfree/player/queue/PlayQueueTest.kt`
 
 这是逻辑最复杂的单元。PlayQueue 管理 `MusicItem` 的内存队列，跟踪当前索引，支持随机播放（含原始顺序恢复）和基于重复模式的导航。
 
@@ -262,10 +262,10 @@ git commit -m "feat(player): add PlaybackState enum and PlayerState data class"
 - [ ] **步骤 1：编写基础队列操作测试**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.queue
+package com.hank.musicfree.player.queue
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RepeatMode
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -413,9 +413,9 @@ class PlayQueueTest {
 - [ ] **步骤 3：实现 PlayQueue 核心操作**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.queue
+package com.hank.musicfree.player.queue
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 class PlayQueue {
 
@@ -499,8 +499,8 @@ class PlayQueue {
 - [ ] **步骤 5：提交**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/queue/ \
-       player/src/test/java/com/zili/android/musicfreeandroid/player/queue/
+git add player/src/main/java/com/hank/musicfree/player/queue/ \
+       player/src/test/java/com/hank/musicfree/player/queue/
 git commit -m "feat(player): add PlayQueue with core queue operations"
 ```
 
@@ -660,8 +660,8 @@ git commit -m "feat(player): add PlayQueue with core queue operations"
 - [ ] **步骤 10：提交**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/queue/ \
-       player/src/test/java/com/zili/android/musicfreeandroid/player/queue/
+git add player/src/main/java/com/hank/musicfree/player/queue/ \
+       player/src/test/java/com/hank/musicfree/player/queue/
 git commit -m "feat(player): add PlayQueue navigation (next/prev/skipTo) with repeat mode"
 ```
 
@@ -816,8 +816,8 @@ git commit -m "feat(player): add PlayQueue navigation (next/prev/skipTo) with re
 - [ ] **步骤 15：提交**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/queue/ \
-       player/src/test/java/com/zili/android/musicfreeandroid/player/queue/
+git add player/src/main/java/com/hank/musicfree/player/queue/ \
+       player/src/test/java/com/hank/musicfree/player/queue/
 git commit -m "feat(player): add shuffle/unshuffle with original order restoration"
 ```
 
@@ -826,15 +826,15 @@ git commit -m "feat(player): add shuffle/unshuffle with original order restorati
 ## 任务 4：MusicItem → MediaItem 扩展
 
 **文件：**
-- 创建：`player/src/main/java/com/zili/android/musicfreeandroid/player/ext/MusicItemMediaExt.kt`
-- 测试：`player/src/test/java/com/zili/android/musicfreeandroid/player/ext/MusicItemMediaExtTest.kt`
+- 创建：`player/src/main/java/com/hank/musicfree/player/ext/MusicItemMediaExt.kt`
+- 测试：`player/src/test/java/com/hank/musicfree/player/ext/MusicItemMediaExtTest.kt`
 
 - [ ] **步骤 1：编写 MusicItem → MediaItem 转换测试**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.ext
+package com.hank.musicfree.player.ext
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -901,12 +901,12 @@ testImplementation(libs.robolectric)
 - [ ] **步骤 3：实现扩展函数**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.ext
+package com.hank.musicfree.player.ext
 
 import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 fun MusicItem.toMediaItem(): MediaItem {
     val builder = MediaItem.Builder()
@@ -937,8 +937,8 @@ fun MusicItem.toMediaItem(): MediaItem {
 - [ ] **步骤 5：提交**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/ext/ \
-       player/src/test/java/com/zili/android/musicfreeandroid/player/ext/ \
+git add player/src/main/java/com/hank/musicfree/player/ext/ \
+       player/src/test/java/com/hank/musicfree/player/ext/ \
        player/build.gradle.kts
 git commit -m "feat(player): add MusicItem to MediaItem conversion extension"
 ```
@@ -948,13 +948,13 @@ git commit -m "feat(player): add MusicItem to MediaItem conversion extension"
 ## 任务 5：实现 PlaybackService
 
 **文件：**
-- 创建：`player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackService.kt`
+- 创建：`player/src/main/java/com/hank/musicfree/player/service/PlaybackService.kt`
 - 创建：`player/src/main/AndroidManifest.xml`
 
 - [ ] **步骤 1：创建 PlaybackService**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.service
+package com.hank.musicfree.player.service
 
 import android.content.Intent
 import androidx.media3.common.AudioAttributes
@@ -1019,7 +1019,7 @@ class PlaybackService : MediaSessionService() {
 
     <application>
         <service
-            android:name="com.zili.android.musicfreeandroid.player.service.PlaybackService"
+            android:name="com.hank.musicfree.player.service.PlaybackService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true">
             <intent-filter>
@@ -1039,7 +1039,7 @@ class PlaybackService : MediaSessionService() {
 - [ ] **步骤 4：提交**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/service/ \
+git add player/src/main/java/com/hank/musicfree/player/service/ \
        player/src/main/AndroidManifest.xml
 git commit -m "feat(player): add PlaybackService (MediaSessionService + ExoPlayer)"
 ```
@@ -1049,14 +1049,14 @@ git commit -m "feat(player): add PlaybackService (MediaSessionService + ExoPlaye
 ## 任务 6：实现 PlayerController
 
 **文件：**
-- 创建：`player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
+- 创建：`player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
 
 这是核心协调类，连接 MediaController + PlayQueue 并暴露响应式状态。
 
 - [ ] **步骤 1：实现 PlayerController**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.controller
+package com.hank.musicfree.player.controller
 
 import android.content.ComponentName
 import android.content.Context
@@ -1064,13 +1064,13 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
-import com.zili.android.musicfreeandroid.player.ext.toMediaItem
-import com.zili.android.musicfreeandroid.player.model.PlaybackState
-import com.zili.android.musicfreeandroid.player.model.PlayerState
-import com.zili.android.musicfreeandroid.player.queue.PlayQueue
-import com.zili.android.musicfreeandroid.player.service.PlaybackService
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RepeatMode
+import com.hank.musicfree.player.ext.toMediaItem
+import com.hank.musicfree.player.model.PlaybackState
+import com.hank.musicfree.player.model.PlayerState
+import com.hank.musicfree.player.queue.PlayQueue
+import com.hank.musicfree.player.service.PlaybackService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -1358,7 +1358,7 @@ private fun Int?.toPlaybackState(): PlaybackState = when (this) {
 - [ ] **步骤 3：提交**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/controller/
+git add player/src/main/java/com/hank/musicfree/player/controller/
 git commit -m "feat(player): add PlayerController with MediaController, PlayQueue, and StateFlow"
 ```
 
@@ -1367,14 +1367,14 @@ git commit -m "feat(player): add PlayerController with MediaController, PlayQueu
 ## 任务 7：实现 PlayerModule（Hilt DI）
 
 **文件：**
-- 创建：`player/src/main/java/com/zili/android/musicfreeandroid/player/di/PlayerModule.kt`
+- 创建：`player/src/main/java/com/hank/musicfree/player/di/PlayerModule.kt`
 
 - [ ] **步骤 1：实现 PlayerModule**
 
 `PlayerController` 已经是 `@Singleton` + `@Inject constructor`，Hilt 可直接提供。模块用于未来扩展绑定：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.di
+package com.hank.musicfree.player.di
 
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -1396,7 +1396,7 @@ object PlayerModule {
 - [ ] **步骤 3：提交**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/di/
+git add player/src/main/java/com/hank/musicfree/player/di/
 git commit -m "feat(player): add PlayerModule Hilt DI module"
 ```
 
@@ -1405,7 +1405,7 @@ git commit -m "feat(player): add PlayerModule Hilt DI module"
 ## 任务 8：集成测试 — PlaybackService
 
 **文件：**
-- 创建：`player/src/androidTest/java/com/zili/android/musicfreeandroid/player/service/PlaybackServiceTest.kt`
+- 创建：`player/src/androidTest/java/com/hank/musicfree/player/service/PlaybackServiceTest.kt`
 - 创建：`player/src/androidTest/res/raw/test_audio.mp3`（约 1 秒的静音 MP3）
 
 - [ ] **步骤 1：生成短静音测试音频文件**
@@ -1422,7 +1422,7 @@ ffmpeg -f lavfi -i anullsrc=r=44100:cl=mono -t 1 -q:a 9 -y player/src/androidTes
 - [ ] **步骤 2：编写 PlaybackService 集成测试**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.service
+package com.hank.musicfree.player.service
 
 import android.content.ComponentName
 import android.content.Context
@@ -1483,7 +1483,7 @@ class PlaybackServiceTest {
         })
 
         val uri = "android.resource://${context.packageName}/${
-            com.zili.android.musicfreeandroid.player.test.R.raw.test_audio
+            com.hank.musicfree.player.test.R.raw.test_audio
         }"
         controller!!.setMediaItem(MediaItem.fromUri(uri))
         controller!!.prepare()
@@ -1502,7 +1502,7 @@ class PlaybackServiceTest {
         })
 
         val uri = "android.resource://${context.packageName}/${
-            com.zili.android.musicfreeandroid.player.test.R.raw.test_audio
+            com.hank.musicfree.player.test.R.raw.test_audio
         }"
         controller!!.setMediaItem(MediaItem.fromUri(uri))
         controller!!.prepare()
@@ -1527,7 +1527,7 @@ class PlaybackServiceTest {
         val mediaItem = MediaItem.Builder()
             .setMediaId("test:1")
             .setUri("android.resource://${context.packageName}/${
-                com.zili.android.musicfreeandroid.player.test.R.raw.test_audio
+                com.hank.musicfree.player.test.R.raw.test_audio
             }")
             .setMediaMetadata(
                 androidx.media3.common.MediaMetadata.Builder()
@@ -1558,7 +1558,7 @@ class PlaybackServiceTest {
         })
 
         val uri = "android.resource://${context.packageName}/${
-            com.zili.android.musicfreeandroid.player.test.R.raw.test_audio
+            com.hank.musicfree.player.test.R.raw.test_audio
         }"
         controller!!.setMediaItem(MediaItem.fromUri(uri))
         controller!!.prepare()
@@ -1624,20 +1624,20 @@ git commit -m "test(player): add PlaybackService integration tests"
 ## 任务 9：集成测试 — PlayerController
 
 **文件：**
-- 创建：`player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt`
+- 创建：`player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt`
 
 - [ ] **步骤 1：编写 PlayerController 集成测试**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.controller
+package com.hank.musicfree.player.controller
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.turbineScope
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
-import com.zili.android.musicfreeandroid.player.model.PlaybackState
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RepeatMode
+import com.hank.musicfree.player.model.PlaybackState
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.*
@@ -1655,7 +1655,7 @@ class PlayerControllerTest {
         id = id, platform = "test", title = "Song $id",
         artist = "Artist", album = null, duration = 1_000L,
         url = "android.resource://${context.packageName}/${
-            com.zili.android.musicfreeandroid.player.test.R.raw.test_audio
+            com.hank.musicfree.player.test.R.raw.test_audio
         }",
         artwork = null, qualities = null,
     )
@@ -1785,7 +1785,7 @@ class PlayerControllerTest {
 - [ ] **步骤 3：提交**
 
 ```bash
-git add player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/
+git add player/src/androidTest/java/com/hank/musicfree/player/controller/
 git commit -m "test(player): add PlayerController integration tests"
 ```
 

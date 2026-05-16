@@ -67,7 +67,7 @@ guard 当前 manual：升级触发条件 = 再次出现 userVariable 竞态 fix 
 - rule_ref: docs/dev-harness/plugin/rules.md#rule-network-test-gated
 - guard:
     type: contract-test
-    target: plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/PluginNetworkTestGateContractTest.kt
+    target: plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/PluginNetworkTestGateContractTest.kt
 - fix_ref: docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md#5-3--pintegration-门控机制
 
 ### 根因

@@ -18,40 +18,40 @@
   - Adds a short mandatory pointer to the UI harness rules.
 - Modify: `docs/DOCS_STATUS.md`
   - Registers the rules document as `当前规范`.
-- Create: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitions.kt`
+- Create: `app/src/main/java/com/hank/musicfree/navigation/MusicFreeNavTransitions.kt`
   - Centralizes ordinary Screen transition duration and transition builders.
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
   - Replaces inline `250ms` transitions with shared `100ms` transition functions.
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitionsTest.kt`
+- Create: `app/src/test/java/com/hank/musicfree/navigation/MusicFreeNavTransitionsTest.kt`
   - Locks the RN-aligned `100ms` default in a JVM unit test.
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicFreeScreenChrome.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/ui/MusicFreeScreenChrome.kt`
   - Provides `MusicFreeStatusBarChrome`, `MusicFreeTopAppBar`, and `MusicFreeScreenScaffold`.
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
   - Removes the route-specific top safe-area whitelist and leaves top chrome to Screens.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt`
   - Adds explicit top status bar spacing for the custom Home chrome.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt`
   - Adds explicit top status bar spacing for the current no-AppBar Local page.
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
   - Uses the shared status bar chrome helper for its custom search bar.
 - Modify ordinary AppBar Screens:
-  - `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
-  - `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsScreen.kt`
-  - `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteScreen.kt`
-  - `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt`
-  - `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/PluginSortScreen.kt`
-  - `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/PluginSubscriptionScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musicdetail/MusicDetailScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailScreen.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteScreen.kt`
+  - `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
+  - `feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsScreen.kt`
+  - `feature/settings/src/main/java/com/hank/musicfree/feature/settings/fileselector/FileSelectorLiteScreen.kt`
+  - `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt`
+  - `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/PluginSortScreen.kt`
+  - `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/PluginSubscriptionScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/musicdetail/MusicDetailScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteScreen.kt`
 
 ---
 
@@ -94,7 +94,7 @@ Create `docs/ui-harness/screen-chrome-rules.md` with this exact content:
 
 ## 普通 AppBar 页面
 
-普通 AppBar 页面 MUST 使用 `com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold` 或 `MusicFreeTopAppBar`。
+普通 AppBar 页面 MUST 使用 `com.hank.musicfree.core.ui.MusicFreeScreenScaffold` 或 `MusicFreeTopAppBar`。
 
 普通 AppBar 页面 MUST NOT 直接手写以下模式：
 
@@ -190,16 +190,16 @@ Expected: commit succeeds with only the three files above.
 ### Task 2: Centralize Navigation Transitions
 
 **Files:**
-- Create: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitions.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitionsTest.kt`
+- Create: `app/src/main/java/com/hank/musicfree/navigation/MusicFreeNavTransitions.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
+- Create: `app/src/test/java/com/hank/musicfree/navigation/MusicFreeNavTransitionsTest.kt`
 
 - [ ] **Step 1: Write the transition duration test**
 
-Create `app/src/test/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitionsTest.kt`:
+Create `app/src/test/java/com/hank/musicfree/navigation/MusicFreeNavTransitionsTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.navigation
+package com.hank.musicfree.navigation
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -217,17 +217,17 @@ class MusicFreeNavTransitionsTest {
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests com.zili.android.musicfreeandroid.navigation.MusicFreeNavTransitionsTest
+./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.navigation.MusicFreeNavTransitionsTest
 ```
 
 Expected: fails because `MusicFreeScreenTransitionDurationMillis` is not defined.
 
 - [ ] **Step 3: Add centralized transition helpers**
 
-Create `app/src/main/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitions.kt`:
+Create `app/src/main/java/com/hank/musicfree/navigation/MusicFreeNavTransitions.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.navigation
+package com.hank.musicfree.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
@@ -269,7 +269,7 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.musicFreePopExitT
 
 - [ ] **Step 4: Wire AppNavHost to the helpers**
 
-In `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`, remove these imports:
+In `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`, remove these imports:
 
 ```kotlin
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -290,7 +290,7 @@ popExitTransition = { musicFreePopExitTransition() },
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests com.zili.android.musicfreeandroid.navigation.MusicFreeNavTransitionsTest
+./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.navigation.MusicFreeNavTransitionsTest
 ```
 
 Expected: pass.
@@ -300,7 +300,7 @@ Expected: pass.
 Run:
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt app/src/main/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitions.kt app/src/test/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitionsTest.kt
+git add app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt app/src/main/java/com/hank/musicfree/navigation/MusicFreeNavTransitions.kt app/src/test/java/com/hank/musicfree/navigation/MusicFreeNavTransitionsTest.kt
 git commit -m "feat(app): centralize screen navigation transitions"
 ```
 
@@ -311,14 +311,14 @@ Expected: commit succeeds.
 ### Task 3: Add Core Screen Chrome Composables
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicFreeScreenChrome.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/ui/MusicFreeScreenChrome.kt`
 
 - [ ] **Step 1: Create the shared chrome file**
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicFreeScreenChrome.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/ui/MusicFreeScreenChrome.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -346,10 +346,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.theme.FontSizes
-import com.zili.android.musicfreeandroid.core.theme.IconSizes
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.hank.musicfree.core.theme.FontSizes
+import com.hank.musicfree.core.theme.IconSizes
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.rpx
 
 @Composable
 fun MusicFreeStatusBarChrome(
@@ -502,7 +502,7 @@ Expected: build succeeds.
 Run:
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicFreeScreenChrome.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/MusicFreeScreenChrome.kt
 git commit -m "feat(core): add shared screen chrome components"
 ```
 
@@ -513,10 +513,10 @@ Expected: commit succeeds.
 ### Task 4: Move Top Insets Out of MainActivity
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
 
 - [ ] **Step 1: Simplify MainActivity**
 
@@ -524,8 +524,8 @@ In `MainActivity.kt`, remove these imports:
 
 ```kotlin
 import androidx.compose.foundation.layout.windowInsetsPadding
-import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
-import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
+import com.hank.musicfree.core.navigation.HomeRoute
+import com.hank.musicfree.core.navigation.SearchRoute
 ```
 
 Remove these values:
@@ -548,7 +548,7 @@ In `HomeScreenContent.kt`, add imports:
 
 ```kotlin
 import androidx.compose.ui.graphics.Color
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
+import com.hank.musicfree.core.ui.MusicFreeStatusBarChrome
 ```
 
 Inside the `LazyColumn` block, insert this item before the existing `HomeNavBar` item:
@@ -566,8 +566,8 @@ In `LocalScreen.kt`, add imports:
 ```kotlin
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.weight
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.ui.MusicFreeStatusBarChrome
 ```
 
 Replace the final `LocalMusicContent(...)` call with:
@@ -612,7 +612,7 @@ import androidx.compose.foundation.layout.windowInsetsTopHeight
 Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeStatusBarChrome
+import com.hank.musicfree.core.ui.MusicFreeStatusBarChrome
 ```
 
 Replace:
@@ -642,7 +642,7 @@ Expected: build succeeds.
 Run:
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt
+git add app/src/main/java/com/hank/musicfree/MainActivity.kt feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt
 git commit -m "feat(app): move top inset ownership to screens"
 ```
 
@@ -678,7 +678,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 ```
 
 Remove `@OptIn(ExperimentalMaterial3Api::class)`.
@@ -712,7 +712,7 @@ Move the existing `LazyColumn` item content into the lambda above without changi
 Apply the same import cleanup as `SettingsScreen.kt`. Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 ```
 
 Replace the outer `Scaffold` with:
@@ -740,7 +740,7 @@ MusicFreeScreenScaffold(
 Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 ```
 
 Replace the outer `Scaffold` with:
@@ -766,7 +766,7 @@ MusicFreeScreenScaffold(
 Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 ```
 
 Replace its outer `Scaffold` with:
@@ -834,7 +834,7 @@ MusicFreeScreenScaffold(
 Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 ```
 
 Replace the outer `Scaffold` with:
@@ -869,7 +869,7 @@ MusicFreeScreenScaffold(
 Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 ```
 
 Replace the outer `Scaffold` with:
@@ -904,7 +904,7 @@ Expected: build succeeds.
 Run:
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsScreen.kt feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteScreen.kt feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/PluginSortScreen.kt feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/PluginSubscriptionScreen.kt
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsScreen.kt feature/settings/src/main/java/com/hank/musicfree/feature/settings/fileselector/FileSelectorLiteScreen.kt feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/PluginSortScreen.kt feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/PluginSubscriptionScreen.kt
 git commit -m "feat(settings): use shared screen chrome"
 ```
 
@@ -922,7 +922,7 @@ Expected: commit succeeds.
 For each ordinary home Screen file, add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 ```
 
 For files that still need direct `Icon`, `IconButton`, `TextButton`, or `OutlinedTextField` in actions or title content, keep those imports.
@@ -1094,7 +1094,7 @@ Expected: build succeeds.
 Run:
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musicdetail/MusicDetailScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteScreen.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/musicdetail/MusicDetailScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteScreen.kt
 git commit -m "feat(home): use shared screen chrome"
 ```
 
@@ -1148,7 +1148,7 @@ Run:
 
 ```bash
 ./gradlew :app:installDebug
-adb shell am start -n com.zili.android.musicfreeandroid/.MainActivity
+adb shell am start -n com.hank.musicfree/.MainActivity
 ```
 
 Expected:

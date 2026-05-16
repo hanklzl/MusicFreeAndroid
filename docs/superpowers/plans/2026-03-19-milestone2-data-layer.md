@@ -120,7 +120,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.data"
+    namespace = "com.hank.musicfree.data"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -188,21 +188,21 @@ git commit -m "build: add Room, DataStore, Coroutines dependencies for data modu
 ## Task 2: Core Domain Models
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/PlayQuality.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/QualityInfo.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/MusicItem.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/MediaSourceResult.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/Playlist.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/RepeatMode.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricLine.kt`
-- Create: `core/src/test/java/com/zili/android/musicfreeandroid/core/model/MusicItemTest.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/PlayQuality.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/QualityInfo.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/MusicItem.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/MediaSourceResult.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/Playlist.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/RepeatMode.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/LyricLine.kt`
+- Create: `core/src/test/java/com/hank/musicfree/core/model/MusicItemTest.kt`
 
 - [ ] **Step 1: Write model unit tests**
 
-Create `core/src/test/java/com/zili/android/musicfreeandroid/core/model/MusicItemTest.kt`:
+Create `core/src/test/java/com/hank/musicfree/core/model/MusicItemTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 import org.junit.Assert.*
 import org.junit.Test
@@ -311,20 +311,20 @@ Expected: Compilation failure — model classes don't exist yet.
 
 - [ ] **Step 3: Create all domain model classes**
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/model/PlayQuality.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/model/PlayQuality.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 enum class PlayQuality {
     LOW, STANDARD, HIGH, SUPER
 }
 ```
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/model/QualityInfo.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/model/QualityInfo.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 data class QualityInfo(
     val url: String?,
@@ -332,10 +332,10 @@ data class QualityInfo(
 )
 ```
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/model/MusicItem.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/model/MusicItem.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 /**
  * Core music item. The combination of [id] + [platform] uniquely identifies a track.
@@ -354,10 +354,10 @@ data class MusicItem(
 )
 ```
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/model/MediaSourceResult.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/model/MediaSourceResult.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 data class MediaSourceResult(
     val url: String,
@@ -367,10 +367,10 @@ data class MediaSourceResult(
 )
 ```
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/model/Playlist.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/model/Playlist.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 data class Playlist(
     val id: String,
@@ -379,20 +379,20 @@ data class Playlist(
 )
 ```
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/model/RepeatMode.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/model/RepeatMode.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 enum class RepeatMode {
     OFF, ONE, ALL
 }
 ```
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricLine.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/model/LyricLine.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 data class LyricLine(
     val timeMs: Long,
@@ -408,13 +408,13 @@ Expected: All 7 tests PASS.
 - [ ] **Step 5: Delete the .gitkeep placeholder**
 
 ```bash
-rm core/src/main/java/com/zili/android/musicfreeandroid/core/model/.gitkeep
+rm core/src/main/java/com/hank/musicfree/core/model/.gitkeep
 ```
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/model/ core/src/test/
+git add core/src/main/java/com/hank/musicfree/core/model/ core/src/test/
 git commit -m "feat(core): add domain models — MusicItem, Playlist, PlayQuality, RepeatMode, etc."
 ```
 
@@ -423,15 +423,15 @@ git commit -m "feat(core): add domain models — MusicItem, Playlist, PlayQualit
 ## Task 3: Room Entities
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/MusicItemEntity.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlaylistEntity.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlaylistMusicCrossRef.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PlayQueueEntity.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/entity/MusicItemEntity.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/entity/PlaylistEntity.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/entity/PlaylistMusicCrossRef.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/entity/PlayQueueEntity.kt`
 
 - [ ] **Step 1: Create MusicItemEntity**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.entity
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.Entity
 
@@ -452,7 +452,7 @@ data class MusicItemEntity(
 - [ ] **Step 2: Create PlaylistEntity**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.entity
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -470,7 +470,7 @@ data class PlaylistEntity(
 - [ ] **Step 3: Create PlaylistMusicCrossRef (junction table)**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.entity
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -509,7 +509,7 @@ data class PlaylistMusicCrossRef(
 - [ ] **Step 4: Create PlayQueueEntity**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.entity
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -538,7 +538,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 6: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/
+git add data/src/main/java/com/hank/musicfree/data/db/
 git commit -m "feat(data): add Room entities — MusicItemEntity, PlaylistEntity, PlayQueueEntity, junction table"
 ```
 
@@ -547,16 +547,16 @@ git commit -m "feat(data): add Room entities — MusicItemEntity, PlaylistEntity
 ## Task 4: Room TypeConverters
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/converter/Converters.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/converter/Converters.kt`
 
 - [ ] **Step 1: Create Converters**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.converter
+package com.hank.musicfree.data.db.converter
 
 import androidx.room.TypeConverter
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.model.QualityInfo
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.model.QualityInfo
 import org.json.JSONObject
 
 class Converters {
@@ -600,7 +600,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 3: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/converter/
+git add data/src/main/java/com/hank/musicfree/data/db/converter/
 git commit -m "feat(data): add Room TypeConverters for quality map JSON serialization"
 ```
 
@@ -609,25 +609,25 @@ git commit -m "feat(data): add Room TypeConverters for quality map JSON serializ
 ## Task 5: Entity ↔ Model Mappers
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapper.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapper.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlayQueueMapper.kt`
-- Create: `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapperTest.kt`
-- Create: `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapperTest.kt`
-- Create: `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/PlayQueueMapperTest.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/mapper/MusicItemMapper.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/mapper/PlaylistMapper.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/mapper/PlayQueueMapper.kt`
+- Create: `data/src/test/java/com/hank/musicfree/data/mapper/MusicItemMapperTest.kt`
+- Create: `data/src/test/java/com/hank/musicfree/data/mapper/PlaylistMapperTest.kt`
+- Create: `data/src/test/java/com/hank/musicfree/data/mapper/PlayQueueMapperTest.kt`
 
 - [ ] **Step 1: Write mapper tests**
 
-Create `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapperTest.kt`:
+Create `data/src/test/java/com/hank/musicfree/data/mapper/MusicItemMapperTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.mapper
+package com.hank.musicfree.data.mapper
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.model.QualityInfo
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.model.QualityInfo
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.entity.MusicItemEntity
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -691,13 +691,13 @@ class MusicItemMapperTest {
 }
 ```
 
-Create `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapperTest.kt`:
+Create `data/src/test/java/com/hank/musicfree/data/mapper/PlaylistMapperTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.mapper
+package com.hank.musicfree.data.mapper
 
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.data.db.entity.PlaylistEntity
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -722,16 +722,16 @@ class PlaylistMapperTest {
 }
 ```
 
-Create `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/PlayQueueMapperTest.kt`:
+Create `data/src/test/java/com/hank/musicfree/data/mapper/PlayQueueMapperTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.mapper
+package com.hank.musicfree.data.mapper
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.model.QualityInfo
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.entity.PlayQueueEntity
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.model.QualityInfo
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.entity.PlayQueueEntity
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -775,14 +775,14 @@ Expected: Compilation failure — mapper functions don't exist yet.
 
 - [ ] **Step 3: Implement mappers**
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapper.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/mapper/MusicItemMapper.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.mapper
+package com.hank.musicfree.data.mapper
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.entity.MusicItemEntity
 
 fun MusicItem.toEntity(converters: Converters): MusicItemEntity = MusicItemEntity(
     id = id,
@@ -809,13 +809,13 @@ fun MusicItemEntity.toModel(converters: Converters): MusicItem = MusicItem(
 )
 ```
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapper.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/mapper/PlaylistMapper.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.mapper
+package com.hank.musicfree.data.mapper
 
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.data.db.entity.PlaylistEntity
 
 fun Playlist.toEntity(createdAt: Long, updatedAt: Long): PlaylistEntity = PlaylistEntity(
     id = id,
@@ -832,14 +832,14 @@ fun PlaylistEntity.toModel(): Playlist = Playlist(
 )
 ```
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlayQueueMapper.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/mapper/PlayQueueMapper.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.mapper
+package com.hank.musicfree.data.mapper
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.entity.PlayQueueEntity
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.entity.PlayQueueEntity
 
 fun MusicItem.toPlayQueueEntity(sortOrder: Int, converters: Converters): PlayQueueEntity =
     PlayQueueEntity(
@@ -876,7 +876,7 @@ Expected: All 7 tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/ data/src/test/
+git add data/src/main/java/com/hank/musicfree/data/mapper/ data/src/test/
 git commit -m "feat(data): add bidirectional mappers for MusicItem, Playlist, PlayQueue entities"
 ```
 
@@ -885,14 +885,14 @@ git commit -m "feat(data): add bidirectional mappers for MusicItem, Playlist, Pl
 ## Task 6: Room DAOs
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/MusicDao.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PlaylistDao.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PlayQueueDao.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/dao/MusicDao.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/dao/PlaylistDao.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/dao/PlayQueueDao.kt`
 
 - [ ] **Step 1: Create MusicDao**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
@@ -900,7 +900,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
+import com.hank.musicfree.data.db.entity.MusicItemEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -938,7 +938,7 @@ interface MusicDao {
 - [ ] **Step 2: Create PlaylistDao**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
@@ -947,9 +947,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
+import com.hank.musicfree.data.db.entity.MusicItemEntity
+import com.hank.musicfree.data.db.entity.PlaylistEntity
+import com.hank.musicfree.data.db.entity.PlaylistMusicCrossRef
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -995,14 +995,14 @@ interface PlaylistDao {
 - [ ] **Step 3: Create PlayQueueDao**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.zili.android.musicfreeandroid.data.db.entity.PlayQueueEntity
+import com.hank.musicfree.data.db.entity.PlayQueueEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -1039,7 +1039,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 5: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/
+git add data/src/main/java/com/hank/musicfree/data/db/dao/
 git commit -m "feat(data): add Room DAOs — MusicDao, PlaylistDao, PlayQueueDao"
 ```
 
@@ -1048,24 +1048,24 @@ git commit -m "feat(data): add Room DAOs — MusicDao, PlaylistDao, PlayQueueDao
 ## Task 7: AppDatabase
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
 
 - [ ] **Step 1: Create AppDatabase**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db
+package com.hank.musicfree.data.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
-import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
-import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
-import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
-import com.zili.android.musicfreeandroid.data.db.entity.PlayQueueEntity
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.MusicDao
+import com.hank.musicfree.data.db.dao.PlaylistDao
+import com.hank.musicfree.data.db.dao.PlayQueueDao
+import com.hank.musicfree.data.db.entity.MusicItemEntity
+import com.hank.musicfree.data.db.entity.PlaylistEntity
+import com.hank.musicfree.data.db.entity.PlaylistMusicCrossRef
+import com.hank.musicfree.data.db.entity.PlayQueueEntity
 
 @Database(
     entities = [
@@ -1093,7 +1093,7 @@ Expected: BUILD SUCCESSFUL (Room annotation processor generates implementation).
 - [ ] **Step 3: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt
+git add data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt
 git commit -m "feat(data): add AppDatabase with Room entities, converters, and DAOs"
 ```
 
@@ -1102,21 +1102,21 @@ git commit -m "feat(data): add AppDatabase with Room entities, converters, and D
 ## Task 8: DataStore AppPreferences
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
-- Create: `data/src/test/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferencesTest.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
+- Create: `data/src/test/java/com/hank/musicfree/data/datastore/AppPreferencesTest.kt`
 
 - [ ] **Step 1: Write AppPreferences test**
 
-Create `data/src/test/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferencesTest.kt`:
+Create `data/src/test/java/com/hank/musicfree/data/datastore/AppPreferencesTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.datastore
+package com.hank.musicfree.data.datastore
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.model.RepeatMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
@@ -1213,10 +1213,10 @@ Expected: Compilation failure — AppPreferences doesn't exist.
 
 - [ ] **Step 3: Implement AppPreferences**
 
-Create `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`:
+Create `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.datastore
+package com.hank.musicfree.data.datastore
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -1224,8 +1224,8 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.model.RepeatMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -1296,7 +1296,7 @@ Expected: All 10 tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/ data/src/test/
+git add data/src/main/java/com/hank/musicfree/data/datastore/ data/src/test/
 git commit -m "feat(data): add AppPreferences DataStore for repeat mode, quality, shuffle, dark mode"
 ```
 
@@ -1305,20 +1305,20 @@ git commit -m "feat(data): add AppPreferences DataStore for repeat mode, quality
 ## Task 9: Repositories
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/MusicRepository.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlayQueueRepository.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/repository/MusicRepository.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/repository/PlayQueueRepository.kt`
 
 - [ ] **Step 1: Create MusicRepository**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.repository
+package com.hank.musicfree.data.repository
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
-import com.zili.android.musicfreeandroid.data.mapper.toEntity
-import com.zili.android.musicfreeandroid.data.mapper.toModel
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.MusicDao
+import com.hank.musicfree.data.mapper.toEntity
+import com.hank.musicfree.data.mapper.toModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -1361,15 +1361,15 @@ class MusicRepository @Inject constructor(
 - [ ] **Step 2: Create PlaylistRepository**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.repository
+package com.hank.musicfree.data.repository
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
-import com.zili.android.musicfreeandroid.data.mapper.toEntity
-import com.zili.android.musicfreeandroid.data.mapper.toModel
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.PlaylistDao
+import com.hank.musicfree.data.db.entity.PlaylistMusicCrossRef
+import com.hank.musicfree.data.mapper.toEntity
+import com.hank.musicfree.data.mapper.toModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -1433,13 +1433,13 @@ class PlaylistRepository @Inject constructor(
 - [ ] **Step 3: Create PlayQueueRepository**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.repository
+package com.hank.musicfree.data.repository
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
-import com.zili.android.musicfreeandroid.data.mapper.toMusicItem
-import com.zili.android.musicfreeandroid.data.mapper.toPlayQueueEntity
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.PlayQueueDao
+import com.hank.musicfree.data.mapper.toMusicItem
+import com.hank.musicfree.data.mapper.toPlayQueueEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -1480,7 +1480,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 5: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/repository/
+git add data/src/main/java/com/hank/musicfree/data/repository/
 git commit -m "feat(data): add MusicRepository, PlaylistRepository, PlayQueueRepository"
 ```
 
@@ -1489,23 +1489,23 @@ git commit -m "feat(data): add MusicRepository, PlaylistRepository, PlayQueueRep
 ## Task 10: Hilt DI Module for Data Layer
 
 **Files:**
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`
 
 - [ ] **Step 1: Create DataModule**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.di
+package com.hank.musicfree.data.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
-import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
-import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.MusicDao
+import com.hank.musicfree.data.db.dao.PlaylistDao
+import com.hank.musicfree.data.db.dao.PlayQueueDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -1553,7 +1553,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 3: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/di/
+git add data/src/main/java/com/hank/musicfree/data/di/
 git commit -m "feat(data): add Hilt DataModule providing AppDatabase, DAOs, DataStore, Converters"
 ```
 
@@ -1562,20 +1562,20 @@ git commit -m "feat(data): add Hilt DataModule providing AppDatabase, DAOs, Data
 ## Task 11: Room DAO Integration Tests
 
 **Files:**
-- Create: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/MusicDaoTest.kt`
-- Create: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/PlaylistDaoTest.kt`
-- Create: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/PlayQueueDaoTest.kt`
+- Create: `data/src/androidTest/java/com/hank/musicfree/data/db/dao/MusicDaoTest.kt`
+- Create: `data/src/androidTest/java/com/hank/musicfree/data/db/dao/PlaylistDaoTest.kt`
+- Create: `data/src/androidTest/java/com/hank/musicfree/data/db/dao/PlayQueueDaoTest.kt`
 
 - [ ] **Step 1: Create MusicDaoTest**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.entity.MusicItemEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -1679,15 +1679,15 @@ class MusicDaoTest {
 - [ ] **Step 2: Create PlaylistDaoTest**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.entity.MusicItemEntity
+import com.hank.musicfree.data.db.entity.PlaylistEntity
+import com.hank.musicfree.data.db.entity.PlaylistMusicCrossRef
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -1798,13 +1798,13 @@ class PlaylistDaoTest {
 - [ ] **Step 3: Create PlayQueueDaoTest**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.entity.PlayQueueEntity
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.entity.PlayQueueEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -1898,24 +1898,24 @@ git commit -m "test(data): add Room DAO integration tests for MusicDao, Playlist
 ## Task 12: Repository Integration Tests
 
 **Files:**
-- Create: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/MusicRepositoryTest.kt`
-- Create: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`
-- Create: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlayQueueRepositoryTest.kt`
+- Create: `data/src/androidTest/java/com/hank/musicfree/data/repository/MusicRepositoryTest.kt`
+- Create: `data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt`
+- Create: `data/src/androidTest/java/com/hank/musicfree/data/repository/PlayQueueRepositoryTest.kt`
 
 - [ ] **Step 1: Create MusicRepositoryTest**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.repository
+package com.hank.musicfree.data.repository
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.core.model.QualityInfo
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.model.QualityInfo
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.converter.Converters
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.*
@@ -1992,16 +1992,16 @@ class MusicRepositoryTest {
 - [ ] **Step 2: Create PlaylistRepositoryTest**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.repository
+package com.hank.musicfree.data.repository
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.converter.Converters
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.*
@@ -2114,15 +2114,15 @@ class PlaylistRepositoryTest {
 - [ ] **Step 3: Create PlayQueueRepositoryTest**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.repository
+package com.hank.musicfree.data.repository
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.converter.Converters
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.*
@@ -2202,7 +2202,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 5: Commit**
 
 ```bash
-git add data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/
+git add data/src/androidTest/java/com/hank/musicfree/data/repository/
 git commit -m "test(data): add Repository integration tests with Turbine Flow assertions"
 ```
 
@@ -2211,14 +2211,14 @@ git commit -m "test(data): add Repository integration tests with Turbine Flow as
 ## Task 13: Clean Up and Final Verification
 
 **Files:**
-- Remove: `data/src/main/java/com/zili/android/musicfreeandroid/data/.gitkeep`
-- Remove: `data/src/test/java/com/zili/android/musicfreeandroid/data/.gitkeep`
+- Remove: `data/src/main/java/com/hank/musicfree/data/.gitkeep`
+- Remove: `data/src/test/java/com/hank/musicfree/data/.gitkeep`
 
 - [ ] **Step 1: Remove .gitkeep placeholders**
 
 ```bash
-rm -f data/src/main/java/com/zili/android/musicfreeandroid/data/.gitkeep
-rm -f data/src/test/java/com/zili/android/musicfreeandroid/data/.gitkeep
+rm -f data/src/main/java/com/hank/musicfree/data/.gitkeep
+rm -f data/src/test/java/com/hank/musicfree/data/.gitkeep
 ```
 
 - [ ] **Step 2: Run full build**

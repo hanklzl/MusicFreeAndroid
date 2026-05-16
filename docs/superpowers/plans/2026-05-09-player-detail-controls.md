@@ -12,31 +12,31 @@
 
 ## 文件结构
 
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/PlaybackMode.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/PlaybackMode.kt`
   - 负责 RN 风格播放模式三态：`Shuffle`、`Single`、`Queue`。
   - 提供 `from(shuffleEnabled, repeatMode)` 和 `next()`，供 `:player` 和 `:feature:player-ui` 共用。
-- Create: `core/src/test/java/com/zili/android/musicfreeandroid/core/model/PlaybackModeTest.kt`
+- Create: `core/src/test/java/com/hank/musicfree/core/model/PlaybackModeTest.kt`
   - 覆盖模式映射和循环顺序。
-- Create: `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerPlaybackModeTest.kt`
+- Create: `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerPlaybackModeTest.kt`
   - 覆盖 `PlayerController.cyclePlaybackMode()` 的真实状态迁移和队列随机标记。
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
   - 新增 `cyclePlaybackMode()`。
   - 保留 `cycleRepeatMode()` 和 `toggleShuffle()`，避免影响其他现有调用。
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
   - 新增 `cyclePlaybackMode()` 委托。
   - 保留旧方法直到确认没有其他调用依赖。
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`
   - 新增 ViewModel 委托测试。
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
   - 调整封面页布局。
   - 新增 test tag 常量。
   - `PlayerControls` 改为基于 `PlaybackMode` 显示图标和 contentDescription。
   - 模式按钮点击改为调用 `viewModel.cyclePlaybackMode()`。
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerControlsTest.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerControlsTest.kt`
   - 覆盖三态图标语义和点击回调。
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerCoverLayoutTest.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerCoverLayoutTest.kt`
   - 覆盖功能栏和进度条之间只有固定小间距。
-- Existing verification: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsContentTest.kt`
+- Existing verification: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsContentTest.kt`
   - 保持歌词点击返回封面测试不回退。
 
 ---
@@ -92,15 +92,15 @@ Expected: 输出 `## feat/player-detail-controls`，工作区干净。
 ### Task 1: 新增 PlaybackMode 三态 helper
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/PlaybackMode.kt`
-- Create: `core/src/test/java/com/zili/android/musicfreeandroid/core/model/PlaybackModeTest.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/model/PlaybackMode.kt`
+- Create: `core/src/test/java/com/hank/musicfree/core/model/PlaybackModeTest.kt`
 
 - [ ] **Step 1: 写失败测试**
 
-Create `core/src/test/java/com/zili/android/musicfreeandroid/core/model/PlaybackModeTest.kt`:
+Create `core/src/test/java/com/hank/musicfree/core/model/PlaybackModeTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -157,17 +157,17 @@ class PlaybackModeTest {
 Run:
 
 ```bash
-./gradlew :core:testDebugUnitTest --tests com.zili.android.musicfreeandroid.core.model.PlaybackModeTest
+./gradlew :core:testDebugUnitTest --tests com.hank.musicfree.core.model.PlaybackModeTest
 ```
 
 Expected: FAIL，包含 `Unresolved reference: PlaybackMode`。
 
 - [ ] **Step 3: 写最小实现**
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/model/PlaybackMode.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/model/PlaybackMode.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.model
+package com.hank.musicfree.core.model
 
 enum class PlaybackMode {
     Shuffle,
@@ -198,7 +198,7 @@ enum class PlaybackMode {
 Run:
 
 ```bash
-./gradlew :core:testDebugUnitTest --tests com.zili.android.musicfreeandroid.core.model.PlaybackModeTest
+./gradlew :core:testDebugUnitTest --tests com.hank.musicfree.core.model.PlaybackModeTest
 ```
 
 Expected: PASS。
@@ -208,7 +208,7 @@ Expected: PASS。
 Run:
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/model/PlaybackMode.kt core/src/test/java/com/zili/android/musicfreeandroid/core/model/PlaybackModeTest.kt
+git add core/src/main/java/com/hank/musicfree/core/model/PlaybackMode.kt core/src/test/java/com/hank/musicfree/core/model/PlaybackModeTest.kt
 git commit -m "feat(core): add playback mode mapping"
 ```
 
@@ -219,20 +219,20 @@ Expected: commit 成功，包含 2 个文件。
 ### Task 2: 在 PlayerController 中封装播放模式三态迁移
 
 **Files:**
-- Create: `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerPlaybackModeTest.kt`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
+- Create: `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerPlaybackModeTest.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
 
 - [ ] **Step 1: 写失败测试**
 
-Create `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerPlaybackModeTest.kt`:
+Create `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerPlaybackModeTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.controller
+package com.hank.musicfree.player.controller
 
 import android.content.Context
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
-import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RepeatMode
+import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -341,18 +341,18 @@ class PlayerControllerPlaybackModeTest {
 Run:
 
 ```bash
-./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.controller.PlayerControllerPlaybackModeTest
+./gradlew :player:testDebugUnitTest --tests com.hank.musicfree.player.controller.PlayerControllerPlaybackModeTest
 ```
 
 Expected: FAIL，包含 `Unresolved reference: cyclePlaybackMode`。
 
 - [ ] **Step 3: 写最小实现**
 
-Modify `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt` imports:
+Modify `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt` imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.PlaybackMode
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.hank.musicfree.core.model.PlaybackMode
+import com.hank.musicfree.core.model.RepeatMode
 ```
 
 Add this method after `cycleRepeatMode()`:
@@ -391,7 +391,7 @@ Add this method after `cycleRepeatMode()`:
 Run:
 
 ```bash
-./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.controller.PlayerControllerPlaybackModeTest
+./gradlew :player:testDebugUnitTest --tests com.hank.musicfree.player.controller.PlayerControllerPlaybackModeTest
 ```
 
 Expected: PASS。
@@ -401,7 +401,7 @@ Expected: PASS。
 Run:
 
 ```bash
-./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.queue.PlayQueueTest
+./gradlew :player:testDebugUnitTest --tests com.hank.musicfree.player.queue.PlayQueueTest
 ```
 
 Expected: PASS。
@@ -411,7 +411,7 @@ Expected: PASS。
 Run:
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerPlaybackModeTest.kt
+git add player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerPlaybackModeTest.kt
 git commit -m "feat(player): cycle playback modes"
 ```
 
@@ -422,12 +422,12 @@ Expected: commit 成功，包含 controller 和测试。
 ### Task 3: 在 PlayerViewModel 中暴露三态播放模式入口
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`
 
 - [ ] **Step 1: 写失败测试**
 
-Modify `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt` near the existing `cycleRepeatMode calls controller` test:
+Modify `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt` near the existing `cycleRepeatMode calls controller` test:
 
 ```kotlin
     @Test
@@ -443,14 +443,14 @@ Modify `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/featur
 Run:
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerViewModelTest
 ```
 
 Expected: FAIL，包含 `Unresolved reference: cyclePlaybackMode`。
 
 - [ ] **Step 3: 写最小实现**
 
-Modify `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`, add after `fun cycleRepeatMode()`:
+Modify `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`, add after `fun cycleRepeatMode()`:
 
 ```kotlin
     fun cyclePlaybackMode() = playerController.cyclePlaybackMode()
@@ -461,7 +461,7 @@ Modify `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/featur
 Run:
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerViewModelTest
 ```
 
 Expected: PASS。
@@ -471,7 +471,7 @@ Expected: PASS。
 Run:
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt
 git commit -m "feat(player-ui): expose playback mode cycling"
 ```
 
@@ -482,15 +482,15 @@ Expected: commit 成功。
 ### Task 4: 更新 PlayerControls 为 RN 三态按钮
 
 **Files:**
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerControlsTest.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerControlsTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
 
 - [ ] **Step 1: 写失败测试**
 
-Create `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerControlsTest.kt`:
+Create `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerControlsTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui
+package com.hank.musicfree.feature.playerui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -501,8 +501,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.model.PlaybackMode
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.model.PlaybackMode
+import com.hank.musicfree.core.theme.MusicFreeTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -580,20 +580,20 @@ class PlayerControlsTest {
 Run:
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerControlsTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerControlsTest
 ```
 
 Expected: FAIL，原因包含 `Cannot access 'PlayerControls': it is private` 或参数不匹配。
 
 - [ ] **Step 3: 更新 `PlayerControls` 签名和 test tag**
 
-Modify `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`.
+Modify `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`.
 
 Add imports:
 
 ```kotlin
 import androidx.compose.ui.platform.testTag
-import com.zili.android.musicfreeandroid.core.model.PlaybackMode
+import com.hank.musicfree.core.model.PlaybackMode
 ```
 
 Add constants near `PlayerContentPage`:
@@ -670,7 +670,7 @@ Remove now-unused `repeatMode`, `shuffleEnabled`, `onCycleRepeatMode`, and `onTo
 Run:
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerControlsTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerControlsTest
 ```
 
 Expected: PASS。
@@ -680,7 +680,7 @@ Expected: PASS。
 Run:
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerViewModelTest
 ```
 
 Expected: PASS。
@@ -690,7 +690,7 @@ Expected: PASS。
 Run:
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerControlsTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerControlsTest.kt
 git commit -m "feat(player-ui): show playback mode tri-state"
 ```
 
@@ -701,15 +701,15 @@ Expected: commit 成功。
 ### Task 5: 调整封面页布局，让功能栏贴近进度条
 
 **Files:**
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerCoverLayoutTest.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerCoverLayoutTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
 
 - [ ] **Step 1: 写失败测试**
 
-Create `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerCoverLayoutTest.kt`:
+Create `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerCoverLayoutTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui
+package com.hank.musicfree.feature.playerui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -721,8 +721,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.model.PlaybackMode
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.model.PlaybackMode
+import com.hank.musicfree.core.theme.MusicFreeTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -796,14 +796,14 @@ class PlayerCoverLayoutTest {
 Run:
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerCoverLayoutTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerCoverLayoutTest
 ```
 
 Expected: FAIL，原因包含 `Unresolved reference: PlayerCoverPageContent` 或找不到 test tag。
 
 - [ ] **Step 3: 新增封面页 focused composable**
 
-Modify `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`.
+Modify `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`.
 
 Add this composable before `PlayerCoverArt`:
 
@@ -917,7 +917,7 @@ Modify the common `PlayerSeekBar` call in `PlayerScreen`:
 Run:
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerCoverLayoutTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerCoverLayoutTest
 ```
 
 Expected: PASS。
@@ -927,7 +927,7 @@ Expected: PASS。
 Run:
 
 ```bash
-./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerControlsTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerScreenInsetsTest --tests com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricsContentTest
+./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerControlsTest --tests com.hank.musicfree.feature.playerui.PlayerScreenInsetsTest --tests com.hank.musicfree.feature.playerui.lyrics.PlayerLyricsContentTest
 ```
 
 Expected: PASS。
@@ -937,7 +937,7 @@ Expected: PASS。
 Run:
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerCoverLayoutTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerCoverLayoutTest.kt
 git commit -m "fix(player-ui): align detail controls with seek bar"
 ```
 

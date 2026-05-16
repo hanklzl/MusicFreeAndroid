@@ -77,8 +77,8 @@ pop 掉搜索 Screen 后重新进入
 
 运行命令：
 
-- `./gradlew :feature:search:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest" --no-daemon`
-- `./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusicListViewModelTest" --tests "com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusicListScreenFocusTest" --no-daemon`
+- `./gradlew :feature:search:testDebugUnitTest --tests "com.hank.musicfree.feature.search.SearchViewModelTest" --no-daemon`
+- `./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.searchmusiclist.SearchMusicListViewModelTest" --tests "com.hank.musicfree.feature.home.searchmusiclist.SearchMusicListScreenFocusTest" --no-daemon`
 - `./gradlew :app:assembleDebug --no-daemon`
 
 ## 风险与处理

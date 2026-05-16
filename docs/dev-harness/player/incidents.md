@@ -13,7 +13,7 @@
 - rule_ref: docs/dev-harness/player/rules.md#rule-lyric-follow-debounce
 - guard:
     type: contract-test
-    target: feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/harness/contracts/LyricFollowDebounceContractTest.kt
+    target: feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/harness/contracts/LyricFollowDebounceContractTest.kt
 - fix_ref: docs/superpowers/specs/2026-05-05-player-lyrics-interaction-fix-design.md
 
 ### 根因

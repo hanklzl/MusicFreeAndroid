@@ -1,4 +1,4 @@
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 name: smoke_core_launch_default_plugins
 tags:
   - smoke

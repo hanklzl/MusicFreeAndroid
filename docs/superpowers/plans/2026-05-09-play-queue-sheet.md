@@ -16,35 +16,35 @@
 
 | Path | Action |
 |---|---|
-| `player/src/main/java/com/zili/android/musicfreeandroid/player/queue/PlayQueueSnapshot.kt` | create |
-| `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt` | modify (add `queueState`, emit in mutating methods) |
-| `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerQueueStateTest.kt` | create |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueUiModel.kt` | create |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueRow.kt` | create |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheetContent.kt` | create |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheet.kt` | create |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt` | modify (`queueUiModel`, transfer methods) |
-| `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelQueueTest.kt` | create |
-| `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheetContentTest.kt` | create |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayer.kt` | modify (drop `onNavigateToQueue`, host sheet) |
-| `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt` | modify (host sheet, replace TODO) |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt` | modify (add Player.Queue.* anchors) |
+| `player/src/main/java/com/hank/musicfree/player/queue/PlayQueueSnapshot.kt` | create |
+| `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt` | modify (add `queueState`, emit in mutating methods) |
+| `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerQueueStateTest.kt` | create |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueUiModel.kt` | create |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueRow.kt` | create |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheetContent.kt` | create |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheet.kt` | create |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt` | modify (`queueUiModel`, transfer methods) |
+| `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelQueueTest.kt` | create |
+| `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheetContentTest.kt` | create |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayer.kt` | modify (drop `onNavigateToQueue`, host sheet) |
+| `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt` | modify (host sheet, replace TODO) |
+| `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt` | modify (add Player.Queue.* anchors) |
 
 ---
 
 ## Task 1: Introduce `PlayQueueSnapshot` value type
 
 **Files:**
-- Create: `player/src/main/java/com/zili/android/musicfreeandroid/player/queue/PlayQueueSnapshot.kt`
+- Create: `player/src/main/java/com/hank/musicfree/player/queue/PlayQueueSnapshot.kt`
 
 This is a pure data class. No behavior, no test of its own — it will be exercised by Task 2's tests.
 
 - [ ] **Step 1: Create the data class**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.queue
+package com.hank.musicfree.player.queue
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 data class PlayQueueSnapshot(
     val items: List<MusicItem>,
@@ -64,7 +64,7 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/queue/PlayQueueSnapshot.kt
+git add player/src/main/java/com/hank/musicfree/player/queue/PlayQueueSnapshot.kt
 git commit -m "feat(player): add PlayQueueSnapshot value type"
 ```
 
@@ -73,22 +73,22 @@ git commit -m "feat(player): add PlayQueueSnapshot value type"
 ## Task 2: Add `queueState` to `PlayerController` (initial empty state)
 
 **Files:**
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Create: `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerQueueStateTest.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Create: `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerQueueStateTest.kt`
 
 We add the StateFlow first, default `EMPTY`, no emit hookups yet. Subsequent tasks will wire emits one mutating method at a time.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerQueueStateTest.kt`:
+Create `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerQueueStateTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.controller
+package com.hank.musicfree.player.controller
 
 import android.content.Context
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
-import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.player.queue.PlayQueueSnapshot
+import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -134,15 +134,15 @@ class PlayerControllerQueueStateTest {
 
 - [ ] **Step 2: Run the test, expect compile failure**
 
-Run: `./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.controller.PlayerControllerQueueStateTest`
+Run: `./gradlew :player:testDebugUnitTest --tests com.hank.musicfree.player.controller.PlayerControllerQueueStateTest`
 Expected: FAILED — `unresolved reference: queueState`.
 
 - [ ] **Step 3: Add `queueState` to `PlayerController`**
 
-In `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`, near the existing `_playerState`/`_playHistory` declarations (around line 57-60 in the current file), add:
+In `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`, near the existing `_playerState`/`_playHistory` declarations (around line 57-60 in the current file), add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
+import com.hank.musicfree.player.queue.PlayQueueSnapshot
 ```
 
 ```kotlin
@@ -159,14 +159,14 @@ private fun emitQueueState() {
 
 - [ ] **Step 4: Run test, expect PASS**
 
-Run: `./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.controller.PlayerControllerQueueStateTest`
+Run: `./gradlew :player:testDebugUnitTest --tests com.hank.musicfree.player.controller.PlayerControllerQueueStateTest`
 Expected: PASS (1 test).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt \
-        player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerQueueStateTest.kt
+git add player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt \
+        player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerQueueStateTest.kt
 git commit -m "feat(player): expose queueState StateFlow on PlayerController"
 ```
 
@@ -175,8 +175,8 @@ git commit -m "feat(player): expose queueState StateFlow on PlayerController"
 ## Task 3: Emit `queueState` from queue-mutating methods
 
 **Files:**
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Modify: `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerQueueStateTest.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Modify: `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerQueueStateTest.kt`
 
 Methods to instrument with `emitQueueState()` at their tail (after `playQueue` mutation, before any return path that doesn't already pass through emit):
 
@@ -204,7 +204,7 @@ Methods to instrument with `emitQueueState()` at their tail (after `playQueue` m
 Append the following tests to `PlayerControllerQueueStateTest.kt`:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.hank.musicfree.core.model.RepeatMode
 import org.junit.Assert.assertNotEquals
 
 @Test
@@ -378,12 +378,12 @@ Note: `skipToPrevious` is intentionally not tested here because it depends on `M
 
 - [ ] **Step 2: Run the new tests, expect failures**
 
-Run: `./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.controller.PlayerControllerQueueStateTest`
+Run: `./gradlew :player:testDebugUnitTest --tests com.hank.musicfree.player.controller.PlayerControllerQueueStateTest`
 Expected: PASS only `queueState defaults to EMPTY`; the 12 new tests FAIL because no method emits yet.
 
 - [ ] **Step 3: Wire `emitQueueState()` calls**
 
-In `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`, add `emitQueueState()` at the end of each of the following methods. Apply tightly — keep return paths unchanged.
+In `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`, add `emitQueueState()` at the end of each of the following methods. Apply tightly — keep return paths unchanged.
 
 `playItem` — at the end of the function body, after `setMediaItemAndPlay(item)`:
 
@@ -562,7 +562,7 @@ private fun handleTrackEnded() {
 
 - [ ] **Step 4: Run the full test class, expect PASS**
 
-Run: `./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.controller.PlayerControllerQueueStateTest`
+Run: `./gradlew :player:testDebugUnitTest --tests com.hank.musicfree.player.controller.PlayerControllerQueueStateTest`
 Expected: PASS (13 tests).
 
 Also run regression to make sure existing controller tests still pass:
@@ -573,8 +573,8 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt \
-        player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerQueueStateTest.kt
+git add player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt \
+        player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerQueueStateTest.kt
 git commit -m "feat(player): emit queueState from queue-mutating PlayerController methods"
 ```
 
@@ -583,15 +583,15 @@ git commit -m "feat(player): emit queueState from queue-mutating PlayerControlle
 ## Task 4: Add `PlayQueueUiModel`
 
 **Files:**
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueUiModel.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueUiModel.kt`
 
 - [ ] **Step 1: Create the directory and data class**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component.queue
+package com.hank.musicfree.feature.playerui.component.queue
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RepeatMode
 
 data class PlayQueueUiModel(
     val items: List<MusicItem>,
@@ -619,7 +619,7 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueUiModel.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueUiModel.kt
 git commit -m "feat(player-ui): add PlayQueueUiModel"
 ```
 
@@ -628,26 +628,26 @@ git commit -m "feat(player-ui): add PlayQueueUiModel"
 ## Task 5: Extend `PlayerViewModel` with queue-related API
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelQueueTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelQueueTest.kt`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelQueueTest.kt`:
+Create `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelQueueTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui
+package com.hank.musicfree.feature.playerui
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
-import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
-import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
-import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueUiModel
-import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
-import com.zili.android.musicfreeandroid.feature.playerui.lyrics.PlayerLyricLoader
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
-import com.zili.android.musicfreeandroid.player.model.PlayerState
-import com.zili.android.musicfreeandroid.player.queue.PlayQueueSnapshot
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RepeatMode
+import com.hank.musicfree.data.datastore.AppPreferences
+import com.hank.musicfree.data.repository.PlaylistRepository
+import com.hank.musicfree.feature.playerui.component.queue.PlayQueueUiModel
+import com.hank.musicfree.feature.playerui.lyrics.LyricLoadState
+import com.hank.musicfree.feature.playerui.lyrics.PlayerLyricLoader
+import com.hank.musicfree.player.controller.PlayerController
+import com.hank.musicfree.player.model.PlayerState
+import com.hank.musicfree.player.queue.PlayQueueSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -770,17 +770,17 @@ class PlayerViewModelQueueTest {
 
 - [ ] **Step 2: Run the test, expect failures**
 
-Run: `./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelQueueTest`
+Run: `./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerViewModelQueueTest`
 Expected: FAILED — `unresolved reference: queueState` and friends.
 
 - [ ] **Step 3: Wire `queueUiModel` and forwarders into `PlayerViewModel`**
 
-In `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`:
+In `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`:
 
 Add imports near the top:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueUiModel
+import com.hank.musicfree.feature.playerui.component.queue.PlayQueueUiModel
 ```
 
 Add the following section right after the existing `val playerState: StateFlow<PlayerState> = ...` line (around line 47):
@@ -812,7 +812,7 @@ fun clearQueue() = playerController.reset()
 
 - [ ] **Step 4: Run the test, expect PASS**
 
-Run: `./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModelQueueTest`
+Run: `./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.PlayerViewModelQueueTest`
 Expected: PASS (6 tests).
 
 Regression: `./gradlew :feature:player-ui:testDebugUnitTest` — BUILD SUCCESSFUL.
@@ -820,8 +820,8 @@ Regression: `./gradlew :feature:player-ui:testDebugUnitTest` — BUILD SUCCESSFU
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt \
-        feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelQueueTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt \
+        feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelQueueTest.kt
 git commit -m "feat(player-ui): expose queueUiModel and queue forwarders on PlayerViewModel"
 ```
 
@@ -830,7 +830,7 @@ git commit -m "feat(player-ui): expose queueUiModel and queue forwarders on Play
 ## Task 6: Add FidelityAnchors keys for the queue sheet
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
 
 We need anchors to drive Compose tests in Task 7/8.
 
@@ -864,7 +864,7 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt
 git commit -m "feat(core): add FidelityAnchors for play queue sheet"
 ```
 
@@ -873,14 +873,14 @@ git commit -m "feat(core): add FidelityAnchors for play queue sheet"
 ## Task 7: Implement `PlayQueueRow`
 
 **Files:**
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueRow.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueRow.kt`
 
 This is the row composable. It will be tested as part of `PlayQueueSheetContent` in Task 8 (rendering individual rows in isolation is overkill).
 
 - [ ] **Step 1: Create the row composable**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component.queue
+package com.hank.musicfree.feature.playerui.component.queue
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
@@ -901,12 +901,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.theme.FontSizes
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.theme.rpx
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
-import com.zili.android.musicfreeandroid.core.ui.PlatformTag
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.theme.FontSizes
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.rpx
+import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.PlatformTag
 
 @Composable
 internal fun PlayQueueRow(
@@ -989,7 +989,7 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueRow.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueRow.kt
 git commit -m "feat(player-ui): add PlayQueueRow composable"
 ```
 
@@ -998,13 +998,13 @@ git commit -m "feat(player-ui): add PlayQueueRow composable"
 ## Task 8: Implement `PlayQueueSheetContent` + Compose tests
 
 **Files:**
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheetContent.kt`
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheetContentTest.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheetContent.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheetContentTest.kt`
 
 - [ ] **Step 1: Write the failing test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component.queue
+package com.hank.musicfree.feature.playerui.component.queue
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -1015,10 +1015,10 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RepeatMode
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.ui.FidelityAnchors
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -1168,13 +1168,13 @@ class PlayQueueSheetContentTest {
 
 - [ ] **Step 2: Run the test, expect failures**
 
-Run: `./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueSheetContentTest`
+Run: `./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.component.queue.PlayQueueSheetContentTest`
 Expected: FAILED — `unresolved reference: PlayQueueSheetContent`.
 
 - [ ] **Step 3: Implement `PlayQueueSheetContent`**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component.queue
+package com.hank.musicfree.feature.playerui.component.queue
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -1205,12 +1205,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import com.zili.android.musicfreeandroid.core.R
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
-import com.zili.android.musicfreeandroid.core.theme.FontSizes
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.theme.rpx
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.hank.musicfree.core.R
+import com.hank.musicfree.core.model.RepeatMode
+import com.hank.musicfree.core.theme.FontSizes
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.rpx
+import com.hank.musicfree.core.ui.FidelityAnchors
 
 @Composable
 fun PlayQueueSheetContent(
@@ -1387,7 +1387,7 @@ private fun repeatModeLabel(mode: RepeatMode): String = when (mode) {
 
 - [ ] **Step 4: Run the tests, expect PASS**
 
-Run: `./gradlew :feature:player-ui:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueSheetContentTest`
+Run: `./gradlew :feature:player-ui:testDebugUnitTest --tests com.hank.musicfree.feature.playerui.component.queue.PlayQueueSheetContentTest`
 Expected: PASS (8 tests).
 
 Regression: `./gradlew :feature:player-ui:testDebugUnitTest`
@@ -1396,8 +1396,8 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheetContent.kt \
-        feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheetContentTest.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheetContent.kt \
+        feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheetContentTest.kt
 git commit -m "feat(player-ui): add PlayQueueSheetContent with compose tests"
 ```
 
@@ -1406,14 +1406,14 @@ git commit -m "feat(player-ui): add PlayQueueSheetContent with compose tests"
 ## Task 9: Implement `PlayQueueSheet` wrapper
 
 **Files:**
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheet.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheet.kt`
 
 This is the thin Hilt-aware bottom-sheet wrapper around `PlayQueueSheetContent`. No new tests — its glue logic is exercised end-to-end by manual verification.
 
 - [ ] **Step 1: Implement the wrapper**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component.queue
+package com.hank.musicfree.feature.playerui.component.queue
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -1421,7 +1421,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModel
+import com.hank.musicfree.feature.playerui.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1454,7 +1454,7 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheet.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheet.kt
 git commit -m "feat(player-ui): add PlayQueueSheet ModalBottomSheet wrapper"
 ```
 
@@ -1463,16 +1463,16 @@ git commit -m "feat(player-ui): add PlayQueueSheet ModalBottomSheet wrapper"
 ## Task 10: Wire `PlayQueueSheet` into MiniPlayer (drop legacy parameter)
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayer.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerContentTest.kt` (only if it breaks)
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayer.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContentTest.kt` (only if it breaks)
 - Indirect: confirm `MainActivity.kt` doesn't pass `onNavigateToQueue` (it currently doesn't — see lines 110-114).
 
 - [ ] **Step 1: Update `MiniPlayer.kt`**
 
-Replace the entire body of `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayer.kt` with:
+Replace the entire body of `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayer.kt` with:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component
+package com.hank.musicfree.feature.playerui.component
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -1482,9 +1482,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModel
-import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueSheet
-import com.zili.android.musicfreeandroid.player.model.PlayerState
+import com.hank.musicfree.feature.playerui.PlayerViewModel
+import com.hank.musicfree.feature.playerui.component.queue.PlayQueueSheet
+import com.hank.musicfree.player.model.PlayerState
 
 internal fun PlayerState.toMiniPlayerUiModel(): MiniPlayerUiModel = MiniPlayerUiModel(
     coverUri = currentItem?.artwork,
@@ -1550,7 +1550,7 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayer.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayer.kt
 git commit -m "feat(player-ui): wire PlayQueueSheet into MiniPlayer"
 ```
 
@@ -1559,14 +1559,14 @@ git commit -m "feat(player-ui): wire PlayQueueSheet into MiniPlayer"
 ## Task 11: Wire `PlayQueueSheet` into PlayerScreen
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
 
 - [ ] **Step 1: Add the import**
 
 In the `import` block of `PlayerScreen.kt`, add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.feature.playerui.component.queue.PlayQueueSheet
+import com.hank.musicfree.feature.playerui.component.queue.PlayQueueSheet
 ```
 
 - [ ] **Step 2: Add `showQueueSheet` state**
@@ -1649,7 +1649,7 @@ Expected: BUILD SUCCESSFUL.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt
+git add feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt
 git commit -m "feat(player-ui): wire PlayQueueSheet into PlayerScreen"
 ```
 

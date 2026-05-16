@@ -12,20 +12,20 @@
 
 ## File Structure
 
-- Create `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/HorizontalTabSwipe.kt`: shared `Modifier.horizontalSwipeNavigation(...)`, `Modifier.horizontalTabSwipe(...)`, direction enum, and pure target resolver.
-- Create `core/src/test/java/com/zili/android/musicfreeandroid/core/ui/HorizontalTabSwipeTest.kt`: threshold, direction, and boundary tests.
-- Modify `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`: attach nested-aware media-type/plugin swipe to result content.
-- Modify `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`: guard duplicate same-page `loadMore()` requests.
-- Modify `feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`: cover duplicate `loadMore()` suppression.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt`: attach plugin swipe modifier below `PluginCapabilityTabs`, not on tag `LazyRow`.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt`: attach plugin swipe modifier below `PluginCapabilityTabs`.
+- Create `core/src/main/java/com/hank/musicfree/core/ui/HorizontalTabSwipe.kt`: shared `Modifier.horizontalSwipeNavigation(...)`, `Modifier.horizontalTabSwipe(...)`, direction enum, and pure target resolver.
+- Create `core/src/test/java/com/hank/musicfree/core/ui/HorizontalTabSwipeTest.kt`: threshold, direction, and boundary tests.
+- Modify `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`: attach nested-aware media-type/plugin swipe to result content.
+- Modify `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`: guard duplicate same-page `loadMore()` requests.
+- Modify `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`: cover duplicate `loadMore()` suppression.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt`: attach plugin swipe modifier below `PluginCapabilityTabs`, not on tag `LazyRow`.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt`: attach plugin swipe modifier below `PluginCapabilityTabs`.
 - Modify `docs/DOCS_STATUS.md`: register the new current spec.
 
 ## Task 1: Shared Swipe Helper
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/HorizontalTabSwipe.kt`
-- Create: `core/src/test/java/com/zili/android/musicfreeandroid/core/ui/HorizontalTabSwipeTest.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/ui/HorizontalTabSwipe.kt`
+- Create: `core/src/test/java/com/hank/musicfree/core/ui/HorizontalTabSwipeTest.kt`
 
 - [ ] **Step 1: Write the target resolver test**
 
@@ -51,7 +51,7 @@ Add tests for right swipe, insufficient drag, first-tab right boundary, last-tab
 - [ ] **Step 3: Implement the helper**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.runtime.getValue
@@ -135,22 +135,22 @@ internal fun resolveHorizontalSwipeDirection(
 
 - [ ] **Step 4: Run targeted core test**
 
-Run: `./gradlew :core:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.core.ui.HorizontalTabSwipeTest" --no-daemon`
+Run: `./gradlew :core:testDebugUnitTest --tests "com.hank.musicfree.core.ui.HorizontalTabSwipeTest" --no-daemon`
 
 Expected: PASS.
 
 ## Task 2: Search Result Gestures
 
 **Files:**
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
 
 - [ ] **Step 1: Import the helper**
 
 Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.HorizontalSwipeDirection
-import com.zili.android.musicfreeandroid.core.ui.horizontalSwipeNavigation
+import com.hank.musicfree.core.ui.HorizontalSwipeDirection
+import com.hank.musicfree.core.ui.horizontalSwipeNavigation
 ```
 
 - [ ] **Step 2: Compute selected indexes in `SearchResultPanel`**
@@ -224,14 +224,14 @@ Expected: PASS.
 ## Task 3: Recommend Sheets Gestures
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt`
 
 - [ ] **Step 1: Import the helper**
 
 Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.horizontalTabSwipe
+import com.hank.musicfree.core.ui.horizontalTabSwipe
 ```
 
 - [ ] **Step 2: Derive selected plugin index**
@@ -268,14 +268,14 @@ Expected: PASS.
 ## Task 4: Top List Gestures
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt`
 
 - [ ] **Step 1: Import the helper**
 
 Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.horizontalTabSwipe
+import com.hank.musicfree.core.ui.horizontalTabSwipe
 ```
 
 - [ ] **Step 2: Derive selected plugin index**
@@ -314,8 +314,8 @@ Expected: PASS.
 ## Task 5: Search Load-More Guard
 
 **Files:**
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- Modify: `feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- Modify: `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
 
 - [ ] **Step 1: Add the in-flight key**
 
@@ -385,7 +385,7 @@ fun `old query load more does not block or overwrite new query load more`() = ru
 
 - [ ] **Step 4: Run the search ViewModel test**
 
-Run: `./gradlew :feature:search:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest" --no-daemon`
+Run: `./gradlew :feature:search:testDebugUnitTest --tests "com.hank.musicfree.feature.search.SearchViewModelTest" --no-daemon`
 
 Expected: PASS.
 
@@ -403,8 +403,8 @@ Add a `当前规范` row for `docs/superpowers/specs/2026-05-15-enable-horizonta
 Run:
 
 ```bash
-./gradlew :core:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.core.ui.HorizontalTabSwipeTest" --no-daemon
-./gradlew :feature:search:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest" --no-daemon
+./gradlew :core:testDebugUnitTest --tests "com.hank.musicfree.core.ui.HorizontalTabSwipeTest" --no-daemon
+./gradlew :feature:search:testDebugUnitTest --tests "com.hank.musicfree.feature.search.SearchViewModelTest" --no-daemon
 ./gradlew :feature:search:compileDebugKotlin --no-daemon
 ./gradlew :feature:home:compileDebugKotlin --no-daemon
 python3 scripts/dev-harness/grep-check.py
@@ -420,7 +420,7 @@ Expected: all commands pass.
 Run:
 
 ```bash
-git add docs/DOCS_STATUS.md docs/superpowers/specs/2026-05-15-enable-horizontal-swipe-design.md docs/superpowers/plans/2026-05-15-enable-horizontal-swipe.md core/src/main/java/com/zili/android/musicfreeandroid/core/ui/HorizontalTabSwipe.kt core/src/test/java/com/zili/android/musicfreeandroid/core/ui/HorizontalTabSwipeTest.kt feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt
+git add docs/DOCS_STATUS.md docs/superpowers/specs/2026-05-15-enable-horizontal-swipe-design.md docs/superpowers/plans/2026-05-15-enable-horizontal-swipe.md core/src/main/java/com/hank/musicfree/core/ui/HorizontalTabSwipe.kt core/src/test/java/com/hank/musicfree/core/ui/HorizontalTabSwipeTest.kt feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt
 git commit -m "feat(ui): 开启横向 tab 手势"
 ```
 

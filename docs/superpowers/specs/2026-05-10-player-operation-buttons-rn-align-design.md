@@ -17,9 +17,9 @@
 
 Android 相关代码：
 
-- 播放页入口和封面操作栏：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- 歌词操作栏：`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricsOperations.kt`
-- RN 尺寸 token 已在 Android 对齐：`core/src/main/java/com/zili/android/musicfreeandroid/core/theme/Dimensions.kt`
+- 播放页入口和封面操作栏：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- 歌词操作栏：`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricsOperations.kt`
+- RN 尺寸 token 已在 Android 对齐：`core/src/main/java/com/hank/musicfree/core/theme/Dimensions.kt`
 - 已存在 RN 图片资源：`core/src/main/res/drawable/ic_quality_standard.png`、`core/src/main/res/drawable/ic_rate_100.png`
 
 RN 原版事实：

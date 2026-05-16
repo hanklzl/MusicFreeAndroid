@@ -12,9 +12,9 @@
 - RN 侧生成器：`../../../MusicFree/scripts/plugin-oracle/generate-plugin-oracle.js`
 - RN 真网 probe：`../../../MusicFree/scripts/plugin-oracle/probe-live-plugin.js`
 - Android 快照：`../../plugin/src/test/resources/rn-plugin-oracle.json`
-- Android 守门：`../../plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/harness/contracts/RnPluginOracleContractTest.kt`
-- Android 全能力本地 probe：`../../plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginApiCapabilityParityIntegrationTest.kt`
-- 默认订阅源守门：`../../app/src/test/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPluginsFixtureContractTest.kt`
+- Android 守门：`../../plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/RnPluginOracleContractTest.kt`
+- Android 全能力本地 probe：`../../plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginApiCapabilityParityIntegrationTest.kt`
+- 默认订阅源守门：`../../app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsFixtureContractTest.kt`
 
 ## 刷新流程
 
@@ -33,9 +33,9 @@ RN_MUSICFREE_ROOT=../.worktrees/MusicFree-plugin-parity-oracle bash scripts/plug
 刷新后至少运行：
 
 ```bash
-./gradlew :plugin:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.plugin.harness.contracts.RnPluginOracleContractTest" --no-daemon
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsFixtureContractTest" --no-daemon
-./gradlew :plugin:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginApiCapabilityParityIntegrationTest --no-daemon
+./gradlew :plugin:testDebugUnitTest --tests "com.hank.musicfree.plugin.harness.contracts.RnPluginOracleContractTest" --no-daemon
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.bootstrap.DefaultPluginsFixtureContractTest" --no-daemon
+./gradlew :plugin:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginApiCapabilityParityIntegrationTest --no-daemon
 ```
 
 真网链路仍走 plugin harness 现有门控：

@@ -71,9 +71,9 @@ fallback 到原 `item.url` 时没有新的 `MediaSourceResult`，因此不注册
 - `plugin` 单测新增：`PluginMediaSourceService.resolve()` 对已有旧 URL 的 item 仍调用插件并返回新 URL。
 - `data` 单测新增：`MusicItemMapper` 对嵌套 `raw` map 做 round-trip。
 - 验证命令：
-  - `./gradlew :plugin:testDebugUnitTest --tests com.zili.android.musicfreeandroid.plugin.media.PluginMediaSourceServiceTest`
-  - `./gradlew :data:testDebugUnitTest --tests com.zili.android.musicfreeandroid.data.mapper.MusicItemMapperTest`
-  - `./gradlew :player:testDebugUnitTest --tests com.zili.android.musicfreeandroid.player.controller.PlayerControllerNotificationControlsTest`
+  - `./gradlew :plugin:testDebugUnitTest --tests com.hank.musicfree.plugin.media.PluginMediaSourceServiceTest`
+  - `./gradlew :data:testDebugUnitTest --tests com.hank.musicfree.data.mapper.MusicItemMapperTest`
+  - `./gradlew :player:testDebugUnitTest --tests com.hank.musicfree.player.controller.PlayerControllerNotificationControlsTest`
   - `./gradlew :player:testDebugUnitTest`
   - `./gradlew :app:assembleDebug`
 

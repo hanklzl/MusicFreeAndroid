@@ -4,7 +4,7 @@
 > 适用范围：Release 包从首页侧栏进入设置页时因反馈日志导出路径校验崩溃的修复。
 > 直接执行：是（作为本次实现计划输入）
 > 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md)、[AGENTS](../../../AGENTS.md)
-> 参考来源：`app/src/main/java/com/zili/android/musicfreeandroid/di/LoggingModule.kt`、`app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt`、`logging/src/main/java/com/zili/android/musicfreeandroid/logging/FeedbackLogExporter.kt`
+> 参考来源：`app/src/main/java/com/hank/musicfree/di/LoggingModule.kt`、`app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt`、`logging/src/main/java/com/hank/musicfree/logging/FeedbackLogExporter.kt`
 > 最后校验：2026-05-10
 
 ## Summary

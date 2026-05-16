@@ -14,7 +14,7 @@
 
 ## Conventions Used by All Tasks
 
-- 包根：`com.zili.android.musicfreeandroid.downloader.*`
+- 包根：`com.hank.musicfree.downloader.*`
 - Min SDK 29、JDK 21 toolchain、JVM target 17（与现有模块一致）
 - 提交信息格式：`feat(downloader): <subject>` / `test(downloader): <subject>` / `feat(<module>): <subject>`
 - 每个 Task 末尾都做一次 commit；commit 之前确保该 task 涉及的 build/test 通过
@@ -87,7 +87,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.downloader"
+    namespace = "com.hank.musicfree.downloader"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -216,24 +216,24 @@ git commit -m "feat(downloader): scaffold :downloader module"
 ## Task 2: Add DownloadTaskEntity + DAO
 
 **Files:**
-- Create: `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/DownloadTaskEntity.kt`
-- Create: `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadTaskDao.kt`
-- Create: `<root>/data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadTaskDaoTest.kt`
-- Modify: `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`（注册 entity + 抽象方法 + bump version 3→4，按"开发期不写 Migration"策略由 `fallbackToDestructiveMigration` 兜底）
-- Modify: `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`（提供 `DownloadTaskDao`）
+- Create: `<root>/data/src/main/java/com/hank/musicfree/data/db/entity/DownloadTaskEntity.kt`
+- Create: `<root>/data/src/main/java/com/hank/musicfree/data/db/dao/DownloadTaskDao.kt`
+- Create: `<root>/data/src/androidTest/java/com/hank/musicfree/data/db/dao/DownloadTaskDaoTest.kt`
+- Modify: `<root>/data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`（注册 entity + 抽象方法 + bump version 3→4，按"开发期不写 Migration"策略由 `fallbackToDestructiveMigration` 兜底）
+- Modify: `<root>/data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`（提供 `DownloadTaskDao`）
 
 - [ ] **Step 1: Write failing DAO test (instrumented)**
 
-`<root>/data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadTaskDaoTest.kt`：
+`<root>/data/src/androidTest/java/com/hank/musicfree/data/db/dao/DownloadTaskDaoTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.entity.DownloadTaskEntity
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.entity.DownloadTaskEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -319,10 +319,10 @@ Expected: 编译失败，提示 `Unresolved reference: DownloadTaskEntity`。
 
 - [ ] **Step 3: Create entity**
 
-`<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/DownloadTaskEntity.kt`：
+`<root>/data/src/main/java/com/hank/musicfree/data/db/entity/DownloadTaskEntity.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.entity
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.Entity
 
@@ -349,15 +349,15 @@ data class DownloadTaskEntity(
 
 - [ ] **Step 4: Create DAO**
 
-`<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadTaskDao.kt`：
+`<root>/data/src/main/java/com/hank/musicfree/data/db/dao/DownloadTaskDao.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
-import com.zili.android.musicfreeandroid.data.db.entity.DownloadTaskEntity
+import com.hank.musicfree.data.db.entity.DownloadTaskEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -406,28 +406,28 @@ interface DownloadTaskDao {
 
 - [ ] **Step 5: Wire into AppDatabase**
 
-修改 `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`，把 entity 加入 `entities = [...]`、`version` 从 `3` 改成 `4`，类内追加 `abstract fun downloadTaskDao(): DownloadTaskDao`，并 import 对应类。
+修改 `<root>/data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`，把 entity 加入 `entities = [...]`、`version` 从 `3` 改成 `4`，类内追加 `abstract fun downloadTaskDao(): DownloadTaskDao`，并 import 对应类。
 
 完整新版本：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db
+package com.hank.musicfree.data.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao
-import com.zili.android.musicfreeandroid.data.db.dao.MusicDao
-import com.zili.android.musicfreeandroid.data.db.dao.PlaylistDao
-import com.zili.android.musicfreeandroid.data.db.dao.PlayQueueDao
-import com.zili.android.musicfreeandroid.data.db.dao.StarredSheetDao
-import com.zili.android.musicfreeandroid.data.db.entity.DownloadTaskEntity
-import com.zili.android.musicfreeandroid.data.db.entity.MusicItemEntity
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistMusicCrossRef
-import com.zili.android.musicfreeandroid.data.db.entity.PlayQueueEntity
-import com.zili.android.musicfreeandroid.data.db.entity.StarredSheetEntity
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.DownloadTaskDao
+import com.hank.musicfree.data.db.dao.MusicDao
+import com.hank.musicfree.data.db.dao.PlaylistDao
+import com.hank.musicfree.data.db.dao.PlayQueueDao
+import com.hank.musicfree.data.db.dao.StarredSheetDao
+import com.hank.musicfree.data.db.entity.DownloadTaskEntity
+import com.hank.musicfree.data.db.entity.MusicItemEntity
+import com.hank.musicfree.data.db.entity.PlaylistEntity
+import com.hank.musicfree.data.db.entity.PlaylistMusicCrossRef
+import com.hank.musicfree.data.db.entity.PlayQueueEntity
+import com.hank.musicfree.data.db.entity.StarredSheetEntity
 
 @Database(
     entities = [
@@ -453,14 +453,14 @@ abstract class AppDatabase : RoomDatabase() {
 
 - [ ] **Step 6: Provide DAO in DataModule**
 
-在 `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt` 的 `object DataModule` 内追加：
+在 `<root>/data/src/main/java/com/hank/musicfree/data/di/DataModule.kt` 的 `object DataModule` 内追加：
 
 ```kotlin
     @Provides
     fun provideDownloadTaskDao(db: AppDatabase): DownloadTaskDao = db.downloadTaskDao()
 ```
 
-记得在 import 区追加 `import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao`。
+记得在 import 区追加 `import com.hank.musicfree.data.db.dao.DownloadTaskDao`。
 
 - [ ] **Step 7: Run test to verify it passes**
 
@@ -485,24 +485,24 @@ git commit -m "feat(data): add DownloadTaskEntity and DownloadTaskDao"
 ## Task 3: Add DownloadedTrackEntity + DAO
 
 **Files:**
-- Create: `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/DownloadedTrackEntity.kt`
-- Create: `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadedTrackDao.kt`
-- Create: `<root>/data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadedTrackDaoTest.kt`
-- Modify: `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`（追加 entity + abstract dao）
-- Modify: `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`（提供 DownloadedTrackDao）
+- Create: `<root>/data/src/main/java/com/hank/musicfree/data/db/entity/DownloadedTrackEntity.kt`
+- Create: `<root>/data/src/main/java/com/hank/musicfree/data/db/dao/DownloadedTrackDao.kt`
+- Create: `<root>/data/src/androidTest/java/com/hank/musicfree/data/db/dao/DownloadedTrackDaoTest.kt`
+- Modify: `<root>/data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`（追加 entity + abstract dao）
+- Modify: `<root>/data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`（提供 DownloadedTrackDao）
 
 - [ ] **Step 1: Write failing DAO test**
 
-`<root>/data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadedTrackDaoTest.kt`：
+`<root>/data/src/androidTest/java/com/hank/musicfree/data/db/dao/DownloadedTrackDaoTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.entity.DownloadedTrackEntity
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.entity.DownloadedTrackEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -570,10 +570,10 @@ Expected: `Unresolved reference: DownloadedTrackEntity`。
 
 - [ ] **Step 3: Create entity**
 
-`<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/DownloadedTrackEntity.kt`：
+`<root>/data/src/main/java/com/hank/musicfree/data/db/entity/DownloadedTrackEntity.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.entity
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.Entity
 
@@ -592,16 +592,16 @@ data class DownloadedTrackEntity(
 
 - [ ] **Step 4: Create DAO**
 
-`<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadedTrackDao.kt`：
+`<root>/data/src/main/java/com/hank/musicfree/data/db/dao/DownloadedTrackDao.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.zili.android.musicfreeandroid.data.db.entity.DownloadedTrackEntity
+import com.hank.musicfree.data.db.entity.DownloadedTrackEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -626,7 +626,7 @@ interface DownloadedTrackDao {
 
 - [ ] **Step 5: Wire into AppDatabase**
 
-修改 `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`，把 `DownloadedTrackEntity::class` 加入 entities 数组，类内追加 `abstract fun downloadedTrackDao(): DownloadedTrackDao`，import 也补上。version 仍为 `4`（同一次开发期演进）。
+修改 `<root>/data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`，把 `DownloadedTrackEntity::class` 加入 entities 数组，类内追加 `abstract fun downloadedTrackDao(): DownloadedTrackDao`，import 也补上。version 仍为 `4`（同一次开发期演进）。
 
 - [ ] **Step 6: Provide in DataModule**
 
@@ -637,7 +637,7 @@ interface DownloadedTrackDao {
     fun provideDownloadedTrackDao(db: AppDatabase): DownloadedTrackDao = db.downloadedTrackDao()
 ```
 
-import 增加 `import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao`。
+import 增加 `import com.hank.musicfree.data.db.dao.DownloadedTrackDao`。
 
 - [ ] **Step 7: Run test to verify it passes**
 
@@ -660,21 +660,21 @@ git commit -m "feat(data): add DownloadedTrackEntity and DownloadedTrackDao"
 ## Task 4: Extend AppPreferences with download keys
 
 **Files:**
-- Modify: `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
-- Create: `<root>/data/src/test/java/com/zili/android/musicfreeandroid/data/datastore/DownloadPreferencesKeysTest.kt`（在 JVM 测试集；如 `:data` 没有 src/test/，先创建对应目录）
+- Modify: `<root>/data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
+- Create: `<root>/data/src/test/java/com/hank/musicfree/data/datastore/DownloadPreferencesKeysTest.kt`（在 JVM 测试集；如 `:data` 没有 src/test/，先创建对应目录）
 
 > 注：当前 `AppPreferences` 没有单测。本 Task 先补一个最简的"setter 写入 + getter 读到"的回路测试，覆盖 4 个新键（不重写既有键的测试）。
 
 - [ ] **Step 1: Write failing JVM test**
 
-如果 `<root>/data/src/test/java/com/zili/android/musicfreeandroid/data/datastore/` 不存在，先创建目录。然后写：
+如果 `<root>/data/src/test/java/com/hank/musicfree/data/datastore/` 不存在，先创建目录。然后写：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.datastore
+package com.hank.musicfree.data.datastore
 
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.hank.musicfree.core.model.PlayQuality
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -739,7 +739,7 @@ Expected: 编译失败（找不到 `prefs.maxDownload` 等）。
 
 - [ ] **Step 3: Add keys + flows + setters**
 
-修改 `<root>/data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`：
+修改 `<root>/data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`：
 
 在 `class AppPreferences` 内（`searchHistory` 块下方）追加：
 
@@ -810,20 +810,20 @@ git commit -m "feat(data): add download-related AppPreferences keys"
 ## Task 5: Define core models in :downloader
 
 **Files:**
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/model/MediaKey.kt`
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/model/DownloadStatus.kt`
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/model/DownloadFailReason.kt`
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/model/DownloadTaskUi.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/model/MediaKeyTest.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/model/MediaKey.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/model/DownloadStatus.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/model/DownloadFailReason.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/model/DownloadTaskUi.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/model/MediaKeyTest.kt`
 
 - [ ] **Step 1: Write failing test for MediaKey**
 
-`<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/model/MediaKeyTest.kt`：
+`<root>/downloader/src/test/java/com/hank/musicfree/downloader/model/MediaKeyTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.model
+package com.hank.musicfree.downloader.model
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -862,12 +862,12 @@ Expected: `Unresolved reference: MediaKey`。
 
 - [ ] **Step 3: Create model files**
 
-`<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/model/MediaKey.kt`：
+`<root>/downloader/src/main/java/com/hank/musicfree/downloader/model/MediaKey.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.model
+package com.hank.musicfree.downloader.model
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 @JvmInline
 value class MediaKey private constructor(val value: String) {
@@ -881,18 +881,18 @@ value class MediaKey private constructor(val value: String) {
 }
 ```
 
-`<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/model/DownloadStatus.kt`：
+`<root>/downloader/src/main/java/com/hank/musicfree/downloader/model/DownloadStatus.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.model
+package com.hank.musicfree.downloader.model
 
 enum class DownloadStatus { PENDING, PREPARING, DOWNLOADING, FAILED }
 ```
 
-`<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/model/DownloadFailReason.kt`：
+`<root>/downloader/src/main/java/com/hank/musicfree/downloader/model/DownloadFailReason.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.model
+package com.hank.musicfree.downloader.model
 
 enum class DownloadFailReason {
     FailToFetchSource,
@@ -903,10 +903,10 @@ enum class DownloadFailReason {
 }
 ```
 
-`<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/model/DownloadTaskUi.kt`：
+`<root>/downloader/src/main/java/com/hank/musicfree/downloader/model/DownloadTaskUi.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.model
+package com.hank.musicfree.downloader.model
 
 data class DownloadTaskUi(
     val key: MediaKey,
@@ -942,17 +942,17 @@ git commit -m "feat(downloader): add core models (MediaKey, DownloadStatus, Down
 ## Task 6: Filename helpers
 
 **Files:**
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadFilenames.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadFilenamesTest.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadFilenames.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/engine/DownloadFilenamesTest.kt`
 
 - [ ] **Step 1: Write failing test**
 
-`<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadFilenamesTest.kt`：
+`<root>/downloader/src/test/java/com/hank/musicfree/downloader/engine/DownloadFilenamesTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -1017,12 +1017,12 @@ Expected: `Unresolved reference: DownloadFilenames`.
 
 - [ ] **Step 3: Implement**
 
-`<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadFilenames.kt`：
+`<root>/downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadFilenames.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 object DownloadFilenames {
 
@@ -1078,17 +1078,17 @@ git commit -m "feat(downloader): add filename/MIME helpers"
 ## Task 7: Quality fallback resolver
 
 **Files:**
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/quality/QualityFallback.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/quality/QualityFallbackTest.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/quality/QualityFallback.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/quality/QualityFallbackTest.kt`
 
 - [ ] **Step 1: Write failing test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.quality
+package com.hank.musicfree.downloader.quality
 
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -1170,14 +1170,14 @@ Expected: `Unresolved reference: QualityFallback`.
 
 - [ ] **Step 3: Implement**
 
-`<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/quality/QualityFallback.kt`：
+`<root>/downloader/src/main/java/com/hank/musicfree/downloader/quality/QualityFallback.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.quality
+package com.hank.musicfree.downloader.quality
 
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
 
 typealias QualityResolver = suspend (MusicItem, qualityWire: String) -> MediaSourceResult?
 
@@ -1224,9 +1224,9 @@ git commit -m "feat(downloader): add quality fallback resolver"
 ## Task 8: HttpDownloader interface + OkHttpDownloader
 
 **Files:**
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/io/HttpDownloader.kt`
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/io/OkHttpDownloader.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/io/OkHttpDownloaderTest.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/io/HttpDownloader.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/io/OkHttpDownloader.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/io/OkHttpDownloaderTest.kt`
 
 `HttpDownloader` 是为了让 `DownloadEngine` 可在 JVM 测试中注入 fake；`OkHttpDownloader` 是生产实现。
 
@@ -1244,10 +1244,10 @@ mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", versio
     testImplementation(libs.mockwebserver)
 ```
 
-测试代码 `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/io/OkHttpDownloaderTest.kt`：
+测试代码 `<root>/downloader/src/test/java/com/hank/musicfree/downloader/io/OkHttpDownloaderTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.io
+package com.hank.musicfree.downloader.io
 
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
@@ -1324,10 +1324,10 @@ Expected: `Unresolved reference: OkHttpDownloader` 等。
 
 - [ ] **Step 3: Implement interface + impl**
 
-`<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/io/HttpDownloader.kt`：
+`<root>/downloader/src/main/java/com/hank/musicfree/downloader/io/HttpDownloader.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.io
+package com.hank.musicfree.downloader.io
 
 import java.io.File
 
@@ -1350,10 +1350,10 @@ interface HttpDownloader {
 }
 ```
 
-`<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/io/OkHttpDownloader.kt`：
+`<root>/downloader/src/main/java/com/hank/musicfree/downloader/io/OkHttpDownloader.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.io
+package com.hank.musicfree.downloader.io
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -1434,13 +1434,13 @@ git commit -m "feat(downloader): add HttpDownloader interface and OkHttp impl"
 ## Task 9: MediaStoreMusicWriter
 
 **Files:**
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/MediaStoreMusicWriter.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/MediaStoreMusicWriterTest.kt`（Robolectric 单测）
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/engine/MediaStoreMusicWriter.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/engine/MediaStoreMusicWriterTest.kt`（Robolectric 单测）
 
 - [ ] **Step 1: Write failing test (Robolectric)**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -1490,7 +1490,7 @@ Expected: 找不到 `MediaStoreMusicWriter`。
 - [ ] **Step 3: Implement**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
 import android.content.ContentValues
 import android.content.Context
@@ -1564,15 +1564,15 @@ git commit -m "feat(downloader): add MediaStoreMusicWriter"
 ## Task 10: NetworkMonitor
 
 **Files:**
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/io/NetworkMonitor.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/io/NetworkStateMappingTest.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/io/NetworkMonitor.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/io/NetworkStateMappingTest.kt`
 
 NetworkMonitor 包两件事：(1) 一个纯函数 `mapToNetworkState(NetworkCapabilities?)`，可纯 JVM 测试；(2) 用 `ConnectivityManager.NetworkCallback` 包装的 Flow（运行时验证）。
 
 - [ ] **Step 1: Write failing test for the pure mapping function**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.io
+package com.hank.musicfree.downloader.io
 
 import android.net.NetworkCapabilities
 import io.mockk.every
@@ -1630,7 +1630,7 @@ Expected: `Unresolved reference: NetworkMonitor`.
 - [ ] **Step 3: Implement**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.io
+package com.hank.musicfree.downloader.io
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -1720,18 +1720,18 @@ git commit -m "feat(downloader): add NetworkMonitor with pure-function state map
 ## Task 11: DownloadConfig + plugin facade
 
 **Files:**
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/prefs/DownloadConfig.kt`
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/prefs/DownloadConfigSource.kt`
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/quality/PluginMediaSourceResolver.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/prefs/DownloadConfig.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/prefs/DownloadConfigSource.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/quality/PluginMediaSourceResolver.kt`
 
 > 这个 Task 不引入新行为，只把"DataStore → engine 配置"和"PluginManager 拿插件 → 调 getMediaSource"这两个适配器各包一层，让 engine 测试时可以注入 fake。本 Task 不写测试（纯包装），靠下游 engine 测试覆盖。
 
 - [ ] **Step 1: Create DownloadConfig data class**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.prefs
+package com.hank.musicfree.downloader.prefs
 
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.hank.musicfree.core.model.PlayQuality
 
 data class DownloadConfig(
     val maxDownload: Int,
@@ -1744,9 +1744,9 @@ data class DownloadConfig(
 - [ ] **Step 2: Create DownloadConfigSource (StateFlow facade)**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.prefs
+package com.hank.musicfree.downloader.prefs
 
-import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.hank.musicfree.data.datastore.AppPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -1773,7 +1773,7 @@ class DownloadConfigSource @Inject constructor(
     }.stateIn(
         scope = scope,
         started = SharingStarted.Eagerly,
-        initialValue = DownloadConfig(3, false, com.zili.android.musicfreeandroid.core.model.PlayQuality.STANDARD, "Music/MusicFree/"),
+        initialValue = DownloadConfig(3, false, com.hank.musicfree.core.model.PlayQuality.STANDARD, "Music/MusicFree/"),
     )
 }
 ```
@@ -1781,11 +1781,11 @@ class DownloadConfigSource @Inject constructor(
 - [ ] **Step 3: Create PluginMediaSourceResolver**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.quality
+package com.hank.musicfree.downloader.quality
 
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.plugin.manager.PluginManager
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -1826,30 +1826,30 @@ git commit -m "feat(downloader): add DownloadConfig source and plugin resolver f
 ## Task 12: DownloadEngine — scheduling + success path (TDD core)
 
 **Files:**
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngine.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngineSchedulingTest.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/FakeHttpDownloader.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/FakeMediaStoreWriter.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/FakeQualityResolver.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadEngine.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/engine/DownloadEngineSchedulingTest.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/engine/FakeHttpDownloader.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/engine/FakeMediaStoreWriter.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/engine/FakeQualityResolver.kt`
 
 > 这是整个 plan 的核心。Engine 测试用 in-memory Room（Robolectric）+ fake HTTP + fake MediaStore writer + fake plugin resolver。覆盖：① 单首成功，② 并发上限，③ 队列空触发 idle 回调，④ 已下载去重。后续 Task 13/14 加更多场景。
 
 - [ ] **Step 1: Write failing scheduling test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.downloader.io.NetworkState
-import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
-import com.zili.android.musicfreeandroid.downloader.prefs.DownloadConfig
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.downloader.io.NetworkState
+import com.hank.musicfree.downloader.model.DownloadStatus
+import com.hank.musicfree.downloader.model.MediaKey
+import com.hank.musicfree.downloader.prefs.DownloadConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -1936,7 +1936,7 @@ class DownloadEngineSchedulingTest {
     @Test fun alreadyDownloadedDeduplicated() = runTest {
         // pre-seed downloaded_tracks
         db.downloadedTrackDao().insert(
-            com.zili.android.musicfreeandroid.data.db.entity.DownloadedTrackEntity(
+            com.hank.musicfree.data.db.entity.DownloadedTrackEntity(
                 id = "1", platform = "qq",
                 mediaStoreUri = "content://media/external/audio/media/1",
                 relativePath = "Music/MusicFree/", mimeType = "audio/mpeg",
@@ -1954,10 +1954,10 @@ class DownloadEngineSchedulingTest {
 
 ```kotlin
 // FakeHttpDownloader.kt
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
-import com.zili.android.musicfreeandroid.downloader.io.HttpDownloadProgress
-import com.zili.android.musicfreeandroid.downloader.io.HttpDownloader
+import com.hank.musicfree.downloader.io.HttpDownloadProgress
+import com.hank.musicfree.downloader.io.HttpDownloader
 import kotlinx.coroutines.CompletableDeferred
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
@@ -1989,7 +1989,7 @@ class FakeHttpDownloader : HttpDownloader {
 }
 
 // FakeMediaStoreWriter.kt
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
 import android.net.Uri
 import java.io.File
@@ -2003,11 +2003,11 @@ class FakeMediaStoreWriter {
 }
 
 // FakeQualityResolver.kt
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.downloader.model.MediaKey
 
 class FakeQualityResolver {
     private val table = mutableMapOf<MediaKey, MediaSourceResult?>()
@@ -2028,25 +2028,25 @@ Expected: `Unresolved reference: DownloadEngine`.
 - [ ] **Step 3: Implement DownloadEngine (success path only — cancel/retry/network in T13/T14)**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
 import android.net.Uri
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao
-import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
-import com.zili.android.musicfreeandroid.data.db.entity.DownloadTaskEntity
-import com.zili.android.musicfreeandroid.data.db.entity.DownloadedTrackEntity
-import com.zili.android.musicfreeandroid.downloader.io.HttpDownloadException
-import com.zili.android.musicfreeandroid.downloader.io.HttpDownloader
-import com.zili.android.musicfreeandroid.downloader.io.NetworkState
-import com.zili.android.musicfreeandroid.downloader.model.DownloadFailReason
-import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
-import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
-import com.zili.android.musicfreeandroid.downloader.prefs.DownloadConfig
-import com.zili.android.musicfreeandroid.downloader.quality.QualityFallback
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.data.db.dao.DownloadTaskDao
+import com.hank.musicfree.data.db.dao.DownloadedTrackDao
+import com.hank.musicfree.data.db.entity.DownloadTaskEntity
+import com.hank.musicfree.data.db.entity.DownloadedTrackEntity
+import com.hank.musicfree.downloader.io.HttpDownloadException
+import com.hank.musicfree.downloader.io.HttpDownloader
+import com.hank.musicfree.downloader.io.NetworkState
+import com.hank.musicfree.downloader.model.DownloadFailReason
+import com.hank.musicfree.downloader.model.DownloadStatus
+import com.hank.musicfree.downloader.model.DownloadTaskUi
+import com.hank.musicfree.downloader.model.MediaKey
+import com.hank.musicfree.downloader.prefs.DownloadConfig
+import com.hank.musicfree.downloader.quality.QualityFallback
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -2300,26 +2300,26 @@ git commit -m "feat(downloader): add DownloadEngine with scheduling and success 
 ## Task 13: DownloadEngine — quality fallback + failure paths
 
 **Files:**
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngineFailurePathsTest.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/engine/DownloadEngineFailurePathsTest.kt`
 
 > Engine 实现已在 T12 完成；本 Task 仅扩充测试覆盖。如发现实现 bug，再回到 T12 文件修。
 
 - [ ] **Step 1: Add tests for failure / fallback paths**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.downloader.io.NetworkState
-import com.zili.android.musicfreeandroid.downloader.model.DownloadFailReason
-import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
-import com.zili.android.musicfreeandroid.downloader.prefs.DownloadConfig
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.downloader.io.NetworkState
+import com.hank.musicfree.downloader.model.DownloadFailReason
+import com.hank.musicfree.downloader.model.DownloadStatus
+import com.hank.musicfree.downloader.model.MediaKey
+import com.hank.musicfree.downloader.prefs.DownloadConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -2443,9 +2443,9 @@ git commit -m "test(downloader): cover engine failure and quality fallback paths
 ## Task 14: DownloadEngine — cancel/retry/clear + restart recovery
 
 **Files:**
-- Modify: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngine.kt`（在 `start()` 内补 restart recovery）
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngineCancelRetryTest.kt`
-- Create: `<root>/downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngineRecoveryTest.kt`
+- Modify: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadEngine.kt`（在 `start()` 内补 restart recovery）
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/engine/DownloadEngineCancelRetryTest.kt`
+- Create: `<root>/downloader/src/test/java/com/hank/musicfree/downloader/engine/DownloadEngineRecoveryTest.kt`
 
 - [ ] **Step 1: Modify DownloadEngine.start() to do recovery**
 
@@ -2484,19 +2484,19 @@ git commit -m "test(downloader): cover engine failure and quality fallback paths
 - [ ] **Step 2: Cancel/retry test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.downloader.io.NetworkState
-import com.zili.android.musicfreeandroid.downloader.model.DownloadFailReason
-import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
-import com.zili.android.musicfreeandroid.downloader.prefs.DownloadConfig
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.downloader.io.NetworkState
+import com.hank.musicfree.downloader.model.DownloadFailReason
+import com.hank.musicfree.downloader.model.DownloadStatus
+import com.hank.musicfree.downloader.model.MediaKey
+import com.hank.musicfree.downloader.prefs.DownloadConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -2580,16 +2580,16 @@ class DownloadEngineCancelRetryTest {
 - [ ] **Step 3: Restart recovery test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.engine
+package com.hank.musicfree.downloader.engine
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.entity.DownloadTaskEntity
-import com.zili.android.musicfreeandroid.downloader.io.NetworkState
-import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
-import com.zili.android.musicfreeandroid.downloader.prefs.DownloadConfig
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.entity.DownloadTaskEntity
+import com.hank.musicfree.downloader.io.NetworkState
+import com.hank.musicfree.downloader.model.DownloadStatus
+import com.hank.musicfree.downloader.prefs.DownloadConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -2681,8 +2681,8 @@ git commit -m "feat(downloader): add cancel/retry semantics and restart recovery
 ## Task 15: DownloadNotifier + DownloadService
 
 **Files:**
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/service/DownloadNotifier.kt`
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/service/DownloadService.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/service/DownloadNotifier.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/service/DownloadService.kt`
 - Modify: `<root>/downloader/src/main/AndroidManifest.xml`
 - Modify: `<root>/app/src/main/AndroidManifest.xml`（追加 `POST_NOTIFICATIONS` 权限声明）
 
@@ -2691,7 +2691,7 @@ git commit -m "feat(downloader): add cancel/retry semantics and restart recovery
 - [ ] **Step 1: Implement Notifier**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.service
+package com.hank.musicfree.downloader.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -2701,7 +2701,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.zili.android.musicfreeandroid.downloader.R
+import com.hank.musicfree.downloader.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -2713,8 +2713,8 @@ class DownloadNotifier @Inject constructor(
     companion object {
         const val CHANNEL_ID = "download_progress"
         const val NOTIF_ID = 0xD107L.toInt()
-        const val ACTION_CANCEL_ALL = "com.zili.android.musicfreeandroid.downloader.CANCEL_ALL"
-        const val ACTION_OPEN = "com.zili.android.musicfreeandroid.downloader.OPEN"
+        const val ACTION_CANCEL_ALL = "com.hank.musicfree.downloader.CANCEL_ALL"
+        const val ACTION_OPEN = "com.hank.musicfree.downloader.OPEN"
     }
 
     init { ensureChannel() }
@@ -2751,7 +2751,7 @@ class DownloadNotifier @Inject constructor(
 - [ ] **Step 2: Implement Service**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.service
+package com.hank.musicfree.downloader.service
 
 import android.app.Service
 import android.content.BroadcastReceiver
@@ -2760,7 +2760,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
-import com.zili.android.musicfreeandroid.downloader.engine.DownloadEngine
+import com.hank.musicfree.downloader.engine.DownloadEngine
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -2852,20 +2852,20 @@ git commit -m "feat(downloader): add DownloadNotifier and DownloadService"
 ## Task 16: Hilt wiring + Downloader interface impl
 
 **Files:**
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/Downloader.kt`
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/DownloaderImpl.kt`
-- Create: `<root>/downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/di/DownloaderModule.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/Downloader.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/DownloaderImpl.kt`
+- Create: `<root>/downloader/src/main/java/com/hank/musicfree/downloader/di/DownloaderModule.kt`
 
 - [ ] **Step 1: Define public interface**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader
+package com.hank.musicfree.downloader
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
-import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.downloader.engine.DownloadEvent
+import com.hank.musicfree.downloader.model.DownloadTaskUi
+import com.hank.musicfree.downloader.model.MediaKey
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -2886,19 +2886,19 @@ interface Downloader {
 - [ ] **Step 2: Implementation**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader
+package com.hank.musicfree.downloader
 
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.content.ContextCompat
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.downloader.engine.DownloadEngine
-import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
-import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
-import com.zili.android.musicfreeandroid.downloader.service.DownloadService
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.downloader.engine.DownloadEngine
+import com.hank.musicfree.downloader.engine.DownloadEvent
+import com.hank.musicfree.downloader.model.DownloadTaskUi
+import com.hank.musicfree.downloader.model.MediaKey
+import com.hank.musicfree.downloader.service.DownloadService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -2942,22 +2942,22 @@ class DownloaderImpl @Inject constructor(
 - [ ] **Step 3: Hilt module**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.di
+package com.hank.musicfree.downloader.di
 
 import android.content.Context
-import com.zili.android.musicfreeandroid.data.db.dao.DownloadTaskDao
-import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
-import com.zili.android.musicfreeandroid.downloader.Downloader
-import com.zili.android.musicfreeandroid.downloader.DownloaderImpl
-import com.zili.android.musicfreeandroid.downloader.engine.DownloadEngine
-import com.zili.android.musicfreeandroid.downloader.engine.MediaStoreMusicWriter
-import com.zili.android.musicfreeandroid.downloader.io.HttpDownloader
-import com.zili.android.musicfreeandroid.downloader.io.NetworkMonitor
-import com.zili.android.musicfreeandroid.downloader.io.NetworkState
-import com.zili.android.musicfreeandroid.downloader.io.OkHttpDownloader
-import com.zili.android.musicfreeandroid.downloader.prefs.DownloadConfig
-import com.zili.android.musicfreeandroid.downloader.prefs.DownloadConfigSource
-import com.zili.android.musicfreeandroid.downloader.quality.PluginMediaSourceResolver
+import com.hank.musicfree.data.db.dao.DownloadTaskDao
+import com.hank.musicfree.data.db.dao.DownloadedTrackDao
+import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.downloader.DownloaderImpl
+import com.hank.musicfree.downloader.engine.DownloadEngine
+import com.hank.musicfree.downloader.engine.MediaStoreMusicWriter
+import com.hank.musicfree.downloader.io.HttpDownloader
+import com.hank.musicfree.downloader.io.NetworkMonitor
+import com.hank.musicfree.downloader.io.NetworkState
+import com.hank.musicfree.downloader.io.OkHttpDownloader
+import com.hank.musicfree.downloader.prefs.DownloadConfig
+import com.hank.musicfree.downloader.prefs.DownloadConfigSource
+import com.hank.musicfree.downloader.quality.PluginMediaSourceResolver
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -3038,8 +3038,8 @@ git commit -m "feat(downloader): add Downloader interface, impl, and Hilt module
 ## Task 17: DownloadingRoute + DownloadQualityDialog
 
 **Files:**
-- Modify: `<root>/core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`（追加 `DownloadingRoute`）
-- Create: `<root>/core/src/main/java/com/zili/android/musicfreeandroid/core/ui/DownloadQualityDialog.kt`
+- Modify: `<root>/core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`（追加 `DownloadingRoute`）
+- Create: `<root>/core/src/main/java/com/hank/musicfree/core/ui/DownloadQualityDialog.kt`
 
 - [ ] **Step 1: Add Route**
 
@@ -3053,7 +3053,7 @@ data object DownloadingRoute
 - [ ] **Step 2: DownloadQualityDialog (Compose)**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -3071,7 +3071,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.hank.musicfree.core.model.PlayQuality
 
 @Composable
 fun DownloadQualityDialog(
@@ -3125,12 +3125,12 @@ git commit -m "feat(core): add DownloadingRoute and DownloadQualityDialog"
 ## Task 18: MusicItemOptionsSheet (global long-press menu)
 
 **Files:**
-- Create: `<root>/core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicItemOptionsSheet.kt`
+- Create: `<root>/core/src/main/java/com/hank/musicfree/core/ui/MusicItemOptionsSheet.kt`
 
 - [ ] **Step 1: Implement**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -3145,7 +3145,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 @Composable
 fun MusicItemOptionsSheet(
@@ -3193,7 +3193,7 @@ private fun Modifier.clickableNoIndicationOrSomething(onClick: () -> Unit): Modi
 最终干净版（用这个）：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -3209,7 +3209,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 @Composable
 fun MusicItemOptionsSheet(
@@ -3256,9 +3256,9 @@ git commit -m "feat(core): add MusicItemOptionsSheet (long-press menu)"
 ## Task 19: DownloadingViewModel + DownloadingScreen
 
 **Files:**
-- Create: `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/downloading/DownloadingViewModel.kt`
-- Create: `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/downloading/DownloadingScreen.kt`
-- Create: `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/downloading/navigation/DownloadingNavigation.kt`
+- Create: `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/downloading/DownloadingViewModel.kt`
+- Create: `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/downloading/DownloadingScreen.kt`
+- Create: `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/downloading/navigation/DownloadingNavigation.kt`
 - Modify: `<root>/feature/home/build.gradle.kts`（追加 `implementation(project(":downloader"))`）
 
 - [ ] **Step 1: Add :downloader dep**
@@ -3272,13 +3272,13 @@ git commit -m "feat(core): add MusicItemOptionsSheet (long-press menu)"
 - [ ] **Step 2: ViewModel**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.downloading
+package com.hank.musicfree.feature.home.downloading
 
 import androidx.lifecycle.ViewModel
-import com.zili.android.musicfreeandroid.downloader.Downloader
-import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
-import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
+import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.downloader.model.DownloadStatus
+import com.hank.musicfree.downloader.model.DownloadTaskUi
+import com.hank.musicfree.downloader.model.MediaKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -3316,7 +3316,7 @@ class DownloadingViewModel @Inject constructor(
 - [ ] **Step 3: Screen**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.downloading
+package com.hank.musicfree.feature.home.downloading
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -3331,9 +3331,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.downloader.model.DownloadFailReason
-import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
-import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
+import com.hank.musicfree.downloader.model.DownloadFailReason
+import com.hank.musicfree.downloader.model.DownloadStatus
+import com.hank.musicfree.downloader.model.DownloadTaskUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -3463,12 +3463,12 @@ private fun formatSize(bytes: Long?): String {
 - [ ] **Step 4: Navigation extension**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.downloading.navigation
+package com.hank.musicfree.feature.home.downloading.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.DownloadingRoute
-import com.zili.android.musicfreeandroid.feature.home.downloading.DownloadingScreen
+import com.hank.musicfree.core.navigation.DownloadingRoute
+import com.hank.musicfree.feature.home.downloading.DownloadingScreen
 
 fun NavGraphBuilder.downloadingScreen(onBack: () -> Unit) {
     composable<DownloadingRoute> {
@@ -3497,17 +3497,17 @@ git commit -m "feat(home): add DownloadingScreen and ViewModel"
 ## Task 20: Wire Downloading into AppNavHost + LocalScreen entry/badge
 
 **Files:**
-- Modify: `<root>/app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
-- Modify: `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt`
-- Modify: `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicContent.kt`（叠加"已下载"角标）
+- Modify: `<root>/app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
+- Modify: `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt`
+- Modify: `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalMusicContent.kt`（叠加"已下载"角标）
 
 - [ ] **Step 1: Add Downloading to AppNavHost**
 
 在 import 区追加：
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.navigation.DownloadingRoute
-import com.zili.android.musicfreeandroid.feature.home.downloading.navigation.downloadingScreen
+import com.hank.musicfree.core.navigation.DownloadingRoute
+import com.hank.musicfree.feature.home.downloading.navigation.downloadingScreen
 ```
 
 在 NavHost 内（`localScreen { ... }` 之后）追加：
@@ -3538,7 +3538,7 @@ fun LocalScreen(
     onNavigateToDownloading: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
-    downloader: com.zili.android.musicfreeandroid.downloader.Downloader = hiltViewModel<com.zili.android.musicfreeandroid.feature.home.downloading.DownloadingViewModel>().run {
+    downloader: com.hank.musicfree.downloader.Downloader = hiltViewModel<com.hank.musicfree.feature.home.downloading.DownloadingViewModel>().run {
         // We borrow the VM only to read tasks; using DI directly is cleaner — see note below.
         TODO("Inject Downloader directly via Hilt EntryPoint or expose via existing VM")
     },
@@ -3555,10 +3555,10 @@ fun LocalScreen(
 
 按 A 方案修：
 
-修改 `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeViewModel.kt`，注入 `Downloader` 并暴露：
+修改 `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/HomeViewModel.kt`，注入 `Downloader` 并暴露：
 
 ```kotlin
-    @Inject lateinit var downloader: com.zili.android.musicfreeandroid.downloader.Downloader  // 改成构造注入
+    @Inject lateinit var downloader: com.hank.musicfree.downloader.Downloader  // 改成构造注入
 
     // 在已有 @HiltViewModel constructor 中追加 downloader: Downloader 参数；将 lateinit var 删掉
 ```
@@ -3567,10 +3567,10 @@ fun LocalScreen(
 
 ```kotlin
     val downloadActiveCount: StateFlow<Int> = downloader.tasks
-        .map { tasks -> tasks.count { it.status != com.zili.android.musicfreeandroid.downloader.model.DownloadStatus.FAILED } }
+        .map { tasks -> tasks.count { it.status != com.hank.musicfree.downloader.model.DownloadStatus.FAILED } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    val downloadedKeys: StateFlow<Set<com.zili.android.musicfreeandroid.downloader.model.MediaKey>> =
+    val downloadedKeys: StateFlow<Set<com.hank.musicfree.downloader.model.MediaKey>> =
         downloader.downloadedKeys
 ```
 
@@ -3645,10 +3645,10 @@ git commit -m "feat(home): wire DownloadingRoute into AppNavHost and LocalScreen
 ## Task 21: MusicDetail download button + MusicListEditorLite bulk
 
 **Files:**
-- Modify: `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musicdetail/MusicDetailScreen.kt`
-- Modify: `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musicdetail/MusicDetailViewModel.kt`
-- Modify: `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteScreen.kt`
-- Modify: `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`（路径以现行项目为准）
+- Modify: `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/musicdetail/MusicDetailScreen.kt`
+- Modify: `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/musicdetail/MusicDetailViewModel.kt`
+- Modify: `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteScreen.kt`
+- Modify: `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`（路径以现行项目为准）
 
 - [ ] **Step 1: MusicDetailViewModel — add download trigger**
 
@@ -3691,22 +3691,22 @@ git commit -m "feat(home): add download buttons in MusicDetail and MusicListEdit
 ## Task 22: Long-press wiring on key list screens
 
 **Files (modify, one screen at a time):**
-- `<root>/feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
-- `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt`（如已在 T20 加，跳过）
-- `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
-- `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt`
-- `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt`
-- `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
-- `<root>/feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryScreen.kt`
+- `<root>/feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
+- `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt`（如已在 T20 加，跳过）
+- `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
+- `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt`
+- `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt`
+- `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
+- `<root>/feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryScreen.kt`
 
 > 每屏改动模式相同：(1) Screen 顶层维护 `var optionsItem by remember { mutableStateOf<MusicItem?>(null) }`；(2) 列表项 `onLongClick` 设置 `optionsItem = item`；(3) 在 Screen 末尾条件渲染 `if (optionsItem != null) MusicItemOptionsSheet(...)`。
 
 - [ ] **Step 1: Search**
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
-import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
+import com.hank.musicfree.core.ui.MusicItemOptionsSheet
+import com.hank.musicfree.core.ui.DownloadQualityDialog
+import com.hank.musicfree.core.model.PlayQuality
 // ...
 
 var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
@@ -3771,8 +3771,8 @@ git commit -m "feat(search): wire MusicItemOptionsSheet long-press download"
 ## Task 23: Settings — download section
 
 **Files:**
-- Modify: `<root>/feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`
-- Modify: `<root>/feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
+- Modify: `<root>/feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`
+- Modify: `<root>/feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
 
 - [ ] **Step 1: ViewModel — expose 3 settings**
 
@@ -3854,7 +3854,7 @@ git commit -m "feat(settings): add download settings (max concurrency, cellular,
 ## Task 24: AndroidTest end-to-end
 
 **Files:**
-- Create: `<root>/app/src/androidTest/java/com/zili/android/musicfreeandroid/DownloadFlowAndroidTest.kt`
+- Create: `<root>/app/src/androidTest/java/com/hank/musicfree/DownloadFlowAndroidTest.kt`
 
 > 真实设备/模拟器 + MockWebServer。验证：插件 mock 返回 URL → enqueue → 文件出现在 MediaStore → `downloaded_tracks` 行被建。
 
@@ -3871,7 +3871,7 @@ git commit -m "feat(settings): add download settings (max concurrency, cellular,
 - [ ] **Step 2: Write E2E test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid
+package com.hank.musicfree
 
 import android.content.ContentResolver
 import android.content.Context
@@ -3879,10 +3879,10 @@ import android.provider.MediaStore
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.downloader.Downloader
-import com.zili.android.musicfreeandroid.downloader.model.MediaKey
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.downloader.model.MediaKey
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.flow.first
@@ -3982,7 +3982,7 @@ git commit -m "test(app): add end-to-end download flow integration test"
 
 ```bash
 ./gradlew :app:installDebug
-adb shell am start -n com.zili.android.musicfreeandroid/.MainActivity
+adb shell am start -n com.hank.musicfree/.MainActivity
 ```
 
 - [ ] **Step 2: 用真实插件走一次完整链路**

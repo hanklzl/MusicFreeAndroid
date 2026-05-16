@@ -87,7 +87,7 @@ Android 当前状态：
 
 新增纯源码结构测试，原因是 Compose runtime 测试当前没有现成的 Screen fixture 和 Hilt 替身；本需求的关键风险是结构回退，不是复杂状态变换。
 
-测试放在 `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/detail/ScrollableHeaderSourceTest.kt`：
+测试放在 `feature/home/src/test/java/com/hank/musicfree/feature/home/detail/ScrollableHeaderSourceTest.kt`：
 
 - 断言 `PlaylistDetailScreen.kt` 不再出现 `Column(modifier = Modifier.fillMaxSize().padding(padding))` 包住 `PlaylistDetailHeader`。
 - 断言 `PlaylistDetailScreen.kt` 中 `PlaylistDetailHeader` 出现在 `LazyColumn` 的 `item(key = "header")` 之后。

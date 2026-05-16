@@ -14,52 +14,52 @@
 
 ### 新增文件
 
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/media/MediaSourceResolver.kt`：跨模块音源解析接口、解析结果模型、默认空实现。
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginUserVariable.kt`：插件声明的用户变量模型。
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceService.kt`：插件音源解析实现，处理重定向、目标失效和回退。
-- `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceServiceTest.kt`：共享解析服务单元测试。
-- `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerUserVariablesTest.kt`：用户变量声明解析和运行时刷新测试。
-- `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListActionStateTest.kt`：插件列表 ViewModel 操作状态、按钮模型、导入状态测试。
+- `core/src/main/java/com/hank/musicfree/core/media/MediaSourceResolver.kt`：跨模块音源解析接口、解析结果模型、默认空实现。
+- `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginUserVariable.kt`：插件声明的用户变量模型。
+- `plugin/src/main/java/com/hank/musicfree/plugin/media/PluginMediaSourceService.kt`：插件音源解析实现，处理重定向、目标失效和回退。
+- `plugin/src/test/java/com/hank/musicfree/plugin/media/PluginMediaSourceServiceTest.kt`：共享解析服务单元测试。
+- `plugin/src/test/java/com/hank/musicfree/plugin/manager/PluginManagerUserVariablesTest.kt`：用户变量声明解析和运行时刷新测试。
+- `feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListActionStateTest.kt`：插件列表 ViewModel 操作状态、按钮模型、导入状态测试。
 
 ### 修改文件
 
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/model/MediaSourceResult.kt`：保持现有模型，不新增插件依赖。
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`：新增 `userVariables` 字段。
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStore.kt`：新增音源重定向 CRUD。
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`：解析 `userVariables`，支持 `.json` URL 展开，提供 `setUserVariables()` 和重定向候选查询。
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`：开放运行时用户变量刷新方法，确保保存后立即生效。
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/PluginModule.kt`：将 `PluginMediaSourceService` 绑定为 `MediaSourceResolver`。
-- `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`：播放前异步解析无 URL 插件歌曲，覆盖队列切歌和通知切歌。
-- `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/quality/PluginMediaSourceResolver.kt`：改为委托 `MediaSourceResolver`。
+- `core/src/main/java/com/hank/musicfree/core/model/MediaSourceResult.kt`：保持现有模型，不新增插件依赖。
+- `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt`：新增 `userVariables` 字段。
+- `plugin/src/main/java/com/hank/musicfree/plugin/meta/PluginMetaStore.kt`：新增音源重定向 CRUD。
+- `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`：解析 `userVariables`，支持 `.json` URL 展开，提供 `setUserVariables()` 和重定向候选查询。
+- `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`：开放运行时用户变量刷新方法，确保保存后立即生效。
+- `plugin/src/main/java/com/hank/musicfree/plugin/di/PluginModule.kt`：将 `PluginMediaSourceService` 绑定为 `MediaSourceResolver`。
+- `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`：播放前异步解析无 URL 插件歌曲，覆盖队列切歌和通知切歌。
+- `downloader/src/main/java/com/hank/musicfree/downloader/quality/PluginMediaSourceResolver.kt`：改为委托 `MediaSourceResolver`。
 - `downloader/build.gradle.kts`：若下载模块不再直接引用插件实现，则移除 `implementation(project(":plugin"))`。
-- `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`：移除写死 `WY_FALLBACK_PLATFORM` 的 fallback，委托 `MediaSourceResolver`。
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`：插件歌单播放前委托 `MediaSourceResolver`。
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailViewModel.kt`：榜单播放前委托 `MediaSourceResolver`。
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt`：专辑播放前委托 `MediaSourceResolver`。
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailViewModel.kt`：歌手详情播放前委托 `MediaSourceResolver`。
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt`：结构化操作状态、音源重定向、用户变量、导入单曲/歌单。
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt`：RN 直译卡片操作、对话框和面板。
-- `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStoreTest.kt`：补音源重定向持久化测试。
-- `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModelTest.kt`：更新初始状态测试。
-- `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt`、`player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerNotificationControlsTest.kt`：用默认空 resolver 或测试 resolver 覆盖播放前解析。
+- `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`：移除写死 `WY_FALLBACK_PLATFORM` 的 fallback，委托 `MediaSourceResolver`。
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`：插件歌单播放前委托 `MediaSourceResolver`。
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt`：榜单播放前委托 `MediaSourceResolver`。
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`：专辑播放前委托 `MediaSourceResolver`。
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailViewModel.kt`：歌手详情播放前委托 `MediaSourceResolver`。
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt`：结构化操作状态、音源重定向、用户变量、导入单曲/歌单。
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt`：RN 直译卡片操作、对话框和面板。
+- `plugin/src/test/java/com/hank/musicfree/plugin/meta/PluginMetaStoreTest.kt`：补音源重定向持久化测试。
+- `feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModelTest.kt`：更新初始状态测试。
+- `player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt`、`player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerNotificationControlsTest.kt`：用默认空 resolver 或测试 resolver 覆盖播放前解析。
 
 ---
 
 ### Task 1: Core 音源解析接口
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/media/MediaSourceResolver.kt`
-- Create: `core/src/test/java/com/zili/android/musicfreeandroid/core/media/MediaSourceResolverTest.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/media/MediaSourceResolver.kt`
+- Create: `core/src/test/java/com/hank/musicfree/core/media/MediaSourceResolverTest.kt`
 
 - [ ] **Step 1: 写失败测试**
 
-Create `core/src/test/java/com/zili/android/musicfreeandroid/core/media/MediaSourceResolverTest.kt`:
+Create `core/src/test/java/com/hank/musicfree/core/media/MediaSourceResolverTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.media
+package com.hank.musicfree.core.media
 
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -115,20 +115,20 @@ class MediaSourceResolverTest {
 Run:
 
 ```bash
-./gradlew :core:test --tests 'com.zili.android.musicfreeandroid.core.media.MediaSourceResolverTest'
+./gradlew :core:test --tests 'com.hank.musicfree.core.media.MediaSourceResolverTest'
 ```
 
 Expected: FAIL，原因是 `MediaSourceResolver`、`EmptyMediaSourceResolver`、`MediaSourceResolution` 不存在。
 
 - [ ] **Step 3: 写最小实现**
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/media/MediaSourceResolver.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/media/MediaSourceResolver.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.media
+package com.hank.musicfree.core.media
 
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
 
 interface MediaSourceResolver {
     suspend fun resolve(
@@ -158,7 +158,7 @@ object EmptyMediaSourceResolver : MediaSourceResolver {
 Run:
 
 ```bash
-./gradlew :core:test --tests 'com.zili.android.musicfreeandroid.core.media.MediaSourceResolverTest'
+./gradlew :core:test --tests 'com.hank.musicfree.core.media.MediaSourceResolverTest'
 ```
 
 Expected: PASS。
@@ -166,7 +166,7 @@ Expected: PASS。
 - [ ] **Step 5: 提交**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/media/MediaSourceResolver.kt core/src/test/java/com/zili/android/musicfreeandroid/core/media/MediaSourceResolverTest.kt
+git add core/src/main/java/com/hank/musicfree/core/media/MediaSourceResolver.kt core/src/test/java/com/hank/musicfree/core/media/MediaSourceResolverTest.kt
 git commit -m "feat(core): add media source resolver contract"
 ```
 
@@ -175,8 +175,8 @@ git commit -m "feat(core): add media source resolver contract"
 ### Task 2: PluginMetaStore 音源重定向持久化
 
 **Files:**
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStore.kt`
-- Modify: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStoreTest.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/meta/PluginMetaStore.kt`
+- Modify: `plugin/src/test/java/com/hank/musicfree/plugin/meta/PluginMetaStoreTest.kt`
 
 - [ ] **Step 1: 写失败测试**
 
@@ -213,7 +213,7 @@ fun `self alternative plugin is stored as cleared`() = runBlocking {
 Run:
 
 ```bash
-./gradlew :plugin:test --tests 'com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStoreTest'
+./gradlew :plugin:test --tests 'com.hank.musicfree.plugin.meta.PluginMetaStoreTest'
 ```
 
 Expected: FAIL，原因是 `alternativePlugins`、`getAlternativePlugin()`、`setAlternativePlugin()` 不存在。
@@ -272,7 +272,7 @@ val KEY_ALTERNATIVE_PLUGINS = stringPreferencesKey("alternative_plugins")
 Run:
 
 ```bash
-./gradlew :plugin:test --tests 'com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStoreTest'
+./gradlew :plugin:test --tests 'com.hank.musicfree.plugin.meta.PluginMetaStoreTest'
 ```
 
 Expected: PASS。
@@ -280,7 +280,7 @@ Expected: PASS。
 - [ ] **Step 5: 提交**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStore.kt plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/meta/PluginMetaStoreTest.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/meta/PluginMetaStore.kt plugin/src/test/java/com/hank/musicfree/plugin/meta/PluginMetaStoreTest.kt
 git commit -m "feat(plugin): persist alternative plugin mapping"
 ```
 
@@ -289,21 +289,21 @@ git commit -m "feat(plugin): persist alternative plugin mapping"
 ### Task 3: 插件用户变量声明与运行时刷新
 
 **Files:**
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginUserVariable.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
-- Create: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerUserVariablesTest.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginUserVariable.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`
+- Create: `plugin/src/test/java/com/hank/musicfree/plugin/manager/PluginManagerUserVariablesTest.kt`
 
 - [ ] **Step 1: 写失败测试**
 
 Create `PluginManagerUserVariablesTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.manager
+package com.hank.musicfree.plugin.manager
 
 import android.content.Context
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.hank.musicfree.plugin.meta.PluginMetaStore
 import java.io.File
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -391,7 +391,7 @@ class PluginManagerUserVariablesTest {
 Run:
 
 ```bash
-./gradlew :plugin:test --tests 'com.zili.android.musicfreeandroid.plugin.manager.PluginManagerUserVariablesTest'
+./gradlew :plugin:test --tests 'com.hank.musicfree.plugin.manager.PluginManagerUserVariablesTest'
 ```
 
 Expected: FAIL，原因是 `PluginInfo.userVariables` 和 `PluginManager.setUserVariables()` 不存在。
@@ -401,7 +401,7 @@ Expected: FAIL，原因是 `PluginInfo.userVariables` 和 `PluginManager.setUser
 Create `PluginUserVariable.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.api
+package com.hank.musicfree.plugin.api
 
 data class PluginUserVariable(
     val key: String,
@@ -434,7 +434,7 @@ suspend fun userVariables(): List<PluginUserVariable> {
             val key = item.optString("key").trim()
             if (key.isBlank()) continue
             add(
-                com.zili.android.musicfreeandroid.plugin.api.PluginUserVariable(
+                com.hank.musicfree.plugin.api.PluginUserVariable(
                     key = key,
                     name = item.optString("name").takeIf { it.isNotBlank() },
                     hint = item.optString("hint").takeIf { it.isNotBlank() },
@@ -478,7 +478,7 @@ suspend fun setUserVariables(platform: String, variables: Map<String, String>) {
 Run:
 
 ```bash
-./gradlew :plugin:test --tests 'com.zili.android.musicfreeandroid.plugin.manager.PluginManagerUserVariablesTest'
+./gradlew :plugin:test --tests 'com.hank.musicfree.plugin.manager.PluginManagerUserVariablesTest'
 ```
 
 Expected: PASS。
@@ -486,7 +486,7 @@ Expected: PASS。
 - [ ] **Step 7: 提交**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginUserVariable.kt plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerUserVariablesTest.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/api/PluginUserVariable.kt plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt plugin/src/test/java/com/hank/musicfree/plugin/manager/PluginManagerUserVariablesTest.kt
 git commit -m "feat(plugin): support user variable declarations"
 ```
 
@@ -495,23 +495,23 @@ git commit -m "feat(plugin): support user variable declarations"
 ### Task 4: 插件音源解析服务与 Hilt 绑定
 
 **Files:**
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceService.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/PluginModule.kt`
-- Create: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceServiceTest.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/media/PluginMediaSourceService.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/di/PluginModule.kt`
+- Create: `plugin/src/test/java/com/hank/musicfree/plugin/media/PluginMediaSourceServiceTest.kt`
 
 - [ ] **Step 1: 写失败测试**
 
 Create `PluginMediaSourceServiceTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.media
+package com.hank.musicfree.plugin.media
 
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.manager.LoadedPlugin
+import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.plugin.meta.PluginMetaStore
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -628,7 +628,7 @@ class PluginMediaSourceServiceTest {
 Run:
 
 ```bash
-./gradlew :plugin:test --tests 'com.zili.android.musicfreeandroid.plugin.media.PluginMediaSourceServiceTest'
+./gradlew :plugin:test --tests 'com.hank.musicfree.plugin.media.PluginMediaSourceServiceTest'
 ```
 
 Expected: FAIL，原因是 `PluginMediaSourceService` 不存在。
@@ -638,13 +638,13 @@ Expected: FAIL，原因是 `PluginMediaSourceService` 不存在。
 Create `PluginMediaSourceService.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.media
+package com.hank.musicfree.plugin.media
 
-import com.zili.android.musicfreeandroid.core.media.MediaSourceResolution
-import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.core.media.MediaSourceResolution
+import com.hank.musicfree.core.media.MediaSourceResolver
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.plugin.manager.LoadedPlugin
+import com.hank.musicfree.plugin.manager.PluginManager
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -706,10 +706,10 @@ class PluginMediaSourceService @Inject constructor(
 Modify `PluginModule.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.di
+package com.hank.musicfree.plugin.di
 
-import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
-import com.zili.android.musicfreeandroid.plugin.media.PluginMediaSourceService
+import com.hank.musicfree.core.media.MediaSourceResolver
+import com.hank.musicfree.plugin.media.PluginMediaSourceService
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -732,7 +732,7 @@ abstract class PluginModule {
 Run:
 
 ```bash
-./gradlew :plugin:test --tests 'com.zili.android.musicfreeandroid.plugin.media.PluginMediaSourceServiceTest'
+./gradlew :plugin:test --tests 'com.hank.musicfree.plugin.media.PluginMediaSourceServiceTest'
 ```
 
 Expected: PASS。
@@ -740,7 +740,7 @@ Expected: PASS。
 - [ ] **Step 6: 提交**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceService.kt plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/PluginModule.kt plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceServiceTest.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/media/PluginMediaSourceService.kt plugin/src/main/java/com/hank/musicfree/plugin/di/PluginModule.kt plugin/src/test/java/com/hank/musicfree/plugin/media/PluginMediaSourceServiceTest.kt
 git commit -m "feat(plugin): resolve media source with redirects"
 ```
 
@@ -749,9 +749,9 @@ git commit -m "feat(plugin): resolve media source with redirects"
 ### Task 5: 播放器队列全局解析
 
 **Files:**
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Modify: `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt`
-- Modify: `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerNotificationControlsTest.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Modify: `player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt`
+- Modify: `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerNotificationControlsTest.kt`
 
 - [ ] **Step 1: 写失败测试**
 
@@ -786,21 +786,21 @@ fun `notification next resolves item without url before playback`() {
 
 private class RecordingResolver(
     private val resolvedUrl: String,
-) : com.zili.android.musicfreeandroid.core.media.MediaSourceResolver {
+) : com.hank.musicfree.core.media.MediaSourceResolver {
     val requestedIds = mutableListOf<String>()
 
     override suspend fun resolve(
         item: MusicItem,
         quality: String,
-    ): com.zili.android.musicfreeandroid.core.media.MediaSourceResolution? {
+    ): com.hank.musicfree.core.media.MediaSourceResolution? {
         requestedIds += item.id
-        val source = com.zili.android.musicfreeandroid.core.model.MediaSourceResult(
+        val source = com.hank.musicfree.core.model.MediaSourceResult(
             url = resolvedUrl,
             headers = null,
             userAgent = null,
             quality = null,
         )
-        return com.zili.android.musicfreeandroid.core.media.MediaSourceResolution(
+        return com.hank.musicfree.core.media.MediaSourceResolution(
             item = item.copy(url = resolvedUrl),
             source = source,
             requestedPlatform = item.platform,
@@ -816,7 +816,7 @@ private class RecordingResolver(
 Run:
 
 ```bash
-./gradlew :player:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.player.controller.PlayerControllerNotificationControlsTest'
+./gradlew :player:testDebugUnitTest --tests 'com.hank.musicfree.player.controller.PlayerControllerNotificationControlsTest'
 ```
 
 Expected: FAIL，原因是 `PlayerController(context, resolver)` 构造参数不存在，且队列切歌不解析无 URL 歌曲。
@@ -835,8 +835,8 @@ class PlayerController @Inject constructor(
 Add imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.media.EmptyMediaSourceResolver
-import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
+import com.hank.musicfree.core.media.EmptyMediaSourceResolver
+import com.hank.musicfree.core.media.MediaSourceResolver
 ```
 
 Replace `setMediaItemAndPlay(item)` with an async-safe flow:
@@ -864,7 +864,7 @@ private suspend fun resolvePlayableItem(item: MusicItem): MusicItem? {
 }
 ```
 
-If `PlayQueue` lacks `replaceCurrent`, add a focused method to `player/src/main/java/com/zili/android/musicfreeandroid/player/queue/PlayQueue.kt`:
+If `PlayQueue` lacks `replaceCurrent`, add a focused method to `player/src/main/java/com/hank/musicfree/player/queue/PlayQueue.kt`:
 
 ```kotlin
 fun replaceCurrent(item: MusicItem) {
@@ -928,7 +928,7 @@ Existing tests that call `PlayerController(context)` continue to compile because
 Run:
 
 ```bash
-./gradlew :player:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.player.controller.PlayerControllerNotificationControlsTest'
+./gradlew :player:testDebugUnitTest --tests 'com.hank.musicfree.player.controller.PlayerControllerNotificationControlsTest'
 ```
 
 Expected: PASS。
@@ -936,7 +936,7 @@ Expected: PASS。
 - [ ] **Step 6: 提交**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt player/src/main/java/com/zili/android/musicfreeandroid/player/queue/PlayQueue.kt player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerNotificationControlsTest.kt player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt
+git add player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt player/src/main/java/com/hank/musicfree/player/queue/PlayQueue.kt player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerNotificationControlsTest.kt player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt
 git commit -m "feat(player): resolve queued plugin media before playback"
 ```
 
@@ -945,24 +945,24 @@ git commit -m "feat(player): resolve queued plugin media before playback"
 ### Task 6: 下载与详情页接入共享解析
 
 **Files:**
-- Modify: `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/quality/PluginMediaSourceResolver.kt`
-- Modify: `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/di/DownloaderModule.kt`
+- Modify: `downloader/src/main/java/com/hank/musicfree/downloader/quality/PluginMediaSourceResolver.kt`
+- Modify: `downloader/src/main/java/com/hank/musicfree/downloader/di/DownloaderModule.kt`
 - Modify: `downloader/build.gradle.kts`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailViewModel.kt`
 
 - [ ] **Step 1: 修改下载 resolver**
 
 Replace `PluginMediaSourceResolver` body:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.downloader.quality
+package com.hank.musicfree.downloader.quality
 
-import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.media.MediaSourceResolver
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -976,7 +976,7 @@ class PluginMediaSourceResolver @Inject constructor(
 }
 ```
 
-If no downloader source imports `com.zili.android.musicfreeandroid.plugin.*` after this change, remove this line from `downloader/build.gradle.kts`:
+If no downloader source imports `com.hank.musicfree.plugin.*` after this change, remove this line from `downloader/build.gradle.kts`:
 
 ```kotlin
 implementation(project(":plugin"))
@@ -987,7 +987,7 @@ implementation(project(":plugin"))
 For each detail ViewModel, inject:
 
 ```kotlin
-private val mediaSourceResolver: com.zili.android.musicfreeandroid.core.media.MediaSourceResolver,
+private val mediaSourceResolver: com.hank.musicfree.core.media.MediaSourceResolver,
 ```
 
 Replace local `plugin.getMediaSource(clicked)` blocks with:
@@ -1015,7 +1015,7 @@ Expected: PASS. If constructor changes break existing ViewModel tests, update te
 - [ ] **Step 4: 提交**
 
 ```bash
-git add downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/quality/PluginMediaSourceResolver.kt downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/di/DownloaderModule.kt downloader/build.gradle.kts feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailViewModel.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailViewModel.kt
+git add downloader/src/main/java/com/hank/musicfree/downloader/quality/PluginMediaSourceResolver.kt downloader/src/main/java/com/hank/musicfree/downloader/di/DownloaderModule.kt downloader/build.gradle.kts feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailViewModel.kt
 git commit -m "feat(media): route detail and download resolution through shared resolver"
 ```
 
@@ -1024,8 +1024,8 @@ git commit -m "feat(media): route detail and download resolution through shared 
 ### Task 7: 搜索播放移除写死 fallback
 
 **Files:**
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- Modify: `feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- Modify: `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
 
 - [ ] **Step 1: 写失败测试**
 
@@ -1080,7 +1080,7 @@ Expected: PASS。
 - [ ] **Step 5: 提交**
 
 ```bash
-git add feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt
+git add feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt
 git commit -m "feat(search): use shared media source resolver"
 ```
 
@@ -1089,23 +1089,23 @@ git commit -m "feat(search): use shared media source resolver"
 ### Task 8: 插件操作结果与 `.json` 网络安装
 
 **Files:**
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginOperationResult.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt`
-- Create: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListActionStateTest.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginOperationResult.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt`
+- Create: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListActionStateTest.kt`
 
 - [ ] **Step 1: 写失败测试**
 
 Create `PluginListActionStateTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.pluginlist
+package com.hank.musicfree.feature.settings.pluginlist
 
-import com.zili.android.musicfreeandroid.feature.settings.MainDispatcherRule
-import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationErrorCode
-import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationFailure
-import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationResult
-import com.zili.android.musicfreeandroid.plugin.manager.PluginOperationType
+import com.hank.musicfree.feature.settings.MainDispatcherRule
+import com.hank.musicfree.plugin.manager.PluginOperationErrorCode
+import com.hank.musicfree.plugin.manager.PluginOperationFailure
+import com.hank.musicfree.plugin.manager.PluginOperationResult
+import com.hank.musicfree.plugin.manager.PluginOperationType
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -1299,7 +1299,7 @@ Expected: PASS。
 - [ ] **Step 6: 提交**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginOperationResult.kt feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListActionStateTest.kt feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModelTest.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginOperationResult.kt feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListActionStateTest.kt feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModelTest.kt
 git commit -m "feat(settings): structure plugin operation feedback"
 ```
 
@@ -1308,8 +1308,8 @@ git commit -m "feat(settings): structure plugin operation feedback"
 ### Task 9: PluginListViewModel 补齐重定向、用户变量、导入能力
 
 **Files:**
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt`
-- Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListActionStateTest.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt`
+- Modify: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListActionStateTest.kt`
 
 - [ ] **Step 1: 扩展 UI item**
 
@@ -1443,7 +1443,7 @@ Expected: PASS。
 - [ ] **Step 5: 提交**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListActionStateTest.kt
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListActionStateTest.kt
 git commit -m "feat(settings): model plugin card parity actions"
 ```
 
@@ -1452,7 +1452,7 @@ git commit -m "feat(settings): model plugin card parity actions"
 ### Task 10: PluginListScreen RN 直译卡片 UI
 
 **Files:**
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt`
 
 - [ ] **Step 1: 替换状态渲染**
 
@@ -1630,7 +1630,7 @@ Expected: PASS。
 - [ ] **Step 8: 提交**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt
 git commit -m "feat(settings): show RN parity plugin card actions"
 ```
 
@@ -1639,12 +1639,12 @@ git commit -m "feat(settings): show RN parity plugin card actions"
 ### Task 11: 设置页导入结果接入添加到歌单能力
 
 **Files:**
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt`
-- Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListActionStateTest.kt`
-- Reference: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistBottomSheetContent.kt`
-- Reference: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/AddToPlaylistSheetState.kt`
-- Reference: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportViewModel.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt`
+- Modify: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListActionStateTest.kt`
+- Reference: `core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistBottomSheetContent.kt`
+- Reference: `core/src/main/java/com/hank/musicfree/core/ui/AddToPlaylistSheetState.kt`
+- Reference: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportViewModel.kt`
 
 - [ ] **Step 1: 扩展 ViewModel 歌单状态**
 
@@ -1657,10 +1657,10 @@ private val playlistRepository: PlaylistRepository,
 Add imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
-import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.ui.AddToPlaylistSheetState
+import com.hank.musicfree.data.repository.PlaylistRepository
 import kotlinx.coroutines.flow.StateFlow
 import java.util.UUID
 ```
@@ -1762,14 +1762,14 @@ if (sheetState.visible) {
             playlists = playlists,
             onSelect = { playlist -> viewModel.addImportedItemsToPlaylist(playlist.id) },
             onCreateNew = { showCreatePlaylistDialog = true },
-            folderPlusIcon = painterResource(id = com.zili.android.musicfreeandroid.core.R.drawable.ic_folder_plus),
-            favoriteCoverIcon = painterResource(id = com.zili.android.musicfreeandroid.core.R.drawable.ic_playlist_favorite_cover),
+            folderPlusIcon = painterResource(id = com.hank.musicfree.core.R.drawable.ic_folder_plus),
+            favoriteCoverIcon = painterResource(id = com.hank.musicfree.core.R.drawable.ic_playlist_favorite_cover),
         )
     }
 }
 ```
 
-These drawable names match `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlistimport/PlaylistImportHost.kt`.
+These drawable names match `feature/home/src/main/java/com/hank/musicfree/feature/home/playlistimport/PlaylistImportHost.kt`.
 
 - [ ] **Step 4: 添加新建歌单对话框**
 
@@ -1792,7 +1792,7 @@ Expected: PASS。
 - [ ] **Step 6: 提交**
 
 ```bash
-git add feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListViewModel.kt feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListActionStateTest.kt
+git add feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListViewModel.kt feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt feature/settings/src/test/java/com/hank/musicfree/feature/settings/pluginlist/PluginListActionStateTest.kt
 git commit -m "feat(settings): add imported plugin items to playlists"
 ```
 

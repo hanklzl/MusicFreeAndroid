@@ -8,9 +8,9 @@ related:
   - ../../../AGENTS.md
   - ../../dev-harness/ui/rules.md
   - ../../../../MusicFree/src/components/musicSheetPage/
-  - ../../../core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicFreeScreenChrome.kt
-  - ../../../feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt
-  - ../../../feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt
+  - ../../../core/src/main/java/com/hank/musicfree/core/ui/MusicFreeScreenChrome.kt
+  - ../../../feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt
+  - ../../../feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt
 ---
 
 # 1. 背景

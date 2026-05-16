@@ -145,8 +145,8 @@ fun Modifier.horizontalTabSwipe(
 构建和守门：
 
 ```bash
-./gradlew :core:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.core.ui.HorizontalTabSwipeTest" --no-daemon
-./gradlew :feature:search:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest" --no-daemon
+./gradlew :core:testDebugUnitTest --tests "com.hank.musicfree.core.ui.HorizontalTabSwipeTest" --no-daemon
+./gradlew :feature:search:testDebugUnitTest --tests "com.hank.musicfree.feature.search.SearchViewModelTest" --no-daemon
 ./gradlew :feature:search:compileDebugKotlin --no-daemon
 ./gradlew :feature:home:compileDebugKotlin --no-daemon
 python3 scripts/dev-harness/grep-check.py

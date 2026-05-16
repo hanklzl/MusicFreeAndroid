@@ -13,37 +13,37 @@
 ## File Structure
 
 - Modify `data/build.gradle.kts`: add JVM test dependencies needed for Room/Robolectric repository tests.
-- Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/model/StarredSheet.kt`: add optional seed fields.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/converter/Converters.kt`: expose raw map JSON helpers.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/StarredSheetEntity.kt`: add `description`, `artwork`, `worksNum`, and `rawJson`.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PlaylistDao.kt`: add `insertPlaylistIgnore`.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/StarredSheetDao.kt`: add `observeExists`.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`: bump schema version for destructive dev reset.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/SeedFavoriteCallback.kt`: seed in `onOpen`.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/StarredSheetMapper.kt`: map extended fields with `Converters`.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`: ensure default playlist before observations and favorite writes.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetRepository.kt`: inject `Converters`, expose `observeIsStarred`, and toggle.
-- Create `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryFavoriteRecoveryTest.kt`: JVM regression tests for missing default playlist recovery.
-- Create `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetRepositoryJvmTest.kt`: JVM tests for starred sheet toggle and raw round-trip.
+- Modify `core/src/main/java/com/hank/musicfree/core/model/StarredSheet.kt`: add optional seed fields.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/converter/Converters.kt`: expose raw map JSON helpers.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/entity/StarredSheetEntity.kt`: add `description`, `artwork`, `worksNum`, and `rawJson`.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/dao/PlaylistDao.kt`: add `insertPlaylistIgnore`.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/dao/StarredSheetDao.kt`: add `observeExists`.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`: bump schema version for destructive dev reset.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/SeedFavoriteCallback.kt`: seed in `onOpen`.
+- Modify `data/src/main/java/com/hank/musicfree/data/mapper/StarredSheetMapper.kt`: map extended fields with `Converters`.
+- Modify `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`: ensure default playlist before observations and favorite writes.
+- Modify `data/src/main/java/com/hank/musicfree/data/repository/StarredSheetRepository.kt`: inject `Converters`, expose `observeIsStarred`, and toggle.
+- Create `data/src/test/java/com/hank/musicfree/data/repository/PlaylistRepositoryFavoriteRecoveryTest.kt`: JVM regression tests for missing default playlist recovery.
+- Create `data/src/test/java/com/hank/musicfree/data/repository/StarredSheetRepositoryJvmTest.kt`: JVM tests for starred sheet toggle and raw round-trip.
 - Modify `data/src/androidTest/java/.../StarredSheetRepositoryTest.kt`: update constructor call for `Converters`.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeViewModel.kt`: expose starred sheets and update constructor.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`: pass real starred rows and callback.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactory.kt`: remove `STARRED_ROWS` and accept `starredRows`.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/navigation/HomeNavigation.kt`: add starred navigation callback.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModel.kt`: preserve seed fields and convert to `MusicSheetItemBase`.
-- Modify `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`: navigate starred home rows to plugin sheet detail.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeViewModel.kt`: expose starred sheets and update constructor.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`: pass real starred rows and callback.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeMockVisualFactory.kt`: remove `STARRED_ROWS` and accept `starredRows`.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/navigation/HomeNavigation.kt`: add starred navigation callback.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModel.kt`: preserve seed fields and convert to `MusicSheetItemBase`.
+- Modify `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`: navigate starred home rows to plugin sheet detail.
 - Modify home tests for constructor and builder signature changes.
-- Create `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetStarredMapper.kt`: map plugin sheet to `StarredSheet`.
-- Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetStarredMapperTest.kt`: mapping tests.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`: inject starred repository and expose sheet star state/toggle.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt`: add heart action to scaffold app bar.
+- Create `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetStarredMapper.kt`: map plugin sheet to `StarredSheet`.
+- Create `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetStarredMapperTest.kt`: mapping tests.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`: inject starred repository and expose sheet star state/toggle.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt`: add heart action to scaffold app bar.
 
 ## Task 1: Data Tests
 
 **Files:**
 - Modify: `data/build.gradle.kts`
-- Create: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryFavoriteRecoveryTest.kt`
-- Create: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/StarredSheetRepositoryJvmTest.kt`
+- Create: `data/src/test/java/com/hank/musicfree/data/repository/PlaylistRepositoryFavoriteRecoveryTest.kt`
+- Create: `data/src/test/java/com/hank/musicfree/data/repository/StarredSheetRepositoryJvmTest.kt`
 
 - [ ] **Step 1: Add JVM test dependencies**
 
@@ -99,10 +99,10 @@ Expected: both tests pass.
 ## Task 3: Home Tests
 
 **Files:**
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeMockVisualFactoryTest.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetUiModelTest.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeViewModelTest.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsViewModelTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeMockVisualFactoryTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetUiModelTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeViewModelTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetsViewModelTest.kt`
 
 - [ ] **Step 1: Update tests for real starred rows**
 
@@ -148,7 +148,7 @@ Expected: listed tests pass.
 ## Task 5: Plugin Sheet Tests
 
 **Files:**
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetStarredMapperTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetStarredMapperTest.kt`
 
 - [ ] **Step 1: Write mapper tests**
 
@@ -167,9 +167,9 @@ Expected: compile failure because mapper functions do not exist.
 ## Task 6: Plugin Sheet Implementation
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetStarredMapper.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetStarredMapper.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
 
 - [ ] **Step 1: Implement mapper**
 

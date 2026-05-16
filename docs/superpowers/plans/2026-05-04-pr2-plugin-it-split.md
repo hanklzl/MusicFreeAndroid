@@ -20,10 +20,10 @@
 |---|---|---|
 | `gradle/libs.versions.toml` | Modify | 新增 `okhttp-mockwebserver` 库条目 |
 | `plugin/build.gradle.kts` | Modify | 新增 `testInstrumentationRunnerArguments["pluginNetworkTests"]` 桥接；`androidTestImplementation(libs.okhttp.mockwebserver)` |
-| `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeIntegrationTest.kt` | Delete | 拆分到下面 3 个文件 |
-| `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeLocalIntegrationTest.kt` | Create | 3 个无网络依赖的 runtime shim 用例 + 共享 helpers；DataStore 文件名带 UUID 后缀 |
-| `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeNetworkIntegrationTest.kt` | Create | 4 个 kstore.vip 网络用例；类不带 `@Ignore`，`@Before` 做 `Assume` 门控；DataStore 文件名带 UUID 后缀 |
-| `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerHttpLifecycleTest.kt` | Create | 2 个 MockWebServer 用例覆盖 `installFromUrl + updatePlugin` 编排；DataStore 文件名带 UUID 后缀 |
+| `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeIntegrationTest.kt` | Delete | 拆分到下面 3 个文件 |
+| `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeLocalIntegrationTest.kt` | Create | 3 个无网络依赖的 runtime shim 用例 + 共享 helpers；DataStore 文件名带 UUID 后缀 |
+| `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeNetworkIntegrationTest.kt` | Create | 4 个 kstore.vip 网络用例；类不带 `@Ignore`，`@Before` 做 `Assume` 门控；DataStore 文件名带 UUID 后缀 |
+| `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginManagerHttpLifecycleTest.kt` | Create | 2 个 MockWebServer 用例覆盖 `installFromUrl + updatePlugin` 编排；DataStore 文件名带 UUID 后缀 |
 
 ---
 
@@ -220,20 +220,20 @@ EOF
 ## Task 4：新增 `PluginRuntimeLocalIntegrationTest.kt`（3 个本地用例）
 
 **Files:**
-- Create: `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeLocalIntegrationTest.kt`
+- Create: `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeLocalIntegrationTest.kt`
 
 - [ ] **Step 1：写入文件**
 
 完整文件内容（包含 3 个本地用例 + 共享 helpers，**不带任何 `@Ignore`**）：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.manager
+package com.hank.musicfree.plugin.manager
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.hank.musicfree.plugin.meta.PluginMetaStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -427,7 +427,7 @@ class PluginRuntimeLocalIntegrationTest {
 
 ```bash
 ./gradlew :plugin:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeLocalIntegrationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginRuntimeLocalIntegrationTest
 ```
 
 预期：3 个用例 PASSED。
@@ -437,7 +437,7 @@ class PluginRuntimeLocalIntegrationTest {
 - [ ] **Step 3：commit**
 
 ```bash
-git add plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeLocalIntegrationTest.kt
+git add plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeLocalIntegrationTest.kt
 git commit -m "$(cat <<'EOF'
 test(plugin): extract local runtime-shim integration cases
 
@@ -460,20 +460,20 @@ EOF
 ## Task 5：新增 `PluginRuntimeNetworkIntegrationTest.kt`（4 个网络用例 + Assume 门控）
 
 **Files:**
-- Create: `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeNetworkIntegrationTest.kt`
+- Create: `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeNetworkIntegrationTest.kt`
 
 - [ ] **Step 1：写入文件**
 
 完整文件内容（4 个网络用例 + `@Before` 中的 `Assume.assumeTrue` 门控，**不带类级 `@Ignore`**）：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.manager
+package com.hank.musicfree.plugin.manager
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.hank.musicfree.plugin.meta.PluginMetaStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -689,7 +689,7 @@ class PluginRuntimeNetworkIntegrationTest {
 
 ```bash
 ./gradlew :plugin:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeNetworkIntegrationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginRuntimeNetworkIntegrationTest
 ```
 
 预期：4 个用例 SKIPPED（assumption violated）。
@@ -698,7 +698,7 @@ class PluginRuntimeNetworkIntegrationTest {
 
 ```bash
 ./gradlew :plugin:connectedDebugAndroidTest -Pintegration \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeNetworkIntegrationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginRuntimeNetworkIntegrationTest
 ```
 
 预期：4 个用例 PASSED（需 kstore.vip 可达）。如真机 PASS，建议把 stdout 头部贴入 PR 描述作为 baseline。
@@ -706,7 +706,7 @@ class PluginRuntimeNetworkIntegrationTest {
 - [ ] **Step 3：commit**
 
 ```bash
-git add plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeNetworkIntegrationTest.kt
+git add plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeNetworkIntegrationTest.kt
 git commit -m "$(cat <<'EOF'
 test(plugin): extract live-network integration cases with -Pintegration gate
 
@@ -733,20 +733,20 @@ EOF
 ## Task 6：新增 `PluginManagerHttpLifecycleTest.kt`（2 个 MockWebServer 用例）
 
 **Files:**
-- Create: `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerHttpLifecycleTest.kt`
+- Create: `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginManagerHttpLifecycleTest.kt`
 
 - [ ] **Step 1：写入文件**
 
 完整文件内容（2 个用例 + MockWebServer 前后置）：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.manager
+package com.hank.musicfree.plugin.manager
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.hank.musicfree.plugin.meta.PluginMetaStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -918,7 +918,7 @@ class PluginManagerHttpLifecycleTest {
 
 ```bash
 ./gradlew :plugin:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginManagerHttpLifecycleTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginManagerHttpLifecycleTest
 ```
 
 预期：2 个用例 PASSED。
@@ -930,7 +930,7 @@ class PluginManagerHttpLifecycleTest {
 - [ ] **Step 3：commit**
 
 ```bash
-git add plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerHttpLifecycleTest.kt
+git add plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginManagerHttpLifecycleTest.kt
 git commit -m "$(cat <<'EOF'
 test(plugin): add MockWebServer lifecycle test for installFromUrl + updatePlugin
 
@@ -957,12 +957,12 @@ EOF
 ## Task 7：删除原 `PluginRuntimeIntegrationTest.kt`
 
 **Files:**
-- Delete: `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeIntegrationTest.kt`
+- Delete: `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeIntegrationTest.kt`
 
 - [ ] **Step 1：删除文件**
 
 ```bash
-git rm plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginRuntimeIntegrationTest.kt
+git rm plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeIntegrationTest.kt
 ```
 
 - [ ] **Step 2：grep 验证 `:plugin/src/androidTest` 已无 `@Ignore`**
@@ -1094,7 +1094,7 @@ Spec: `docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md` §
 
 - [ ] `./gradlew :plugin:testDebugUnitTest`
 - [ ] `./gradlew :plugin:connectedAndroidTest` — 5 PASSED, 4 SKIPPED
-- [ ] `./gradlew :plugin:connectedDebugAndroidTest -Pintegration=false -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginRuntimeNetworkIntegrationTest` — 4 SKIPPED
+- [ ] `./gradlew :plugin:connectedDebugAndroidTest -Pintegration=false -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginRuntimeNetworkIntegrationTest` — 4 SKIPPED
 - [ ] `./gradlew :plugin:connectedAndroidTest -Pintegration` — 9 PASSED (requires `kstore.vip` reachable; not blocking if intermittent)
 - [ ] `./gradlew assembleDebug && ./gradlew lint`
 - [ ] `./gradlew connectedAndroidTest` after PR 1 is merged/rebased into this branch

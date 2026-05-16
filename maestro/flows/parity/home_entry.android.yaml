@@ -1,5 +1,5 @@
 # maestro/flows/parity/home_entry.android.yaml
-appId: com.zili.android.musicfreeandroid.debug
+appId: com.hank.musicfree.debug
 ---
 - runScript:
     file: _lib/mark_waypoint.js

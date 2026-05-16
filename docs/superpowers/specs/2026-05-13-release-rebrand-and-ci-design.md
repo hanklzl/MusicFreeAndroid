@@ -20,7 +20,7 @@
 - `app/build.gradle.kts` 中 `debug` 仅设了 `applicationIdSuffix = ".debug"`，未覆盖 label 或 icon。
 - `app/src/main/res/mipmap-anydpi-v26/{ic_launcher,ic_launcher_round}.xml` 为 adaptive icon，foreground 引用 `@mipmap/ic_launcher_foreground`（密度限定 webp），background 引用 `@color/ic_launcher_background`。无 debug 源集覆盖。
 - `player/src/main/res/values/strings.xml#playback_notification_channel_name = "播放控制"` 与显示名解耦，不在本次范围。
-- 内部代号（`Theme.MusicFreeAndroid`、`MusicFreeApplication`、namespace、`applicationId = com.zili.android.musicfreeandroid`）不在本次范围，**保持不变**。
+- 内部代号（`Theme.MusicFreeAndroid`、`MusicFreeApplication`、namespace、`applicationId = com.hank.musicfree`）不在本次范围，**保持不变**。
 - `.github/workflows/`：
   - `android-debug-apk.yml` —— 每次 push 构建 Debug APK 并上传 artifact。
   - `dev-harness-gate.yml` —— push/PR 跑 symlinks/grep guards、`compileDebugUnitTestKotlin`、contract tests。

@@ -69,24 +69,24 @@ RN 运行态消费示例：
 
 当前 Android 设置实现集中在：
 
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/navigation/SettingsNavigation.kt`
-- `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/navigation/SettingsNavigation.kt`
+- `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
 
 当前 `SettingsRoute` 是单一 `data object`，`SettingsScreen` 同时承载设置入口卡片、权限入口、存储目录和下载设置。它不区分 `basic / plugin / theme / backup / about`。
 
 当前可确认已有运行态消费点：
 
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
+- `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
   - 已有 `maxDownload`
   - 已有 `useCellularDownload`
   - 已有 `defaultDownloadQuality`
   - 已有 `downloadDirRelative`
   - 已有 `lyricAutoSearchEnabled`
-- `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/prefs/DownloadConfigSource.kt`
+- `downloader/src/main/java/com/hank/musicfree/downloader/prefs/DownloadConfigSource.kt`
   - 消费下载偏好。
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/lyrics/PlayerLyricLoader.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/lyrics/PlayerLyricLoader.kt`
   - 消费 `lyricAutoSearchEnabled`。
 
 `MusicFreeScreenScaffold` 和 `MusicFreeTopAppBar` 已是普通设置类页面的 UI Harness 入口，必须继续使用。
@@ -328,7 +328,7 @@ setter 只暴露已启用设置：
 
 ### Navigation Tests
 
-更新 `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt`：
+更新 `app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt`：
 
 - 抽屉“基础设置”进入 settings basic root。
 - 插件/主题/备份/关于入口进入对应 type 或保留现有 anchor，测试与实现策略一致。

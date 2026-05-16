@@ -32,7 +32,7 @@
 5. Capture recording if required
 
 ## Validation Rules
-- Foreground package must be `com.zili.android.musicfreeandroid` before each capture.
+- Foreground package must be `com.hank.musicfree` before each capture.
 - Default anchor checks:
 - `home-top` must include `screen.home.root`.
 - `home-sheets` must include `home.sheets.root`.

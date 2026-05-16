@@ -4,10 +4,10 @@ applies_to: feature/player-ui PlayerOperationsBar、PlayerController、AppPrefer
 created: 2026-05-10
 owner: fix/player-page-actions
 references:
-  - ../../../feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt
-  - ../../../feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt
-  - ../../../player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt
-  - ../../../downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/Downloader.kt
+  - ../../../feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt
+  - ../../../feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt
+  - ../../../player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt
+  - ../../../downloader/src/main/java/com/hank/musicfree/downloader/Downloader.kt
   - ../../../../MusicFree/src/pages/musicDetail/components/content/albumCover/operations.tsx
   - ../../../../MusicFree/src/components/panels/types/musicQuality.tsx
   - ../../../../MusicFree/src/components/panels/types/playRate.tsx

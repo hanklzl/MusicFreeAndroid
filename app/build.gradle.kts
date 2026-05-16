@@ -52,7 +52,7 @@ fun quotedBuildConfigString(value: String): String =
     "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
 android {
-    namespace = "com.zili.android.musicfreeandroid"
+    namespace = "com.hank.musicfree"
     base.archivesName = "MusicFreeAndroid"
     compileSdk {
         version = release(36) {
@@ -61,13 +61,13 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.zili.android.musicfreeandroid"
+        applicationId = "com.hank.musicfree"
         minSdk = 29
         targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
 
-        testInstrumentationRunner = "com.zili.android.musicfreeandroid.HiltTestRunner"
+        testInstrumentationRunner = "com.hank.musicfree.HiltTestRunner"
 
         buildConfigField("String", "LOGAN_AES_KEY", quotedBuildConfigString("0123456789abcdef"))
         buildConfigField("String", "LOGAN_AES_IV", quotedBuildConfigString("abcdef0123456789"))

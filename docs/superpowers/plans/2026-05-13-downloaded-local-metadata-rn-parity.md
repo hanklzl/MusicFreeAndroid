@@ -12,32 +12,32 @@
 
 ## File Structure
 
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/converter/Converters.kt`: include `MusicItem.localPath` in JSON round trips.
-- Modify `data/src/test/java/com/zili/android/musicfreeandroid/data/db/converter/ConvertersTest.kt`: assert `localPath` survives serialization.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/MusicItemEntity.kt`: add nullable `localPath`.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapper.kt`: map `localPath` both ways.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/DownloadTaskEntity.kt`: add nullable `musicItemJson` seed.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`: bump schema version and export the new schema.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/MusicDao.kt`: add `observeLocalLibrary(localPlatform)` query.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/MusicRepository.kt`: add `observeLocalLibrary()`, `commitDownloadedTrack()`, and `removeFromLocalLibrary()`.
-- Modify `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/MusicRepositoryTest.kt`: cover local library query, commit, and removal semantics.
-- Modify `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngine.kt`: persist full seed and commit downloaded tracks to local library.
-- Modify `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/di/DownloaderModule.kt`: provide new `DownloadEngine` constructor dependencies.
-- Modify `downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/*Test.kt`: update constructor fixtures and add preservation tests.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt`: use `MusicRepository.observeLocalLibrary()`.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModel.kt`: read/remove via unified local-library API.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`: read/remove local-library items through the unified API.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/converter/Converters.kt`: include `MusicItem.localPath` in JSON round trips.
+- Modify `data/src/test/java/com/hank/musicfree/data/db/converter/ConvertersTest.kt`: assert `localPath` survives serialization.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/entity/MusicItemEntity.kt`: add nullable `localPath`.
+- Modify `data/src/main/java/com/hank/musicfree/data/mapper/MusicItemMapper.kt`: map `localPath` both ways.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/entity/DownloadTaskEntity.kt`: add nullable `musicItemJson` seed.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`: bump schema version and export the new schema.
+- Modify `data/src/main/java/com/hank/musicfree/data/db/dao/MusicDao.kt`: add `observeLocalLibrary(localPlatform)` query.
+- Modify `data/src/main/java/com/hank/musicfree/data/repository/MusicRepository.kt`: add `observeLocalLibrary()`, `commitDownloadedTrack()`, and `removeFromLocalLibrary()`.
+- Modify `data/src/androidTest/java/com/hank/musicfree/data/repository/MusicRepositoryTest.kt`: cover local library query, commit, and removal semantics.
+- Modify `downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadEngine.kt`: persist full seed and commit downloaded tracks to local library.
+- Modify `downloader/src/main/java/com/hank/musicfree/downloader/di/DownloaderModule.kt`: provide new `DownloadEngine` constructor dependencies.
+- Modify `downloader/src/test/java/com/hank/musicfree/downloader/engine/*Test.kt`: update constructor fixtures and add preservation tests.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt`: use `MusicRepository.observeLocalLibrary()`.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalMusicViewModel.kt`: read/remove via unified local-library API.
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`: read/remove local-library items through the unified API.
 - Modify matching `feature/home/src/test/...` files: update mocks and expected repository calls.
 
 ## Task 1: Persist `MusicItem.localPath` And Download Seed Fields
 
 **Files:**
-- Modify: `data/src/test/java/com/zili/android/musicfreeandroid/data/db/converter/ConvertersTest.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/converter/Converters.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/MusicItemEntity.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapper.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/DownloadTaskEntity.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
+- Modify: `data/src/test/java/com/hank/musicfree/data/db/converter/ConvertersTest.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/converter/Converters.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/entity/MusicItemEntity.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/mapper/MusicItemMapper.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/entity/DownloadTaskEntity.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
 
 - [ ] **Step 1: Write the failing converter and mapper assertions**
 
@@ -71,7 +71,7 @@ val item = MusicItem(
 assertEquals(item.localPath, restored?.localPath)
 ```
 
-In `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapperTest.kt`, add or extend an existing round-trip test with:
+In `data/src/test/java/com/hank/musicfree/data/mapper/MusicItemMapperTest.kt`, add or extend an existing round-trip test with:
 
 ```kotlin
 val item = MusicItem(
@@ -166,10 +166,10 @@ Run:
 ./gradlew :data:compileDebugKotlin --no-daemon
 ```
 
-Expected: PASS and `data/schemas/com.zili.android.musicfreeandroid.data.db.AppDatabase/9.json` exists. Inspect it and confirm:
+Expected: PASS and `data/schemas/com.hank.musicfree.data.db.AppDatabase/9.json` exists. Inspect it and confirm:
 
 ```bash
-rg -n '"fieldPath": "localPath"|"fieldPath": "musicItemJson"' data/schemas/com.zili.android.musicfreeandroid.data.db.AppDatabase/9.json
+rg -n '"fieldPath": "localPath"|"fieldPath": "musicItemJson"' data/schemas/com.hank.musicfree.data.db.AppDatabase/9.json
 ```
 
 Expected: both fields are present.
@@ -177,30 +177,30 @@ Expected: both fields are present.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/converter/Converters.kt \
-  data/src/test/java/com/zili/android/musicfreeandroid/data/db/converter/ConvertersTest.kt \
-  data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapperTest.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/MusicItemEntity.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/MusicItemMapper.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/DownloadTaskEntity.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt \
-  data/schemas/com.zili.android.musicfreeandroid.data.db.AppDatabase/9.json
+git add data/src/main/java/com/hank/musicfree/data/db/converter/Converters.kt \
+  data/src/test/java/com/hank/musicfree/data/db/converter/ConvertersTest.kt \
+  data/src/test/java/com/hank/musicfree/data/mapper/MusicItemMapperTest.kt \
+  data/src/main/java/com/hank/musicfree/data/db/entity/MusicItemEntity.kt \
+  data/src/main/java/com/hank/musicfree/data/mapper/MusicItemMapper.kt \
+  data/src/main/java/com/hank/musicfree/data/db/entity/DownloadTaskEntity.kt \
+  data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt \
+  data/schemas/com.hank.musicfree.data.db.AppDatabase/9.json
 git commit -m "feat(data): 持久化下载曲目本地路径和完整 seed"
 ```
 
 ## Task 2: Add Unified Local Library Repository Contract
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/MusicDao.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/MusicRepository.kt`
-- Modify: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/MusicRepositoryTest.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/dao/MusicDao.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/MusicRepository.kt`
+- Modify: `data/src/androidTest/java/com/hank/musicfree/data/repository/MusicRepositoryTest.kt`
 
 - [ ] **Step 1: Write failing repository tests**
 
 Add imports in `MusicRepositoryTest`:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.data.db.entity.DownloadedTrackEntity
+import com.hank.musicfree.data.db.entity.DownloadedTrackEntity
 ```
 
 Update setup to pass `AppDatabase` into the repository after the production constructor changes:
@@ -296,7 +296,7 @@ fun removeFromLocalLibraryDeletesScannedLocalButOnlyClearsDownloadedStateForPlug
 Run:
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.MusicRepositoryTest
+./gradlew :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.repository.MusicRepositoryTest
 ```
 
 Expected: FAIL at compile time because `observeLocalLibrary`, `commitDownloadedTrack`, and `removeFromLocalLibrary` do not exist.
@@ -334,8 +334,8 @@ Add imports:
 
 ```kotlin
 import androidx.room.withTransaction
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.entity.DownloadedTrackEntity
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.entity.DownloadedTrackEntity
 ```
 
 Add methods:
@@ -422,7 +422,7 @@ Use `rg -n "MusicRepository\\(" data feature app downloader plugin player core` 
 Run:
 
 ```bash
-./gradlew :data:testDebugUnitTest :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.MusicRepositoryTest --no-daemon
+./gradlew :data:testDebugUnitTest :data:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.repository.MusicRepositoryTest --no-daemon
 ```
 
 Expected: PASS. If no device is available, run `:data:testDebugUnitTest` and note that androidTest remains pending for later device validation.
@@ -430,9 +430,9 @@ Expected: PASS. If no device is available, run `:data:testDebugUnitTest` and not
 - [ ] **Step 7: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/MusicDao.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/repository/MusicRepository.kt \
-  data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/MusicRepositoryTest.kt \
+git add data/src/main/java/com/hank/musicfree/data/db/dao/MusicDao.kt \
+  data/src/main/java/com/hank/musicfree/data/repository/MusicRepository.kt \
+  data/src/androidTest/java/com/hank/musicfree/data/repository/MusicRepositoryTest.kt \
   $(git diff --name-only | rg 'MusicRepository.*Test|RepositoryTest|RepositoryJvmTest|MapperJvmTest')
 git commit -m "feat(data): 统一本地音乐库读取和移除语义"
 ```
@@ -440,10 +440,10 @@ git commit -m "feat(data): 统一本地音乐库读取和移除语义"
 ## Task 3: Preserve Full Download Seeds And Commit Downloads To Local Library
 
 **Files:**
-- Modify: `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngine.kt`
-- Modify: `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/di/DownloaderModule.kt`
-- Modify: `downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngineSchedulingTest.kt`
-- Modify: `downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngineRecoveryTest.kt`
+- Modify: `downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadEngine.kt`
+- Modify: `downloader/src/main/java/com/hank/musicfree/downloader/di/DownloaderModule.kt`
+- Modify: `downloader/src/test/java/com/hank/musicfree/downloader/engine/DownloadEngineSchedulingTest.kt`
+- Modify: `downloader/src/test/java/com/hank/musicfree/downloader/engine/DownloadEngineRecoveryTest.kt`
 - Modify: other `downloader/src/test/.../DownloadEngine*Test.kt` constructor fixtures if compile reports them.
 
 - [ ] **Step 1: Write failing downloader tests**
@@ -451,9 +451,9 @@ git commit -m "feat(data): 统一本地音乐库读取和移除语义"
 In `DownloadEngineSchedulingTest`, add imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.model.QualityInfo
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.repository.MusicRepository
+import com.hank.musicfree.core.model.QualityInfo
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.repository.MusicRepository
 ```
 
 Add a fixture field:
@@ -563,8 +563,8 @@ private val musicRepository: MusicRepository,
 Add imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.repository.MusicRepository
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.repository.MusicRepository
 ```
 
 In `enqueue`, set:
@@ -647,8 +647,8 @@ musicRepository = musicRepository,
 Add imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.data.db.converter.Converters
-import com.zili.android.musicfreeandroid.data.repository.MusicRepository
+import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.repository.MusicRepository
 ```
 
 For every `DownloadEngine(...)` test fixture, pass:
@@ -673,22 +673,22 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngine.kt \
-  downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/di/DownloaderModule.kt \
-  downloader/src/test/java/com/zili/android/musicfreeandroid/downloader/engine \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/DownloadTaskEntity.kt
+git add downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadEngine.kt \
+  downloader/src/main/java/com/hank/musicfree/downloader/di/DownloaderModule.kt \
+  downloader/src/test/java/com/hank/musicfree/downloader/engine \
+  data/src/main/java/com/hank/musicfree/data/db/entity/DownloadTaskEntity.kt
 git commit -m "feat(downloader): 下载完成写入完整本地曲库"
 ```
 
 ## Task 4: Switch Feature Home To Unified Local Library API
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListSourceLoaderTest.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModel.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModelTest.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListSourceLoaderTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalMusicViewModel.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/local/LocalMusicViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt`
 
 - [ ] **Step 1: Write failing source-loader test**
 
@@ -827,20 +827,20 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListSourceLoaderTest.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModel.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/local/LocalMusicViewModelTest.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListSourceLoaderTest.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalMusicViewModel.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/local/LocalMusicViewModelTest.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModelTest.kt
 git commit -m "feat(home): 本地音乐页使用统一曲库口径"
 ```
 
 ## Task 5: Logging, Regression Sweep, And Build Verification
 
 **Files:**
-- Modify: `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngine.kt`
-- Inspect: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/MusicRepository.kt`
+- Modify: `downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadEngine.kt`
+- Inspect: `data/src/main/java/com/hank/musicfree/data/repository/MusicRepository.kt`
 
 - [ ] **Step 1: Add explicit local-library write logging**
 
@@ -960,8 +960,8 @@ Manual expected behavior:
 - [ ] **Step 7: Final commit**
 
 ```bash
-git add downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/engine/DownloadEngine.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/repository/MusicRepository.kt
+git add downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadEngine.kt \
+  data/src/main/java/com/hank/musicfree/data/repository/MusicRepository.kt
 git commit -m "fix(download): 补齐本地曲库写入诊断日志"
 ```
 

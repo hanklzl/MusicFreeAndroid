@@ -133,12 +133,12 @@ git commit -m "build: add Coil and lifecycle dependencies for feature modules"
 ## Task 2: CoverImage 通用组件
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/CoverImage.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/ui/CoverImage.kt`
 
 - [ ] **Step 1: 创建 CoverImage Composable**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -155,7 +155,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 
 @Composable
 fun CoverImage(
@@ -215,18 +215,18 @@ git commit -m "feat(core): add CoverImage composable with Coil and placeholder"
 ## Task 3: LocalMusicScanner — MediaStore 扫描
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/scanner/LocalMusicScanner.kt`
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/scanner/LocalMusicScannerTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/scanner/LocalMusicScanner.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/scanner/LocalMusicScannerTest.kt`
 
 - [ ] **Step 1: 编写 LocalMusicScanner 测试**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.scanner
+package com.hank.musicfree.feature.home.scanner
 
 import android.content.ContentResolver
 import android.database.MatrixCursor
 import android.provider.MediaStore
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -330,13 +330,13 @@ Expected: FAIL（类不存在）
 - [ ] **Step 4: 实现 LocalMusicScanner**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.scanner
+package com.hank.musicfree.feature.home.scanner
 
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.net.Uri
 import android.provider.MediaStore
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -441,16 +441,16 @@ git commit -m "feat(home): add LocalMusicScanner with MediaStore query and tests
 ## Task 4: HomeUiState 和 HomeViewModel
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeUiState.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeViewModel.kt`
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeViewModelTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeUiState.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeViewModel.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeViewModelTest.kt`
 
 - [ ] **Step 1: 创建 HomeUiState**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home
+package com.hank.musicfree.feature.home
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 sealed interface HomeUiState {
     data object Loading : HomeUiState
@@ -462,11 +462,11 @@ sealed interface HomeUiState {
 - [ ] **Step 2: 编写 HomeViewModel 测试**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home
+package com.hank.musicfree.feature.home
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.feature.home.scanner.LocalMusicScanner
+import com.hank.musicfree.player.controller.PlayerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -547,13 +547,13 @@ Expected: FAIL
 - [ ] **Step 4: 实现 HomeViewModel**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home
+package com.hank.musicfree.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.feature.home.scanner.LocalMusicScanner
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.feature.home.scanner.LocalMusicScanner
+import com.hank.musicfree.player.controller.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -611,13 +611,13 @@ git commit -m "feat(home): add HomeViewModel with local music scanning and tests
 ## Task 5: HomeScreen UI — 本地音乐列表
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/navigation/HomeNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/navigation/HomeNavigation.kt`
 
 - [ ] **Step 1: 实现 HomeScreen UI**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home
+package com.hank.musicfree.feature.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -652,10 +652,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.theme.Dimensions
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.ui.CoverImage
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.theme.Dimensions
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.ui.CoverImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -804,12 +804,12 @@ private fun MusicListItem(
 - [ ] **Step 2: 更新 HomeNavigation.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.navigation
+package com.hank.musicfree.feature.home.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
-import com.zili.android.musicfreeandroid.feature.home.HomeScreen
+import com.hank.musicfree.core.navigation.HomeRoute
+import com.hank.musicfree.feature.home.HomeScreen
 
 fun NavGraphBuilder.homeScreen(
     onNavigateToPlayer: () -> Unit,
@@ -843,18 +843,18 @@ git commit -m "feat(home): implement HomeScreen with local music list UI"
 ## Task 6: PlayerViewModel
 
 **Files:**
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- Create: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelTest.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- Create: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelTest.kt`
 
 - [ ] **Step 1: 编写 PlayerViewModel 测试**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui
+package com.hank.musicfree.feature.playerui
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
-import com.zili.android.musicfreeandroid.player.model.PlayerState
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.RepeatMode
+import com.hank.musicfree.player.controller.PlayerController
+import com.hank.musicfree.player.model.PlayerState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -970,11 +970,11 @@ Expected: FAIL
 - [ ] **Step 3: 实现 PlayerViewModel**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui
+package com.hank.musicfree.feature.playerui
 
 import androidx.lifecycle.ViewModel
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
-import com.zili.android.musicfreeandroid.player.model.PlayerState
+import com.hank.musicfree.player.controller.PlayerController
+import com.hank.musicfree.player.model.PlayerState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
@@ -1023,12 +1023,12 @@ git commit -m "feat(player-ui): add PlayerViewModel with controller delegation a
 ## Task 7: MiniPlayer 组件
 
 **Files:**
-- Create: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayer.kt`
+- Create: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayer.kt`
 
 - [ ] **Step 1: 实现 MiniPlayer Composable**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.component
+package com.hank.musicfree.feature.playerui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -1056,10 +1056,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.theme.Dimensions
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.ui.CoverImage
-import com.zili.android.musicfreeandroid.feature.playerui.PlayerViewModel
+import com.hank.musicfree.core.theme.Dimensions
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.ui.CoverImage
+import com.hank.musicfree.feature.playerui.PlayerViewModel
 
 @Composable
 fun MiniPlayer(
@@ -1157,13 +1157,13 @@ git commit -m "feat(player-ui): add MiniPlayer composable with progress bar and 
 ## Task 8: PlayerScreen — 全屏播放器 UI
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/navigation/PlayerNavigation.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/navigation/PlayerNavigation.kt`
 
 - [ ] **Step 1: 实现全屏 PlayerScreen**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui
+package com.hank.musicfree.feature.playerui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -1212,9 +1212,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.zili.android.musicfreeandroid.core.model.RepeatMode
-import com.zili.android.musicfreeandroid.core.theme.Dimensions
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.model.RepeatMode
+import com.hank.musicfree.core.theme.Dimensions
+import com.hank.musicfree.core.theme.MusicFreeTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1444,12 +1444,12 @@ private fun formatDuration(ms: Long): String {
 - [ ] **Step 2: 更新 PlayerNavigation.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.navigation
+package com.hank.musicfree.feature.playerui.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
-import com.zili.android.musicfreeandroid.feature.playerui.PlayerScreen
+import com.hank.musicfree.core.navigation.PlayerRoute
+import com.hank.musicfree.feature.playerui.PlayerScreen
 
 fun NavGraphBuilder.playerScreen(
     onBack: () -> Unit,
@@ -1477,28 +1477,28 @@ git commit -m "feat(player-ui): implement full-screen PlayerScreen with controls
 ## Task 9: App 集成 — Scaffold + MiniPlayer + 导航
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
 
 - [ ] **Step 1: 更新 AppNavHost，传递完整导航回调**
 
 修改 `AppNavHost.kt` 以确保所有导航回调正确连接：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.navigation
+package com.hank.musicfree.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
-import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
-import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
-import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
-import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
-import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
-import com.zili.android.musicfreeandroid.feature.playerui.navigation.playerScreen
-import com.zili.android.musicfreeandroid.feature.search.navigation.searchScreen
-import com.zili.android.musicfreeandroid.feature.settings.navigation.settingsScreen
+import com.hank.musicfree.core.navigation.HomeRoute
+import com.hank.musicfree.core.navigation.PlayerRoute
+import com.hank.musicfree.core.navigation.SearchRoute
+import com.hank.musicfree.core.navigation.SettingsRoute
+import com.hank.musicfree.feature.home.navigation.homeScreen
+import com.hank.musicfree.feature.playerui.navigation.playerScreen
+import com.hank.musicfree.feature.search.navigation.searchScreen
+import com.hank.musicfree.feature.settings.navigation.settingsScreen
 
 @Composable
 fun AppNavHost(
@@ -1531,7 +1531,7 @@ fun AppNavHost(
 - [ ] **Step 2: 更新 MainActivity，集成 MiniPlayer 到 Scaffold**
 
 ```kotlin
-package com.zili.android.musicfreeandroid
+package com.hank.musicfree
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -1544,13 +1544,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
-import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
-import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
-import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.feature.playerui.component.MiniPlayer
-import com.zili.android.musicfreeandroid.navigation.AppNavHost
+import com.hank.musicfree.core.navigation.HomeRoute
+import com.hank.musicfree.core.navigation.PlayerRoute
+import com.hank.musicfree.core.navigation.SearchRoute
+import com.hank.musicfree.core.navigation.SettingsRoute
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.feature.playerui.component.MiniPlayer
+import com.hank.musicfree.navigation.AppNavHost
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -1633,7 +1633,7 @@ git commit -m "feat(app): integrate MiniPlayer into Scaffold and wire up navigat
 ## Task 10: 权限请求处理
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
 
 - [ ] **Step 1: 在 HomeScreen 中添加运行时权限请求**
 

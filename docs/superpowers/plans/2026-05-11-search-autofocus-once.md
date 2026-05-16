@@ -16,27 +16,27 @@
   - Registers the new current spec.
 - Create: `docs/superpowers/specs/2026-05-11-search-autofocus-once-design.md`
   - Defines the behavior and validation scope.
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
   - Owns main search initial autofocus consumption state.
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
   - Gates the existing focus request through the ViewModel.
-- Modify: `feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- Modify: `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
   - Adds unit coverage for main search one-shot consumption.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListViewModel.kt`
   - Owns search-music-list initial autofocus consumption state.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt`
   - Gates the existing focus request through the ViewModel.
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListViewModelTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListViewModelTest.kt`
   - Adds unit coverage for search-music-list one-shot consumption.
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt`
   - Adds UI regression coverage that a reused ViewModel does not refocus on re-entry.
 
 ## Task 1: Write Failing Focus Consumption Tests
 
 **Files:**
-- Modify: `feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListViewModelTest.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt`
+- Modify: `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListViewModelTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt`
 
 - [ ] **Step 1: Add SearchViewModel consumption test**
 
@@ -162,7 +162,7 @@ fun `search music list input does not refocus when screen re-enters with same vi
 Run:
 
 ```bash
-./gradlew :feature:search:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest.initial autofocus request is consumed once per view model instance" --no-daemon
+./gradlew :feature:search:testDebugUnitTest --tests "com.hank.musicfree.feature.search.SearchViewModelTest.initial autofocus request is consumed once per view model instance" --no-daemon
 ```
 
 Expected: FAIL because `consumeInitialAutofocusRequest()` does not exist.
@@ -170,7 +170,7 @@ Expected: FAIL because `consumeInitialAutofocusRequest()` does not exist.
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusicListViewModelTest.initial autofocus request is consumed once per view model instance" --no-daemon
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.searchmusiclist.SearchMusicListViewModelTest.initial autofocus request is consumed once per view model instance" --no-daemon
 ```
 
 Expected: FAIL because `consumeInitialAutofocusRequest()` does not exist.
@@ -178,7 +178,7 @@ Expected: FAIL because `consumeInitialAutofocusRequest()` does not exist.
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusicListScreenFocusTest.search music list input does not refocus when screen re-enters with same view model" --no-daemon
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.searchmusiclist.SearchMusicListScreenFocusTest.search music list input does not refocus when screen re-enters with same view model" --no-daemon
 ```
 
 Expected before implementation: FAIL because the current Screen requests focus every time it re-enters composition.
@@ -186,10 +186,10 @@ Expected before implementation: FAIL because the current Screen requests focus e
 ## Task 2: Implement One-Shot Autofocus Consumption
 
 **Files:**
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt`
 
 - [ ] **Step 1: Add SearchViewModel gate**
 
@@ -276,7 +276,7 @@ LaunchedEffect(Unit) {
 Run:
 
 ```bash
-./gradlew :feature:search:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest" --no-daemon
+./gradlew :feature:search:testDebugUnitTest --tests "com.hank.musicfree.feature.search.SearchViewModelTest" --no-daemon
 ```
 
 Expected: PASS.
@@ -284,7 +284,7 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusicListViewModelTest" --tests "com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusicListScreenFocusTest" --no-daemon
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.searchmusiclist.SearchMusicListViewModelTest" --tests "com.hank.musicfree.feature.home.searchmusiclist.SearchMusicListScreenFocusTest" --no-daemon
 ```
 
 Expected: PASS.
@@ -319,7 +319,7 @@ Expected: no violations.
 Run:
 
 ```bash
-git diff -- docs/DOCS_STATUS.md docs/superpowers/specs/2026-05-11-search-autofocus-once-design.md docs/superpowers/plans/2026-05-11-search-autofocus-once.md feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListViewModel.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListViewModelTest.kt feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt
+git diff -- docs/DOCS_STATUS.md docs/superpowers/specs/2026-05-11-search-autofocus-once-design.md docs/superpowers/plans/2026-05-11-search-autofocus-once.md feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListViewModel.kt feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListViewModelTest.kt feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt
 ```
 
 Expected: only the spec, plan, DOCS_STATUS registration, focus gate, and related tests are changed.

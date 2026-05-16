@@ -21,11 +21,11 @@
 | `feature/search/build.gradle.kts` | Modify | 同上 |
 | `feature/settings/build.gradle.kts` | Modify | 同上 |
 | `gradle.properties` | Modify | 将 Gradle daemon heap 从 2 GiB 提升到 4 GiB，支撑 full androidTest dex 合并 |
-| `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt` | Modify | 修复 setUp 中主线程 `runBlocking { controller.connect() }` 死锁；给 `runOnAppThread` helper 加 bounded await |
-| `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/service/PlaybackServiceTest.kt` | Modify（可选） | 如需要，为 MediaController 连接加 bounded timeout，防止连接失败时永久挂起 |
-| `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt` | Modify | 删 `@Ignore` 与上方 TODO 注释；将 1 个用例迁到 `runTest(mainDispatcherRule.dispatcher) + advanceUntilIdle` |
-| `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt` | Modify | 删 2 处 `@Ignore` 与上方 TODO；同样迁移 2 个用例 |
-| `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt` | Modify | 删 2 处 `@Ignore` 与上方 TODO；用例 1 改写、用例 2 删除 |
+| `player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt` | Modify | 修复 setUp 中主线程 `runBlocking { controller.connect() }` 死锁；给 `runOnAppThread` helper 加 bounded await |
+| `player/src/androidTest/java/com/hank/musicfree/player/service/PlaybackServiceTest.kt` | Modify（可选） | 如需要，为 MediaController 连接加 bounded timeout，防止连接失败时永久挂起 |
+| `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt` | Modify | 删 `@Ignore` 与上方 TODO 注释；将 1 个用例迁到 `runTest(mainDispatcherRule.dispatcher) + advanceUntilIdle` |
+| `feature/settings/src/test/java/com/hank/musicfree/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt` | Modify | 删 2 处 `@Ignore` 与上方 TODO；同样迁移 2 个用例 |
+| `app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt` | Modify | 删 2 处 `@Ignore` 与上方 TODO；用例 1 改写、用例 2 删除 |
 
 ---
 
@@ -192,14 +192,14 @@ git commit -m "test(gradle): raise daemon heap for full androidTest dexing"
 ## Task 2.6：修复 `PlayerControllerTest` instrumentation setUp 死锁
 
 **Files:**
-- Modify: `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt`
-- Modify（可选）: `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/service/PlaybackServiceTest.kt`
+- Modify: `player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt`
+- Modify（可选）: `player/src/androidTest/java/com/hank/musicfree/player/service/PlaybackServiceTest.kt`
 
 - [ ] **Step 1：确认失败签名**
 
 ```bash
 ./gradlew :player:connectedDebugAndroidTest --no-daemon \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.player.controller.PlayerControllerTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.player.controller.PlayerControllerTest
 ```
 
 当前失败表现为：
@@ -278,7 +278,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 ```bash
 ./gradlew :player:connectedDebugAndroidTest --no-daemon \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.player.controller.PlayerControllerTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.player.controller.PlayerControllerTest
 ./gradlew :player:connectedDebugAndroidTest --no-daemon
 ```
 
@@ -287,8 +287,8 @@ import java.util.concurrent.atomic.AtomicReference
 - [ ] **Step 6：commit**
 
 ```bash
-git add player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt
-git add player/src/androidTest/java/com/zili/android/musicfreeandroid/player/service/PlaybackServiceTest.kt 2>/dev/null || true
+git add player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt
+git add player/src/androidTest/java/com/hank/musicfree/player/service/PlaybackServiceTest.kt 2>/dev/null || true
 git commit -m "test(player): avoid main-thread runBlocking in controller instrumentation setup"
 ```
 
@@ -297,7 +297,7 @@ git commit -m "test(player): avoid main-thread runBlocking in controller instrum
 ## Task 3：迁移 `SettingsViewModelTest.set storage directory persists selected tree uri`
 
 **Files:**
-- Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt`
+- Modify: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt`
 
 - [ ] **Step 1：修改文件**
 
@@ -307,7 +307,7 @@ git commit -m "test(player): avoid main-thread runBlocking in controller instrum
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
-import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.hank.musicfree.data.datastore.AppPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -360,7 +360,7 @@ import org.junit.rules.TemporaryFolder
 - [ ] **Step 2：跑测试，确认通过**
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.settings.SettingsViewModelTest"
+./gradlew :feature:settings:testDebugUnitTest --tests "com.hank.musicfree.feature.settings.SettingsViewModelTest"
 ```
 
 预期：`SettingsViewModelTest > set storage directory persists selected tree uri PASSED`，`@Ignore` 不再出现在 SettingsViewModelTest 中。
@@ -370,7 +370,7 @@ import org.junit.rules.TemporaryFolder
 - [ ] **Step 3：commit**
 
 ```bash
-git add feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModelTest.kt
+git add feature/settings/src/test/java/com/hank/musicfree/feature/settings/SettingsViewModelTest.kt
 git commit -m "$(cat <<'EOF'
 test(settings): migrate SettingsViewModelTest to runTest + advanceUntilIdle
 
@@ -388,7 +388,7 @@ EOF
 ## Task 4：迁移 `FileSelectorLiteViewModelTest.onDirectorySelected persists selected tree uri`
 
 **Files:**
-- Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt`
+- Modify: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt`
 
 - [ ] **Step 1：修改文件 imports**
 
@@ -398,8 +398,8 @@ EOF
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
-import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
-import com.zili.android.musicfreeandroid.feature.settings.MainDispatcherRule
+import com.hank.musicfree.data.datastore.AppPreferences
+import com.hank.musicfree.feature.settings.MainDispatcherRule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -451,7 +451,7 @@ import org.junit.rules.TemporaryFolder
 - [ ] **Step 3：跑测试，确认通过**
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.settings.fileselector.FileSelectorLiteViewModelTest.onDirectorySelected persists selected tree uri"
+./gradlew :feature:settings:testDebugUnitTest --tests "com.hank.musicfree.feature.settings.fileselector.FileSelectorLiteViewModelTest.onDirectorySelected persists selected tree uri"
 ```
 
 预期：测试 PASSED。
@@ -459,7 +459,7 @@ import org.junit.rules.TemporaryFolder
 - [ ] **Step 4：commit**
 
 ```bash
-git add feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt
+git add feature/settings/src/test/java/com/hank/musicfree/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt
 git commit -m "$(cat <<'EOF'
 test(settings): migrate FileSelectorLiteViewModelTest persists case to runTest
 
@@ -476,7 +476,7 @@ EOF
 ## Task 5：迁移 `FileSelectorLiteViewModelTest.onDirectorySelected replaces previous selected directory`
 
 **Files:**
-- Modify: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt`
+- Modify: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt`
 
 - [ ] **Step 1：修改文件 — 替换第 2 个 hang 用例**
 
@@ -502,7 +502,7 @@ EOF
 - [ ] **Step 2：跑测试，确认通过**
 
 ```bash
-./gradlew :feature:settings:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.settings.fileselector.FileSelectorLiteViewModelTest"
+./gradlew :feature:settings:testDebugUnitTest --tests "com.hank.musicfree.feature.settings.fileselector.FileSelectorLiteViewModelTest"
 ```
 
 预期：3 个用例全部 PASSED；该文件中 `@Ignore` 计数 = 0。
@@ -510,7 +510,7 @@ EOF
 - [ ] **Step 3：commit**
 
 ```bash
-git add feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt
+git add feature/settings/src/test/java/com/hank/musicfree/feature/settings/fileselector/FileSelectorLiteViewModelTest.kt
 git commit -m "$(cat <<'EOF'
 test(settings): migrate FileSelectorLiteViewModelTest replace case to runTest
 
@@ -553,7 +553,7 @@ grep -rn "@Ignore" feature/settings/src/test/ 2>/dev/null
 ## Task 7：HomeFidelity 用例 1 — 改写为 cold launch 真实断言
 
 **Files:**
-- Modify: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt`
+- Modify: `app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt`
 
 - [ ] **Step 1：修改文件 imports**
 
@@ -583,7 +583,7 @@ grep -rn "@Ignore" feature/settings/src/test/ 2>/dev/null
 - [ ] **Step 3（如有连接的 Android 设备/模拟器）：跑 androidTest 验证**
 
 ```bash
-./gradlew :app:connectedAndroidTest --tests "com.zili.android.musicfreeandroid.HomeFidelityHomeStructureTest.home_cold_launch_exposes_navbar_operations_sheets_and_drawer"
+./gradlew :app:connectedAndroidTest --tests "com.hank.musicfree.HomeFidelityHomeStructureTest.home_cold_launch_exposes_navbar_operations_sheets_and_drawer"
 ```
 
 预期：测试 PASSED。
@@ -593,7 +593,7 @@ grep -rn "@Ignore" feature/settings/src/test/ 2>/dev/null
 - [ ] **Step 4：commit**
 
 ```bash
-git add app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt
+git add app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt
 git commit -m "$(cat <<'EOF'
 test(app): rewrite HomeFidelity structure case for cold-launch reality
 
@@ -618,7 +618,7 @@ EOF
 ## Task 8：HomeFidelity 用例 2 — 删除
 
 **Files:**
-- Modify: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt`
+- Modify: `app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt`
 
 - [ ] **Step 1：删除整个 `home_content_remains_visible_above_existingMiniPlayer` 用例及其上方的 `@Ignore`**
 
@@ -657,7 +657,7 @@ grep -rn "@Ignore" app/src/androidTest/ 2>/dev/null
 - [ ] **Step 4：commit**
 
 ```bash
-git add app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt
+git add app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt
 git commit -m "$(cat <<'EOF'
 test(app): drop dead HomeFidelity mini-player overlap case
 
@@ -684,7 +684,7 @@ EOF
 
 ```bash
 ./gradlew :player:connectedDebugAndroidTest --no-daemon \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.player.controller.PlayerControllerTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.player.controller.PlayerControllerTest
 ./gradlew :player:connectedDebugAndroidTest --no-daemon
 ```
 

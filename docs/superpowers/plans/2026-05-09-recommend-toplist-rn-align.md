@@ -16,63 +16,63 @@ The approved spec is a single coherent feature: recommended playlist and chart e
 
 ## File Structure
 
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
   - Add lightweight fallback fields and `seedToken` to `TopListDetailRoute` and `PluginSheetDetailRoute`.
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
   - Store clicked `MusicSheetItemBase` seeds before navigating.
   - Pass route fallback fields for process recreation.
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetSeedStore.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetSeedStore.kt`
   - One-time in-memory storage for clicked sheet/top-list seed objects.
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetRouteSeed.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetRouteSeed.kt`
   - Fallback seed constructors for `PluginSheetDetailRoute` and `TopListDetailRoute`.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
   - Use seed store or route fallback before calling `getMusicSheetInfo`.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt`
   - Use seed store or route fallback before calling `getTopListDetail`; remove the normal-path dependency on `findTopListById`.
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityUi.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityUi.kt`
   - Small UI model plus filtering helpers for enabled plugins with a required method.
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityTabs.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityTabs.kt`
   - Shared `ScrollableTabRow` UI used by recommended playlists and charts.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsUiState.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsUiState.kt`
   - Add empty-state metadata needed to distinguish no plugins from unsupported plugins.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsViewModel.kt`
   - Source plugins from sorted enabled plugins filtered by `getRecommendSheetsByTag`.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt`
   - Replace segmented buttons and single-column rows with shared tabs and a three-column card grid.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListViewModel.kt`
   - Source plugins from sorted enabled plugins filtered by `getTopLists`.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt`
   - Replace segmented buttons with shared tabs, pass complete top-list item on click, and use `description` for subtitle.
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/navigation/TopListNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/navigation/TopListNavigation.kt`
   - Update callback signature to accept complete `MusicSheetItemBase`.
-- Modify: `app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt`
+- Modify: `app/src/test/java/com/hank/musicfree/RoutesTest.kt`
   - Assert new route fields round-trip through serialization.
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetSeedStoreTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetSeedStoreTest.kt`
   - Test seed store one-time consumption.
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetRouteSeedTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetRouteSeedTest.kt`
   - Test route fallback seed construction.
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityUiTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityUiTest.kt`
   - Test method filtering and ordering.
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDisplayTextTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/toplist/TopListDisplayTextTest.kt`
   - Test chart subtitle selection.
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsViewModelTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsViewModelTest.kt`
   - Test recommended playlist capability filtering and tag payload calls.
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListViewModelTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/toplist/TopListViewModelTest.kt`
   - Test chart capability filtering and load calls.
 
 ## Task 1: Route Fields, Seed Store, And Fallback Seeds
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetSeedStore.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetRouteSeed.kt`
-- Test: `app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetSeedStoreTest.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetRouteSeedTest.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetSeedStore.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetRouteSeed.kt`
+- Test: `app/src/test/java/com/hank/musicfree/RoutesTest.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetSeedStoreTest.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetRouteSeedTest.kt`
 
 - [ ] **Step 1: Update route serialization tests first**
 
-Replace the existing `TopListDetailRoute is serializable` and `PluginSheetDetailRoute is serializable` tests in `app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt` with:
+Replace the existing `TopListDetailRoute is serializable` and `PluginSheetDetailRoute is serializable` tests in `app/src/test/java/com/hank/musicfree/RoutesTest.kt` with:
 
 ```kotlin
     @Test
@@ -116,12 +116,12 @@ Replace the existing `TopListDetailRoute is serializable` and `PluginSheetDetail
 
 - [ ] **Step 2: Add seed store tests**
 
-Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetSeedStoreTest.kt`:
+Create `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetSeedStoreTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation
+package com.hank.musicfree.feature.home.pluginsheet.navigation
 
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -167,13 +167,13 @@ class PluginSheetSeedStoreTest {
 
 - [ ] **Step 3: Add fallback seed tests**
 
-Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetRouteSeedTest.kt`:
+Create `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetRouteSeedTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation
+package com.hank.musicfree.feature.home.pluginsheet.navigation
 
-import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
-import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
+import com.hank.musicfree.core.navigation.PluginSheetDetailRoute
+import com.hank.musicfree.core.navigation.TopListDetailRoute
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -240,8 +240,8 @@ class PluginSheetRouteSeedTest {
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests com.zili.android.musicfreeandroid.RoutesTest
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStoreTest --tests com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedTest
+./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.RoutesTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetSeedStoreTest --tests com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetRouteSeedTest
 ```
 
 Expected:
@@ -252,7 +252,7 @@ Expected:
 
 - [ ] **Step 5: Extend routes**
 
-Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`:
+Modify `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`:
 
 ```kotlin
 @Serializable
@@ -287,12 +287,12 @@ data class PluginSheetDetailRoute(
 
 - [ ] **Step 6: Implement the seed store**
 
-Create `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetSeedStore.kt`:
+Create `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetSeedStore.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation
+package com.hank.musicfree.feature.home.pluginsheet.navigation
 
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -320,14 +320,14 @@ object PluginSheetSeedStore {
 
 - [ ] **Step 7: Implement fallback seed helpers**
 
-Create `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetRouteSeed.kt`:
+Create `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetRouteSeed.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation
+package com.hank.musicfree.feature.home.pluginsheet.navigation
 
-import com.zili.android.musicfreeandroid.core.navigation.PluginSheetDetailRoute
-import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.core.navigation.PluginSheetDetailRoute
+import com.hank.musicfree.core.navigation.TopListDetailRoute
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
 
 fun PluginSheetDetailRoute.fallbackSheetSeed(): MusicSheetItemBase = MusicSheetItemBase(
     id = sheetId,
@@ -397,8 +397,8 @@ private fun routeRaw(
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests com.zili.android.musicfreeandroid.RoutesTest
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStoreTest --tests com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedTest
+./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.RoutesTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetSeedStoreTest --tests com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetRouteSeedTest
 ```
 
 Expected: all selected tests pass.
@@ -408,25 +408,25 @@ Expected: all selected tests pass.
 Run:
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetSeedStore.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetRouteSeed.kt feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetSeedStoreTest.kt feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetRouteSeedTest.kt
+git add core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt app/src/test/java/com/hank/musicfree/RoutesTest.kt feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetSeedStore.kt feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetRouteSeed.kt feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetSeedStoreTest.kt feature/home/src/test/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetRouteSeedTest.kt
 git commit -m "feat(home): carry plugin sheet route seeds"
 ```
 
 ## Task 2: Plugin Capability Filtering Helpers
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityUi.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityUiTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityUi.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityUiTest.kt`
 
 - [ ] **Step 1: Add filtering helper tests**
 
-Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityUiTest.kt`:
+Create `feature/home/src/test/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityUiTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.pluginfeature
+package com.hank.musicfree.feature.home.pluginfeature
 
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.manager.LoadedPlugin
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mockito.kotlin.mock
@@ -484,19 +484,19 @@ class PluginCapabilityUiTest {
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityUiTest
 ```
 
 Expected: FAIL because `PluginCapabilityUiModel` and `pluginsSupporting` do not exist.
 
 - [ ] **Step 3: Implement filtering helper**
 
-Create `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityUi.kt`:
+Create `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityUi.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.pluginfeature
+package com.hank.musicfree.feature.home.pluginfeature
 
-import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
+import com.hank.musicfree.plugin.manager.LoadedPlugin
 
 data class PluginCapabilityUiModel(
     val platform: String,
@@ -521,7 +521,7 @@ fun List<LoadedPlugin>.pluginsSupporting(method: String): List<PluginCapabilityU
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityUiTest
 ```
 
 Expected: PASS.
@@ -531,30 +531,30 @@ Expected: PASS.
 Run:
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityUi.kt feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityUiTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityUi.kt feature/home/src/test/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityUiTest.kt
 git commit -m "feat(home): filter plugins by sheet capabilities"
 ```
 
 ## Task 3: Recommended Playlist ViewModel Filtering
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsUiState.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsViewModel.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsUiState.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsViewModel.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsViewModelTest.kt`
 
 - [ ] **Step 1: Add ViewModel tests**
 
-Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsViewModelTest.kt`:
+Create `feature/home/src/test/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsViewModelTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.recommendsheets
+package com.hank.musicfree.feature.home.recommendsheets
 
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
-import com.zili.android.musicfreeandroid.plugin.api.PaginationResult
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.api.RecommendSheetTagsResult
-import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.plugin.api.PaginationResult
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.api.RecommendSheetTagsResult
+import com.hank.musicfree.plugin.manager.LoadedPlugin
+import com.hank.musicfree.plugin.manager.PluginManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -694,19 +694,19 @@ class RecommendSheetsViewModelTest {
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.recommendsheets.RecommendSheetsViewModelTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.recommendsheets.RecommendSheetsViewModelTest
 ```
 
 Expected: FAIL because the ViewModel still exposes all plugins and `RecommendSheetsUiState` has no `emptyMessage`.
 
 - [ ] **Step 3: Add empty message to UI state**
 
-Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsUiState.kt` so the data class is:
+Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsUiState.kt` so the data class is:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.recommendsheets
+package com.hank.musicfree.feature.home.recommendsheets
 
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
 
 data class RecommendSheetsUiState(
     val tags: List<RecommendTag> = emptyList(),
@@ -731,8 +731,8 @@ data class RecommendTag(
 Modify the top of `RecommendSheetsViewModel.kt`:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiModel
-import com.zili.android.musicfreeandroid.feature.home.pluginfeature.pluginsSupporting
+import com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityUiModel
+import com.hank.musicfree.feature.home.pluginfeature.pluginsSupporting
 ```
 
 Replace `availablePlugins` with:
@@ -795,7 +795,7 @@ In `loadSheets`, clear `emptyMessage` whenever loading starts:
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.recommendsheets.RecommendSheetsViewModelTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.recommendsheets.RecommendSheetsViewModelTest
 ```
 
 Expected: PASS.
@@ -805,28 +805,28 @@ Expected: PASS.
 Run:
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsUiState.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsViewModel.kt feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsViewModelTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsUiState.kt feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsViewModel.kt feature/home/src/test/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsViewModelTest.kt
 git commit -m "feat(home): filter recommend sheet plugins"
 ```
 
 ## Task 4: Chart ViewModel Filtering
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListViewModel.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListViewModel.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/toplist/TopListViewModelTest.kt`
 
 - [ ] **Step 1: Add ViewModel tests**
 
-Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListViewModelTest.kt`:
+Create `feature/home/src/test/java/com/hank/musicfree/feature/home/toplist/TopListViewModelTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.toplist
+package com.hank.musicfree.feature.home.toplist
 
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetGroupItem
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.plugin.api.MusicSheetGroupItem
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.manager.LoadedPlugin
+import com.hank.musicfree.plugin.manager.PluginManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -942,7 +942,7 @@ class TopListViewModelTest {
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.toplist.TopListViewModelTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.toplist.TopListViewModelTest
 ```
 
 Expected: FAIL because the ViewModel still exposes all plugins.
@@ -952,8 +952,8 @@ Expected: FAIL because the ViewModel still exposes all plugins.
 Modify imports in `TopListViewModel.kt`:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiModel
-import com.zili.android.musicfreeandroid.feature.home.pluginfeature.pluginsSupporting
+import com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityUiModel
+import com.hank.musicfree.feature.home.pluginfeature.pluginsSupporting
 ```
 
 Replace `availablePlugins` with:
@@ -988,7 +988,7 @@ Replace its collector in `init` with:
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.toplist.TopListViewModelTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.toplist.TopListViewModelTest
 ```
 
 Expected: PASS.
@@ -998,26 +998,26 @@ Expected: PASS.
 Run:
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListViewModel.kt feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListViewModelTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListViewModel.kt feature/home/src/test/java/com/hank/musicfree/feature/home/toplist/TopListViewModelTest.kt
 git commit -m "feat(home): filter chart plugins"
 ```
 
 ## Task 5: Shared Plugin Tabs And Entry Page UI
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityTabs.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDisplayTextTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityTabs.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/toplist/TopListDisplayTextTest.kt`
 
 - [ ] **Step 1: Add display text test for chart rows**
 
-Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDisplayTextTest.kt`:
+Create `feature/home/src/test/java/com/hank/musicfree/feature/home/toplist/TopListDisplayTextTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.toplist
+package com.hank.musicfree.feature.home.toplist
 
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -1063,25 +1063,25 @@ class TopListDisplayTextTest {
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.toplist.TopListDisplayTextTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.toplist.TopListDisplayTextTest
 ```
 
 Expected: FAIL because `topListSubtitle` does not exist.
 
 - [ ] **Step 3: Add shared tab composable**
 
-Create `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityTabs.kt`:
+Create `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityTabs.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.pluginfeature
+package com.hank.musicfree.feature.home.pluginfeature
 
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.style.TextOverflow
-import com.zili.android.musicfreeandroid.core.theme.FontSizes
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.FontSizes
+import com.hank.musicfree.core.theme.MusicFreeTheme
 
 @Composable
 fun PluginCapabilityTabs(
@@ -1132,7 +1132,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityTabs
+import com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityTabs
 ```
 
 Replace the segmented button block with:
@@ -1247,7 +1247,7 @@ In `TopListScreen.kt`:
 - Replace segmented button imports with:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityTabs
+import com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityTabs
 ```
 
 - Replace the segmented button block with:
@@ -1295,16 +1295,16 @@ internal fun topListSubtitle(item: MusicSheetItemBase): String? =
 
 - [ ] **Step 6: Update TopListNavigation callback signature**
 
-Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/navigation/TopListNavigation.kt`:
+Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/navigation/TopListNavigation.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.toplist.navigation
+package com.hank.musicfree.feature.home.toplist.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.TopListRoute
-import com.zili.android.musicfreeandroid.feature.home.toplist.TopListScreen
-import com.zili.android.musicfreeandroid.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.core.navigation.TopListRoute
+import com.hank.musicfree.feature.home.toplist.TopListScreen
+import com.hank.musicfree.plugin.api.MusicSheetItemBase
 
 fun NavGraphBuilder.topListScreen(
     onBack: () -> Unit,
@@ -1324,7 +1324,7 @@ fun NavGraphBuilder.topListScreen(
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.toplist.TopListDisplayTextTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.toplist.TopListDisplayTextTest
 ./gradlew :feature:home:compileDebugKotlin
 ```
 
@@ -1335,23 +1335,23 @@ Expected: selected display test passes and `:feature:home:compileDebugKotlin` su
 Run:
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginfeature/PluginCapabilityTabs.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/navigation/TopListNavigation.kt feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDisplayTextTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/pluginfeature/PluginCapabilityTabs.kt feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/navigation/TopListNavigation.kt feature/home/src/test/java/com/hank/musicfree/feature/home/toplist/TopListDisplayTextTest.kt
 git commit -m "feat(home): align recommend and chart entry ui"
 ```
 
 ## Task 6: Navigation Seed Wiring And Detail ViewModels
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailViewModel.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt`
 
 - [ ] **Step 1: Wire seed storage in app navigation**
 
 Modify imports in `AppNavHost.kt`:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStore
+import com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetSeedStore
 ```
 
 Replace the `topListScreen` navigation block with:
@@ -1407,8 +1407,8 @@ Replace the `recommendSheetsScreen` navigation block with:
 Add imports to `PluginSheetDetailViewModel.kt`:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStore
-import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.fallbackSheetSeed
+import com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetSeedStore
+import com.hank.musicfree.feature.home.pluginsheet.navigation.fallbackSheetSeed
 ```
 
 Replace `private fun seedSheet(): MusicSheetItemBase` with:
@@ -1423,8 +1423,8 @@ Replace `private fun seedSheet(): MusicSheetItemBase` with:
 Add imports to `TopListDetailViewModel.kt`:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStore
-import com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.fallbackTopListSeed
+import com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetSeedStore
+import com.hank.musicfree.feature.home.pluginsheet.navigation.fallbackTopListSeed
 ```
 
 In `loadInitial()`, replace:
@@ -1464,7 +1464,7 @@ Expected: PASS.
 Run:
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailViewModel.kt feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailViewModel.kt
+git add app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt
 git commit -m "feat(home): use sheet seeds for plugin details"
 ```
 
@@ -1478,7 +1478,7 @@ git commit -m "feat(home): use sheet seeds for plugin details"
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.pluginfeature.PluginCapabilityUiTest --tests com.zili.android.musicfreeandroid.feature.home.recommendsheets.RecommendSheetsViewModelTest --tests com.zili.android.musicfreeandroid.feature.home.toplist.TopListViewModelTest --tests com.zili.android.musicfreeandroid.feature.home.toplist.TopListDisplayTextTest --tests com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetSeedStoreTest --tests com.zili.android.musicfreeandroid.feature.home.pluginsheet.navigation.PluginSheetRouteSeedTest
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityUiTest --tests com.hank.musicfree.feature.home.recommendsheets.RecommendSheetsViewModelTest --tests com.hank.musicfree.feature.home.toplist.TopListViewModelTest --tests com.hank.musicfree.feature.home.toplist.TopListDisplayTextTest --tests com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetSeedStoreTest --tests com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetRouteSeedTest
 ```
 
 Expected: PASS.
@@ -1488,7 +1488,7 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests com.zili.android.musicfreeandroid.RoutesTest
+./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.RoutesTest
 ```
 
 Expected: PASS.
@@ -1521,7 +1521,7 @@ Run:
 
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell monkey -p com.zili.android.musicfreeandroid.debug 1
+adb shell monkey -p com.hank.musicfree.debug 1
 ```
 
 Manual validation:

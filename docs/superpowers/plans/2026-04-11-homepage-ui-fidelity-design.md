@@ -54,52 +54,52 @@ Do **not** use this plan to:
 
 | File | Responsibility |
 |---|---|
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt` | Canonical anchor keys for expanded drawer matrix, dialogs, panels, and settings entries |
+| `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt` | Canonical anchor keys for expanded drawer matrix, dialogs, panels, and settings entries |
 
 ### Home screen production code
 
 | File | Responsibility |
 |---|---|
 | `feature/home/build.gradle.kts` | Add any missing Compose/runtime dependency needed for `BackHandler` or tested pure UI content |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt` | Hilt-backed container only; collects viewmodels and delegates to pure content |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt` | Pure homepage shell with scroll content, drawer layer, dialogs, and action callbacks |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenState.kt` | Page-level drawer/dialog state and coordination helpers |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerNavigation.kt` | Drawer action model, action dispatch, and destination-building helpers |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeDrawerContent.kt` | Custom drawer layout that mirrors RN section/group/bottom-action structure |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeDrawerDialogs.kt` | Controlled timing-close panel, language dialog, and update-check dialog surfaces |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIcons.kt` | Single home-only icon mapping surface backed by RN-derived drawables |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeInteractionStyle.kt` | Shared press/selection feedback tokens and helper modifiers for homepage controls |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeNavBar.kt` | RN-like menu/search chrome using imported assets and shared press feedback |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeOperations.kt` | RN-like four-card shortcuts using imported assets and shared press feedback |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsHeader.kt` | Tab row, counts, create/import actions, and selected-state visuals |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsList.kt` | Stable list-row rendering for mine/starred sheet datasets |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSection.kt` | Lazy list wiring for `HomeSheetsHeader` + `HomeSheetsList` |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeSystemActionHandler.kt` | UI-facing contract for `backToDesktop` and `exitApp` |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt` | Hilt-backed container only; collects viewmodels and delegates to pure content |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt` | Pure homepage shell with scroll content, drawer layer, dialogs, and action callbacks |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenState.kt` | Page-level drawer/dialog state and coordination helpers |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeDrawerNavigation.kt` | Drawer action model, action dispatch, and destination-building helpers |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeDrawerContent.kt` | Custom drawer layout that mirrors RN section/group/bottom-action structure |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeDrawerDialogs.kt` | Controlled timing-close panel, language dialog, and update-check dialog surfaces |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeIcons.kt` | Single home-only icon mapping surface backed by RN-derived drawables |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeInteractionStyle.kt` | Shared press/selection feedback tokens and helper modifiers for homepage controls |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeNavBar.kt` | RN-like menu/search chrome using imported assets and shared press feedback |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeOperations.kt` | RN-like four-card shortcuts using imported assets and shared press feedback |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsHeader.kt` | Tab row, counts, create/import actions, and selected-state visuals |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsList.kt` | Stable list-row rendering for mine/starred sheet datasets |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSection.kt` | Lazy list wiring for `HomeSheetsHeader` + `HomeSheetsList` |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeSystemActionHandler.kt` | UI-facing contract for `backToDesktop` and `exitApp` |
 
 ### Settings, app, and player integration
 
 | File | Responsibility |
 |---|---|
-| `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt` | Add missing fallback entries and fidelity anchors for drawer routes landing on settings root |
-| `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt` | Inject `PlayerController`, construct app-side `HomeSystemActionHandler`, and pass it into navigation |
-| `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt` | Thread `HomeSystemActionHandler` into the home destination |
-| `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AndroidHomeSystemActionHandler.kt` | Production implementation of back-to-desktop / exit-app behavior |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/navigation/HomeNavigation.kt` | Accept and forward `HomeSystemActionHandler` |
-| `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt` | Add explicit reset API that mirrors RN exit semantics closely enough for app exit |
+| `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt` | Add missing fallback entries and fidelity anchors for drawer routes landing on settings root |
+| `app/src/main/java/com/hank/musicfree/MainActivity.kt` | Inject `PlayerController`, construct app-side `HomeSystemActionHandler`, and pass it into navigation |
+| `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt` | Thread `HomeSystemActionHandler` into the home destination |
+| `app/src/main/java/com/hank/musicfree/navigation/AndroidHomeSystemActionHandler.kt` | Production implementation of back-to-desktop / exit-app behavior |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/navigation/HomeNavigation.kt` | Accept and forward `HomeSystemActionHandler` |
+| `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt` | Add explicit reset API that mirrors RN exit semantics closely enough for app exit |
 
 ### Tests
 
 | File | Responsibility |
 |---|---|
-| `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt` | Expanded anchor uniqueness contract |
-| `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenStateTest.kt` | Drawer/dialog state transitions without Compose runtime |
-| `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerUiModelTest.kt` | Drawer section order, anchor mapping, and trailing-text rules |
-| `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIconMappingTest.kt` | Contract that all required RN icons are mapped in `HomeIcons` |
-| `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsViewModelTest.kt` | Existing tab-switch stability coverage, adjusted if header/list split changes expectations |
-| `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt` | Add reset/clear-state coverage |
-| `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt` | Assert single-scroll root and drawer shell behavior after refactor |
-| `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt` | Expanded drawer destination matrix and settings-anchor fallback assertions |
-| `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeDrawerBehaviorTest.kt` | Direct `HomeScreenContent` tests for dialogs, scrim close, and fake system-action callbacks |
+| `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt` | Expanded anchor uniqueness contract |
+| `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenStateTest.kt` | Drawer/dialog state transitions without Compose runtime |
+| `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeDrawerUiModelTest.kt` | Drawer section order, anchor mapping, and trailing-text rules |
+| `feature/home/src/test/java/com/hank/musicfree/feature/home/component/HomeIconMappingTest.kt` | Contract that all required RN icons are mapped in `HomeIcons` |
+| `feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetsViewModelTest.kt` | Existing tab-switch stability coverage, adjusted if header/list split changes expectations |
+| `player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt` | Add reset/clear-state coverage |
+| `app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt` | Assert single-scroll root and drawer shell behavior after refactor |
+| `app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt` | Expanded drawer destination matrix and settings-anchor fallback assertions |
+| `app/src/androidTest/java/com/hank/musicfree/HomeDrawerBehaviorTest.kt` | Direct `HomeScreenContent` tests for dialogs, scrim close, and fake system-action callbacks |
 
 ### RN-derived drawables
 
@@ -260,13 +260,13 @@ git commit -m "docs(home): restore homepage manifest and capture tooling"
 ### Task 2: Expand Canonical Anchors and Settings Fallback Targets
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
 
 - [ ] **Step 1: Write the failing anchor-contract test**
 
-Extend `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt` with the new required anchors:
+Extend `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt` with the new required anchors:
 
 ```kotlin
 @Test
@@ -302,7 +302,7 @@ fun `expanded homepage fidelity anchors stay unique and non blank`() {
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.HomeAnchorContractTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.HomeAnchorContractTest"
 ```
 
 Expected: FAIL because the new constants do not exist yet.
@@ -359,7 +359,7 @@ Add a `modifier: Modifier = Modifier` parameter to `SettingsEntryCard` if needed
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.HomeAnchorContractTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.HomeAnchorContractTest"
 ```
 
 Expected: PASS.
@@ -367,9 +367,9 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt
 git commit -m "feat(home): add expanded homepage fidelity anchors"
 ```
 
@@ -378,8 +378,8 @@ git commit -m "feat(home): add expanded homepage fidelity anchors"
 ### Task 3: Import RN Assets and Add a Single `HomeIcons` Mapping Surface
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIcons.kt`
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIconMappingTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeIcons.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/component/HomeIconMappingTest.kt`
 - Create: `feature/home/src/main/res/drawable/ic_home_alarm_outline.xml`
 - Create: `feature/home/src/main/res/drawable/ic_home_arrow_path.xml`
 - Create: `feature/home/src/main/res/drawable/ic_home_bars_3.xml`
@@ -402,7 +402,7 @@ git commit -m "feat(home): add expanded homepage fidelity anchors"
 
 - [ ] **Step 1: Write the failing icon-mapping contract test**
 
-Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIconMappingTest.kt`:
+Create `feature/home/src/test/java/com/hank/musicfree/feature/home/component/HomeIconMappingTest.kt`:
 
 ```kotlin
 class HomeIconMappingTest {
@@ -442,7 +442,7 @@ class HomeIconMappingTest {
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.component.HomeIconMappingTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.component.HomeIconMappingTest"
 ```
 
 Expected: FAIL because `HomeIcons` and the drawable IDs do not exist yet.
@@ -480,7 +480,7 @@ object HomeIcons {
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.component.HomeIconMappingTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.component.HomeIconMappingTest"
 ```
 
 Expected: PASS.
@@ -488,8 +488,8 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIcons.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIconMappingTest.kt \
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeIcons.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/component/HomeIconMappingTest.kt \
   feature/home/src/main/res/drawable/*.xml
 git commit -m "feat(home): import RN homepage icon assets"
 ```
@@ -500,14 +500,14 @@ git commit -m "feat(home): import RN homepage icon assets"
 
 **Files:**
 - Modify: `feature/home/build.gradle.kts`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenState.kt`
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenStateTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenState.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenStateTest.kt`
 
 - [ ] **Step 1: Write the failing `HomeScreenState` test**
 
-Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenStateTest.kt`:
+Create `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenStateTest.kt`:
 
 ```kotlin
 class HomeScreenStateTest {
@@ -532,7 +532,7 @@ class HomeScreenStateTest {
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.HomeScreenStateTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.HomeScreenStateTest"
 ```
 
 Expected: FAIL because `HomeScreenState` does not exist yet.
@@ -601,7 +601,7 @@ If `BackHandler` is required, add `implementation(libs.androidx.activity.compose
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.HomeScreenStateTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.HomeScreenStateTest"
 ```
 
 Expected: PASS.
@@ -610,10 +610,10 @@ Expected: PASS.
 
 ```bash
 git add feature/home/build.gradle.kts \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenState.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenStateTest.kt
+  feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenState.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenStateTest.kt
 git commit -m "refactor(home): split home container from content shell"
 ```
 
@@ -622,14 +622,14 @@ git commit -m "refactor(home): split home container from content shell"
 ### Task 5: Build the Drawer UI Model, Custom Drawer Layout, and Controlled Surfaces
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerNavigation.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeDrawerContent.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeDrawerDialogs.kt`
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerUiModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeDrawerNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeDrawerContent.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeDrawerDialogs.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeDrawerUiModelTest.kt`
 
 - [ ] **Step 1: Write the failing drawer-model test**
 
-Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerUiModelTest.kt`:
+Create `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeDrawerUiModelTest.kt`:
 
 ```kotlin
 class HomeDrawerUiModelTest {
@@ -661,7 +661,7 @@ class HomeDrawerUiModelTest {
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.HomeDrawerUiModelTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.HomeDrawerUiModelTest"
 ```
 
 Expected: FAIL because the drawer UI model does not exist yet.
@@ -727,7 +727,7 @@ The first version only needs controlled visibility and predictable content, not 
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.HomeDrawerUiModelTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.HomeDrawerUiModelTest"
 ```
 
 Expected: PASS.
@@ -735,10 +735,10 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerNavigation.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeDrawerContent.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeDrawerDialogs.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerUiModelTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/HomeDrawerNavigation.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeDrawerContent.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeDrawerDialogs.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/HomeDrawerUiModelTest.kt
 git commit -m "feat(home): rebuild homepage drawer model and surfaces"
 ```
 
@@ -747,20 +747,20 @@ git commit -m "feat(home): rebuild homepage drawer model and surfaces"
 ### Task 6: Rebuild Nav Bar, Operations, and Sheets Chrome Around RN Assets
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeInteractionStyle.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeNavBar.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeOperations.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsHeader.kt`
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsList.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSection.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsViewModelTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeInteractionStyle.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeNavBar.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeOperations.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsHeader.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsList.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSection.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetsViewModelTest.kt`
 
 - [ ] **Step 1: Preserve the existing sheets-viewmodel test as the failing guardrail**
 
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModelTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.sheets.HomeSheetsViewModelTest"
 ```
 
 Expected: PASS before the refactor. This is the guardrail that the header/list split must not break tab switching.
@@ -821,7 +821,7 @@ The selected tab visual should mirror RN more closely:
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModelTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.sheets.HomeSheetsViewModelTest"
 ```
 
 Expected: PASS.
@@ -832,7 +832,7 @@ Run:
 
 ```bash
 rg -n "Icons\\.Default\\.(Menu|Search|Whatshot|EmojiEvents|History|LibraryMusic|Add|FileDownload)" \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home
+  feature/home/src/main/java/com/hank/musicfree/feature/home
 ```
 
 Expected: no matches in the homepage chrome implementation.
@@ -840,13 +840,13 @@ Expected: no matches in the homepage chrome implementation.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeInteractionStyle.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeNavBar.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeOperations.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsHeader.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsList.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsSection.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/sheets/HomeSheetsViewModelTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeInteractionStyle.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeNavBar.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeOperations.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsHeader.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsList.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/sheets/HomeSheetsSection.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/sheets/HomeSheetsViewModelTest.kt
 git commit -m "feat(home): align homepage chrome with RN assets"
 ```
 
@@ -855,17 +855,17 @@ git commit -m "feat(home): align homepage chrome with RN assets"
 ### Task 7: Wire App Navigation, System Actions, and Player Reset Semantics
 
 **Files:**
-- Create: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeSystemActionHandler.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/navigation/HomeNavigation.kt`
-- Create: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AndroidHomeSystemActionHandler.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Modify: `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeSystemActionHandler.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/navigation/HomeNavigation.kt`
+- Create: `app/src/main/java/com/hank/musicfree/navigation/AndroidHomeSystemActionHandler.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Modify: `player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt`
 
 - [ ] **Step 1: Write the failing player reset test**
 
-Add this test to `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt`:
+Add this test to `player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt`:
 
 ```kotlin
 @Test
@@ -894,7 +894,7 @@ Run:
 
 ```bash
 ./gradlew :player:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.player.controller.PlayerControllerTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.player.controller.PlayerControllerTest
 ```
 
 Expected: FAIL because `reset()` does not exist yet.
@@ -950,7 +950,7 @@ Run:
 
 ```bash
 ./gradlew :player:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.player.controller.PlayerControllerTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.player.controller.PlayerControllerTest
 ```
 
 Expected: PASS.
@@ -958,13 +958,13 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeSystemActionHandler.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/navigation/HomeNavigation.kt \
-  app/src/main/java/com/zili/android/musicfreeandroid/navigation/AndroidHomeSystemActionHandler.kt \
-  app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt \
-  app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt \
-  player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt \
-  player/src/androidTest/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/HomeSystemActionHandler.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/navigation/HomeNavigation.kt \
+  app/src/main/java/com/hank/musicfree/navigation/AndroidHomeSystemActionHandler.kt \
+  app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt \
+  app/src/main/java/com/hank/musicfree/MainActivity.kt \
+  player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt \
+  player/src/androidTest/java/com/hank/musicfree/player/controller/PlayerControllerTest.kt
 git commit -m "feat(home): wire homepage system actions through app and player reset"
 ```
 
@@ -973,13 +973,13 @@ git commit -m "feat(home): wire homepage system actions through app and player r
 ### Task 8: Add Integration Tests and Run the Homepage Acceptance Loop
 
 **Files:**
-- Modify: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt`
-- Modify: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt`
-- Create: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeDrawerBehaviorTest.kt`
+- Modify: `app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt`
+- Modify: `app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt`
+- Create: `app/src/androidTest/java/com/hank/musicfree/HomeDrawerBehaviorTest.kt`
 
 - [ ] **Step 1: Write the failing direct-content behavior tests**
 
-Create `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeDrawerBehaviorTest.kt` against `HomeScreenContent` with fake callbacks and a fake `HomeSystemActionHandler`:
+Create `app/src/androidTest/java/com/hank/musicfree/HomeDrawerBehaviorTest.kt` against `HomeScreenContent` with fake callbacks and a fake `HomeSystemActionHandler`:
 
 ```kotlin
 @Test
@@ -1018,11 +1018,11 @@ Run:
 
 ```bash
 ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeFidelityHomeStructureTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeFidelityHomeStructureTest
 ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeEntryNavigationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeEntryNavigationTest
 ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeDrawerBehaviorTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeDrawerBehaviorTest
 ```
 
 Expected: at least one of these suites FAILS before the implementation is complete.
@@ -1045,25 +1045,25 @@ Run:
 
 ```bash
 ./gradlew :feature:home:testDebugUnitTest \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeAnchorContractTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeScreenStateTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.HomeDrawerUiModelTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.component.HomeIconMappingTest" \
-  --tests "com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModelTest"
+  --tests "com.hank.musicfree.feature.home.HomeAnchorContractTest" \
+  --tests "com.hank.musicfree.feature.home.HomeScreenStateTest" \
+  --tests "com.hank.musicfree.feature.home.HomeDrawerUiModelTest" \
+  --tests "com.hank.musicfree.feature.home.component.HomeIconMappingTest" \
+  --tests "com.hank.musicfree.feature.home.sheets.HomeSheetsViewModelTest"
 
 ./gradlew :feature:settings:testDebugUnitTest
 
 ./gradlew :player:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.player.controller.PlayerControllerTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.player.controller.PlayerControllerTest
 
 ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeFidelityHomeStructureTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeFidelityHomeStructureTest
 
 ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeEntryNavigationTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeEntryNavigationTest
 
 ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeDrawerBehaviorTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeDrawerBehaviorTest
 
 ./gradlew :app:assembleDebug
 ```
@@ -1093,9 +1093,9 @@ Then pull the recording into `docs/home-fidelity/homepage/android/`.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeFidelityHomeStructureTest.kt \
-  app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt \
-  app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeDrawerBehaviorTest.kt
+git add app/src/androidTest/java/com/hank/musicfree/HomeFidelityHomeStructureTest.kt \
+  app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt \
+  app/src/androidTest/java/com/hank/musicfree/HomeDrawerBehaviorTest.kt
 git commit -m "test(home): cover homepage fidelity interactions and drawer matrix"
 ```
 

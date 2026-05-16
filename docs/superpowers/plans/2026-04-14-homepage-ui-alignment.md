@@ -38,11 +38,11 @@
 | `app/.../MainActivity.kt` | Modify | 使用新 mock factory |
 
 **路径前缀约定（下文省略）：**
-- `home/` = `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/`
+- `home/` = `feature/home/src/main/java/com/hank/musicfree/feature/home/`
 - `home-res/` = `feature/home/src/main/res/drawable/`
-- `home-test/` = `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/`
-- `player-ui/` = `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/`
-- `player-ui-test/` = `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/`
+- `home-test/` = `feature/home/src/test/java/com/hank/musicfree/feature/home/`
+- `player-ui/` = `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/`
+- `player-ui-test/` = `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/`
 
 ---
 
@@ -484,7 +484,7 @@ git commit -m "test(player-ui): update MiniPlayerContent tests for new model and
 ## Task 8: MainActivity mock 数据集成
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
 
 - [ ] **Step 1: 替换 MainActivity 中的 mock 数据**
 

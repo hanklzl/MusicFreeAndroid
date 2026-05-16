@@ -12,12 +12,12 @@
 
 ## File Structure
 
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PlaylistDao.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/dao/PlaylistDao.kt`
   - Add a DAO query for the current minimum playlist `sortOrder`.
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`
   - Replace append order allocation with front insertion order allocation.
   - Keep public API, logging events, cover sync, and transaction boundaries intact.
-- Modify: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`
+- Modify: `data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt`
   - Update existing ordering assertions.
   - Add a duplicate-in-batch prepend regression test.
 - No schema JSON, entity, ViewModel, UI, or navigation file should change.
@@ -25,7 +25,7 @@
 ## Task 1: Repository Ordering Tests
 
 **Files:**
-- Modify: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`
+- Modify: `data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt`
 
 - [ ] **Step 1: Update single-add ordering test**
 
@@ -103,7 +103,7 @@ The duplicate row refreshes metadata through `musicDao.upsert()`, but it does no
 Run:
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest
+./gradlew :data:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.repository.PlaylistRepositoryTest
 ```
 
 Expected before implementation: at least the changed ordering assertions fail because current code appends with `maxSortOrder + 1`.
@@ -113,8 +113,8 @@ If no emulator/device is available, record that the red instrumentation step is 
 ## Task 2: Prepend Implementation
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PlaylistDao.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/dao/PlaylistDao.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`
 
 - [ ] **Step 1: Add minimum sort-order DAO query**
 
@@ -221,7 +221,7 @@ Expected: `maxSortOrderInPlaylist` is either unused outside DAO or only kept for
 Run:
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest
+./gradlew :data:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.repository.PlaylistRepositoryTest
 ```
 
 Expected: `PlaylistRepositoryTest` passes. If the command cannot run because no device/emulator is available, capture the exact failure and run the broader non-device checks below.
@@ -253,7 +253,7 @@ Run:
 ```bash
 git diff --check
 git diff --stat main...HEAD
-git diff main...HEAD -- data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PlaylistDao.kt data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt docs/superpowers/specs/2026-05-17-playlist-prepend-add-design.md docs/superpowers/plans/2026-05-17-playlist-prepend-add.md
+git diff main...HEAD -- data/src/main/java/com/hank/musicfree/data/db/dao/PlaylistDao.kt data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt docs/superpowers/specs/2026-05-17-playlist-prepend-add-design.md docs/superpowers/plans/2026-05-17-playlist-prepend-add.md
 ```
 
 Expected: no whitespace errors; changed files stay within the planned scope plus spec/plan docs.
@@ -263,9 +263,9 @@ Expected: no whitespace errors; changed files stay within the planned scope plus
 Commit all worktree changes with a Chinese conventional commit message:
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PlaylistDao.kt \
-  data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt \
-  data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt \
+git add data/src/main/java/com/hank/musicfree/data/db/dao/PlaylistDao.kt \
+  data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt \
+  data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt \
   docs/superpowers/plans/2026-05-17-playlist-prepend-add.md
 git commit -m "fix(playlist): 添加歌曲默认插入歌单首部"
 ```

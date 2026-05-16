@@ -81,7 +81,7 @@ rg -n 'package="com\.zili\.android\.musicfreeandroid\.debug"' app/build/intermed
 Expected: Gradle succeeds, then `rg` prints a line containing:
 
 ```text
-package="com.zili.android.musicfreeandroid.debug"
+package="com.hank.musicfree.debug"
 ```
 
 - [ ] **Step 4: Commit the Gradle change**
@@ -225,7 +225,7 @@ rg -n 'package="com\.zili\.android\.musicfreeandroid\.debug"' app/build/intermed
 Expected: output contains:
 
 ```text
-package="com.zili.android.musicfreeandroid.debug"
+package="com.hank.musicfree.debug"
 ```
 
 - [ ] **Step 4: Verify the branch is clean after commits**

@@ -16,17 +16,17 @@
 
 | 路径 | 动作 | 责任 |
 |---|---|---|
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStore.kt` | Modify | `copyFromArtwork` 加 http(s) 透传分支；`saveFromUri` 返回 file:// 绝对 URI |
-| `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStoreTest.kt` | Modify | 现有 2 个 case 断言改 file://；新增 4 个 scheme case |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapper.kt` | Modify | `toModel` 增加可选 `legacyCoverResolver` 参数 |
-| `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapperTest.kt` | Modify | 新增 resolver 行为 case |
-| `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt` | Modify | 三处 `toModel` 调用站点注入 resolver |
-| `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt` | Modify | 改两处 `startsWith("playlist_covers/")` 断言；新增一条 https artwork case |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/PlatformTag.kt` | Create | RN-vibe 描边小药丸 composable |
-| `core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/PlatformTagTest.kt` | Create | 渲染断言 |
-| `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicItemRow.kt` | Create | 标题+platform tag / artist-album / 行末 ⋮ 通用行 |
-| `core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/MusicItemRowTest.kt` | Create | platform tag、本地映射、artist-album 拼接、actions 透传 |
-| `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt` | Modify | 删除私有 `PlaylistRow`，`LazyColumn.items` 改用 `MusicItemRow` |
+| `data/src/main/java/com/hank/musicfree/data/cover/PlaylistCoverStore.kt` | Modify | `copyFromArtwork` 加 http(s) 透传分支；`saveFromUri` 返回 file:// 绝对 URI |
+| `data/src/androidTest/java/com/hank/musicfree/data/cover/PlaylistCoverStoreTest.kt` | Modify | 现有 2 个 case 断言改 file://；新增 4 个 scheme case |
+| `data/src/main/java/com/hank/musicfree/data/mapper/PlaylistMapper.kt` | Modify | `toModel` 增加可选 `legacyCoverResolver` 参数 |
+| `data/src/test/java/com/hank/musicfree/data/mapper/PlaylistMapperTest.kt` | Modify | 新增 resolver 行为 case |
+| `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt` | Modify | 三处 `toModel` 调用站点注入 resolver |
+| `data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt` | Modify | 改两处 `startsWith("playlist_covers/")` 断言；新增一条 https artwork case |
+| `core/src/main/java/com/hank/musicfree/core/ui/PlatformTag.kt` | Create | RN-vibe 描边小药丸 composable |
+| `core/src/androidTest/java/com/hank/musicfree/core/ui/PlatformTagTest.kt` | Create | 渲染断言 |
+| `core/src/main/java/com/hank/musicfree/core/ui/MusicItemRow.kt` | Create | 标题+platform tag / artist-album / 行末 ⋮ 通用行 |
+| `core/src/androidTest/java/com/hank/musicfree/core/ui/MusicItemRowTest.kt` | Create | platform tag、本地映射、artist-album 拼接、actions 透传 |
+| `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt` | Modify | 删除私有 `PlaylistRow`，`LazyColumn.items` 改用 `MusicItemRow` |
 
 无 entity / DAO / DB schema 变更。
 
@@ -71,15 +71,15 @@ Expected: BUILD SUCCESSFUL（确认起点可编译）。如失败，先停下来
 ## Task 1：`PlaylistCoverStore` http(s) 透传 + file:// 绝对 URI
 
 **Files:**
-- Modify: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStoreTest.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStore.kt`
+- Modify: `data/src/androidTest/java/com/hank/musicfree/data/cover/PlaylistCoverStoreTest.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/cover/PlaylistCoverStore.kt`
 
 - [ ] **Step 1: 改写 `PlaylistCoverStoreTest`**
 
-完整覆盖 `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStoreTest.kt`：
+完整覆盖 `data/src/androidTest/java/com/hank/musicfree/data/cover/PlaylistCoverStoreTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.cover
+package com.hank.musicfree.data.cover
 
 import androidx.core.net.toUri
 import androidx.test.core.app.ApplicationProvider
@@ -153,7 +153,7 @@ class PlaylistCoverStoreTest {
 - [ ] **Step 2: 跑测试确认它失败**
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStoreTest" --no-daemon
+./gradlew :data:connectedDebugAndroidTest --tests "com.hank.musicfree.data.cover.PlaylistCoverStoreTest" --no-daemon
 ```
 
 Expected: 至少 `saveFromUri_writesFile_andReturnsFileUri`、`copyFromArtwork_passesThroughHttpsUrl`、`copyFromArtwork_passesThroughHttpUrl`、`copyFromArtwork_savesFileUriToDisk` 失败；`copyFromArtwork_returnsNullForBlankOrUnknownScheme` 可能通过（旧实现也返回 null）。
@@ -162,10 +162,10 @@ Expected: 至少 `saveFromUri_writesFile_andReturnsFileUri`、`copyFromArtwork_p
 
 - [ ] **Step 3: 实现新 `PlaylistCoverStore`**
 
-完整覆盖 `data/src/main/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStore.kt`：
+完整覆盖 `data/src/main/java/com/hank/musicfree/data/cover/PlaylistCoverStore.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.cover
+package com.hank.musicfree.data.cover
 
 import android.content.Context
 import android.net.Uri
@@ -217,7 +217,7 @@ class PlaylistCoverStore @Inject constructor(
 - [ ] **Step 4: 跑测试确认它通过**
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.data.cover.PlaylistCoverStoreTest" --no-daemon
+./gradlew :data:connectedDebugAndroidTest --tests "com.hank.musicfree.data.cover.PlaylistCoverStoreTest" --no-daemon
 ```
 
 Expected: 所有 6 个 case 通过。
@@ -225,8 +225,8 @@ Expected: 所有 6 个 case 通过。
 - [ ] **Step 5: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStore.kt \
-        data/src/androidTest/java/com/zili/android/musicfreeandroid/data/cover/PlaylistCoverStoreTest.kt
+git add data/src/main/java/com/hank/musicfree/data/cover/PlaylistCoverStore.kt \
+        data/src/androidTest/java/com/hank/musicfree/data/cover/PlaylistCoverStoreTest.kt
 git commit -m "$(cat <<'EOF'
 fix(data): pass through http(s) artwork and emit file:// for picked covers
 
@@ -245,12 +245,12 @@ EOF
 ## Task 2：`PlaylistMapper` 增加 legacy cover resolver
 
 **Files:**
-- Modify: `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapperTest.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapper.kt`
+- Modify: `data/src/test/java/com/hank/musicfree/data/mapper/PlaylistMapperTest.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/mapper/PlaylistMapper.kt`
 
 - [ ] **Step 1: 在 `PlaylistMapperTest` 末尾追加 resolver 行为 case**
 
-把这段加到 `data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapperTest.kt` 类内（在 `parseSortMode falls back to Manual for unknown value` 之后、闭花括号之前）：
+把这段加到 `data/src/test/java/com/hank/musicfree/data/mapper/PlaylistMapperTest.kt` 类内（在 `parseSortMode falls back to Manual for unknown value` 之后、闭花括号之前）：
 
 ```kotlin
 @Test
@@ -306,21 +306,21 @@ fun `toModel preserves null coverUri regardless of resolver`() {
 - [ ] **Step 2: 跑测试确认它失败**
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.data.mapper.PlaylistMapperTest" --no-daemon
+./gradlew :data:testDebugUnitTest --tests "com.hank.musicfree.data.mapper.PlaylistMapperTest" --no-daemon
 ```
 
 Expected: 后三个新 case 编译失败（`legacyCoverResolver` 命名参数不存在）。
 
 - [ ] **Step 3: 修改 `PlaylistMapper.kt`**
 
-完整覆盖 `data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapper.kt`：
+完整覆盖 `data/src/main/java/com/hank/musicfree/data/mapper/PlaylistMapper.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.mapper
+package com.hank.musicfree.data.mapper
 
-import com.zili.android.musicfreeandroid.core.model.Playlist
-import com.zili.android.musicfreeandroid.core.model.SortMode
-import com.zili.android.musicfreeandroid.data.db.entity.PlaylistEntity
+import com.hank.musicfree.core.model.Playlist
+import com.hank.musicfree.core.model.SortMode
+import com.hank.musicfree.data.db.entity.PlaylistEntity
 
 fun Playlist.toEntity(createdAt: Long, updatedAt: Long): PlaylistEntity = PlaylistEntity(
     id = id,
@@ -355,7 +355,7 @@ private fun parseSortMode(name: String): SortMode =
 - [ ] **Step 4: 跑测试确认全部通过**
 
 ```bash
-./gradlew :data:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.data.mapper.PlaylistMapperTest" --no-daemon
+./gradlew :data:testDebugUnitTest --tests "com.hank.musicfree.data.mapper.PlaylistMapperTest" --no-daemon
 ```
 
 Expected: 7 个 case 全过（旧 4 + 新 4 = 8。原来已有 4 个，新增 4 个）。
@@ -363,8 +363,8 @@ Expected: 7 个 case 全过（旧 4 + 新 4 = 8。原来已有 4 个，新增 4 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapper.kt \
-        data/src/test/java/com/zili/android/musicfreeandroid/data/mapper/PlaylistMapperTest.kt
+git add data/src/main/java/com/hank/musicfree/data/mapper/PlaylistMapper.kt \
+        data/src/test/java/com/hank/musicfree/data/mapper/PlaylistMapperTest.kt
 git commit -m "$(cat <<'EOF'
 feat(data): add optional legacyCoverResolver to PlaylistMapper.toModel
 
@@ -383,12 +383,12 @@ EOF
 ## Task 3：`PlaylistRepository` 注入 legacy cover resolver
 
 **Files:**
-- Modify: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`
+- Modify: `data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`
 
 - [ ] **Step 1: 改 `PlaylistRepositoryTest` 现有 cover 断言 + 新增 https artwork case**
 
-修改 `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt`：
+修改 `data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt`：
 
 把第 227 行
 ```kotlin
@@ -433,7 +433,7 @@ fun addMusic_storesHttpsArtworkUrlVerbatimAsCoverUri() = runBlocking {
 - [ ] **Step 2: 跑测试确认它失败**
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest" --no-daemon
+./gradlew :data:connectedDebugAndroidTest --tests "com.hank.musicfree.data.repository.PlaylistRepositoryTest" --no-daemon
 ```
 
 Expected: 三处断言失败（两处 `startsWith("file://")`，一处 https URL 等值断言）。
@@ -442,7 +442,7 @@ Expected: 三处断言失败（两处 `startsWith("file://")`，一处 https URL
 
 - [ ] **Step 3: 改 `PlaylistRepository.kt` 的三处 `toModel` 调用**
 
-修改文件 `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt`：
+修改文件 `data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt`：
 
 在文件靠近底部（class 内部，所有 public 方法之后）添加私有 helper：
 
@@ -484,7 +484,7 @@ suspend fun getPlaylistById(id: String): Playlist? =
 - [ ] **Step 4: 跑测试确认它通过**
 
 ```bash
-./gradlew :data:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.data.repository.PlaylistRepositoryTest" --no-daemon
+./gradlew :data:connectedDebugAndroidTest --tests "com.hank.musicfree.data.repository.PlaylistRepositoryTest" --no-daemon
 ```
 
 Expected: 所有 case 通过，包括新加的 https 等值断言。
@@ -492,8 +492,8 @@ Expected: 所有 case 通过，包括新加的 https 等值断言。
 - [ ] **Step 5: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepository.kt \
-        data/src/androidTest/java/com/zili/android/musicfreeandroid/data/repository/PlaylistRepositoryTest.kt
+git add data/src/main/java/com/hank/musicfree/data/repository/PlaylistRepository.kt \
+        data/src/androidTest/java/com/hank/musicfree/data/repository/PlaylistRepositoryTest.kt
 git commit -m "$(cat <<'EOF'
 feat(data): wire legacy cover resolver in PlaylistRepository
 
@@ -514,20 +514,20 @@ EOF
 ## Task 4：`:core/ui/PlatformTag` composable
 
 **Files:**
-- Create: `core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/PlatformTagTest.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/PlatformTag.kt`
+- Create: `core/src/androidTest/java/com/hank/musicfree/core/ui/PlatformTagTest.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/ui/PlatformTag.kt`
 
 - [ ] **Step 1: 写 `PlatformTagTest`**
 
-完整新建 `core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/PlatformTagTest.kt`：
+完整新建 `core/src/androidTest/java/com/hank/musicfree/core/ui/PlatformTagTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 import org.junit.Rule
 import org.junit.Test
 
@@ -553,17 +553,17 @@ class PlatformTagTest {
 - [ ] **Step 2: 跑测试确认它失败**
 
 ```bash
-./gradlew :core:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.core.ui.PlatformTagTest" --no-daemon
+./gradlew :core:connectedDebugAndroidTest --tests "com.hank.musicfree.core.ui.PlatformTagTest" --no-daemon
 ```
 
 Expected: 编译失败 — `PlatformTag` unresolved。
 
 - [ ] **Step 3: 实现 `PlatformTag.kt`**
 
-完整新建 `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/PlatformTag.kt`：
+完整新建 `core/src/main/java/com/hank/musicfree/core/ui/PlatformTag.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.padding
@@ -574,7 +574,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 
 @Composable
 fun PlatformTag(text: String, modifier: Modifier = Modifier) {
@@ -598,7 +598,7 @@ fun PlatformTag(text: String, modifier: Modifier = Modifier) {
 - [ ] **Step 4: 跑测试确认它通过**
 
 ```bash
-./gradlew :core:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.core.ui.PlatformTagTest" --no-daemon
+./gradlew :core:connectedDebugAndroidTest --tests "com.hank.musicfree.core.ui.PlatformTagTest" --no-daemon
 ```
 
 Expected: 2 个 case 全过。
@@ -606,8 +606,8 @@ Expected: 2 个 case 全过。
 - [ ] **Step 5: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/PlatformTag.kt \
-        core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/PlatformTagTest.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/PlatformTag.kt \
+        core/src/androidTest/java/com/hank/musicfree/core/ui/PlatformTagTest.kt
 git commit -m "$(cat <<'EOF'
 feat(core/ui): add PlatformTag pill matching RN tag styling
 
@@ -625,23 +625,23 @@ EOF
 ## Task 5：`:core/ui/MusicItemRow` composable
 
 **Files:**
-- Create: `core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/MusicItemRowTest.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicItemRow.kt`
+- Create: `core/src/androidTest/java/com/hank/musicfree/core/ui/MusicItemRowTest.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/ui/MusicItemRow.kt`
 
 - [ ] **Step 1: 写 `MusicItemRowTest`**
 
-完整新建 `core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/MusicItemRowTest.kt`：
+完整新建 `core/src/androidTest/java/com/hank/musicfree/core/ui/MusicItemRowTest.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.theme.MusicFreeTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -762,17 +762,17 @@ class MusicItemRowTest {
 - [ ] **Step 2: 跑测试确认它失败**
 
 ```bash
-./gradlew :core:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.core.ui.MusicItemRowTest" --no-daemon
+./gradlew :core:connectedDebugAndroidTest --tests "com.hank.musicfree.core.ui.MusicItemRowTest" --no-daemon
 ```
 
 Expected: 编译失败 — `MusicItemRow` unresolved。
 
 - [ ] **Step 3: 实现 `MusicItemRow.kt`**
 
-完整新建 `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicItemRow.kt`：
+完整新建 `core/src/main/java/com/hank/musicfree/core/ui/MusicItemRow.kt`：
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.ui
+package com.hank.musicfree.core.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -791,9 +791,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.R
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.R
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.theme.MusicFreeTheme
 
 @Composable
 fun MusicItemRow(
@@ -853,7 +853,7 @@ private fun descriptionText(item: MusicItem): String =
 - [ ] **Step 4: 跑测试确认它通过**
 
 ```bash
-./gradlew :core:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.core.ui.MusicItemRowTest" --no-daemon
+./gradlew :core:connectedDebugAndroidTest --tests "com.hank.musicfree.core.ui.MusicItemRowTest" --no-daemon
 ```
 
 Expected: 6 个 case 全过。
@@ -861,8 +861,8 @@ Expected: 6 个 case 全过。
 - [ ] **Step 5: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/MusicItemRow.kt \
-        core/src/androidTest/java/com/zili/android/musicfreeandroid/core/ui/MusicItemRowTest.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/MusicItemRow.kt \
+        core/src/androidTest/java/com/hank/musicfree/core/ui/MusicItemRowTest.kt
 git commit -m "$(cat <<'EOF'
 feat(core/ui): add MusicItemRow with platform tag and album info
 
@@ -882,11 +882,11 @@ EOF
 ## Task 6：`PlaylistDetailScreen` 接入 `MusicItemRow`
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
 
 - [ ] **Step 1: 删除文件内私有 `PlaylistRow` composable + 其单独的 `Row(verticalAlignment, modifier...)` 实现**
 
-打开 `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`，删掉文件末尾从 `@Composable\nprivate fun PlaylistRow(` 起到文件末尾闭花括号的整个函数（行 209-254 区间）。
+打开 `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`，删掉文件末尾从 `@Composable\nprivate fun PlaylistRow(` 起到文件末尾闭花括号的整个函数（行 209-254 区间）。
 
 - [ ] **Step 2: 替换 `LazyColumn.items` 内调用方为 `MusicItemRow`**
 
@@ -925,11 +925,11 @@ items(items = items, key = { "${it.platform}::${it.id}" }) { item ->
 - [ ] **Step 3: 清理 import**
 
 `MusicItemRow` 已在 `:core/ui` 包内、与 `MusicItemAction` 同包，确认文件顶部 import 块只保留：
-- `import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistBottomSheetContent`
-- `import com.zili.android.musicfreeandroid.core.ui.CoverImage`
-- `import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold`
-- `import com.zili.android.musicfreeandroid.core.ui.MusicItemAction`
-- `import com.zili.android.musicfreeandroid.core.ui.MusicItemMoreMenu` —— 如果文件里只剩 `MusicItemRow` 用 menu，且不再有 PlaylistDetailScreen 直接使用 `MusicItemMoreMenu` 的地方，删掉这一行
+- `import com.hank.musicfree.core.ui.AddToPlaylistBottomSheetContent`
+- `import com.hank.musicfree.core.ui.CoverImage`
+- `import com.hank.musicfree.core.ui.MusicFreeScreenScaffold`
+- `import com.hank.musicfree.core.ui.MusicItemAction`
+- `import com.hank.musicfree.core.ui.MusicItemMoreMenu` —— 如果文件里只剩 `MusicItemRow` 用 menu，且不再有 PlaylistDetailScreen 直接使用 `MusicItemMoreMenu` 的地方，删掉这一行
 
 去掉因为 `PlaylistRow` 被删而闲置的 import：
 - `androidx.compose.foundation.layout.fillMaxWidth`（如其他地方仍在用，保留）
@@ -951,7 +951,7 @@ Expected: BUILD SUCCESSFUL，所有现有单元测试不受影响（无 Playlist
 - [ ] **Step 5: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt
 git commit -m "$(cat <<'EOF'
 feat(home): use shared MusicItemRow in PlaylistDetailScreen
 

@@ -1,6 +1,6 @@
 # Navigation Animation
 
-集中入口：`app/src/main/java/com/zili/android/musicfreeandroid/navigation/MusicFreeNavTransitions.kt`。
+集中入口：`app/src/main/java/com/hank/musicfree/navigation/MusicFreeNavTransitions.kt`。
 
 约束：
 

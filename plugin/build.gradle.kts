@@ -10,7 +10,7 @@ val pluginNetworkTestsEnabled = providers.gradleProperty("integration")
     .orElse(false)
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.plugin"
+    namespace = "com.hank.musicfree.plugin"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1

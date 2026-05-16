@@ -12,31 +12,31 @@
 
 ## File Map
 
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
   - Move `PlaylistDetailHeader` and `EmptyState` into one `LazyColumn`.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt`
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt`
   - Add `MusicSheetPageHeader` as the first `LazyColumn` item.
   - Reuse `PlayAllBar` for album actions.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailUiState.kt`
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailUiState.kt`
   - Carry the current album item for header cover, count, and description.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt`
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`
   - Persist `detail.albumItem ?: seed` into UI state and expose `playAll()`.
-- Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/PlayAllBar.kt`
+- Modify `core/src/main/java/com/hank/musicfree/core/ui/PlayAllBar.kt`
   - Add an opt-out for the add-to-playlist icon so album detail does not show a dead action.
-- Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/detail/ScrollableHeaderSourceTest.kt`
+- Create `feature/home/src/test/java/com/hank/musicfree/feature/home/detail/ScrollableHeaderSourceTest.kt`
   - Guard source structure for playlist, album, plugin sheet, and top list detail pages.
-- Modify `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModelTest.kt`
+- Modify `feature/home/src/test/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModelTest.kt`
   - Verify resolved album metadata is exposed for the scrollable header.
 
 ## Task 1: Add Scrollable Header Regression Test
 
 **Files:**
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/detail/ScrollableHeaderSourceTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/detail/ScrollableHeaderSourceTest.kt`
 
 - [ ] **Step 1: Write the failing test**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.detail
+package com.hank.musicfree.feature.home.detail
 
 import java.io.File
 import kotlin.test.Test
@@ -48,7 +48,7 @@ class ScrollableHeaderSourceTest {
 
     @Test
     fun `playlist detail header is inside the lazy list`() {
-        val source = source("feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt")
+        val source = source("feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt")
 
         assertFalse(
             source.contains("Column(modifier = Modifier.fillMaxSize().padding(padding))"),
@@ -64,7 +64,7 @@ class ScrollableHeaderSourceTest {
 
     @Test
     fun `album detail header is inside the lazy list`() {
-        val source = source("feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt")
+        val source = source("feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt")
 
         assertContainsInOrder(
             source = source,
@@ -77,8 +77,8 @@ class ScrollableHeaderSourceTest {
     @Test
     fun `plugin sheet and top list keep headers inside lazy lists`() {
         listOf(
-            "feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt",
-            "feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt",
+            "feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt",
+            "feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt",
         ).forEach { path ->
             val source = source(path)
             assertContainsInOrder(
@@ -120,7 +120,7 @@ Expected: FAIL because `PlaylistDetailScreen` still keeps the header in an outer
 ## Task 2: Move Local Playlist Header Into LazyColumn
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
 
 - [ ] **Step 1: Replace the outer `Column` content with a single `LazyColumn`**
 
@@ -185,19 +185,19 @@ Expected: PASS for the playlist test.
 ## Task 3: Add Album Detail Header Into LazyColumn
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailUiState.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt`
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/PlayAllBar.kt`
-- Test: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModelTest.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailUiState.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/PlayAllBar.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModelTest.kt`
 
 - [ ] **Step 1: Add imports**
 
 Add:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.ui.MusicSheetPageHeader
-import com.zili.android.musicfreeandroid.core.ui.PlayAllBar
+import com.hank.musicfree.core.ui.MusicSheetPageHeader
+import com.hank.musicfree.core.ui.PlayAllBar
 ```
 
 - [ ] **Step 2: Move `innerPadding` onto the `LazyColumn` and add header item**
@@ -356,13 +356,13 @@ Run:
 git status --short
 git add docs/superpowers/specs/2026-05-16-music-sheet-detail-scroll-design.md \
   docs/superpowers/plans/2026-05-16-music-sheet-detail-scroll.md \
-  core/src/main/java/com/zili/android/musicfreeandroid/core/ui/PlayAllBar.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailUiState.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModel.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailViewModelTest.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/detail/ScrollableHeaderSourceTest.kt
+  core/src/main/java/com/hank/musicfree/core/ui/PlayAllBar.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailUiState.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModelTest.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/detail/ScrollableHeaderSourceTest.kt
 git commit -m "fix(home): 对齐歌单详情整体滚动"
 ```
 

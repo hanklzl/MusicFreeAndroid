@@ -136,7 +136,7 @@ CI workflow 在 runner 上将 `ANDROID_RELEASE_KEYSTORE_BASE64` 解码到 `$RUNN
 - 推送 `v*` tag 后，workflow 能构建签名 Release APK 并上传到同名 GitHub Release。
 - 下载 APK 后，使用 `apksigner verify --verbose --print-certs` 验证签名存在。
 - 设备验证：旧 release APK 能被更高 `versionCode` 的新 release APK 覆盖安装。
-- Debug 包 `com.zili.android.musicfreeandroid.debug` 仍能与 release 包 `com.zili.android.musicfreeandroid` 共存。
+- Debug 包 `com.hank.musicfree.debug` 仍能与 release 包 `com.hank.musicfree` 共存。
 
 ## 参考
 

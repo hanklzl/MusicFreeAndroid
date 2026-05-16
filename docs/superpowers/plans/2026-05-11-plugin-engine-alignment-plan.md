@@ -198,21 +198,21 @@ docs/superpowers/specs
 
 **Files:**
 
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/MediaCacheDao.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/MediaCacheDaoTest.kt` (new)
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/dao/MediaCacheDao.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/db/dao/MediaCacheDaoTest.kt` (new)
 
 - [ ] **Step 1: Write the failing tests**
 
-`data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/MediaCacheDaoTest.kt`:
+`data/src/test/java/com/hank/musicfree/data/db/dao/MediaCacheDaoTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.dao
+package com.hank.musicfree.data.db.dao
 
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.zili.android.musicfreeandroid.data.db.AppDatabase
-import com.zili.android.musicfreeandroid.data.db.entity.MediaCacheEntity
+import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.entity.MediaCacheEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -287,8 +287,8 @@ Expected: PASS.
 
 **Files:**
 
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/LyricCacheDao.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/LyricCacheDaoTest.kt` (new or extend)
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/dao/LyricCacheDao.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/db/dao/LyricCacheDaoTest.kt` (new or extend)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -325,12 +325,12 @@ suspend fun deleteByPlatform(platform: String)
 
 **Files:**
 
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadedTrackDao.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadedTrackDaoTest.kt` (new)
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/dao/DownloadedTrackDao.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/db/dao/DownloadedTrackDaoTest.kt` (new)
 
 - [ ] **Step 1: Read current DAO first**
 
-Run: `Read tool on /Users/zili/code/android/MusicFreeAndroid/data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/DownloadedTrackDao.kt`
+Run: `Read tool on /Users/zili/code/android/MusicFreeAndroid/data/src/main/java/com/hank/musicfree/data/db/dao/DownloadedTrackDao.kt`
 Document whether `deleteByPlatform` already exists. If yes, skip Task A3 entirely.
 
 - [ ] **Step 2: Write failing test** (only if not exists):
@@ -357,9 +357,9 @@ suspend fun deleteByPlatform(platform: String)
 
 **Files:**
 
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/MediaCacheRepository.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/MediaCacheRepositoryLruTest.kt` (new)
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/MediaCacheRepositoryDeleteTest.kt` (new)
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/MediaCacheRepository.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/repository/MediaCacheRepositoryLruTest.kt` (new)
+- Test: `data/src/test/java/com/hank/musicfree/data/repository/MediaCacheRepositoryDeleteTest.kt` (new)
 
 - [ ] **Step 1: Write failing test for memory LRU hit**
 
@@ -512,8 +512,8 @@ Run: `./gradlew :data:testDebugUnitTest --tests "*MediaCacheRepository*" --no-da
 
 **Files:**
 
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/LyricRepository.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/LyricRepositoryDeleteTest.kt` (new)
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/LyricRepository.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/repository/LyricRepositoryDeleteTest.kt` (new)
 
 - [ ] **Step 1: Failing test**
 
@@ -536,9 +536,9 @@ suspend fun deleteByPlatform(platform: String) = lyricCacheDao.deleteByPlatform(
 
 **Files:**
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/PluginModule.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerCacheCleanupTest.kt` (new)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/di/PluginModule.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/manager/PluginManagerCacheCleanupTest.kt` (new)
 
 - [ ] **Step 1: Read current PluginManager.uninstall 实现**
 
@@ -593,9 +593,9 @@ mflog.event("plugin_uninstalled_cache_cleared", mapOf("platform" to platform))
 
 **Files:**
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceService.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/PluginModule.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceServiceCacheTest.kt` (new)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/media/PluginMediaSourceService.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/di/PluginModule.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/media/PluginMediaSourceServiceCacheTest.kt` (new)
 
 - [ ] **Step 1: Write failing tests for three cacheControl paths**
 
@@ -708,8 +708,8 @@ mflog.event("plugin_get_media_source_cache_write", mapOf("platform" to item.plat
 
 **Files:**
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceService.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceServiceResolveFreshTest.kt` (new)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/media/PluginMediaSourceService.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/media/PluginMediaSourceServiceResolveFreshTest.kt` (new)
 
 - [ ] **Step 1: 失败测试**
 
@@ -761,8 +761,8 @@ suspend fun resolveFresh(item: MusicItem, quality: String?): MediaSourceResoluti
 
 **Files:**
 
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Test: `player/src/test/java/com/zili/android/musicfreeandroid/player/controller/PlayerControllerStaleUrlRefreshTest.kt` (new)
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Test: `player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerStaleUrlRefreshTest.kt` (new)
 
 - [ ] **Step 1: 失败测试**
 
@@ -907,14 +907,14 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/local/LocalFilePluginConstants.kt`
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/local/Mp3Metadata.kt`
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/local/Mp3MetadataReader.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/local/LocalFilePluginConstants.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/local/Mp3Metadata.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/local/Mp3MetadataReader.kt`
 
 - [ ] **Step 1: 写常量**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.local
+package com.hank.musicfree.plugin.local
 
 object LocalFilePluginConstants {
     const val PLATFORM = "本地"
@@ -928,7 +928,7 @@ object LocalFilePluginConstants {
 - [ ] **Step 2: 写 Mp3Metadata data class**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.local
+package com.hank.musicfree.plugin.local
 
 data class Mp3Metadata(
     val title: String?,
@@ -943,7 +943,7 @@ data class Mp3Metadata(
 - [ ] **Step 3: 写 reader interface**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.local
+package com.hank.musicfree.plugin.local
 
 interface Mp3MetadataReader {
     suspend fun read(path: String): Mp3Metadata?
@@ -956,15 +956,15 @@ interface Mp3MetadataReader {
 
 **Files:**
 
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/local/Mp3MetadataReaderImpl.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt` (bind impl)
-- Test: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/local/Mp3MetadataReaderImplTest.kt` (uses `MediaMetadataRetriever`)
+- Create: `data/src/main/java/com/hank/musicfree/data/local/Mp3MetadataReaderImpl.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt` (bind impl)
+- Test: `data/src/androidTest/java/com/hank/musicfree/data/local/Mp3MetadataReaderImplTest.kt` (uses `MediaMetadataRetriever`)
 
 **注意**：`:data` 不依赖 `:plugin`（方向相反）。`Mp3MetadataReader` 接口实际放在 `:core` 比较干净。本 task 改路：
 
 - [ ] **Step 1: 把 interface 移到 `:core`**
 
-Move `plugin/local/Mp3MetadataReader.kt` → `core/local/Mp3MetadataReader.kt`（package: `com.zili.android.musicfreeandroid.core.local`）
+Move `plugin/local/Mp3MetadataReader.kt` → `core/local/Mp3MetadataReader.kt`（package: `com.hank.musicfree.core.local`）
 
 `Mp3Metadata` 也搬到 `:core`，因为接口签名引用它。
 
@@ -972,7 +972,7 @@ Move `plugin/local/Mp3MetadataReader.kt` → `core/local/Mp3MetadataReader.kt`�
 
 - [ ] **Step 2: Write failing instrumentation test**
 
-`data/src/androidTest/java/com/zili/android/musicfreeandroid/data/local/Mp3MetadataReaderImplTest.kt`:
+`data/src/androidTest/java/com/hank/musicfree/data/local/Mp3MetadataReaderImplTest.kt`:
 
 ```kotlin
 @RunWith(AndroidJUnit4::class)
@@ -1005,12 +1005,12 @@ class Mp3MetadataReaderImplTest {
 - [ ] **Step 3: 实现**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.local
+package com.hank.musicfree.data.local
 
 import android.content.Context
 import android.media.MediaMetadataRetriever
-import com.zili.android.musicfreeandroid.core.local.Mp3Metadata
-import com.zili.android.musicfreeandroid.core.local.Mp3MetadataReader
+import com.hank.musicfree.core.local.Mp3Metadata
+import com.hank.musicfree.core.local.Mp3MetadataReader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
@@ -1055,7 +1055,7 @@ abstract fun bindMp3MetadataReader(impl: Mp3MetadataReaderImpl): Mp3MetadataRead
 - [ ] **Step 5: Run instrumentation test**
 
 ```bash
-./gradlew :data:connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.data.local.Mp3MetadataReaderImplTest
+./gradlew :data:connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.data.local.Mp3MetadataReaderImplTest
 ```
 
 需要连接设备 / 模拟器。
@@ -1066,8 +1066,8 @@ abstract fun bindMp3MetadataReader(impl: Mp3MetadataReaderImpl): Mp3MetadataRead
 
 **Files:**
 
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/local/LocalFilePlugin.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/local/LocalFilePluginTest.kt` (new)
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/local/LocalFilePlugin.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/local/LocalFilePluginTest.kt` (new)
 
 - [ ] **Step 1: Write failing test using mock `Mp3MetadataReader`**
 
@@ -1126,12 +1126,12 @@ class LocalFilePluginTest {
 - [ ] **Step 2: 实现**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.local
+package com.hank.musicfree.plugin.local
 
-import com.zili.android.musicfreeandroid.core.local.Mp3MetadataReader
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.plugin.api.MediaSourceResult
-import com.zili.android.musicfreeandroid.plugin.api.LyricResult
+import com.hank.musicfree.core.local.Mp3MetadataReader
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.plugin.api.MediaSourceResult
+import com.hank.musicfree.plugin.api.LyricResult
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -1204,7 +1204,7 @@ Plan 决策：**选项 A**。在 `:core` 的 `MusicItem.kt` 加 `localPath: Stri
 
 **Files:**
 
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/model/MusicItem.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/model/MusicItem.kt`
 
 - [ ] **Step 1: Read current MusicItem.kt** —— 确认 data class 形态
 
@@ -1237,9 +1237,9 @@ data class MusicItem(
 
 **Files:**
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/PluginModule.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerLocalRegistrationTest.kt` (new)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/di/PluginModule.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/manager/PluginManagerLocalRegistrationTest.kt` (new)
 
 - [ ] **Step 1: 失败测试**
 
@@ -1365,15 +1365,15 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/runtime/PluginState.kt`
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/runtime/PluginErrorReason.kt`
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/runtime/PluginStateKeys.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/runtime/PluginState.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/runtime/PluginErrorReason.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/runtime/PluginStateKeys.kt`
 
 - [ ] **Step 1: 写定义**
 
 ```kotlin
 // PluginState.kt
-package com.zili.android.musicfreeandroid.plugin.runtime
+package com.hank.musicfree.plugin.runtime
 
 sealed interface PluginState {
     data object Initializing : PluginState
@@ -1429,17 +1429,17 @@ object PluginStateKeys {
 
 **Files:**
 
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginEntry.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManagerStateFlowTest.kt` (new)
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginEntry.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/manager/PluginManagerStateFlowTest.kt` (new)
 
 - [ ] **Step 1: 写 PluginEntry**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.manager
+package com.hank.musicfree.plugin.manager
 
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.runtime.PluginState
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.runtime.PluginState
 
 data class PluginEntry(
     val filePath: String,
@@ -1723,8 +1723,8 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShim.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShimTimeoutTest.kt` (new)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/AxiosShim.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/engine/AxiosShimTimeoutTest.kt` (new)
 
 - [ ] **Step 1: Read current AxiosShim** 确认 OkHttpClient timeout 配置
 
@@ -1781,7 +1781,7 @@ suspend fun get(url: String, config: Map<String, Any?>): Response {
 **Files:**
 
 - Modify: `AxiosShim.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShimAuthUrlTest.kt` (new)
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/engine/AxiosShimAuthUrlTest.kt` (new)
 
 - [ ] **Step 1: 失败测试**
 
@@ -1816,9 +1816,9 @@ val normalizedUrl = normalizeRequest(url, mutableHeaders)
 
 **Files:**
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngine.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt` (env injection 改硬编码 lang)
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngineGlobalsTest.kt` (new)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsEngine.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt` (env injection 改硬编码 lang)
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/engine/JsEngineGlobalsTest.kt` (new)
 
 - [ ] **Step 1: Read PluginManager 当前 env 注入位置**（搜 `__env` 字符串）
 
@@ -1875,7 +1875,7 @@ engine.evaluate<Any?>("""
 
 **Files:**
 
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/RuntimeUrlConstructorContractTest.kt` (new)
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/engine/RuntimeUrlConstructorContractTest.kt` (new)
 - Create (conditional): `plugin/src/main/assets/jslibs/url-polyfill.js`
 
 - [ ] **Step 1: Write probe test**
@@ -1939,10 +1939,10 @@ class RuntimeUrlConstructorContractTest {
 
 **Files:**
 
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/WebDavShim.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/RequireShim.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/engine/WebDavShim.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/RequireShim.kt`
 - Create: `plugin/src/main/assets/jslibs/webdav.js`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/WebDavShimTest.kt` (new)
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/engine/WebDavShimTest.kt` (new)
 
 - [ ] **Step 1: 写 JS shim**
 
@@ -1989,7 +1989,7 @@ class WebDavShimTest {
 - [ ] **Step 3: 实现 `WebDavShim.kt`**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.engine
+package com.hank.musicfree.plugin.engine
 
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -2039,7 +2039,7 @@ engine.asyncFunction<String>("__webdav_get") { args ->
 
 **Files:**
 
-- Create: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/RuntimeCompatContractTest.kt`
+- Create: `plugin/src/test/java/com/hank/musicfree/plugin/engine/RuntimeCompatContractTest.kt`
 
 - [ ] **Step 1: 写契约测**
 
@@ -2122,8 +2122,8 @@ implementation(libs.semver)
 
 **Files:**
 
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/runtime/PluginAppVersionGate.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/runtime/PluginAppVersionGateTest.kt` (new)
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/runtime/PluginAppVersionGate.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/runtime/PluginAppVersionGateTest.kt` (new)
 
 - [ ] **Step 1: 失败测试**
 
@@ -2158,7 +2158,7 @@ class PluginAppVersionGateTest {
 - [ ] **Step 2: 实现**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.runtime
+package com.hank.musicfree.plugin.runtime
 
 import io.github.z4kn4fein.semver.Version
 import io.github.z4kn4fein.semver.constraints.Constraint
@@ -2225,16 +2225,16 @@ if (failed != null) {
 
 **Files:**
 
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/PluginMetadataCacheEntity.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/PluginMetadataCacheDao.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
-- Test: `data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/PluginMetadataCacheDaoTest.kt` (new)
+- Create: `data/src/main/java/com/hank/musicfree/data/db/entity/PluginMetadataCacheEntity.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/dao/PluginMetadataCacheDao.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
+- Test: `data/src/test/java/com/hank/musicfree/data/db/dao/PluginMetadataCacheDaoTest.kt` (new)
 - Regenerate: `data/schemas/<db>/8.json`
 
 - [ ] **Step 1: 写 Entity**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.entity
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.Entity
 
@@ -2315,7 +2315,7 @@ class PluginMetadataCacheDaoTest {
 ⚠ 因 Room 不允许同一版本号下 schema 变化（会拒绝 `RoomMasterTable` 校验），dev 环境务必执行：
 
 ```bash
-adb shell pm clear com.zili.android.musicfreeandroid
+adb shell pm clear com.hank.musicfree
 ```
 
 如果有 instrumented 测试在没清数据的设备上跑，会 fall through 到 `IllegalStateException: Room cannot verify the data integrity`。这个 plan 不处理 release migration（spec §3.2 显式 out-of-scope）。
@@ -2324,14 +2324,14 @@ adb shell pm clear com.zili.android.musicfreeandroid
 
 **Files:**
 
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginMetadataCacheGateway.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/PluginMetadataCacheRepository.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginMetadataCacheGateway.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/repository/PluginMetadataCacheRepository.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`
 
 - [ ] **Step 1: Gateway interface 放 :plugin（:plugin 已依赖 :data）**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.manager
+package com.hank.musicfree.plugin.manager
 
 interface PluginMetadataCacheGateway {
     suspend fun getAll(): List<CachedPluginMetadata>
@@ -2357,12 +2357,12 @@ data class CachedPluginMetadata(
 - [ ] **Step 2: :data 实现 Gateway**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.repository
+package com.hank.musicfree.data.repository
 
-import com.zili.android.musicfreeandroid.plugin.manager.CachedPluginMetadata
-import com.zili.android.musicfreeandroid.plugin.manager.PluginMetadataCacheGateway
-import com.zili.android.musicfreeandroid.data.db.dao.PluginMetadataCacheDao
-import com.zili.android.musicfreeandroid.data.db.entity.PluginMetadataCacheEntity
+import com.hank.musicfree.plugin.manager.CachedPluginMetadata
+import com.hank.musicfree.plugin.manager.PluginMetadataCacheGateway
+import com.hank.musicfree.data.db.dao.PluginMetadataCacheDao
+import com.hank.musicfree.data.db.entity.PluginMetadataCacheEntity
 import org.json.JSONArray
 import javax.inject.Inject
 
@@ -2421,8 +2421,8 @@ abstract fun bindPluginMetadataCacheGateway(impl: PluginMetadataCacheRepository)
 
 **Files:**
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- Test: `plugin/src/androidTest/java/com/zili/android/musicfreeandroid/plugin/manager/PluginLazyLoadIntegrationTest.kt` (new)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- Test: `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginLazyLoadIntegrationTest.kt` (new)
 
 - [ ] **Step 1: Read current setup() 逻辑**
 
@@ -2545,7 +2545,7 @@ suspend fun getPluginSuspending(platform: String): LoadedPlugin? = ...
 - [ ] **Step 4: Run integration test → PASS**
 
 ```bash
-./gradlew :plugin:connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.plugin.manager.PluginLazyLoadIntegrationTest
+./gradlew :plugin:connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginLazyLoadIntegrationTest
 ```
 
 ### Task E7: 设置页"懒加载"开关
@@ -2609,8 +2609,8 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeDollarKeyDefenseTest.kt` (new)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeDollarKeyDefenseTest.kt` (new)
 
 - [ ] **Step 1: 失败测试**
 
@@ -2643,8 +2643,8 @@ fun toMusicItem(map: Map<*, *>): MusicItem {
 
 **Files:**
 
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/MusicItemBridgeProjector.kt`
-- Test: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/MusicItemBridgeProjectorTest.kt` (new)
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/engine/MusicItemBridgeProjector.kt`
+- Test: `plugin/src/test/java/com/hank/musicfree/plugin/engine/MusicItemBridgeProjectorTest.kt` (new)
 
 - [ ] **Step 1: 失败测试**
 
@@ -2680,11 +2680,11 @@ class MusicItemBridgeProjectorTest {
 - [ ] **Step 2: 实现**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.engine
+package com.hank.musicfree.plugin.engine
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
-import com.zili.android.musicfreeandroid.data.repository.LyricRepository
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.data.db.dao.DownloadedTrackDao
+import com.hank.musicfree.data.repository.LyricRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -2747,8 +2747,8 @@ class JsLoadedPlugin @Inject constructor(
 
 **Files:**
 
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginModels.kt`
-- Modify: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt` (parseMediaSourceResult)
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginModels.kt`
+- Modify: `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt` (parseMediaSourceResult)
 
 - [ ] **Step 1: Read PluginModels.kt** 看 `MediaSourceResult` 当前字段
 
@@ -2831,7 +2831,7 @@ grep -rn '"本地"\|本地' --include "*.kt" player/src/main plugin/src/main fea
 
 **Files:**
 
-- Create: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/MediaItemBridgeContractTest.kt`
+- Create: `plugin/src/test/java/com/hank/musicfree/plugin/engine/MediaItemBridgeContractTest.kt`
 
 - [ ] **Step 1: 写契约**
 

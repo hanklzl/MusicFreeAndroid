@@ -35,25 +35,25 @@
 当前仓库已经具备部分基础能力：
 
 - 播放页：
-  - `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-  - `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
+  - `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+  - `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
 - 播放状态：
-  - `player/src/main/java/com/zili/android/musicfreeandroid/player/model/PlayerState.kt`
+  - `player/src/main/java/com/hank/musicfree/player/model/PlayerState.kt`
   - `PlayerState.position` 约每 200ms 更新，可驱动歌词高亮。
 - 歌词模型：
-  - `core/src/main/java/com/zili/android/musicfreeandroid/core/model/LyricLine.kt`
+  - `core/src/main/java/com/hank/musicfree/core/model/LyricLine.kt`
   - 当前只有 `timeMs` 和 `text`，不足以表达翻译、行号、meta、来源。
 - 插件歌词 API：
-  - `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginApi.kt`
-  - `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginModels.kt`
-  - `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
+  - `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginApi.kt`
+  - `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginModels.kt`
+  - `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt`
   - 当前 `LyricResult` 解析 `rawLrc/rawLrcTxt`，未解析 RN 插件常见的 `translation/trans`。
 - 歌曲详情页已有静态歌词预览：
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musicdetail/MusicDetailViewModel.kt`
-  - `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musicdetail/MusicDetailScreen.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/musicdetail/MusicDetailViewModel.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/musicdetail/MusicDetailScreen.kt`
 - 持久化基础：
-  - `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
-  - `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
+  - `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
+  - `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
   - 当前数据库使用 `fallbackToDestructiveMigration(dropAllTables = true)`，新增表和 schema 可控。
 
 ## RN 参考事实

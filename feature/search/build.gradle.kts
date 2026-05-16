@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.feature.search"
+    namespace = "com.hank.musicfree.feature.search"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1

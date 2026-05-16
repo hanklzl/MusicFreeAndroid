@@ -12,22 +12,22 @@
 
 ## File Structure
 
-- Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
+- Modify `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
   - Add stable input anchors for main search and search-music-list tests.
-- Modify `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt`
+- Modify `app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt`
   - Extend the existing home search entry test to assert the main search input is focused.
-- Modify `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
+- Modify `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
   - Add main search input autofocus and test tag.
-- Create `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt`
+- Create `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt`
   - Add a focused Compose test for the search-music-list input.
-- Modify `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt`
+- Modify `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt`
   - Add search-music-list input autofocus and test tag.
 
 ## Task 1: Main Search Input Anchor And Failing Instrumentation Test
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
-- Modify: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
+- Modify: `app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt`
 
 - [ ] **Step 1: Add search input anchors**
 
@@ -85,7 +85,7 @@ Add this helper near the existing private helpers:
 Run with an attached emulator/device:
 
 ```bash
-./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeEntryNavigationTest
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeEntryNavigationTest
 ```
 
 Expected: failure in `searchEntry_opensSearchRootAndFocusesInput`, because `FidelityAnchors.Search.Input` has not been applied to `SearchScreen` yet.
@@ -93,14 +93,14 @@ Expected: failure in `searchEntry_opensSearchRootAndFocusesInput`, because `Fide
 - [ ] **Step 4: Commit the failing test**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeEntryNavigationTest.kt
+git add core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt app/src/androidTest/java/com/hank/musicfree/HomeEntryNavigationTest.kt
 git commit -m "test(search): assert search entry focuses input"
 ```
 
 ## Task 2: Main Search Screen Autofocus
 
 **Files:**
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
 
 - [ ] **Step 1: Add focus imports**
 
@@ -150,7 +150,7 @@ Update the `BasicTextField` modifier:
 Run with an attached emulator/device:
 
 ```bash
-./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeEntryNavigationTest
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeEntryNavigationTest
 ```
 
 Expected: `searchEntry_opensSearchRootAndFocusesInput` passes.
@@ -158,32 +158,32 @@ Expected: `searchEntry_opensSearchRootAndFocusesInput` passes.
 - [ ] **Step 5: Commit the implementation**
 
 ```bash
-git add feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt
+git add feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt
 git commit -m "fix(search): focus main search input on entry"
 ```
 
 ## Task 3: Search Music List Failing Focus Test
 
 **Files:**
-- Create: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt`
+- Create: `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt`
 
 - [ ] **Step 1: Add the failing Robolectric Compose test**
 
 Create `SearchMusicListScreenFocusTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.searchmusiclist
+package com.hank.musicfree.feature.home.searchmusiclist
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
-import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
+import com.hank.musicfree.core.navigation.SearchMusicListRoute
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.data.repository.PlaylistRepository
+import com.hank.musicfree.player.controller.PlayerController
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -240,7 +240,7 @@ class SearchMusicListScreenFocusTest {
 - [ ] **Step 2: Run the targeted unit test and verify it fails**
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusicListScreenFocusTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.searchmusiclist.SearchMusicListScreenFocusTest"
 ```
 
 Expected: failure because `FidelityAnchors.SearchMusicList.Input` has not been applied to `SearchMusicListScreen` yet.
@@ -248,14 +248,14 @@ Expected: failure because `FidelityAnchors.SearchMusicList.Input` has not been a
 - [ ] **Step 3: Commit the failing test**
 
 ```bash
-git add feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt
+git add feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt
 git commit -m "test(home): assert search music list input focus"
 ```
 
 ## Task 4: Search Music List Autofocus
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt`
 
 - [ ] **Step 1: Add focus imports**
 
@@ -269,7 +269,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
-import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.FidelityAnchors
 ```
 
 - [ ] **Step 2: Create the one-shot focus request**
@@ -301,7 +301,7 @@ Update the `BasicTextField` modifier:
 - [ ] **Step 4: Run the targeted unit test and verify it passes**
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusicListScreenFocusTest"
+./gradlew :feature:home:testDebugUnitTest --tests "com.hank.musicfree.feature.home.searchmusiclist.SearchMusicListScreenFocusTest"
 ```
 
 Expected: the new focus test passes.
@@ -309,7 +309,7 @@ Expected: the new focus test passes.
 - [ ] **Step 5: Commit the implementation**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt
 git commit -m "fix(home): focus search music list input on entry"
 ```
 
@@ -331,7 +331,7 @@ Expected: `BUILD SUCCESSFUL`.
 Run with an attached emulator/device:
 
 ```bash
-./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.HomeEntryNavigationTest
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.HomeEntryNavigationTest
 ```
 
 Expected: `BUILD SUCCESSFUL`.

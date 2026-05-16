@@ -134,23 +134,23 @@
 
 普通 AppBar 页面需要迁移到公共入口，业务逻辑尽量不动：
 
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsScreen.kt`
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/fileselector/FileSelectorLiteScreen.kt`
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginlist/PluginListScreen.kt`
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsort/PluginSortScreen.kt`
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/pluginsub/PluginSubscriptionScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/recommendsheets/RecommendSheetsScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musicdetail/MusicDetailScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailScreen.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteScreen.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsScreen.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/fileselector/FileSelectorLiteScreen.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginlist/PluginListScreen.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsort/PluginSortScreen.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/pluginsub/PluginSubscriptionScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/recommendsheets/RecommendSheetsScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/musicdetail/MusicDetailScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailScreen.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteScreen.kt`
 
 迁移时只替换外层 chrome 和 scaffold 结构，避免混入无关 UI 重构。
 

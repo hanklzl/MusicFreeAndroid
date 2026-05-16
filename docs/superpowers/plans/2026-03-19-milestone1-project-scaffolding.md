@@ -27,7 +27,7 @@
 ```
 core/
   build.gradle.kts
-  src/main/java/com/zili/android/musicfreeandroid/core/
+  src/main/java/com/hank/musicfree/core/
     theme/
       MusicFreeColors.kt          → Custom semantic colors (17+ colors, light/dark)
       MusicFreeTheme.kt           → CompositionLocal provider, wraps MaterialTheme
@@ -48,40 +48,40 @@ plugin/
 feature/
   home/
     build.gradle.kts
-    src/main/java/com/zili/android/musicfreeandroid/feature/home/
+    src/main/java/com/hank/musicfree/feature/home/
       HomeScreen.kt               → Placeholder screen composable
       navigation/
         HomeNavigation.kt         → NavGraphBuilder extension
 
   player-ui/
     build.gradle.kts
-    src/main/java/com/zili/android/musicfreeandroid/feature/playerui/
+    src/main/java/com/hank/musicfree/feature/playerui/
       PlayerScreen.kt             → Placeholder screen composable
       navigation/
         PlayerNavigation.kt       → NavGraphBuilder extension
 
   search/
     build.gradle.kts
-    src/main/java/com/zili/android/musicfreeandroid/feature/search/
+    src/main/java/com/hank/musicfree/feature/search/
       SearchScreen.kt             → Placeholder screen composable
       navigation/
         SearchNavigation.kt       → NavGraphBuilder extension
 
   settings/
     build.gradle.kts
-    src/main/java/com/zili/android/musicfreeandroid/feature/settings/
+    src/main/java/com/hank/musicfree/feature/settings/
       SettingsScreen.kt           → Placeholder screen composable
       navigation/
         SettingsNavigation.kt     → NavGraphBuilder extension
 
 app/
-  src/main/java/com/zili/android/musicfreeandroid/
+  src/main/java/com/hank/musicfree/
     MusicFreeApplication.kt       → @HiltAndroidApp Application class
     navigation/
       AppNavHost.kt               → NavHost assembling all feature screens
-  src/androidTest/java/com/zili/android/musicfreeandroid/
+  src/androidTest/java/com/hank/musicfree/
     HiltDiTest.kt                 → Verify DI graph completeness
-  src/test/java/com/zili/android/musicfreeandroid/
+  src/test/java/com/hank/musicfree/
     RoutesTest.kt                 → Route serialization test
 ```
 
@@ -241,7 +241,7 @@ git commit -m "build: add Hilt, KSP, Navigation, Serialization to version catalo
 
 **Files:**
 - Create: `core/build.gradle.kts`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/.gitkeep`
+- Create: `core/src/main/java/com/hank/musicfree/core/.gitkeep`
 
 - [ ] **Step 1: Create core/build.gradle.kts**
 
@@ -253,7 +253,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.core"
+    namespace = "com.hank.musicfree.core"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -290,12 +290,12 @@ dependencies {
 - [ ] **Step 2: Create directory structure**
 
 ```bash
-mkdir -p core/src/main/java/com/zili/android/musicfreeandroid/core/theme
-mkdir -p core/src/main/java/com/zili/android/musicfreeandroid/core/navigation
-mkdir -p core/src/main/java/com/zili/android/musicfreeandroid/core/ui
-mkdir -p core/src/main/java/com/zili/android/musicfreeandroid/core/model
-mkdir -p core/src/main/java/com/zili/android/musicfreeandroid/core/util
-mkdir -p core/src/test/java/com/zili/android/musicfreeandroid/core
+mkdir -p core/src/main/java/com/hank/musicfree/core/theme
+mkdir -p core/src/main/java/com/hank/musicfree/core/navigation
+mkdir -p core/src/main/java/com/hank/musicfree/core/ui
+mkdir -p core/src/main/java/com/hank/musicfree/core/model
+mkdir -p core/src/main/java/com/hank/musicfree/core/util
+mkdir -p core/src/test/java/com/hank/musicfree/core
 ```
 
 - [ ] **Step 3: Commit**
@@ -310,10 +310,10 @@ git commit -m "build: create :core library module"
 ## Task 3: Core Theme System
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/MusicFreeColors.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/MusicFreeTheme.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/Dimensions.kt`
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/theme/Rpx.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/theme/MusicFreeColors.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/theme/MusicFreeTheme.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/theme/Dimensions.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/theme/Rpx.kt`
 
 Color values extracted from original: `../MusicFree/src/core/theme.ts`
 Dimension values from: `../MusicFree/src/constants/uiConst.ts`
@@ -322,7 +322,7 @@ RPX formula from: `../MusicFree/src/utils/rpx.ts`
 - [ ] **Step 1: Create MusicFreeColors.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.theme
+package com.hank.musicfree.core.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -408,7 +408,7 @@ val LocalMusicFreeColors = staticCompositionLocalOf { LightMusicFreeColors }
 - [ ] **Step 2: Create Rpx.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.theme
+package com.hank.musicfree.core.theme
 
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
@@ -445,7 +445,7 @@ fun rpxSp(value: Int): TextUnit {
 - [ ] **Step 3: Create Dimensions.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.theme
+package com.hank.musicfree.core.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -483,7 +483,7 @@ object AnimationDurations {
 - [ ] **Step 4: Create MusicFreeTheme.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.theme
+package com.hank.musicfree.core.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -542,7 +542,7 @@ object MusicFreeTheme {
 - [ ] **Step 5: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/theme/
+git add core/src/main/java/com/hank/musicfree/core/theme/
 git commit -m "feat(core): add MusicFree theme system with colors, rpx, and dimensions"
 ```
 
@@ -551,12 +551,12 @@ git commit -m "feat(core): add MusicFree theme system with colors, rpx, and dime
 ## Task 4: Core Navigation Routes
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/Routes.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt`
 
 - [ ] **Step 1: Create Routes.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.navigation
+package com.hank.musicfree.core.navigation
 
 import kotlinx.serialization.Serializable
 
@@ -576,7 +576,7 @@ data object SettingsRoute
 - [ ] **Step 2: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/navigation/
+git add core/src/main/java/com/hank/musicfree/core/navigation/
 git commit -m "feat(core): define navigation routes"
 ```
 
@@ -602,7 +602,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.data"
+    namespace = "com.hank.musicfree.data"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -632,8 +632,8 @@ dependencies {
 - [ ] **Step 2: Create data source directory**
 
 ```bash
-mkdir -p data/src/main/java/com/zili/android/musicfreeandroid/data
-mkdir -p data/src/test/java/com/zili/android/musicfreeandroid/data
+mkdir -p data/src/main/java/com/hank/musicfree/data
+mkdir -p data/src/test/java/com/hank/musicfree/data
 ```
 
 - [ ] **Step 3: Create player/build.gradle.kts**
@@ -646,7 +646,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.player"
+    namespace = "com.hank.musicfree.player"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -676,8 +676,8 @@ dependencies {
 - [ ] **Step 4: Create player source directory**
 
 ```bash
-mkdir -p player/src/main/java/com/zili/android/musicfreeandroid/player
-mkdir -p player/src/test/java/com/zili/android/musicfreeandroid/player
+mkdir -p player/src/main/java/com/hank/musicfree/player
+mkdir -p player/src/test/java/com/hank/musicfree/player
 ```
 
 - [ ] **Step 5: Create plugin/build.gradle.kts**
@@ -690,7 +690,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.plugin"
+    namespace = "com.hank.musicfree.plugin"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -721,8 +721,8 @@ dependencies {
 - [ ] **Step 6: Create plugin source directory**
 
 ```bash
-mkdir -p plugin/src/main/java/com/zili/android/musicfreeandroid/plugin
-mkdir -p plugin/src/test/java/com/zili/android/musicfreeandroid/plugin
+mkdir -p plugin/src/main/java/com/hank/musicfree/plugin
+mkdir -p plugin/src/test/java/com/hank/musicfree/plugin
 ```
 
 - [ ] **Step 7: Commit**
@@ -768,7 +768,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid.feature.home"
+    namespace = "com.hank.musicfree.feature.home"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -804,34 +804,34 @@ dependencies {
 ```
 
 Repeat for each feature module with appropriate namespace:
-- `feature/player-ui/build.gradle.kts` → namespace `com.zili.android.musicfreeandroid.feature.playerui`
-- `feature/search/build.gradle.kts` → namespace `com.zili.android.musicfreeandroid.feature.search`
-- `feature/settings/build.gradle.kts` → namespace `com.zili.android.musicfreeandroid.feature.settings`
+- `feature/player-ui/build.gradle.kts` → namespace `com.hank.musicfree.feature.playerui`
+- `feature/search/build.gradle.kts` → namespace `com.hank.musicfree.feature.search`
+- `feature/settings/build.gradle.kts` → namespace `com.hank.musicfree.feature.settings`
 
 - [ ] **Step 2: Create source directories for all feature modules**
 
 ```bash
 # home
-mkdir -p feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/navigation
-mkdir -p feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home
+mkdir -p feature/home/src/main/java/com/hank/musicfree/feature/home/navigation
+mkdir -p feature/home/src/test/java/com/hank/musicfree/feature/home
 
 # player-ui
-mkdir -p feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/navigation
-mkdir -p feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui
+mkdir -p feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/navigation
+mkdir -p feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui
 
 # search
-mkdir -p feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/navigation
-mkdir -p feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search
+mkdir -p feature/search/src/main/java/com/hank/musicfree/feature/search/navigation
+mkdir -p feature/search/src/test/java/com/hank/musicfree/feature/search
 
 # settings
-mkdir -p feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/navigation
-mkdir -p feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings
+mkdir -p feature/settings/src/main/java/com/hank/musicfree/feature/settings/navigation
+mkdir -p feature/settings/src/test/java/com/hank/musicfree/feature/settings
 ```
 
 - [ ] **Step 3: Create HomeScreen.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home
+package com.hank.musicfree.feature.home
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -839,7 +839,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 
 @Composable
 fun HomeScreen(
@@ -863,12 +863,12 @@ fun HomeScreen(
 - [ ] **Step 4: Create HomeNavigation.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.home.navigation
+package com.hank.musicfree.feature.home.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
-import com.zili.android.musicfreeandroid.feature.home.HomeScreen
+import com.hank.musicfree.core.navigation.HomeRoute
+import com.hank.musicfree.feature.home.HomeScreen
 
 fun NavGraphBuilder.homeScreen(
     onNavigateToPlayer: () -> Unit,
@@ -887,9 +887,9 @@ fun NavGraphBuilder.homeScreen(
 
 - [ ] **Step 5: Create PlayerScreen.kt and PlayerNavigation.kt**
 
-`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`:
+`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`:
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui
+package com.hank.musicfree.feature.playerui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -897,7 +897,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 
 @Composable
 fun PlayerScreen(
@@ -916,14 +916,14 @@ fun PlayerScreen(
 }
 ```
 
-`feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/navigation/PlayerNavigation.kt`:
+`feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/navigation/PlayerNavigation.kt`:
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.playerui.navigation
+package com.hank.musicfree.feature.playerui.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
-import com.zili.android.musicfreeandroid.feature.playerui.PlayerScreen
+import com.hank.musicfree.core.navigation.PlayerRoute
+import com.hank.musicfree.feature.playerui.PlayerScreen
 
 fun NavGraphBuilder.playerScreen(
     onBack: () -> Unit,
@@ -936,9 +936,9 @@ fun NavGraphBuilder.playerScreen(
 
 - [ ] **Step 6: Create SearchScreen.kt and SearchNavigation.kt**
 
-`feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`:
+`feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`:
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.search
+package com.hank.musicfree.feature.search
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -946,7 +946,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 
 @Composable
 fun SearchScreen(
@@ -965,14 +965,14 @@ fun SearchScreen(
 }
 ```
 
-`feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/navigation/SearchNavigation.kt`:
+`feature/search/src/main/java/com/hank/musicfree/feature/search/navigation/SearchNavigation.kt`:
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.search.navigation
+package com.hank.musicfree.feature.search.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
-import com.zili.android.musicfreeandroid.feature.search.SearchScreen
+import com.hank.musicfree.core.navigation.SearchRoute
+import com.hank.musicfree.feature.search.SearchScreen
 
 fun NavGraphBuilder.searchScreen(
     onBack: () -> Unit,
@@ -985,9 +985,9 @@ fun NavGraphBuilder.searchScreen(
 
 - [ ] **Step 7: Create SettingsScreen.kt and SettingsNavigation.kt**
 
-`feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`:
+`feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`:
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings
+package com.hank.musicfree.feature.settings
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -995,7 +995,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.theme.MusicFreeTheme
 
 @Composable
 fun SettingsScreen(
@@ -1014,14 +1014,14 @@ fun SettingsScreen(
 }
 ```
 
-`feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/navigation/SettingsNavigation.kt`:
+`feature/settings/src/main/java/com/hank/musicfree/feature/settings/navigation/SettingsNavigation.kt`:
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings.navigation
+package com.hank.musicfree.feature.settings.navigation
 
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
-import com.zili.android.musicfreeandroid.feature.settings.SettingsScreen
+import com.hank.musicfree.core.navigation.SettingsRoute
+import com.hank.musicfree.feature.settings.SettingsScreen
 
 fun NavGraphBuilder.settingsScreen(
     onBack: () -> Unit,
@@ -1063,7 +1063,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zili.android.musicfreeandroid"
+    namespace = "com.hank.musicfree"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -1071,13 +1071,13 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.zili.android.musicfreeandroid"
+        applicationId = "com.hank.musicfree"
         minSdk = 29
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "com.zili.android.musicfreeandroid.HiltTestRunner"
+        testInstrumentationRunner = "com.hank.musicfree.HiltTestRunner"
     }
 
     buildTypes {
@@ -1146,7 +1146,7 @@ dependencies {
 - [ ] **Step 2: Create MusicFreeApplication.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid
+package com.hank.musicfree
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
@@ -1158,20 +1158,20 @@ class MusicFreeApplication : Application()
 - [ ] **Step 3: Create navigation/AppNavHost.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.navigation
+package com.hank.musicfree.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
-import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
-import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
-import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
-import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
-import com.zili.android.musicfreeandroid.feature.home.navigation.homeScreen
-import com.zili.android.musicfreeandroid.feature.playerui.navigation.playerScreen
-import com.zili.android.musicfreeandroid.feature.search.navigation.searchScreen
-import com.zili.android.musicfreeandroid.feature.settings.navigation.settingsScreen
+import com.hank.musicfree.core.navigation.HomeRoute
+import com.hank.musicfree.core.navigation.PlayerRoute
+import com.hank.musicfree.core.navigation.SearchRoute
+import com.hank.musicfree.core.navigation.SettingsRoute
+import com.hank.musicfree.feature.home.navigation.homeScreen
+import com.hank.musicfree.feature.playerui.navigation.playerScreen
+import com.hank.musicfree.feature.search.navigation.searchScreen
+import com.hank.musicfree.feature.settings.navigation.settingsScreen
 
 @Composable
 fun AppNavHost(
@@ -1204,7 +1204,7 @@ fun AppNavHost(
 - [ ] **Step 4: Update MainActivity.kt**
 
 ```kotlin
-package com.zili.android.musicfreeandroid
+package com.hank.musicfree
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -1215,8 +1215,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.navigation.AppNavHost
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.navigation.AppNavHost
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -1274,19 +1274,19 @@ class MainActivity : ComponentActivity() {
 - [ ] **Step 6: Delete old theme files (replaced by :core theme)**
 
 ```bash
-rm app/src/main/java/com/zili/android/musicfreeandroid/ui/theme/Color.kt
-rm app/src/main/java/com/zili/android/musicfreeandroid/ui/theme/Theme.kt
-rm app/src/main/java/com/zili/android/musicfreeandroid/ui/theme/Type.kt
-rmdir app/src/main/java/com/zili/android/musicfreeandroid/ui/theme
-rmdir app/src/main/java/com/zili/android/musicfreeandroid/ui
+rm app/src/main/java/com/hank/musicfree/ui/theme/Color.kt
+rm app/src/main/java/com/hank/musicfree/ui/theme/Theme.kt
+rm app/src/main/java/com/hank/musicfree/ui/theme/Type.kt
+rmdir app/src/main/java/com/hank/musicfree/ui/theme
+rmdir app/src/main/java/com/hank/musicfree/ui
 ```
 
 - [ ] **Step 7: Create navigation directory**
 
 ```bash
-mkdir -p app/src/main/java/com/zili/android/musicfreeandroid/navigation
-mkdir -p app/src/androidTest/java/com/zili/android/musicfreeandroid
-mkdir -p app/src/test/java/com/zili/android/musicfreeandroid
+mkdir -p app/src/main/java/com/hank/musicfree/navigation
+mkdir -p app/src/androidTest/java/com/hank/musicfree
+mkdir -p app/src/test/java/com/hank/musicfree
 ```
 
 - [ ] **Step 8: Commit**
@@ -1321,7 +1321,7 @@ Common issues to check:
 
 ```bash
 ./gradlew installDebug
-adb shell am start -n com.zili.android.musicfreeandroid/.MainActivity
+adb shell am start -n com.hank.musicfree/.MainActivity
 ```
 
 Expected: App launches showing "Home" text centered on screen.
@@ -1338,20 +1338,20 @@ git commit -m "fix: resolve build issues for multi-module setup"
 ## Task 9: Write Tests
 
 **Files:**
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt`
-- Create: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HiltTestRunner.kt`
-- Create: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HiltDiTest.kt`
+- Create: `app/src/test/java/com/hank/musicfree/RoutesTest.kt`
+- Create: `app/src/androidTest/java/com/hank/musicfree/HiltTestRunner.kt`
+- Create: `app/src/androidTest/java/com/hank/musicfree/HiltDiTest.kt`
 
 - [ ] **Step 1: Write route serialization test**
 
-`app/src/test/java/com/zili/android/musicfreeandroid/RoutesTest.kt`:
+`app/src/test/java/com/hank/musicfree/RoutesTest.kt`:
 ```kotlin
-package com.zili.android.musicfreeandroid
+package com.hank.musicfree
 
-import com.zili.android.musicfreeandroid.core.navigation.HomeRoute
-import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
-import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
-import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
+import com.hank.musicfree.core.navigation.HomeRoute
+import com.hank.musicfree.core.navigation.PlayerRoute
+import com.hank.musicfree.core.navigation.SearchRoute
+import com.hank.musicfree.core.navigation.SettingsRoute
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import org.junit.Assert.assertNotNull
@@ -1396,16 +1396,16 @@ class RoutesTest {
 - [ ] **Step 2: Run unit tests**
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.RoutesTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.RoutesTest"
 ```
 
 Expected: 4 tests PASSED
 
 - [ ] **Step 3: Create HiltTestRunner.kt**
 
-`app/src/androidTest/java/com/zili/android/musicfreeandroid/HiltTestRunner.kt`:
+`app/src/androidTest/java/com/hank/musicfree/HiltTestRunner.kt`:
 ```kotlin
-package com.zili.android.musicfreeandroid
+package com.hank.musicfree
 
 import android.app.Application
 import android.content.Context
@@ -1425,9 +1425,9 @@ class HiltTestRunner : AndroidJUnitRunner() {
 
 - [ ] **Step 4: Write Hilt DI graph test**
 
-`app/src/androidTest/java/com/zili/android/musicfreeandroid/HiltDiTest.kt`:
+`app/src/androidTest/java/com/hank/musicfree/HiltDiTest.kt`:
 ```kotlin
-package com.zili.android.musicfreeandroid
+package com.hank.musicfree
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -1456,7 +1456,7 @@ class HiltDiTest {
 - [ ] **Step 5: Run instrumented tests**
 
 ```bash
-./gradlew :app:connectedDebugAndroidTest --tests "com.zili.android.musicfreeandroid.HiltDiTest"
+./gradlew :app:connectedDebugAndroidTest --tests "com.hank.musicfree.HiltDiTest"
 ```
 
 Expected: 1 test PASSED (requires connected device/emulator)

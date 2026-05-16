@@ -12,14 +12,14 @@
 
 ## File Map
 
-- Modify `core/src/main/java/com/zili/android/musicfreeandroid/core/model/BasicSettingModels.kt`: add lyric association and desktop lyric alignment enums.
-- Modify `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`: add flows/setters for remaining Basic settings and debug log switches.
-- Modify `logging/src/main/java/com/zili/android/musicfreeandroid/logging/*`: add log switches and readable error log mirror.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`: expose new state and actions.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/BasicSettingsContent.kt`: remove pending rows, add dialogs and rows.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsScreen.kt`: overlay permission path and view-error-log dialog.
-- Modify `player/src/main/java/com/zili/android/musicfreeandroid/player/service/*` and `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`: notification close command.
-- Modify `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/*`: lyric association input path and desktop lyric overlay.
+- Modify `core/src/main/java/com/hank/musicfree/core/model/BasicSettingModels.kt`: add lyric association and desktop lyric alignment enums.
+- Modify `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`: add flows/setters for remaining Basic settings and debug log switches.
+- Modify `logging/src/main/java/com/hank/musicfree/logging/*`: add log switches and readable error log mirror.
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`: expose new state and actions.
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/BasicSettingsContent.kt`: remove pending rows, add dialogs and rows.
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsScreen.kt`: overlay permission path and view-error-log dialog.
+- Modify `player/src/main/java/com/hank/musicfree/player/service/*` and `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`: notification close command.
+- Modify `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/*`: lyric association input path and desktop lyric overlay.
 - Modify `app/src/main/AndroidManifest.xml`: add overlay permission.
 - Update targeted tests under touched modules.
 

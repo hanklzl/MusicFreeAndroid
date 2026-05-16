@@ -9,7 +9,7 @@ scope: Debug 包运行态验收、真实默认插件/订阅网络链路、logcat
 
 ## 1. 背景
 
-当前仓库已经具备 Debug 默认引导插件能力：`DefaultPluginsBootstrapper` 会在冷启动后根据 `app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/DefaultPlugins.kt` 中的订阅源和单插件 URL 自动 reconcile 插件。日志系统也已经落地 `MfLog` / Logan，覆盖启动、默认插件引导、插件、搜索、播放器、反馈日志包等核心链路。
+当前仓库已经具备 Debug 默认引导插件能力：`DefaultPluginsBootstrapper` 会在冷启动后根据 `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPlugins.kt` 中的订阅源和单插件 URL 自动 reconcile 插件。日志系统也已经落地 `MfLog` / Logan，覆盖启动、默认插件引导、插件、搜索、播放器、反馈日志包等核心链路。
 
 现在需要引入 Maestro 功能测试用例，帮助后续在设备或模拟器上执行真实运行态验收，并把失败现场与 `logcat`、结构化日志和 Logan 日志包关联起来。用户已明确选择使用真实默认插件/订阅网络链路，而不是本地 mock 或稳定夹具。
 
@@ -78,7 +78,7 @@ bash scripts/maestro/run-smoke.sh --suite all
 默认目标包名为 Debug 包：
 
 ```text
-com.zili.android.musicfreeandroid.debug
+com.hank.musicfree.debug
 ```
 
 脚本职责：
@@ -133,7 +133,7 @@ com.zili.android.musicfreeandroid.debug
 
 步骤：
 
-1. 启动 `com.zili.android.musicfreeandroid.debug`。
+1. 启动 `com.hank.musicfree.debug`。
 2. 处理系统通知权限弹窗：允许或跳过，取决于设备 Android 版本。
 3. 等待首页导航栏或搜索入口出现。
 4. 等待一段短时间，给默认插件 reconcile 写入日志。

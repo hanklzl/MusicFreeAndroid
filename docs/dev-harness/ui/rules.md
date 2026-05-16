@@ -34,7 +34,7 @@ implemented_by: INC-2026-0006
 
 implemented_by: INC-2026-0007
 
-普通 AppBar 页面 MUST 使用 `com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold` 或 `MusicFreeTopAppBar`。
+普通 AppBar 页面 MUST 使用 `com.hank.musicfree.core.ui.MusicFreeScreenScaffold` 或 `MusicFreeTopAppBar`。
 
 普通 AppBar 页面 MUST NOT 直接手写以下模式：
 

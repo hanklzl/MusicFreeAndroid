@@ -12,37 +12,37 @@
 
 ## File Structure
 
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeDrawerNavigation.kt`
   - 删除 `ShowLanguageDialog`、`BackToDesktop`、`ExitApp` action。
   - 从 drawer model 删除语言设置条目，并把 `footerActions` 改为空。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt`
   - 删除语言弹窗的点击分发、BackHandler 条件和 dialog 参数。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenState.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenState.kt`
   - 删除语言弹窗状态与方法。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeDrawerDialogs.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeDrawerDialogs.kt`
   - 删除语言弹窗参数与渲染分支。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIcons.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeIcons.kt`
   - 删除已无侧栏入口使用的三个 icon mapping。
 - Delete:
   - `feature/home/src/main/res/drawable/ic_home_language.xml`
   - `feature/home/src/main/res/drawable/ic_home_home_outline.xml`
   - `feature/home/src/main/res/drawable/ic_home_power_outline.xml`
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
   - 删除已不再暴露的三个侧栏入口 anchor 与 `Dialog.LanguageRoot`。
 - Modify tests:
-  - `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerUiModelTest.kt`
-  - `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContentTest.kt`
-  - `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenStateTest.kt`
-  - `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt`
-  - `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIconMappingTest.kt`
-  - `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeDrawerBehaviorTest.kt`
+  - `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeDrawerUiModelTest.kt`
+  - `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenContentTest.kt`
+  - `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenStateTest.kt`
+  - `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt`
+  - `feature/home/src/test/java/com/hank/musicfree/feature/home/component/HomeIconMappingTest.kt`
+  - `app/src/androidTest/java/com/hank/musicfree/HomeDrawerBehaviorTest.kt`
 
 ## Task 1: Lock Removed Entries With Failing Tests
 
 **Files:**
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerUiModelTest.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContentTest.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenStateTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeDrawerUiModelTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenContentTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeScreenStateTest.kt`
 
 - [ ] **Step 1: Update drawer model test first**
 
@@ -75,7 +75,7 @@ Remove language-dialog expectations from `HomeScreenStateTest`, and keep only dr
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.home.HomeDrawerUiModelTest' --no-daemon
+./gradlew :feature:home:testDebugUnitTest --tests 'com.hank.musicfree.feature.home.HomeDrawerUiModelTest' --no-daemon
 ```
 
 Expected before production changes: fail because the drawer model still exposes `home.drawer.software.language`, `home.drawer.action.backToDesktop`, and `home.drawer.action.exitApp`.
@@ -83,10 +83,10 @@ Expected before production changes: fail because the drawer model still exposes 
 ## Task 2: Remove Drawer Entries And Local Language Dialog State
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeDrawerNavigation.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenContent.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeScreenState.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeDrawerDialogs.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeDrawerNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenContent.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreenState.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeDrawerDialogs.kt`
 
 - [ ] **Step 1: Remove actions and model entries**
 
@@ -109,7 +109,7 @@ Remove `isLanguageDialogVisible`, `currentLanguage`, and `onDismissLanguage` par
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.home.HomeDrawerUiModelTest' --no-daemon
+./gradlew :feature:home:testDebugUnitTest --tests 'com.hank.musicfree.feature.home.HomeDrawerUiModelTest' --no-daemon
 ```
 
 Expected after implementation: pass.
@@ -117,11 +117,11 @@ Expected after implementation: pass.
 ## Task 3: Tighten Anchors, Icons, And Instrumentation References
 
 **Files:**
-- Modify: `core/src/main/java/com/zili/android/musicfreeandroid/core/ui/FidelityAnchors.kt`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIcons.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/HomeAnchorContractTest.kt`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/component/HomeIconMappingTest.kt`
-- Modify: `app/src/androidTest/java/com/zili/android/musicfreeandroid/HomeDrawerBehaviorTest.kt`
+- Modify: `core/src/main/java/com/hank/musicfree/core/ui/FidelityAnchors.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/component/HomeIcons.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/HomeAnchorContractTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/component/HomeIconMappingTest.kt`
+- Modify: `app/src/androidTest/java/com/hank/musicfree/HomeDrawerBehaviorTest.kt`
 
 - [ ] **Step 1: Remove unused anchors and icon mappings**
 
@@ -140,7 +140,7 @@ Delete `language_entry_opens_dialog()` and `backToDesktop_action_invokes_fake_ha
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests 'com.zili.android.musicfreeandroid.feature.home.*' --no-daemon
+./gradlew :feature:home:testDebugUnitTest --tests 'com.hank.musicfree.feature.home.*' --no-daemon
 ```
 
 Expected: home module JVM tests pass.

@@ -22,15 +22,15 @@ RN 参考：
 
 Android 当前入口：
 
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/datastore/AppPreferences.kt`
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/SettingsViewModel.kt`
-- `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/BasicSettingsContent.kt`
-- `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/*DetailViewModel.kt`
-- `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/media/PluginMediaSourceService.kt`
-- `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- `downloader/src/main/java/com/zili/android/musicfreeandroid/downloader/quality/QualityFallback.kt`
+- `data/src/main/java/com/hank/musicfree/data/datastore/AppPreferences.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/SettingsViewModel.kt`
+- `feature/settings/src/main/java/com/hank/musicfree/feature/settings/BasicSettingsContent.kt`
+- `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/*DetailViewModel.kt`
+- `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- `plugin/src/main/java/com/hank/musicfree/plugin/media/PluginMediaSourceService.kt`
+- `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- `downloader/src/main/java/com/hank/musicfree/downloader/quality/QualityFallback.kt`
 
 ## 目标
 

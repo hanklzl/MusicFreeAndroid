@@ -8,4 +8,4 @@
 
 guard 当前 manual：harness-curator-skill 巡检会显式列 INC-2026-0009 提醒人工复核；再现一次跨线程崩溃即升级为 contract-test。
 
-实现入口：`:plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/`。
+实现入口：`:plugin/src/main/java/com/hank/musicfree/plugin/engine/`。

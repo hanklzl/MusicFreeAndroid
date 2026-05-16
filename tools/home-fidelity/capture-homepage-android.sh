@@ -5,7 +5,7 @@ DEVICE="${1:?device required}"
 STATE="${2:?state required}"
 FRAGMENT="${3:?fragment required}"
 OUT_DIR="docs/home-fidelity/homepage/android"
-EXPECTED_PACKAGE="${CAPTURE_EXPECTED_PACKAGE:-com.zili.android.musicfreeandroid}"
+EXPECTED_PACKAGE="${CAPTURE_EXPECTED_PACKAGE:-com.hank.musicfree}"
 EXPECTED_ANCHOR="${4:-}"
 
 if [[ -z "${EXPECTED_ANCHOR}" ]]; then

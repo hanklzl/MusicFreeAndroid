@@ -17,10 +17,10 @@
 
 Android 当前相关实现：
 
-- `../../../plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- `../../../feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
-- `../../../feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
-- `../../../feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- `../../../plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- `../../../feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- `../../../feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
+- `../../../feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
 
 RN 参考：
 

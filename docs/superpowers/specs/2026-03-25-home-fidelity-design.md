@@ -45,7 +45,7 @@
 | 强制 density | 无 (`display_density_forced = null`) |
 | font scale | `1.0` |
 | 语言/地区 | `en-US` |
-| 当前顶层 Activity | `com.zili.android.musicfreeandroid/.MainActivity` |
+| 当前顶层 Activity | `com.hank.musicfree/.MainActivity` |
 
 ### 环境锁定规则
 
@@ -89,7 +89,7 @@ manifest 至少包含：
 
 2. 双侧恢复流程
    - RN 侧：提供一条可重复执行的恢复流程，使 `fun.upup.musicfree` 首页进入 manifest 描述的数据态
-   - Android 侧：提供一条可重复执行的恢复流程，使 `com.zili.android.musicfreeandroid` 首页进入同一语义数据态
+   - Android 侧：提供一条可重复执行的恢复流程，使 `com.hank.musicfree` 首页进入同一语义数据态
 
 3. 最小样例数据
    - 首页默认选中 `我的歌单`
@@ -614,7 +614,7 @@ RN 参考应用包名固定为：
 
 Android 原生应用包名固定为：
 
-`com.zili.android.musicfreeandroid`
+`com.hank.musicfree`
 
 RN 侧证据采集要求：
 

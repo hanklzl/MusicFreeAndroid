@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_ID="com.zili.android.musicfreeandroid.debug"
+APP_ID="com.hank.musicfree.debug"
 APK_PATH="app/build/outputs/apk/debug/MusicFreeAndroid-arm64-v8a-debug.apk"
 SUITE="core"
 SKIP_BUILD=0

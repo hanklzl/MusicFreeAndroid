@@ -12,9 +12,9 @@
 
 ## File Map
 
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
   - Add dynamic quality/rate image mapping and use it in `PlayerOperationsBar`.
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerOperationsBarTest.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerOperationsBarTest.kt`
   - Cover dynamic quality/rate resource mapping.
 - Create: `core/src/main/res/drawable/ic_quality_low.png`
 - Create: `core/src/main/res/drawable/ic_quality_high.png`
@@ -25,24 +25,24 @@
 - Create: `core/src/main/res/drawable/ic_rate_150.png`
 - Create: `core/src/main/res/drawable/ic_rate_175.png`
 - Create: `core/src/main/res/drawable/ic_rate_200.png`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueUiModel.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueUiModel.kt`
   - Replace `repeatMode` UI exposure with `PlaybackMode`.
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
   - Derive queue `PlaybackMode` from `PlayerState`.
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheet.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheet.kt`
   - Call `cyclePlaybackMode()`.
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheetContent.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheetContent.kt`
   - Render queue mode label/icon from `PlaybackMode`.
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheetContentTest.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheetContentTest.kt`
   - Cover shuffle label and callback.
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelQueueTest.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelQueueTest.kt`
   - Cover queue model playback mode derivation.
 
 ## Task 1: Dynamic Quality And Rate Operation Icons
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerOperationsBarTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerOperationsBarTest.kt`
 - Create PNGs under `core/src/main/res/drawable/`
 
 - [ ] **Step 1: Add failing tests**
@@ -133,12 +133,12 @@ Expected: pass.
 ## Task 2: Queue Sheet Three-State Playback Mode
 
 **Files:**
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueUiModel.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModel.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheet.kt`
-- Modify: `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheetContent.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/queue/PlayQueueSheetContentTest.kt`
-- Modify: `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerViewModelQueueTest.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueUiModel.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerViewModel.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheet.kt`
+- Modify: `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheetContent.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/queue/PlayQueueSheetContentTest.kt`
+- Modify: `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/PlayerViewModelQueueTest.kt`
 
 - [ ] **Step 1: Add failing tests**
 

@@ -12,37 +12,37 @@
 
 ## File Structure
 
-- Create `core/src/main/java/com/zili/android/musicfreeandroid/core/permissions/NotificationPermission.kt`
+- Create `core/src/main/java/com/hank/musicfree/core/permissions/NotificationPermission.kt`
   - Pure SDK helper for the Android 13+ `POST_NOTIFICATIONS` permission name.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsViewModel.kt`
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsViewModel.kt`
   - Add notification permission state to the permissions UI model.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsHelpers.kt`
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsHelpers.kt`
   - Add notification permission status helper and include it in `readPermissionsUiState`.
-- Modify `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsScreen.kt`
+- Modify `feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsScreen.kt`
   - Add a request launcher and row for notification permission.
-- Modify `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsHelpersTest.kt`
+- Modify `feature/settings/src/test/java/com/hank/musicfree/feature/settings/PermissionsHelpersTest.kt`
   - Add unit coverage for notification permission helpers.
-- Modify `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
+- Modify `app/src/main/java/com/hank/musicfree/MainActivity.kt`
   - Request notification permission on Android 13+ during app entry.
-- Modify `player/src/main/java/com/zili/android/musicfreeandroid/player/ext/MusicItemMediaExt.kt`
+- Modify `player/src/main/java/com/hank/musicfree/player/ext/MusicItemMediaExt.kt`
   - Support default artwork URI fallback while preserving existing callers.
-- Modify `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
+- Modify `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
   - Pass default artwork URI into `toMediaItem`; register/unregister notification queue controls.
-- Modify `player/src/test/java/com/zili/android/musicfreeandroid/player/ext/MusicItemMediaExtTest.kt`
+- Modify `player/src/test/java/com/hank/musicfree/player/ext/MusicItemMediaExtTest.kt`
   - Add fallback artwork metadata coverage.
-- Create `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationActions.kt`
+- Create `player/src/main/java/com/hank/musicfree/player/service/PlaybackNotificationActions.kt`
   - Define custom session commands and Media3 command buttons for previous/next.
-- Create `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationCommandHandler.kt`
+- Create `player/src/main/java/com/hank/musicfree/player/service/PlaybackNotificationCommandHandler.kt`
   - Define the queue-control delegate used by `PlaybackService`.
-- Create `player/src/test/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationActionsTest.kt`
+- Create `player/src/test/java/com/hank/musicfree/player/service/PlaybackNotificationActionsTest.kt`
   - Unit test custom command/button construction.
-- Create `player/src/test/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationCommandHandlerTest.kt`
+- Create `player/src/test/java/com/hank/musicfree/player/service/PlaybackNotificationCommandHandlerTest.kt`
   - Unit test attach, no-op, and detach behavior.
 - Create `player/src/main/res/values/strings.xml`
   - Add the Media3 notification channel name.
-- Modify `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackService.kt`
+- Modify `player/src/main/java/com/hank/musicfree/player/service/PlaybackService.kt`
   - Configure notification provider, session activity, media button preferences, and custom command callback.
-- Modify `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/service/PlaybackServiceTest.kt`
+- Modify `player/src/androidTest/java/com/hank/musicfree/player/service/PlaybackServiceTest.kt`
   - Add session activity, media button preference, and notification command queue navigation tests.
 
 ---
@@ -50,18 +50,18 @@
 ## Task 1: Notification Permission Helpers and Settings UI
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/permissions/NotificationPermission.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsViewModel.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsHelpers.kt`
-- Modify: `feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsScreen.kt`
-- Test: `feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsHelpersTest.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/permissions/NotificationPermission.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsViewModel.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsHelpers.kt`
+- Modify: `feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsScreen.kt`
+- Test: `feature/settings/src/test/java/com/hank/musicfree/feature/settings/PermissionsHelpersTest.kt`
 
 - [ ] **Step 1: Add failing permission helper tests**
 
 Ensure these imports are present in `PermissionsHelpersTest.kt`:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
+import com.hank.musicfree.core.permissions.requiredNotificationPermission
 import org.junit.Assert.assertTrue
 ```
 
@@ -109,10 +109,10 @@ Expected: FAIL because `requiredNotificationPermission`, `hasNotificationPermiss
 
 - [ ] **Step 3: Create the core notification permission helper**
 
-Create `core/src/main/java/com/zili/android/musicfreeandroid/core/permissions/NotificationPermission.kt`:
+Create `core/src/main/java/com/hank/musicfree/core/permissions/NotificationPermission.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.permissions
+package com.hank.musicfree.core.permissions
 
 import android.Manifest
 import android.os.Build
@@ -141,8 +141,8 @@ data class PermissionsUiState(
 Update `PermissionsHelpers.kt` imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
-import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
+import com.hank.musicfree.core.permissions.requiredAudioPermission
+import com.hank.musicfree.core.permissions.requiredNotificationPermission
 ```
 
 Replace `readPermissionsUiState` with:
@@ -171,8 +171,8 @@ internal fun hasNotificationPermission(context: Context, sdkInt: Int = Build.VER
 Update `PermissionsScreen.kt` imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.permissions.requiredAudioPermission
-import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
+import com.hank.musicfree.core.permissions.requiredAudioPermission
+import com.hank.musicfree.core.permissions.requiredNotificationPermission
 ```
 
 After `val storagePermission = requiredAudioPermission()`, add:
@@ -230,11 +230,11 @@ Expected: PASS.
 Run:
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/permissions/NotificationPermission.kt \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsViewModel.kt \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsHelpers.kt \
-  feature/settings/src/main/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsScreen.kt \
-  feature/settings/src/test/java/com/zili/android/musicfreeandroid/feature/settings/PermissionsHelpersTest.kt
+git add core/src/main/java/com/hank/musicfree/core/permissions/NotificationPermission.kt \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsViewModel.kt \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsHelpers.kt \
+  feature/settings/src/main/java/com/hank/musicfree/feature/settings/PermissionsScreen.kt \
+  feature/settings/src/test/java/com/hank/musicfree/feature/settings/PermissionsHelpersTest.kt
 git commit -m "feat(settings): surface notification permission"
 ```
 
@@ -243,7 +243,7 @@ git commit -m "feat(settings): surface notification permission"
 ## Task 2: App Entry Notification Permission Request
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
 
 - [ ] **Step 1: Add runtime permission request imports**
 
@@ -255,7 +255,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
-import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
+import com.hank.musicfree.core.permissions.requiredNotificationPermission
 ```
 
 - [ ] **Step 2: Request notification permission from Compose entry**
@@ -297,7 +297,7 @@ Expected: PASS.
 Run:
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt
+git add app/src/main/java/com/hank/musicfree/MainActivity.kt
 git commit -m "feat(app): request notification permission on entry"
 ```
 
@@ -306,9 +306,9 @@ git commit -m "feat(app): request notification permission on entry"
 ## Task 3: MediaItem Metadata Default Artwork
 
 **Files:**
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/ext/MusicItemMediaExt.kt`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Test: `player/src/test/java/com/zili/android/musicfreeandroid/player/ext/MusicItemMediaExtTest.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/ext/MusicItemMediaExt.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Test: `player/src/test/java/com/hank/musicfree/player/ext/MusicItemMediaExtTest.kt`
 
 - [ ] **Step 1: Add failing default artwork test**
 
@@ -351,15 +351,15 @@ Expected: FAIL because `toMediaItem(defaultArtworkUri = ...)` does not exist.
 Replace `MusicItemMediaExt.kt` with:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.ext
+package com.hank.musicfree.player.ext
 
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.R as CoreR
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.R as CoreR
 
 fun MusicItem.toMediaItem(defaultArtworkUri: Uri? = null): MediaItem {
     val mediaUri = url
@@ -404,8 +404,8 @@ fun Context.defaultAlbumArtworkUri(): Uri {
 Update `PlayerController.kt` imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.player.ext.defaultAlbumArtworkUri
-import com.zili.android.musicfreeandroid.player.ext.toMediaItem
+import com.hank.musicfree.player.ext.defaultAlbumArtworkUri
+import com.hank.musicfree.player.ext.toMediaItem
 ```
 
 Add this property near `private var connectJob: Job? = null`:
@@ -437,9 +437,9 @@ Expected: PASS.
 Run:
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/ext/MusicItemMediaExt.kt \
-  player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt \
-  player/src/test/java/com/zili/android/musicfreeandroid/player/ext/MusicItemMediaExtTest.kt
+git add player/src/main/java/com/hank/musicfree/player/ext/MusicItemMediaExt.kt \
+  player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt \
+  player/src/test/java/com/hank/musicfree/player/ext/MusicItemMediaExtTest.kt
 git commit -m "feat(player): add notification artwork fallback"
 ```
 
@@ -448,18 +448,18 @@ git commit -m "feat(player): add notification artwork fallback"
 ## Task 4: Notification Commands and Queue Delegate
 
 **Files:**
-- Create: `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationActions.kt`
-- Create: `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationCommandHandler.kt`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt`
-- Test: `player/src/test/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationActionsTest.kt`
-- Test: `player/src/test/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationCommandHandlerTest.kt`
+- Create: `player/src/main/java/com/hank/musicfree/player/service/PlaybackNotificationActions.kt`
+- Create: `player/src/main/java/com/hank/musicfree/player/service/PlaybackNotificationCommandHandler.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt`
+- Test: `player/src/test/java/com/hank/musicfree/player/service/PlaybackNotificationActionsTest.kt`
+- Test: `player/src/test/java/com/hank/musicfree/player/service/PlaybackNotificationCommandHandlerTest.kt`
 
 - [ ] **Step 1: Write failing action tests**
 
-Create `player/src/test/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationActionsTest.kt`:
+Create `player/src/test/java/com/hank/musicfree/player/service/PlaybackNotificationActionsTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.service
+package com.hank.musicfree.player.service
 
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -502,10 +502,10 @@ class PlaybackNotificationActionsTest {
 
 - [ ] **Step 2: Write failing command handler tests**
 
-Create `player/src/test/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationCommandHandlerTest.kt`:
+Create `player/src/test/java/com/hank/musicfree/player/service/PlaybackNotificationCommandHandlerTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.service
+package com.hank.musicfree.player.service
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -577,12 +577,12 @@ Expected: FAIL because the action and handler classes do not exist.
 
 - [ ] **Step 4: Implement notification actions**
 
-Create `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationActions.kt`:
+Create `player/src/main/java/com/hank/musicfree/player/service/PlaybackNotificationActions.kt`:
 
 ```kotlin
 @file:OptIn(UnstableApi::class)
 
-package com.zili.android.musicfreeandroid.player.service
+package com.hank.musicfree.player.service
 
 import android.os.Bundle
 import androidx.media3.common.util.UnstableApi
@@ -591,9 +591,9 @@ import androidx.media3.session.SessionCommand
 
 object PlaybackNotificationActions {
     const val ACTION_SKIP_TO_PREVIOUS =
-        "com.zili.android.musicfreeandroid.player.action.SKIP_TO_PREVIOUS"
+        "com.hank.musicfree.player.action.SKIP_TO_PREVIOUS"
     const val ACTION_SKIP_TO_NEXT =
-        "com.zili.android.musicfreeandroid.player.action.SKIP_TO_NEXT"
+        "com.hank.musicfree.player.action.SKIP_TO_NEXT"
 
     val SkipToPreviousCommand = SessionCommand(ACTION_SKIP_TO_PREVIOUS, Bundle.EMPTY)
     val SkipToNextCommand = SessionCommand(ACTION_SKIP_TO_NEXT, Bundle.EMPTY)
@@ -617,10 +617,10 @@ object PlaybackNotificationActions {
 
 - [ ] **Step 5: Implement the queue command handler**
 
-Create `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationCommandHandler.kt`:
+Create `player/src/main/java/com/hank/musicfree/player/service/PlaybackNotificationCommandHandler.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.player.service
+package com.hank.musicfree.player.service
 
 interface PlaybackNotificationQueueControls {
     fun skipToPreviousFromNotification()
@@ -660,8 +660,8 @@ object PlaybackNotificationCommandHandler {
 Update `PlayerController.kt` imports:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationCommandHandler
-import com.zili.android.musicfreeandroid.player.service.PlaybackNotificationQueueControls
+import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
+import com.hank.musicfree.player.service.PlaybackNotificationQueueControls
 ```
 
 Change the class declaration to:
@@ -713,11 +713,11 @@ Expected: PASS.
 Run:
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationActions.kt \
-  player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationCommandHandler.kt \
-  player/src/main/java/com/zili/android/musicfreeandroid/player/controller/PlayerController.kt \
-  player/src/test/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationActionsTest.kt \
-  player/src/test/java/com/zili/android/musicfreeandroid/player/service/PlaybackNotificationCommandHandlerTest.kt
+git add player/src/main/java/com/hank/musicfree/player/service/PlaybackNotificationActions.kt \
+  player/src/main/java/com/hank/musicfree/player/service/PlaybackNotificationCommandHandler.kt \
+  player/src/main/java/com/hank/musicfree/player/controller/PlayerController.kt \
+  player/src/test/java/com/hank/musicfree/player/service/PlaybackNotificationActionsTest.kt \
+  player/src/test/java/com/hank/musicfree/player/service/PlaybackNotificationCommandHandlerTest.kt
 git commit -m "feat(player): add notification queue commands"
 ```
 
@@ -727,8 +727,8 @@ git commit -m "feat(player): add notification queue commands"
 
 **Files:**
 - Create: `player/src/main/res/values/strings.xml`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackService.kt`
-- Modify: `player/src/androidTest/java/com/zili/android/musicfreeandroid/player/service/PlaybackServiceTest.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/service/PlaybackService.kt`
+- Modify: `player/src/androidTest/java/com/hank/musicfree/player/service/PlaybackServiceTest.kt`
 
 - [ ] **Step 1: Add failing PlaybackService notification tests**
 
@@ -738,8 +738,8 @@ Add these imports to `PlaybackServiceTest.kt`:
 import android.os.Bundle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.SessionResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.player.controller.PlayerController
 ```
 
 Annotate the class:
@@ -773,7 +773,7 @@ Add this helper near `connectController()`:
         album = null,
         duration = 1_000L,
         url = "android.resource://${context.packageName}/${
-            com.zili.android.musicfreeandroid.player.test.R.raw.test_audio
+            com.hank.musicfree.player.test.R.raw.test_audio
         }",
         artwork = null,
         qualities = null,
@@ -886,7 +886,7 @@ Add these tests inside `PlaybackServiceTest`:
 Run:
 
 ```bash
-./gradlew :player:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.player.service.PlaybackServiceTest
+./gradlew :player:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.player.service.PlaybackServiceTest
 ```
 
 Expected: FAIL because session activity, media button preferences, and custom command callbacks are not wired.
@@ -909,7 +909,7 @@ Replace `PlaybackService.kt` with:
 ```kotlin
 @file:OptIn(UnstableApi::class)
 
-package com.zili.android.musicfreeandroid.player.service
+package com.hank.musicfree.player.service
 
 import android.app.PendingIntent
 import android.content.Intent
@@ -926,8 +926,8 @@ import androidx.media3.session.SessionCommands
 import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
-import com.zili.android.musicfreeandroid.player.R
-import com.zili.android.musicfreeandroid.core.R as CoreR
+import com.hank.musicfree.player.R
+import com.hank.musicfree.core.R as CoreR
 
 class PlaybackService : MediaSessionService() {
 
@@ -1048,7 +1048,7 @@ class PlaybackService : MediaSessionService() {
 Run:
 
 ```bash
-./gradlew :player:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.player.service.PlaybackServiceTest
+./gradlew :player:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.player.service.PlaybackServiceTest
 ```
 
 Expected: PASS.
@@ -1069,8 +1069,8 @@ Run:
 
 ```bash
 git add player/src/main/res/values/strings.xml \
-  player/src/main/java/com/zili/android/musicfreeandroid/player/service/PlaybackService.kt \
-  player/src/androidTest/java/com/zili/android/musicfreeandroid/player/service/PlaybackServiceTest.kt
+  player/src/main/java/com/hank/musicfree/player/service/PlaybackService.kt \
+  player/src/androidTest/java/com/hank/musicfree/player/service/PlaybackServiceTest.kt
 git commit -m "feat(player): show media playback notification"
 ```
 

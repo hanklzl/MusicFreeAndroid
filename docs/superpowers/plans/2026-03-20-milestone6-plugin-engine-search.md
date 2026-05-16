@@ -119,14 +119,14 @@ git commit -m "feat(plugin): add QuickJS wrapper and OkHttp dependencies"
 ## Task 2: Plugin Data Models
 
 **Files:**
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginInfo.kt`
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/SearchResult.kt`
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/PluginApi.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginInfo.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/api/SearchResult.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/api/PluginApi.kt`
 
 - [ ] **Step 1: Create PluginInfo data class**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.api
+package com.hank.musicfree.plugin.api
 
 data class PluginInfo(
     val platform: String,
@@ -141,9 +141,9 @@ data class PluginInfo(
 - [ ] **Step 2: Create SearchResult data class**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.api
+package com.hank.musicfree.plugin.api
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 data class SearchResult(
     val isEnd: Boolean,
@@ -154,10 +154,10 @@ data class SearchResult(
 - [ ] **Step 3: Create PluginApi interface**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.api
+package com.hank.musicfree.plugin.api
 
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
 
 interface PluginApi {
     val info: PluginInfo
@@ -174,7 +174,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/api/
+git add plugin/src/main/java/com/hank/musicfree/plugin/api/
 git commit -m "feat(plugin): add PluginInfo, SearchResult, and PluginApi interface"
 ```
 
@@ -183,14 +183,14 @@ git commit -m "feat(plugin): add PluginInfo, SearchResult, and PluginApi interfa
 ## Task 3: JsBridge — Kotlin↔JS Type Conversion
 
 **Files:**
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt`
 
 - [ ] **Step 1: Write unit tests for JsBridge**
 
-Create `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt`:
+Create `plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.engine
+package com.hank.musicfree.plugin.engine
 
 import org.junit.Assert.*
 import org.junit.Test
@@ -232,7 +232,7 @@ class JsBridgeTest {
 
     @Test
     fun `musicItemToMap converts correctly`() {
-        val item = com.zili.android.musicfreeandroid.core.model.MusicItem(
+        val item = com.hank.musicfree.core.model.MusicItem(
             id = "1", platform = "test", title = "Song", artist = "Artist",
             album = "Album", duration = 180000L, url = null, artwork = null, qualities = null,
         )
@@ -275,12 +275,12 @@ Expected: FAIL (JsBridge not yet implemented)
 - [ ] **Step 3: Implement JsBridge**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.engine
+package com.hank.musicfree.plugin.engine
 
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.model.PlayQuality
-import com.zili.android.musicfreeandroid.plugin.api.SearchResult
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.plugin.api.SearchResult
 
 object JsBridge {
     fun toMusicItem(map: Map<String, Any?>): MusicItem {
@@ -340,8 +340,8 @@ Expected: ALL PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridge.kt \
-       plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsBridgeTest.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/engine/JsBridge.kt \
+       plugin/src/test/java/com/hank/musicfree/plugin/engine/JsBridgeTest.kt
 git commit -m "feat(plugin): add JsBridge for Kotlin↔JS type conversion with tests"
 ```
 
@@ -350,13 +350,13 @@ git commit -m "feat(plugin): add JsBridge for Kotlin↔JS type conversion with t
 ## Task 4: JsEngine — QuickJS Context Wrapper
 
 **Files:**
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngine.kt`
-- Create: `plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngineTest.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/engine/JsEngine.kt`
+- Create: `plugin/src/test/java/com/hank/musicfree/plugin/engine/JsEngineTest.kt`
 
 - [ ] **Step 1: Write JsEngine unit tests**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.engine
+package com.hank.musicfree.plugin.engine
 
 import org.junit.Assert.*
 import org.junit.Test
@@ -376,7 +376,7 @@ class JsEngineTest {
 - [ ] **Step 2: Implement JsEngine**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.engine
+package com.hank.musicfree.plugin.engine
 
 import com.nicholasgasior.quickjs.QuickJSContext
 import com.nicholasgasior.quickjs.JSObject
@@ -468,8 +468,8 @@ Expected: PASS (basic compilation test)
 - [ ] **Step 4: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngine.kt \
-       plugin/src/test/java/com/zili/android/musicfreeandroid/plugin/engine/JsEngineTest.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/engine/JsEngine.kt \
+       plugin/src/test/java/com/hank/musicfree/plugin/engine/JsEngineTest.kt
 git commit -m "feat(plugin): add JsEngine QuickJS wrapper"
 ```
 
@@ -478,14 +478,14 @@ git commit -m "feat(plugin): add JsEngine QuickJS wrapper"
 ## Task 5: AxiosShim — HTTP Requests from JS
 
 **Files:**
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShim.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/engine/AxiosShim.kt`
 
 - [ ] **Step 1: Implement AxiosShim**
 
 This provides `axios.get(url, config)` and `axios.post(url, data, config)` to JS plugins via OkHttp:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.engine
+package com.hank.musicfree.plugin.engine
 
 import com.nicholasgasior.quickjs.QuickJSContext
 import com.nicholasgasior.quickjs.JSCallFunction
@@ -633,7 +633,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/engine/AxiosShim.kt
+git add plugin/src/main/java/com/hank/musicfree/plugin/engine/AxiosShim.kt
 git commit -m "feat(plugin): add AxiosShim for JS HTTP requests via OkHttp"
 ```
 
@@ -642,23 +642,23 @@ git commit -m "feat(plugin): add AxiosShim for JS HTTP requests via OkHttp"
 ## Task 6: PluginManager — Plugin Lifecycle
 
 **Files:**
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/PluginManager.kt`
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/LoadedPlugin.kt`
-- Create: `plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/PluginModule.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/manager/PluginManager.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/manager/LoadedPlugin.kt`
+- Create: `plugin/src/main/java/com/hank/musicfree/plugin/di/PluginModule.kt`
 
 - [ ] **Step 1: Create LoadedPlugin — a loaded plugin instance**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.manager
+package com.hank.musicfree.plugin.manager
 
-import com.zili.android.musicfreeandroid.core.model.MediaSourceResult
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.plugin.api.PluginApi
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.api.SearchResult
-import com.zili.android.musicfreeandroid.plugin.engine.AxiosShim
-import com.zili.android.musicfreeandroid.plugin.engine.JsBridge
-import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
+import com.hank.musicfree.core.model.MediaSourceResult
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.plugin.api.PluginApi
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.api.SearchResult
+import com.hank.musicfree.plugin.engine.AxiosShim
+import com.hank.musicfree.plugin.engine.JsBridge
+import com.hank.musicfree.plugin.engine.JsEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -737,14 +737,14 @@ class LoadedPlugin(
 - [ ] **Step 2: Create PluginManager**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.manager
+package com.hank.musicfree.plugin.manager
 
 import android.content.Context
 import com.nicholasgasior.quickjs.QuickJSContext
-import com.zili.android.musicfreeandroid.plugin.api.PluginApi
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.engine.AxiosShim
-import com.zili.android.musicfreeandroid.plugin.engine.JsEngine
+import com.hank.musicfree.plugin.api.PluginApi
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.engine.AxiosShim
+import com.hank.musicfree.plugin.engine.JsEngine
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -960,7 +960,7 @@ class PluginManager @Inject constructor(
 - [ ] **Step 3: Create PluginModule for DI**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.plugin.di
+package com.hank.musicfree.plugin.di
 
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -980,8 +980,8 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/manager/ \
-       plugin/src/main/java/com/zili/android/musicfreeandroid/plugin/di/
+git add plugin/src/main/java/com/hank/musicfree/plugin/manager/ \
+       plugin/src/main/java/com/hank/musicfree/plugin/di/
 git commit -m "feat(plugin): add PluginManager with install/load/unload lifecycle"
 ```
 
@@ -1026,9 +1026,9 @@ dependencies {
 - [ ] **Step 2: Create SearchUiState**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.search
+package com.hank.musicfree.feature.search
 
-import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.hank.musicfree.core.model.MusicItem
 
 sealed interface SearchUiState {
     data object Idle : SearchUiState
@@ -1046,14 +1046,14 @@ sealed interface SearchUiState {
 - [ ] **Step 3: Create SearchViewModel**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.search
+package com.hank.musicfree.feature.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
-import com.zili.android.musicfreeandroid.player.controller.PlayerController
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.player.controller.PlayerController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -1150,7 +1150,7 @@ class SearchViewModel @Inject constructor(
 - [ ] **Step 4: Implement SearchScreen**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.search
+package com.hank.musicfree.feature.search
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -1170,11 +1170,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.model.MusicItem
-import com.zili.android.musicfreeandroid.core.theme.FontSizes
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.core.ui.CoverImage
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.theme.FontSizes
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.ui.CoverImage
+import com.hank.musicfree.plugin.api.PluginInfo
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1373,7 +1373,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 8: Commit**
 
 ```bash
-git add feature/search/ app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt
+git add feature/search/ app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt
 git commit -m "feat(search): implement search UI with plugin selection and results"
 ```
 
@@ -1410,12 +1410,12 @@ dependencies {
 - [ ] **Step 2: Create SettingsViewModel**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings
+package com.hank.musicfree.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
-import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
+import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -1478,7 +1478,7 @@ sealed interface InstallState {
 - [ ] **Step 3: Implement SettingsScreen**
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.settings
+package com.hank.musicfree.feature.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -1494,9 +1494,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zili.android.musicfreeandroid.core.theme.FontSizes
-import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
-import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.hank.musicfree.core.theme.FontSizes
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.plugin.api.PluginInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

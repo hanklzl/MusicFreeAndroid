@@ -1,0 +1,77 @@
+package com.hank.musicfree.feature.home
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.dp
+import com.hank.musicfree.core.theme.MusicFreeTheme
+import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.feature.home.component.HomeDrawerContent
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [29])
+class HomeDrawerContentInsetsTest {
+
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun `drawer title starts below the status bar inset`() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                Box(modifier = Modifier.size(width = 360.dp, height = 640.dp)) {
+                    HomeDrawerContent(
+                        uiModel = buildHomeDrawerUiModel(
+                            currentVersion = "1.0.0",
+                            scheduleCloseSummary = "",
+                        ),
+                        onEntryClick = {},
+                        statusBarTopPadding = 24.dp,
+                    )
+                }
+            }
+        }
+
+        val titleTop = composeRule
+            .onNodeWithTag(FidelityAnchors.Home.DrawerTitle)
+            .getUnclippedBoundsInRoot()
+            .top
+        val statusBarTop = 24.dp
+
+        assertTrue(
+            "Expected drawer title to start at or below the status bar inset. " +
+                "statusBarTop=$statusBarTop titleTop=$titleTop",
+            titleTop >= statusBarTop,
+        )
+    }
+
+    @Test
+    fun `drawer does not render removed language and exit actions`() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                HomeDrawerContent(
+                    uiModel = buildHomeDrawerUiModel(
+                        currentVersion = "1.0.0",
+                        scheduleCloseSummary = "",
+                    ),
+                    onEntryClick = {},
+                )
+            }
+        }
+
+        composeRule.onAllNodesWithText("语言设置").assertCountEquals(0)
+        composeRule.onAllNodesWithText("回到桌面").assertCountEquals(0)
+        composeRule.onAllNodesWithText("退出软件").assertCountEquals(0)
+    }
+}

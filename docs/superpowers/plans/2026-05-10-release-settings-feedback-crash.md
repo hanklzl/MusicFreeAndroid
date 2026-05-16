@@ -13,7 +13,7 @@
 ### Task 1: Add Regression Coverage
 
 **Files:**
-- Modify: `logging/src/test/java/com/zili/android/musicfreeandroid/logging/FeedbackLogExporterTest.kt`
+- Modify: `logging/src/test/java/com/hank/musicfree/logging/FeedbackLogExporterTest.kt`
 
 - [ ] **Step 1: Add a failing production-shape test**
 
@@ -63,10 +63,10 @@ Expected before the fix: fail with `feedbackDir must be within cacheDir/feedback
 ### Task 2: Separate Feedback Share Root
 
 **Files:**
-- Modify: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/LoggingConfig.kt`
-- Modify: `logging/src/main/java/com/zili/android/musicfreeandroid/logging/FeedbackLogExporter.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MusicFreeApplication.kt`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/di/LoggingModule.kt`
+- Modify: `logging/src/main/java/com/hank/musicfree/logging/LoggingConfig.kt`
+- Modify: `logging/src/main/java/com/hank/musicfree/logging/FeedbackLogExporter.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MusicFreeApplication.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/di/LoggingModule.kt`
 
 - [ ] **Step 1: Extend `LoggingConfig`**
 

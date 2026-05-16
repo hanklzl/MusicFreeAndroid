@@ -18,13 +18,13 @@
 
 ## File Map
 
-- Create `app/src/test/java/com/zili/android/musicfreeandroid/SplashScreenResourceContractTest.kt`
+- Create `app/src/test/java/com/hank/musicfree/SplashScreenResourceContractTest.kt`
   - JVM source-contract test for dependency aliases, manifest theme wiring, theme XML, activity call order, copied RN assets, and cleanup of default Android template launcher resources.
 - Modify `gradle/libs.versions.toml`
   - Add `coreSplashscreen = "1.2.0"` and `androidx-core-splashscreen`.
 - Modify `app/build.gradle.kts`
   - Add `implementation(libs.androidx.core.splashscreen)`.
-- Modify `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
+- Modify `app/src/main/java/com/hank/musicfree/MainActivity.kt`
   - Import and call `installSplashScreen()` before `super.onCreate(savedInstanceState)`.
 - Modify `app/src/main/AndroidManifest.xml`
   - Point `MainActivity` to `@style/Theme.MusicFreeAndroid.Splash`.
@@ -90,14 +90,14 @@ Expected: no output from `git status --short`.
 ## Task 2: Add A Failing Source Contract Test
 
 **Files:**
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/SplashScreenResourceContractTest.kt`
+- Create: `app/src/test/java/com/hank/musicfree/SplashScreenResourceContractTest.kt`
 
 - [ ] **Step 1: Write the failing contract test**
 
-Create `app/src/test/java/com/zili/android/musicfreeandroid/SplashScreenResourceContractTest.kt`:
+Create `app/src/test/java/com/hank/musicfree/SplashScreenResourceContractTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid
+package com.hank.musicfree
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
@@ -132,7 +132,7 @@ class SplashScreenResourceContractTest {
     @Test
     fun `main activity installs AndroidX splash before super onCreate`() {
         val source = Files.readString(
-            projectRoot.resolve("app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt"),
+            projectRoot.resolve("app/src/main/java/com/hank/musicfree/MainActivity.kt"),
         )
 
         assertTrue(
@@ -278,7 +278,7 @@ class SplashScreenResourceContractTest {
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.SplashScreenResourceContractTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.SplashScreenResourceContractTest"
 ```
 
 Expected: `FAILED` with assertion messages such as `Expected ... libs.versions.toml to contain: coreSplashscreen = "1.2.0"` or `Expected file to exist: .../res/values-v31/themes.xml`.
@@ -288,7 +288,7 @@ Expected: `FAILED` with assertion messages such as `Expected ... libs.versions.t
 **Files:**
 - Modify: `gradle/libs.versions.toml`
 - Modify: `app/build.gradle.kts`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/MainActivity.kt`
 - Modify: `app/src/main/AndroidManifest.xml`
 - Modify: `app/src/main/res/values/themes.xml`
 - Create: `app/src/main/res/values-v31/themes.xml`
@@ -328,7 +328,7 @@ implementation(libs.androidx.activity.compose)
 
 - [ ] **Step 3: Install the splash screen before `super.onCreate`**
 
-Update the imports in `app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt`:
+Update the imports in `app/src/main/java/com/hank/musicfree/MainActivity.kt`:
 
 ```kotlin
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -478,7 +478,7 @@ The file should contain:
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.SplashScreenResourceContractTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.SplashScreenResourceContractTest"
 ```
 
 Expected: `FAILED`. The failure may be an Android resource linking error for missing `@drawable/splashscreen_image` or `@drawable/spashscreen_branding_image`, because RN resources are copied in the next task. Dependency, activity, manifest, theme, and color text changes should be present in the diff before proceeding.
@@ -625,7 +625,7 @@ rm 'app/src/main/res/drawable/ic_launcher_foreground.xml'
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.SplashScreenResourceContractTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.SplashScreenResourceContractTest"
 ```
 
 Expected:
@@ -682,7 +682,7 @@ emulator-5554	device
 Then run:
 
 ```bash
-./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.zili.android.musicfreeandroid.MainActivityStartupTest
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.MainActivityStartupTest
 ```
 
 Expected:
@@ -718,15 +718,15 @@ Success
 Run:
 
 ```bash
-adb shell am force-stop com.zili.android.musicfreeandroid
-adb shell am start -W -n com.zili.android.musicfreeandroid/.MainActivity
+adb shell am force-stop com.hank.musicfree
+adb shell am start -W -n com.hank.musicfree/.MainActivity
 ```
 
 Expected output includes:
 
 ```text
 Status: ok
-Activity: com.zili.android.musicfreeandroid/.MainActivity
+Activity: com.hank.musicfree/.MainActivity
 ```
 
 - [ ] **Step 3: Capture visual evidence after launch**
@@ -756,7 +756,7 @@ Manual verification during Step 2: the cold start should show the RN-style `#272
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests "com.zili.android.musicfreeandroid.SplashScreenResourceContractTest"
+./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.SplashScreenResourceContractTest"
 ```
 
 Expected:
@@ -795,9 +795,9 @@ Expected: changes are limited to `:app` splash/icon resources, app Gradle/catalo
 Run:
 
 ```bash
-git add app/src/test/java/com/zili/android/musicfreeandroid/SplashScreenResourceContractTest.kt
+git add app/src/test/java/com/hank/musicfree/SplashScreenResourceContractTest.kt
 git add gradle/libs.versions.toml app/build.gradle.kts
-git add app/src/main/java/com/zili/android/musicfreeandroid/MainActivity.kt
+git add app/src/main/java/com/hank/musicfree/MainActivity.kt
 git add app/src/main/AndroidManifest.xml
 git add app/src/main/res/values/themes.xml app/src/main/res/values-v31/themes.xml app/src/main/res/values/colors.xml app/src/main/res/values/ic_launcher_background.xml
 git add app/src/main/res/drawable/splashscreen_image.png app/src/main/res/drawable/spashscreen_branding_image.png app/src/main/res/drawable/splashscreen.xml

@@ -31,7 +31,7 @@ scope: :app 启动期自动安装预设订阅源与插件
 新增三件事，全部位于 `:app` 模块：
 
 ```
-app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/
+app/src/main/java/com/hank/musicfree/bootstrap/
 ├── DefaultPlugins.kt              ← 唯一需要按发布节奏改动的文件
 └── DefaultPluginsBootstrapper.kt  ← @Singleton；reconcile 逻辑
 ```
@@ -47,7 +47,7 @@ app/src/main/java/com/zili/android/musicfreeandroid/bootstrap/
 ### 3.1 `DefaultPlugins.kt`
 
 ```kotlin
-package com.zili.android.musicfreeandroid.bootstrap
+package com.hank.musicfree.bootstrap
 
 /**
  * dev / test fixture：冷启动时自动 reconcile 的预设插件来源。

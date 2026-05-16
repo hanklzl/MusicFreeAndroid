@@ -16,65 +16,65 @@
 
 ## File Structure
 
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/navigation/PlaybackNavigationContractTest.kt`
+- Create: `app/src/test/java/com/hank/musicfree/navigation/PlaybackNavigationContractTest.kt`
   - 负责跨模块源码级守门，防止歌曲列表播放回调再次调用 `onNavigateToPlayer()` 或搜索成功事件再次发出导航事件。
-- Modify: `feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- Modify: `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
   - 增加运行态回归测试，验证搜索播放成功只调用播放器控制器，不发 UI 导航事件。
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
   - 删除成功播放后的 `NavigateToPlayer` 事件，只保留失败事件。
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt`
   - 删除 `onNavigateToPlayer` 参数和成功事件导航响应。
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/navigation/SearchNavigation.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/navigation/SearchNavigation.kt`
   - 删除搜索页 navigation wrapper 的 `onNavigateToPlayer` 参数。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt`
   - 点击过滤结果只调用 `viewModel.playFilteredItem(index)`。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/navigation/SearchMusicListNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/navigation/SearchMusicListNavigation.kt`
   - 删除 `onNavigateToPlayer` 参数。
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt`
   - 更新 `SearchMusicListScreen` 调用签名。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt`
   - 本地音乐行点击只调用 `viewModel.playItem(item, items)`。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/navigation/LocalNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/navigation/LocalNavigation.kt`
   - 删除 `onNavigateToPlayer` 参数。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryScreen.kt`
   - 历史行点击只调用 `viewModel.playAt(index)`。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/navigation/HistoryNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/history/navigation/HistoryNavigation.kt`
   - 删除 `onNavigateToPlayer` 参数。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt`
   - 用户歌单“播放全部”和歌曲行点击只播放，不导航。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailNavigation.kt`
   - 删除 `onNavigateToPlayer` 参数。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt`
   - 插件歌单歌曲行点击只播放，不导航。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetDetailNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetDetailNavigation.kt`
   - 删除 `onNavigateToPlayer` 参数。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt`
   - 榜单歌曲行点击只播放，不导航；独立“详情”按钮保留。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/navigation/TopListDetailNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/navigation/TopListDetailNavigation.kt`
   - 删除 `onNavigateToPlayer` 参数，保留 `onOpenMusicDetail`。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt`
   - 专辑歌曲行点击只播放，不导航。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/navigation/AlbumDetailNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/navigation/AlbumDetailNavigation.kt`
   - 删除 `onNavigateToPlayer` 参数。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailScreen.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailScreen.kt`
   - 歌手作品点击只播放，不导航。
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/navigation/ArtistDetailNavigation.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/navigation/ArtistDetailNavigation.kt`
   - 删除 `onNavigateToPlayer` 参数。
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`
   - 删除以上 destination 的 `onNavigateToPlayer = { navController.navigate(PlayerRoute) }` 传参；`playerScreen` 注册和 `MusicDetailRoute` 详情入口保留。
 
 ### Task 1: Regression Tests For No Auto Navigation
 
 **Files:**
-- Create: `app/src/test/java/com/zili/android/musicfreeandroid/navigation/PlaybackNavigationContractTest.kt`
-- Modify: `feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`
+- Create: `app/src/test/java/com/hank/musicfree/navigation/PlaybackNavigationContractTest.kt`
+- Modify: `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`
 
 - [ ] **Step 1: Add a source contract test that fails on current automatic navigation**
 
-Create `app/src/test/java/com/zili/android/musicfreeandroid/navigation/PlaybackNavigationContractTest.kt`:
+Create `app/src/test/java/com/hank/musicfree/navigation/PlaybackNavigationContractTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.navigation
+package com.hank.musicfree.navigation
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -89,27 +89,27 @@ class PlaybackNavigationContractTest {
     @Test
     fun `song list playback callbacks do not navigate to player`() {
         val forbiddenSnippets = mapOf(
-            "feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt" to
+            "feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt" to
                 listOf("NavigateToPlayer"),
-            "feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt" to
+            "feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt" to
                 listOf("onNavigateToPlayer()"),
-            "feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt" to
+            "feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt" to
                 listOf("onNavigateToPlayer()"),
-            "feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt" to
+            "feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt" to
                 listOf("onNavigateToPlayer()"),
-            "feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryScreen.kt" to
+            "feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryScreen.kt" to
                 listOf("onNavigateToPlayer()"),
-            "feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt" to
+            "feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt" to
                 listOf("onNavigateToPlayer()"),
-            "feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt" to
+            "feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt" to
                 listOf("onNavigateToPlayer()"),
-            "feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt" to
+            "feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt" to
                 listOf("onNavigateToPlayer()"),
-            "feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt" to
+            "feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt" to
                 listOf("onNavigateToPlayer()"),
-            "feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailScreen.kt" to
+            "feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailScreen.kt" to
                 listOf("onNavigateToPlayer()"),
-            "app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt" to
+            "app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt" to
                 listOf("onNavigateToPlayer = { navController.navigate(PlayerRoute) }"),
         )
 
@@ -136,7 +136,7 @@ class PlaybackNavigationContractTest {
 
 - [ ] **Step 2: Add a SearchViewModel runtime test that fails on current success navigation event**
 
-In `feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt`, add imports:
+In `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt`, add imports:
 
 ```kotlin
 import kotlinx.coroutines.flow.collect
@@ -178,8 +178,8 @@ Add this test near the existing `resolveAndPlay` tests:
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests com.zili.android.musicfreeandroid.navigation.PlaybackNavigationContractTest --no-daemon
-./gradlew :feature:search:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest --no-daemon
+./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.navigation.PlaybackNavigationContractTest --no-daemon
+./gradlew :feature:search:testDebugUnitTest --tests com.hank.musicfree.feature.search.SearchViewModelTest --no-daemon
 ```
 
 Expected:
@@ -190,18 +190,18 @@ Expected:
 - [ ] **Step 4: Commit the failing tests**
 
 ```bash
-git add app/src/test/java/com/zili/android/musicfreeandroid/navigation/PlaybackNavigationContractTest.kt \
-  feature/search/src/test/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModelTest.kt
+git add app/src/test/java/com/hank/musicfree/navigation/PlaybackNavigationContractTest.kt \
+  feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelTest.kt
 git commit -m "test(playback): 覆盖歌曲点击不自动跳播放器页"
 ```
 
 ### Task 2: Search Result Playback Stays On Current Screen
 
 **Files:**
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt:442-522`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt:92-141`
-- Modify: `feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/navigation/SearchNavigation.kt:10-28`
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt:151-193`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt:442-522`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt:92-141`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/navigation/SearchNavigation.kt:10-28`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt:151-193`
 
 - [ ] **Step 1: Remove the search success navigation event from SearchViewModel**
 
@@ -301,7 +301,7 @@ The resulting start of the call should be:
 Run:
 
 ```bash
-./gradlew :feature:search:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.search.SearchViewModelTest --no-daemon
+./gradlew :feature:search:testDebugUnitTest --tests com.hank.musicfree.feature.search.SearchViewModelTest --no-daemon
 ```
 
 Expected: PASS.
@@ -309,33 +309,33 @@ Expected: PASS.
 - [ ] **Step 6: Commit search behavior**
 
 ```bash
-git add feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchViewModel.kt \
-  feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/SearchScreen.kt \
-  feature/search/src/main/java/com/zili/android/musicfreeandroid/feature/search/navigation/SearchNavigation.kt \
-  app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt
+git add feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt \
+  feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt \
+  feature/search/src/main/java/com/hank/musicfree/feature/search/navigation/SearchNavigation.kt \
+  app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt
 git commit -m "fix(search): 点击歌曲结果仅切换播放"
 ```
 
 ### Task 3: Home List Playback Stays On Current Screen
 
 **Files:**
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt:53-151`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/navigation/SearchMusicListNavigation.kt:8-18`
-- Modify: `feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt:39-66`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt:43-198`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/navigation/LocalNavigation.kt:8-23`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryScreen.kt:45-110`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/navigation/HistoryNavigation.kt:8-19`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt:38-123`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailNavigation.kt:8-20`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt:52-128`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetDetailNavigation.kt:8-17`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt:40-109`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/navigation/TopListDetailNavigation.kt:11-22`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt:44-120`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/navigation/AlbumDetailNavigation.kt:8-16`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailScreen.kt:31-91`
-- Modify: `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/navigation/ArtistDetailNavigation.kt:8-16`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt:53-151`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/navigation/SearchMusicListNavigation.kt:8-18`
+- Modify: `feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt:39-66`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt:43-198`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/local/navigation/LocalNavigation.kt:8-23`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryScreen.kt:45-110`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/history/navigation/HistoryNavigation.kt:8-19`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt:38-123`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailNavigation.kt:8-20`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt:52-128`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetDetailNavigation.kt:8-17`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt:40-109`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/navigation/TopListDetailNavigation.kt:11-22`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt:44-120`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/navigation/AlbumDetailNavigation.kt:8-16`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailScreen.kt:31-91`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/navigation/ArtistDetailNavigation.kt:8-16`
 
 - [ ] **Step 1: Update SearchMusicListScreen and tests**
 
@@ -580,7 +580,7 @@ fun NavGraphBuilder.artistDetailScreen(
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.zili.android.musicfreeandroid.feature.home.searchmusiclist.SearchMusicListScreenFocusTest --no-daemon
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.searchmusiclist.SearchMusicListScreenFocusTest --no-daemon
 ./gradlew :feature:home:testDebugUnitTest --no-daemon
 ```
 
@@ -589,31 +589,31 @@ Expected: PASS.
 - [ ] **Step 8: Commit home screen behavior**
 
 ```bash
-git add feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/navigation/SearchMusicListNavigation.kt \
-  feature/home/src/test/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/navigation/LocalNavigation.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/HistoryScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/history/navigation/HistoryNavigation.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/playlist/PlaylistDetailNavigation.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/PluginSheetDetailScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/pluginsheet/navigation/PluginSheetDetailNavigation.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/TopListDetailScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/toplist/navigation/TopListDetailNavigation.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/AlbumDetailScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/albumdetail/navigation/AlbumDetailNavigation.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/ArtistDetailScreen.kt \
-  feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/artistdetail/navigation/ArtistDetailNavigation.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/navigation/SearchMusicListNavigation.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListScreenFocusTest.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/local/navigation/LocalNavigation.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/history/HistoryScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/history/navigation/HistoryNavigation.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/playlist/PlaylistDetailNavigation.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetDetailNavigation.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/navigation/TopListDetailNavigation.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/navigation/AlbumDetailNavigation.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailScreen.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/navigation/ArtistDetailNavigation.kt
 git commit -m "fix(home): 歌曲列表点击停留当前页"
 ```
 
 ### Task 4: AppNavHost Cleanup And Contract Pass
 
 **Files:**
-- Modify: `app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt:118-333`
-- Test: `app/src/test/java/com/zili/android/musicfreeandroid/navigation/PlaybackNavigationContractTest.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt:118-333`
+- Test: `app/src/test/java/com/hank/musicfree/navigation/PlaybackNavigationContractTest.kt`
 
 - [ ] **Step 1: Remove obsolete AppNavHost pass-through arguments**
 
@@ -698,7 +698,7 @@ In `AppNavHost.kt`, remove `onNavigateToPlayer = { navController.navigate(Player
 Remove the now-unused import:
 
 ```kotlin
-import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
+import com.hank.musicfree.core.navigation.PlayerRoute
 ```
 
 - [ ] **Step 2: Run app compile and contract tests**
@@ -706,7 +706,7 @@ import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests com.zili.android.musicfreeandroid.navigation.PlaybackNavigationContractTest --no-daemon
+./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.navigation.PlaybackNavigationContractTest --no-daemon
 ./gradlew :app:testDebugUnitTest --no-daemon
 ```
 
@@ -715,8 +715,8 @@ Expected: PASS. The contract test must no longer list any forbidden snippets.
 - [ ] **Step 3: Commit navigation cleanup**
 
 ```bash
-git add app/src/main/java/com/zili/android/musicfreeandroid/navigation/AppNavHost.kt \
-  app/src/test/java/com/zili/android/musicfreeandroid/navigation/PlaybackNavigationContractTest.kt
+git add app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt \
+  app/src/test/java/com/hank/musicfree/navigation/PlaybackNavigationContractTest.kt
 git commit -m "fix(navigation): 移除歌曲播放自动跳转"
 ```
 

@@ -30,8 +30,8 @@
 
 两个 UI 问题可以并行，因为写入范围不同：
 
-- Task A：mini 播放器文字布局。写入 `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerContent.kt` 和 `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/component/MiniPlayerContentTest.kt`。
-- Task B：播放详情页插件标签样式。写入 `feature/player-ui/src/main/java/com/zili/android/musicfreeandroid/feature/playerui/PlayerScreen.kt` 和对应 `feature/player-ui/src/test/java/com/zili/android/musicfreeandroid/feature/playerui/*Test.kt`。
+- Task A：mini 播放器文字布局。写入 `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContent.kt` 和 `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContentTest.kt`。
+- Task B：播放详情页插件标签样式。写入 `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt` 和对应 `feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/*Test.kt`。
 
 两个 worker 都必须注意：代码库中可能有其他并行修改，不能回滚对方文件；如必须触碰对方写入范围，应停止并汇报。
 

@@ -13,11 +13,11 @@
 
 当前 Android 事实：
 
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt` 使用自定义顶部区域，只铺 `pageBackground` 到状态栏，未使用 `MusicFreeScreenScaffold`/`MusicFreeTopAppBar`。
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/local/LocalScreen.kt` 顶部只有下载列表图标，没有 RN 的搜索、扫描、批量编辑入口。
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/HomeViewModel.kt` 扫描结果只进入 transient `HomeUiState`，没有写入本地音乐持久层。
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt` 已定义 `CollectionSource.LocalLibrary`，但当前返回 `emptyList()`。
-- `feature/home/src/main/java/com/zili/android/musicfreeandroid/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt` 只支持本地歌单 `playlistId`，不能编辑本地音乐库。
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt` 使用自定义顶部区域，只铺 `pageBackground` 到状态栏，未使用 `MusicFreeScreenScaffold`/`MusicFreeTopAppBar`。
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/local/LocalScreen.kt` 顶部只有下载列表图标，没有 RN 的搜索、扫描、批量编辑入口。
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeViewModel.kt` 扫描结果只进入 transient `HomeUiState`，没有写入本地音乐持久层。
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/searchmusiclist/SearchMusicListSourceLoader.kt` 已定义 `CollectionSource.LocalLibrary`，但当前返回 `emptyList()`。
+- `feature/home/src/main/java/com/hank/musicfree/feature/home/musiclisteditor/MusicListEditorLiteViewModel.kt` 只支持本地歌单 `playlistId`，不能编辑本地音乐库。
 
 RN 参考事实：
 

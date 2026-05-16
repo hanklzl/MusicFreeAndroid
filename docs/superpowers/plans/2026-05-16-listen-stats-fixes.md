@@ -17,27 +17,27 @@
 ## 涉及文件清单
 
 **移动:**
-- `player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ArtistSplitter.kt` → `core/src/main/java/com/zili/android/musicfreeandroid/core/util/ArtistSplitter.kt`(改 package)
-- `player/src/test/java/com/zili/android/musicfreeandroid/player/listening/ArtistSplitterTest.kt` → `core/src/test/java/com/zili/android/musicfreeandroid/core/util/ArtistSplitterTest.kt`
+- `player/src/main/java/com/hank/musicfree/player/listening/ArtistSplitter.kt` → `core/src/main/java/com/hank/musicfree/core/util/ArtistSplitter.kt`(改 package)
+- `player/src/test/java/com/hank/musicfree/player/listening/ArtistSplitterTest.kt` → `core/src/test/java/com/hank/musicfree/core/util/ArtistSplitterTest.kt`
 
 **修改:**
-- `player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ListenTracker.kt` — import 改 :core;写入计算并落 mergeKey
-- `player/src/test/java/com/zili/android/musicfreeandroid/player/listening/ListenTrackerTest.kt` — 断言 mergeKey
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/ListenEventEntity.kt` — 加 mergeKey 列与索引
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt` — version 10→11
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt` — addMigrations 追加 MIGRATION_10_11
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDao.kt` — 全部聚合切 mergeKey;3 个分桶 query 加 zoneOffsetMs
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepository.kt` — 计算并下传 zoneOffsetMs
-- `data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDaoTest.kt` — seed 加 mergeKey;新增跨插件 / 时区 case
-- `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepositoryTest.kt` — seed 加 mergeKey;新增 Asia/Shanghai 时区 case
-- `feature/listen-stats/src/main/java/com/zili/android/musicfreeandroid/feature/listenstats/component/SongDetailRow.kt` — 占位 Box → CoverImage;去掉 platform
-- `feature/listen-stats/src/main/java/com/zili/android/musicfreeandroid/feature/listenstats/component/TopSongsCard.kt` — 新增 CoverImage;副标题只显示 artistRaw
-- `feature/listen-stats/src/test/java/com/zili/android/musicfreeandroid/feature/listenstats/component/CardCompositionTest.kt` — 新增 TopSongsCard / SongDetailRow 渲染断言
+- `player/src/main/java/com/hank/musicfree/player/listening/ListenTracker.kt` — import 改 :core;写入计算并落 mergeKey
+- `player/src/test/java/com/hank/musicfree/player/listening/ListenTrackerTest.kt` — 断言 mergeKey
+- `data/src/main/java/com/hank/musicfree/data/db/entity/ListenEventEntity.kt` — 加 mergeKey 列与索引
+- `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt` — version 10→11
+- `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt` — addMigrations 追加 MIGRATION_10_11
+- `data/src/main/java/com/hank/musicfree/data/db/dao/ListenStatsDao.kt` — 全部聚合切 mergeKey;3 个分桶 query 加 zoneOffsetMs
+- `data/src/main/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepository.kt` — 计算并下传 zoneOffsetMs
+- `data/src/test/java/com/hank/musicfree/data/db/dao/ListenStatsDaoTest.kt` — seed 加 mergeKey;新增跨插件 / 时区 case
+- `data/src/test/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepositoryTest.kt` — seed 加 mergeKey;新增 Asia/Shanghai 时区 case
+- `feature/listen-stats/src/main/java/com/hank/musicfree/feature/listenstats/component/SongDetailRow.kt` — 占位 Box → CoverImage;去掉 platform
+- `feature/listen-stats/src/main/java/com/hank/musicfree/feature/listenstats/component/TopSongsCard.kt` — 新增 CoverImage;副标题只显示 artistRaw
+- `feature/listen-stats/src/test/java/com/hank/musicfree/feature/listenstats/component/CardCompositionTest.kt` — 新增 TopSongsCard / SongDetailRow 渲染断言
 
 **新建:**
-- `data/src/main/java/com/zili/android/musicfreeandroid/data/db/migration/Migration10To11.kt`
-- `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/AppDatabaseMigration10To11Test.kt`
-- `data/schemas/com.zili.android.musicfreeandroid.data.db.AppDatabase/11.json`(KSP 在 build 时自动生成,提交即可)
+- `data/src/main/java/com/hank/musicfree/data/db/migration/Migration10To11.kt`
+- `data/src/androidTest/java/com/hank/musicfree/data/db/AppDatabaseMigration10To11Test.kt`
+- `data/schemas/com.hank.musicfree.data.db.AppDatabase/11.json`(KSP 在 build 时自动生成,提交即可)
 
 ---
 
@@ -73,18 +73,18 @@ Expected: BUILD SUCCESSFUL(若不是绿,先停下查根因,任务不能在红色
 ## Task 2: 把 `ArtistSplitter` 从 `:player` 迁到 `:core`
 
 **Files:**
-- Create: `core/src/main/java/com/zili/android/musicfreeandroid/core/util/ArtistSplitter.kt`
-- Create: `core/src/test/java/com/zili/android/musicfreeandroid/core/util/ArtistSplitterTest.kt`
-- Delete: `player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ArtistSplitter.kt`
-- Delete: `player/src/test/java/com/zili/android/musicfreeandroid/player/listening/ArtistSplitterTest.kt`
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ListenTracker.kt`(仅 import)
+- Create: `core/src/main/java/com/hank/musicfree/core/util/ArtistSplitter.kt`
+- Create: `core/src/test/java/com/hank/musicfree/core/util/ArtistSplitterTest.kt`
+- Delete: `player/src/main/java/com/hank/musicfree/player/listening/ArtistSplitter.kt`
+- Delete: `player/src/test/java/com/hank/musicfree/player/listening/ArtistSplitterTest.kt`
+- Modify: `player/src/main/java/com/hank/musicfree/player/listening/ListenTracker.kt`(仅 import)
 
 - [ ] **Step 1: 在 :core 新建 ArtistSplitter.kt**
 
-Write `core/src/main/java/com/zili/android/musicfreeandroid/core/util/ArtistSplitter.kt`:
+Write `core/src/main/java/com/hank/musicfree/core/util/ArtistSplitter.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.util
+package com.hank.musicfree.core.util
 
 private val SPLIT_REGEX = Regex(
     """\s*(?:[/&、,]|\sfeat\.?\s|\sft\.?\s|\swith\s)\s*""",
@@ -97,10 +97,10 @@ fun splitArtists(raw: String): List<String> =
 
 - [ ] **Step 2: 在 :core 新建 ArtistSplitterTest.kt**
 
-Write `core/src/test/java/com/zili/android/musicfreeandroid/core/util/ArtistSplitterTest.kt`:
+Write `core/src/test/java/com/hank/musicfree/core/util/ArtistSplitterTest.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.core.util
+package com.hank.musicfree.core.util
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -140,15 +140,15 @@ class ArtistSplitterTest {
 
 Run:
 ```bash
-git rm player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ArtistSplitter.kt
-git rm player/src/test/java/com/zili/android/musicfreeandroid/player/listening/ArtistSplitterTest.kt
+git rm player/src/main/java/com/hank/musicfree/player/listening/ArtistSplitter.kt
+git rm player/src/test/java/com/hank/musicfree/player/listening/ArtistSplitterTest.kt
 ```
 
 - [ ] **Step 4: 修 ListenTracker.kt 的 import**
 
-Edit `player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ListenTracker.kt`:在文件顶部 import 段加:
+Edit `player/src/main/java/com/hank/musicfree/player/listening/ListenTracker.kt`:在文件顶部 import 段加:
 ```kotlin
-import com.zili.android.musicfreeandroid.core.util.splitArtists
+import com.hank.musicfree.core.util.splitArtists
 ```
 
 旧的 `splitArtists` 来自同包,不需要显式 import。新版来自 :core,需要 import。
@@ -167,11 +167,11 @@ Expected: BUILD SUCCESSFUL。`ArtistSplitterTest`(:core 6 个 case)与 `ListenTr
 - [ ] **Step 6: Commit**
 
 ```bash
-git add core/src/main/java/com/zili/android/musicfreeandroid/core/util/ArtistSplitter.kt \
-        core/src/test/java/com/zili/android/musicfreeandroid/core/util/ArtistSplitterTest.kt \
-        player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ArtistSplitter.kt \
-        player/src/test/java/com/zili/android/musicfreeandroid/player/listening/ArtistSplitterTest.kt \
-        player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ListenTracker.kt
+git add core/src/main/java/com/hank/musicfree/core/util/ArtistSplitter.kt \
+        core/src/test/java/com/hank/musicfree/core/util/ArtistSplitterTest.kt \
+        player/src/main/java/com/hank/musicfree/player/listening/ArtistSplitter.kt \
+        player/src/test/java/com/hank/musicfree/player/listening/ArtistSplitterTest.kt \
+        player/src/main/java/com/hank/musicfree/player/listening/ListenTracker.kt
 git commit -m "refactor(core): 把 ArtistSplitter 迁到 :core,让 :data 也能复用"
 ```
 
@@ -180,29 +180,29 @@ git commit -m "refactor(core): 把 ArtistSplitter 迁到 :core,让 :data 也能�
 ## Task 3: `ListenEventEntity` 加 mergeKey 列 + bump 到 v11 + `MIGRATION_10_11`
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/ListenEventEntity.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`
-- Create: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/migration/Migration10To11.kt`
-- Create: `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/AppDatabaseMigration10To11Test.kt`
-- Modify: `data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDaoTest.kt`(seed helper)
-- Modify: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepositoryTest.kt`(seed helper)
-- Auto-generate: `data/schemas/com.zili.android.musicfreeandroid.data.db.AppDatabase/11.json`(KSP 在 build 时生成,git add)
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/entity/ListenEventEntity.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`
+- Create: `data/src/main/java/com/hank/musicfree/data/db/migration/Migration10To11.kt`
+- Create: `data/src/androidTest/java/com/hank/musicfree/data/db/AppDatabaseMigration10To11Test.kt`
+- Modify: `data/src/test/java/com/hank/musicfree/data/db/dao/ListenStatsDaoTest.kt`(seed helper)
+- Modify: `data/src/test/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepositoryTest.kt`(seed helper)
+- Auto-generate: `data/schemas/com.hank.musicfree.data.db.AppDatabase/11.json`(KSP 在 build 时生成,git add)
 
 - [ ] **Step 1: 写迁移测试(androidTest,先红)**
 
-Write `data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/AppDatabaseMigration10To11Test.kt`:
+Write `data/src/androidTest/java/com/hank/musicfree/data/db/AppDatabaseMigration10To11Test.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db
+package com.hank.musicfree.data.db
 
 import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.zili.android.musicfreeandroid.data.db.migration.MIGRATION_10_11
-import com.zili.android.musicfreeandroid.data.db.migration.MIGRATION_9_10
+import com.hank.musicfree.data.db.migration.MIGRATION_10_11
+import com.hank.musicfree.data.db.migration.MIGRATION_9_10
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -293,10 +293,10 @@ class AppDatabaseMigration10To11Test {
 
 - [ ] **Step 2: 改 `ListenEventEntity` 加 mergeKey 字段与索引**
 
-Edit `data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/ListenEventEntity.kt`:
+Edit `data/src/main/java/com/hank/musicfree/data/db/entity/ListenEventEntity.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.entity
+package com.hank.musicfree.data.db.entity
 
 import androidx.room.Entity
 import androidx.room.Index
@@ -330,7 +330,7 @@ data class ListenEventEntity(
 
 - [ ] **Step 3: 改 `AppDatabase` version 10 → 11**
 
-Edit `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt` 第 45 行附近:
+Edit `data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt` 第 45 行附近:
 ```kotlin
     version = 11,
 ```
@@ -339,14 +339,14 @@ Edit `data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.k
 
 - [ ] **Step 4: 新建 `Migration10To11.kt`**
 
-Write `data/src/main/java/com/zili/android/musicfreeandroid/data/db/migration/Migration10To11.kt`:
+Write `data/src/main/java/com/hank/musicfree/data/db/migration/Migration10To11.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.data.db.migration
+package com.hank.musicfree.data.db.migration
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.zili.android.musicfreeandroid.core.util.splitArtists
+import com.hank.musicfree.core.util.splitArtists
 
 val MIGRATION_10_11 = object : Migration(10, 11) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -373,11 +373,11 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
 
 - [ ] **Step 5: 改 `DataModule` 把 MIGRATION_10_11 加进 addMigrations**
 
-Edit `data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt`:
+Edit `data/src/main/java/com/hank/musicfree/data/di/DataModule.kt`:
 
 加 import:
 ```kotlin
-import com.zili.android.musicfreeandroid.data.db.migration.MIGRATION_10_11
+import com.hank.musicfree.data.db.migration.MIGRATION_10_11
 ```
 
 把 addMigrations 由:
@@ -391,11 +391,11 @@ import com.zili.android.musicfreeandroid.data.db.migration.MIGRATION_10_11
 
 - [ ] **Step 6: 改 `ListenStatsDaoTest` 的 seed helper 计算 mergeKey**
 
-Edit `data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDaoTest.kt`:
+Edit `data/src/test/java/com/hank/musicfree/data/db/dao/ListenStatsDaoTest.kt`:
 
 在 import 段加:
 ```kotlin
-import com.zili.android.musicfreeandroid.core.util.splitArtists
+import com.hank.musicfree.core.util.splitArtists
 ```
 
 把 `seed(...)` 函数末尾的 `ListenEventEntity(...)` 构造里追加 mergeKey 字段。完整 seed 函数:
@@ -434,11 +434,11 @@ private suspend fun seed(
 
 - [ ] **Step 7: 改 `ListenStatsRepositoryTest` 的 seed helper 计算 mergeKey**
 
-Edit `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepositoryTest.kt`:
+Edit `data/src/test/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepositoryTest.kt`:
 
 在 import 段加:
 ```kotlin
-import com.zili.android.musicfreeandroid.core.util.splitArtists
+import com.hank.musicfree.core.util.splitArtists
 ```
 
 把 `seed(...)` 末尾 `ListenEventEntity(...)` 改为含 mergeKey:
@@ -492,7 +492,7 @@ db.listenStatsDao().insertEventWithArtists(
 Run:
 ```bash
 ./gradlew :data:kspDebugKotlin
-ls data/schemas/com.zili.android.musicfreeandroid.data.db.AppDatabase/
+ls data/schemas/com.hank.musicfree.data.db.AppDatabase/
 ```
 
 Expected: `data/schemas/.../11.json` 出现,内含 `listen_event.mergeKey` 列与 `index_listen_event_mergeKey` 索引。若没生成,确认 `room.schemaDirectory("$projectDir/schemas")` 已在 `data/build.gradle.kts`(已确认存在)。
@@ -518,14 +518,14 @@ Expected: BUILD SUCCESSFUL。若设备不可用,先跳过;Task 6 的 :app:assemb
 - [ ] **Step 11: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/entity/ListenEventEntity.kt \
-        data/src/main/java/com/zili/android/musicfreeandroid/data/db/AppDatabase.kt \
-        data/src/main/java/com/zili/android/musicfreeandroid/data/db/migration/Migration10To11.kt \
-        data/src/main/java/com/zili/android/musicfreeandroid/data/di/DataModule.kt \
-        data/src/androidTest/java/com/zili/android/musicfreeandroid/data/db/AppDatabaseMigration10To11Test.kt \
-        data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDaoTest.kt \
-        data/src/test/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepositoryTest.kt \
-        data/schemas/com.zili.android.musicfreeandroid.data.db.AppDatabase/11.json
+git add data/src/main/java/com/hank/musicfree/data/db/entity/ListenEventEntity.kt \
+        data/src/main/java/com/hank/musicfree/data/db/AppDatabase.kt \
+        data/src/main/java/com/hank/musicfree/data/db/migration/Migration10To11.kt \
+        data/src/main/java/com/hank/musicfree/data/di/DataModule.kt \
+        data/src/androidTest/java/com/hank/musicfree/data/db/AppDatabaseMigration10To11Test.kt \
+        data/src/test/java/com/hank/musicfree/data/db/dao/ListenStatsDaoTest.kt \
+        data/src/test/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepositoryTest.kt \
+        data/schemas/com.hank.musicfree.data.db.AppDatabase/11.json
 git commit -m "feat(data): listen_event 加 mergeKey 列 + MIGRATION_10_11 回填老数据"
 ```
 
@@ -534,12 +534,12 @@ git commit -m "feat(data): listen_event 加 mergeKey 列 + MIGRATION_10_11 回�
 ## Task 4: `ListenTracker` 写入时计算并落地 mergeKey
 
 **Files:**
-- Modify: `player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ListenTracker.kt`(写入处)
-- Modify: `player/src/test/java/com/zili/android/musicfreeandroid/player/listening/ListenTrackerTest.kt`(断言 mergeKey)
+- Modify: `player/src/main/java/com/hank/musicfree/player/listening/ListenTracker.kt`(写入处)
+- Modify: `player/src/test/java/com/hank/musicfree/player/listening/ListenTrackerTest.kt`(断言 mergeKey)
 
 - [ ] **Step 1: 在 ListenTrackerTest 既有 case 里加 mergeKey 断言(先红)**
 
-Edit `player/src/test/java/com/zili/android/musicfreeandroid/player/listening/ListenTrackerTest.kt`,把 `playing_for_60s_then_transition_writesOneEvent` 内的 argumentCaptor 断言扩展:
+Edit `player/src/test/java/com/hank/musicfree/player/listening/ListenTrackerTest.kt`,把 `playing_for_60s_then_transition_writesOneEvent` 内的 argumentCaptor 断言扩展:
 
 ```kotlin
 argumentCaptor<ListenEventEntity>().apply {
@@ -581,7 +581,7 @@ Expected: 编译可能因为 `ListenEventEntity` 缺少 `mergeKey` 必填参数�
 
 - [ ] **Step 3: 改 ListenTracker.kt 写入处计算并传 mergeKey**
 
-Edit `player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ListenTracker.kt`,定位 `flushIfQualifies` 内 `val artists = splitArtists(s.item.artist)` 后面:
+Edit `player/src/main/java/com/hank/musicfree/player/listening/ListenTracker.kt`,定位 `flushIfQualifies` 内 `val artists = splitArtists(s.item.artist)` 后面:
 
 ```kotlin
 val artists = splitArtists(s.item.artist)
@@ -626,8 +626,8 @@ Expected: BUILD SUCCESSFUL。
 - [ ] **Step 6: Commit**
 
 ```bash
-git add player/src/main/java/com/zili/android/musicfreeandroid/player/listening/ListenTracker.kt \
-        player/src/test/java/com/zili/android/musicfreeandroid/player/listening/ListenTrackerTest.kt
+git add player/src/main/java/com/hank/musicfree/player/listening/ListenTracker.kt \
+        player/src/test/java/com/hank/musicfree/player/listening/ListenTrackerTest.kt
 git commit -m "feat(player): ListenTracker 写入时计算并落地 mergeKey"
 ```
 
@@ -636,14 +636,14 @@ git commit -m "feat(player): ListenTracker 写入时计算并落地 mergeKey"
 ## Task 5: DAO 聚合切 mergeKey + 3 个分桶 query 加 zoneOffsetMs;Repository 下传 offset
 
 **Files:**
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDao.kt`
-- Modify: `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepository.kt`
-- Modify: `data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDaoTest.kt`(新增跨插件 / 时区 case)
-- Modify: `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepositoryTest.kt`(新增 Asia/Shanghai 时区 case)
+- Modify: `data/src/main/java/com/hank/musicfree/data/db/dao/ListenStatsDao.kt`
+- Modify: `data/src/main/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepository.kt`
+- Modify: `data/src/test/java/com/hank/musicfree/data/db/dao/ListenStatsDaoTest.kt`(新增跨插件 / 时区 case)
+- Modify: `data/src/test/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepositoryTest.kt`(新增 Asia/Shanghai 时区 case)
 
 - [ ] **Step 1: 在 ListenStatsDaoTest 加跨插件 / 时区 case(先红)**
 
-Edit `data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDaoTest.kt`,在文件末加:
+Edit `data/src/test/java/com/hank/musicfree/data/db/dao/ListenStatsDaoTest.kt`,在文件末加:
 
 ```kotlin
 @Test
@@ -748,7 +748,7 @@ Expected: 编译失败(dailyBucketsFlow/hourBucketsFlow 还没 zoneOffsetMs 参�
 
 - [ ] **Step 3: 改 `ListenStatsDao.kt`**
 
-Edit `data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDao.kt`。逐个替换以下 `@Query`(其它 dao 方法 / TopSongRow / ListenedSongRow 数据类 / insertEventWithArtists / clearAllEvents / firstEventTimestamp / totalSecondsFlow / distinctArtistsFlow / languageDistributionFlow / genreDistributionFlow 不动):
+Edit `data/src/main/java/com/hank/musicfree/data/db/dao/ListenStatsDao.kt`。逐个替换以下 `@Query`(其它 dao 方法 / TopSongRow / ListenedSongRow 数据类 / insertEventWithArtists / clearAllEvents / firstEventTimestamp / totalSecondsFlow / distinctArtistsFlow / languageDistributionFlow / genreDistributionFlow 不动):
 
 ```kotlin
 @Query("""SELECT COUNT(DISTINCT mergeKey) FROM listen_event
@@ -896,7 +896,7 @@ fun songsByGenreFlow(startMs: Long, endMs: Long, genre: String): Flow<List<Liste
 
 - [ ] **Step 4: 改 `ListenStatsRepository.kt` 把 zoneOffsetMs 算出来下传**
 
-Edit `data/src/main/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepository.kt`:
+Edit `data/src/main/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepository.kt`:
 
 `statsForWindow` 改为:
 
@@ -931,21 +931,21 @@ fun statsForWindow(scope: TimeScope, anchor: LocalDate): Flow<ListenStatsSnapsho
             @Suppress("UNCHECKED_CAST")
             val artists = fields[2] as Int
             @Suppress("UNCHECKED_CAST")
-            val tops = fields[3] as List<com.zili.android.musicfreeandroid.data.db.dao.TopSongRow>
+            val tops = fields[3] as List<com.hank.musicfree.data.db.dao.TopSongRow>
             @Suppress("UNCHECKED_CAST")
-            val topArtists = fields[4] as List<com.zili.android.musicfreeandroid.data.db.dao.TopArtistRow>
+            val topArtists = fields[4] as List<com.hank.musicfree.data.db.dao.TopArtistRow>
             @Suppress("UNCHECKED_CAST")
-            val dailyRows = fields[5] as List<com.zili.android.musicfreeandroid.data.db.dao.DailyBucketRow>
+            val dailyRows = fields[5] as List<com.hank.musicfree.data.db.dao.DailyBucketRow>
             @Suppress("UNCHECKED_CAST")
-            val hourRows = fields[6] as List<com.zili.android.musicfreeandroid.data.db.dao.HourBucketRow>
+            val hourRows = fields[6] as List<com.hank.musicfree.data.db.dao.HourBucketRow>
             @Suppress("UNCHECKED_CAST")
-            val langRows = fields[7] as List<com.zili.android.musicfreeandroid.data.db.dao.LanguageBucketRow>
+            val langRows = fields[7] as List<com.hank.musicfree.data.db.dao.LanguageBucketRow>
             @Suppress("UNCHECKED_CAST")
-            val genreRows = fields[8] as List<com.zili.android.musicfreeandroid.data.db.dao.GenreBucketRow>
+            val genreRows = fields[8] as List<com.hank.musicfree.data.db.dao.GenreBucketRow>
             @Suppress("UNCHECKED_CAST")
-            val heatmapRows = fields[9] as List<com.zili.android.musicfreeandroid.data.db.dao.DateBucketRow>
+            val heatmapRows = fields[9] as List<com.hank.musicfree.data.db.dao.DateBucketRow>
             @Suppress("UNCHECKED_CAST")
-            val firstSeenRows = fields[10] as List<com.zili.android.musicfreeandroid.data.db.dao.ListenedSongRow>
+            val firstSeenRows = fields[10] as List<com.hank.musicfree.data.db.dao.ListenedSongRow>
 
             val totalEvents = langRows.sumOf { it.count }.coerceAtLeast(1)
             val langKnown = langRows.filter { it.language != null }.sumOf { it.count }
@@ -992,7 +992,7 @@ fun statsForWindow(scope: TimeScope, anchor: LocalDate): Flow<ListenStatsSnapsho
 
 - [ ] **Step 5: 在 ListenStatsRepositoryTest 加 Asia/Shanghai 时区 case**
 
-Edit `data/src/test/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepositoryTest.kt`,在文件末加:
+Edit `data/src/test/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepositoryTest.kt`,在文件末加:
 
 ```kotlin
 @Test
@@ -1037,10 +1037,10 @@ Expected: BUILD SUCCESSFUL。新增的 5 个 DaoTest case + 1 个 RepositoryTest
 - [ ] **Step 7: Commit**
 
 ```bash
-git add data/src/main/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDao.kt \
-        data/src/main/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepository.kt \
-        data/src/test/java/com/zili/android/musicfreeandroid/data/db/dao/ListenStatsDaoTest.kt \
-        data/src/test/java/com/zili/android/musicfreeandroid/data/repository/listenstats/ListenStatsRepositoryTest.kt
+git add data/src/main/java/com/hank/musicfree/data/db/dao/ListenStatsDao.kt \
+        data/src/main/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepository.kt \
+        data/src/test/java/com/hank/musicfree/data/db/dao/ListenStatsDaoTest.kt \
+        data/src/test/java/com/hank/musicfree/data/repository/listenstats/ListenStatsRepositoryTest.kt
 git commit -m "feat(data): listen-stats 聚合按 mergeKey + 日/时/热力图按本地时区分桶"
 ```
 
@@ -1049,13 +1049,13 @@ git commit -m "feat(data): listen-stats 聚合按 mergeKey + 日/时/热力图�
 ## Task 6: UI 接 CoverImage + 移除 platform 展示
 
 **Files:**
-- Modify: `feature/listen-stats/src/main/java/com/zili/android/musicfreeandroid/feature/listenstats/component/SongDetailRow.kt`
-- Modify: `feature/listen-stats/src/main/java/com/zili/android/musicfreeandroid/feature/listenstats/component/TopSongsCard.kt`
-- Modify: `feature/listen-stats/src/test/java/com/zili/android/musicfreeandroid/feature/listenstats/component/CardCompositionTest.kt`
+- Modify: `feature/listen-stats/src/main/java/com/hank/musicfree/feature/listenstats/component/SongDetailRow.kt`
+- Modify: `feature/listen-stats/src/main/java/com/hank/musicfree/feature/listenstats/component/TopSongsCard.kt`
+- Modify: `feature/listen-stats/src/test/java/com/hank/musicfree/feature/listenstats/component/CardCompositionTest.kt`
 
 - [ ] **Step 1: 在 CardCompositionTest 加 SongDetailRow / TopSongsCard 渲染测试(先红)**
 
-Edit `feature/listen-stats/src/test/java/com/zili/android/musicfreeandroid/feature/listenstats/component/CardCompositionTest.kt`,在 import 段加:
+Edit `feature/listen-stats/src/test/java/com/hank/musicfree/feature/listenstats/component/CardCompositionTest.kt`,在 import 段加:
 ```kotlin
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodes
@@ -1063,8 +1063,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasTestTag
-import com.zili.android.musicfreeandroid.data.db.dao.TopSongRow
-import com.zili.android.musicfreeandroid.data.repository.listenstats.model.ListenedSong
+import com.hank.musicfree.data.db.dao.TopSongRow
+import com.hank.musicfree.data.repository.listenstats.model.ListenedSong
 ```
 
 在文件末加:
@@ -1121,10 +1121,10 @@ Expected: 两条新测试失败 — `top-song-cover` / `song-cover` testTag 节�
 
 - [ ] **Step 3: 改 `SongDetailRow.kt`**
 
-Edit `feature/listen-stats/src/main/java/com/zili/android/musicfreeandroid/feature/listenstats/component/SongDetailRow.kt`:
+Edit `feature/listen-stats/src/main/java/com/hank/musicfree/feature/listenstats/component/SongDetailRow.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.listenstats.component
+package com.hank.musicfree.feature.listenstats.component
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -1139,8 +1139,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.ui.CoverImage
-import com.zili.android.musicfreeandroid.data.repository.listenstats.model.ListenedSong
+import com.hank.musicfree.core.ui.CoverImage
+import com.hank.musicfree.data.repository.listenstats.model.ListenedSong
 import java.time.Instant
 import java.time.ZoneId
 
@@ -1184,10 +1184,10 @@ fun SongDetailRow(song: ListenedSong, showFirstSeen: Boolean = false, modifier: 
 
 - [ ] **Step 4: 改 `TopSongsCard.kt`**
 
-Edit `feature/listen-stats/src/main/java/com/zili/android/musicfreeandroid/feature/listenstats/component/TopSongsCard.kt`:
+Edit `feature/listen-stats/src/main/java/com/hank/musicfree/feature/listenstats/component/TopSongsCard.kt`:
 
 ```kotlin
-package com.zili.android.musicfreeandroid.feature.listenstats.component
+package com.hank.musicfree.feature.listenstats.component
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -1208,8 +1208,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.core.ui.CoverImage
-import com.zili.android.musicfreeandroid.data.db.dao.TopSongRow
+import com.hank.musicfree.core.ui.CoverImage
+import com.hank.musicfree.data.db.dao.TopSongRow
 
 @Composable
 fun TopSongsCard(
@@ -1293,9 +1293,9 @@ Expected: BUILD SUCCESSFUL。`ListenStatsScreenTest` / `ListenDetailScreenTest` 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add feature/listen-stats/src/main/java/com/zili/android/musicfreeandroid/feature/listenstats/component/SongDetailRow.kt \
-        feature/listen-stats/src/main/java/com/zili/android/musicfreeandroid/feature/listenstats/component/TopSongsCard.kt \
-        feature/listen-stats/src/test/java/com/zili/android/musicfreeandroid/feature/listenstats/component/CardCompositionTest.kt
+git add feature/listen-stats/src/main/java/com/hank/musicfree/feature/listenstats/component/SongDetailRow.kt \
+        feature/listen-stats/src/main/java/com/hank/musicfree/feature/listenstats/component/TopSongsCard.kt \
+        feature/listen-stats/src/test/java/com/hank/musicfree/feature/listenstats/component/CardCompositionTest.kt
 git commit -m "feat(listen-stats): Top 卡 / 明细行加封面,去掉副标题里的插件来源"
 ```
 
