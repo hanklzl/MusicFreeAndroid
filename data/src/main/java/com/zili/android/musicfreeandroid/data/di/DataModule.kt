@@ -8,6 +8,11 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.zili.android.musicfreeandroid.core.local.Mp3MetadataReader
 import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
+import com.zili.android.musicfreeandroid.data.backup.BackupAppMetadata
+import com.zili.android.musicfreeandroid.data.backup.BackupPrivateLayout
+import com.zili.android.musicfreeandroid.data.backup.BackupRepository
+import com.zili.android.musicfreeandroid.data.backup.DefaultBackupRepository
+import com.zili.android.musicfreeandroid.data.backup.checkpointWal
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
@@ -35,6 +40,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import java.time.ZoneId
+import kotlinx.serialization.json.Json
 import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_preferences")
@@ -93,8 +99,48 @@ object DataModule {
 
     @Provides
     @Singleton
+    fun provideJsonForBackup(): Json = Json {
+        ignoreUnknownKeys = true
+        prettyPrint = true
+    }
+
+    @Provides
+    @Singleton
+    fun provideBackupAppMetadata(@ApplicationContext context: Context): BackupAppMetadata {
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        return BackupAppMetadata(
+            packageName = context.packageName,
+            versionName = packageInfo.versionName ?: "0",
+            versionCode = packageInfo.longVersionCode,
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideBackupPrivateLayout(@ApplicationContext context: Context): BackupPrivateLayout =
+        BackupPrivateLayout.from(context)
+
+    @Provides
+    @Singleton
     fun provideContentResolver(@ApplicationContext context: Context): ContentResolver =
         context.contentResolver
+
+    @Provides
+    @Singleton
+    fun provideBackupRepository(
+        contentResolver: ContentResolver,
+        appDatabase: AppDatabase,
+        layout: BackupPrivateLayout,
+        appMetadata: BackupAppMetadata,
+        json: Json,
+    ): BackupRepository = DefaultBackupRepository(
+        contentResolver = contentResolver,
+        databaseCheckpoint = appDatabase::checkpointWal,
+        layout = layout,
+        appMetadata = appMetadata,
+        databaseVersion = 11,
+        json = json,
+    )
 
     @Provides
     @Singleton

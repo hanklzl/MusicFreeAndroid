@@ -3,6 +3,8 @@ package com.zili.android.musicfreeandroid.feature.settings
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -60,9 +63,24 @@ fun SettingsScreen(
     val basicState by viewModel.basicSettingsUiState.collectAsStateWithLifecycle()
     val feedbackExportUiState by viewModel.feedbackExportUiState.collectAsStateWithLifecycle()
     val errorLogUiState by viewModel.errorLogUiState.collectAsStateWithLifecycle()
+    val backupRestoreUiState by viewModel.backupRestoreUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     var showFeedbackConfirm by remember { mutableStateOf(false) }
+    val createBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
+    ) { uri ->
+        if (uri != null) {
+            viewModel.createBackup(uri)
+        }
+    }
+    val restoreBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            viewModel.validateRestore(uri)
+        }
+    }
 
     LaunchedEffect(context, viewModel, feedbackExportUiState.pendingPackage) {
         feedbackExportUiState.pendingPackage?.let { packageItem ->
@@ -194,13 +212,16 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsType.Backup -> SettingsTypeEntryContent(
-                rootTag = FidelityAnchors.Settings.BackupRoot,
-                title = "备份与恢复",
-                description = "备份与恢复入口将显示在这里。",
-                entryTag = FidelityAnchors.Settings.BackupEntry,
-                actionText = "待接入",
-                onClick = null,
+            SettingsType.Backup -> BackupRestoreContent(
+                state = backupRestoreUiState,
+                onCreateBackup = {
+                    createBackupLauncher.launch("MusicFree-backup-${java.time.LocalDate.now()}.mfbackup")
+                },
+                onRestoreBackup = {
+                    restoreBackupLauncher.launch(
+                        arrayOf("application/octet-stream", "application/zip", "*/*"),
+                    )
+                },
                 modifier = Modifier.padding(innerPadding),
             )
 
@@ -228,6 +249,14 @@ fun SettingsScreen(
                 Toast.makeText(context, "错误日志已复制", Toast.LENGTH_SHORT).show()
             },
             onDismiss = viewModel::dismissErrorLog,
+        )
+    }
+
+    if (backupRestoreUiState.restoreConfirmationVisible) {
+        BackupRestoreConfirmDialog(
+            state = backupRestoreUiState,
+            onDismiss = viewModel::dismissRestoreConfirmation,
+            onConfirm = viewModel::confirmRestore,
         )
     }
 }
@@ -312,6 +341,100 @@ private fun AboutSettingsContent(modifier: Modifier = Modifier) {
         }
         item { Spacer(modifier = Modifier.height(rpx(24))) }
     }
+}
+
+@Composable
+private fun BackupRestoreContent(
+    state: BackupRestoreUiState,
+    onCreateBackup: () -> Unit,
+    onRestoreBackup: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .testTag(FidelityAnchors.Settings.BackupRoot)
+            .padding(horizontal = rpx(24)),
+        verticalArrangement = Arrangement.spacedBy(rpx(16)),
+    ) {
+        item { Spacer(modifier = Modifier.height(rpx(24))) }
+        item {
+            SettingSectionCard(
+                title = "备份与恢复",
+                testTag = FidelityAnchors.Settings.BackupEntry,
+            ) {
+                Text(
+                    text = "创建迁移包后，可在新包名版本中导入。恢复会覆盖当前应用内数据，系统权限需要重新授权。",
+                    fontSize = FontSizes.description,
+                    color = MusicFreeTheme.colors.textSecondary,
+                )
+                Spacer(modifier = Modifier.height(rpx(12)))
+                Button(
+                    onClick = onCreateBackup,
+                    enabled = !state.inProgress,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(FidelityAnchors.Settings.BackupCreate),
+                ) {
+                    Text(text = "创建备份/迁移包")
+                }
+                Spacer(modifier = Modifier.height(rpx(8)))
+                Button(
+                    onClick = onRestoreBackup,
+                    enabled = !state.inProgress,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(FidelityAnchors.Settings.BackupRestore),
+                ) {
+                    Text(text = "从备份恢复")
+                }
+                val status = state.message ?: state.errorMessage
+                if (status != null) {
+                    Spacer(modifier = Modifier.height(rpx(8)))
+                    Text(
+                        text = status,
+                        fontSize = FontSizes.description,
+                        color = MusicFreeTheme.colors.textSecondary,
+                        modifier = Modifier.testTag(FidelityAnchors.Settings.BackupStatus),
+                    )
+                }
+            }
+        }
+        item { Spacer(modifier = Modifier.height(rpx(24))) }
+    }
+}
+
+@Composable
+private fun BackupRestoreConfirmDialog(
+    state: BackupRestoreUiState,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "确认恢复备份") },
+        text = {
+            Text(
+                text = "恢复会覆盖当前应用内数据，并需要重启应用后生效。\n\n" +
+                    "来源：${state.restoreSourcePackageName ?: "未知"} ${state.restoreAppVersionName ?: ""}\n" +
+                    "文件数：${state.restoreFileCount}\n\n" +
+                    "系统权限不会继承，恢复后需要重新授权通知、媒体读取、悬浮窗和存储目录。",
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = !state.inProgress,
+            ) {
+                Text(text = "确认恢复")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "取消")
+            }
+        },
+    )
 }
 
 @Composable

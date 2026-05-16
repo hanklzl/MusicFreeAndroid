@@ -1,5 +1,6 @@
 package com.zili.android.musicfreeandroid.feature.settings
 
+import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -12,6 +13,11 @@ import com.zili.android.musicfreeandroid.core.model.PlayQuality
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
 import com.zili.android.musicfreeandroid.core.model.SortMode
+import com.zili.android.musicfreeandroid.data.backup.BackupArchivePaths
+import com.zili.android.musicfreeandroid.data.backup.BackupManifest
+import com.zili.android.musicfreeandroid.data.backup.BackupManifestFile
+import com.zili.android.musicfreeandroid.data.backup.BackupRepository
+import com.zili.android.musicfreeandroid.data.backup.StagedRestore
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.logging.FeedbackLogExporterContract
 import com.zili.android.musicfreeandroid.logging.FeedbackPackage
@@ -42,6 +48,7 @@ import org.junit.rules.TemporaryFolder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -340,11 +347,11 @@ class SettingsViewModelTest {
         val viewModel = createViewModel(createAppPreferences())
 
         viewModel.showErrorLog()
-        advanceUntilIdle()
+        val state = viewModel.errorLogUiState.first { it.visible }
 
-        assertTrue(viewModel.errorLogUiState.value.visible)
-        assertTrue(viewModel.errorLogUiState.value.content.contains("settings_failed"))
-        assertTrue(viewModel.errorLogUiState.value.content.contains("line payload"))
+        assertTrue(state.visible)
+        assertTrue(state.content.contains("settings_failed"))
+        assertTrue(state.content.contains("line payload"))
 
         viewModel.dismissErrorLog()
 
@@ -410,6 +417,181 @@ class SettingsViewModelTest {
         )
     }
 
+    @Test
+    fun `backup export publishes success state`() = runTest(mainDispatcherRule.dispatcher) {
+        val exportManifest = createBackupManifest(fileCount = 4)
+        val backupRepository = createFakeBackupRepository(exportManifest = exportManifest)
+        val viewModel = createViewModel(
+            appPreferences = createAppPreferences(),
+            backupRepository = backupRepository,
+        )
+
+        viewModel.createBackup(Uri.parse("content://com.zili.android.musicfreeandroid/backup-test"))
+        advanceUntilIdle()
+
+        assertEquals(1, backupRepository.exportCalls)
+        assertEquals("备份已创建", viewModel.backupRestoreUiState.value.message)
+        assertEquals(false, viewModel.backupRestoreUiState.value.inProgress)
+    }
+
+    @Test
+    fun `restore validation exposes confirmation state and confirm registers pending restore`() = runTest(mainDispatcherRule.dispatcher) {
+        val manifest = createBackupManifest(fileCount = 3)
+        val stagedRestore = createStagedRestore(manifest = manifest)
+        val backupRepository = createFakeBackupRepository(
+            stagedRestoreToReturn = stagedRestore,
+        )
+        val viewModel = createViewModel(
+            appPreferences = createAppPreferences(),
+            backupRepository = backupRepository,
+        )
+
+        viewModel.validateRestore(Uri.parse("content://com.zili.android.musicfreeandroid/restore"))
+        advanceUntilIdle()
+
+        val validateState = viewModel.backupRestoreUiState.value
+        assertTrue(validateState.restoreConfirmationVisible)
+        assertEquals(manifest.sourcePackageName, validateState.restoreSourcePackageName)
+        assertEquals(manifest.appVersionName, validateState.restoreAppVersionName)
+        assertEquals(manifest.files.size, validateState.restoreFileCount)
+        assertEquals(1, backupRepository.validateCalls)
+
+        viewModel.confirmRestore()
+        advanceUntilIdle()
+
+        assertEquals(1, backupRepository.registerCalls)
+        assertEquals("已登记恢复，重启应用后生效", viewModel.backupRestoreUiState.value.message)
+        assertFalse(viewModel.backupRestoreUiState.value.restoreConfirmationVisible)
+        assertEquals(stagedRestore.id, backupRepository.lastRegisteredRestoreId)
+    }
+
+    @Test
+    fun `backup export failure sets error state and logs`() = runTest(mainDispatcherRule.dispatcher) {
+        val error = RuntimeException("backup export failed")
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val backupRepository = createFakeBackupRepository(exportError = error)
+        val viewModel = createViewModel(
+            appPreferences = createAppPreferences(),
+            backupRepository = backupRepository,
+        )
+
+        viewModel.createBackup(Uri.parse("content://com.zili.android.musicfreeandroid/backup-failed"))
+        advanceUntilIdle()
+
+        assertEquals(1, backupRepository.exportCalls)
+        assertEquals(error.message, viewModel.backupRestoreUiState.value.errorMessage)
+        assertEquals("backup_export_failed", logger.errorEvents.singleOrNull()?.event)
+        assertFalse(viewModel.backupRestoreUiState.value.inProgress)
+    }
+
+    @Test
+    fun `restore validation failure sets error state and logs`() = runTest(mainDispatcherRule.dispatcher) {
+        val error = RuntimeException("restore validation failed")
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val backupRepository = createFakeBackupRepository(validateError = error)
+        val viewModel = createViewModel(
+            appPreferences = createAppPreferences(),
+            backupRepository = backupRepository,
+        )
+
+        viewModel.validateRestore(Uri.parse("content://com.zili.android.musicfreeandroid/restore-failed"))
+        advanceUntilIdle()
+
+        val state = viewModel.backupRestoreUiState.value
+        assertEquals(1, backupRepository.validateCalls)
+        assertEquals(error.message, state.errorMessage)
+        assertFalse(state.inProgress)
+        assertFalse(state.restoreConfirmationVisible)
+        assertNull(state.restoreSourcePackageName)
+        assertEquals("backup_restore_validate_failed", logger.errorEvents.singleOrNull()?.event)
+    }
+
+    @Test
+    fun `restore registration failure keeps confirmation state and logs`() = runTest(mainDispatcherRule.dispatcher) {
+        val error = RuntimeException("restore registration failed")
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val stagedRestore = createStagedRestore()
+        val backupRepository = createFakeBackupRepository(
+            stagedRestoreToReturn = stagedRestore,
+            registerError = error,
+        )
+        val viewModel = createViewModel(
+            appPreferences = createAppPreferences(),
+            backupRepository = backupRepository,
+        )
+
+        viewModel.validateRestore(Uri.parse("content://com.zili.android.musicfreeandroid/restore"))
+        advanceUntilIdle()
+        viewModel.confirmRestore()
+        advanceUntilIdle()
+
+        val state = viewModel.backupRestoreUiState.value
+        assertEquals(1, backupRepository.registerCalls)
+        assertEquals(error.message, state.errorMessage)
+        assertFalse(state.inProgress)
+        assertTrue(state.restoreConfirmationVisible)
+        assertEquals(stagedRestore.id, backupRepository.lastRegisteredRestoreId)
+        assertEquals("backup_restore_register_failed", logger.errorEvents.singleOrNull()?.event)
+    }
+
+    @Test
+    fun `backup actions ignore concurrent requests while operation is active`() = runTest(mainDispatcherRule.dispatcher) {
+        val backupRepository = createFakeBackupRepository(exportDelayMs = 1_000)
+        val viewModel = createViewModel(
+            appPreferences = createAppPreferences(),
+            backupRepository = backupRepository,
+        )
+
+        viewModel.createBackup(Uri.parse("content://com.zili.android.musicfreeandroid/backup-one"))
+        viewModel.validateRestore(Uri.parse("content://com.zili.android.musicfreeandroid/restore-ignored"))
+
+        assertTrue(viewModel.backupRestoreUiState.value.inProgress)
+        advanceUntilIdle()
+
+        assertEquals(1, backupRepository.exportCalls)
+        assertEquals(0, backupRepository.validateCalls)
+        assertEquals("备份已创建", viewModel.backupRestoreUiState.value.message)
+    }
+
+    @Test
+    fun `dismiss restore confirmation clears staged restore metadata`() = runTest(mainDispatcherRule.dispatcher) {
+        val manifest = createBackupManifest(fileCount = 3)
+        val backupRepository = createFakeBackupRepository(
+            stagedRestoreToReturn = createStagedRestore(manifest = manifest),
+        )
+        val viewModel = createViewModel(
+            appPreferences = createAppPreferences(),
+            backupRepository = backupRepository,
+        )
+
+        viewModel.validateRestore(Uri.parse("content://com.zili.android.musicfreeandroid/restore"))
+        advanceUntilIdle()
+        viewModel.dismissRestoreConfirmation()
+
+        val state = viewModel.backupRestoreUiState.value
+        assertFalse(state.restoreConfirmationVisible)
+        assertNull(state.restoreSourcePackageName)
+        assertNull(state.restoreAppVersionName)
+        assertEquals(0, state.restoreFileCount)
+    }
+
+    @Test
+    fun `clear backup restore message clears success and error messages`() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = createViewModel(appPreferences = createAppPreferences())
+
+        viewModel.createBackup(Uri.parse("content://com.zili.android.musicfreeandroid/backup"))
+        advanceUntilIdle()
+        assertEquals("备份已创建", viewModel.backupRestoreUiState.value.message)
+
+        viewModel.clearBackupRestoreMessage()
+
+        assertNull(viewModel.backupRestoreUiState.value.message)
+        assertNull(viewModel.backupRestoreUiState.value.errorMessage)
+    }
+
     private fun createAppPreferences(): AppPreferences {
         val scope = CoroutineScope(SupervisorJob() + mainDispatcherRule.dispatcher)
         dataStoreScopes += scope
@@ -425,8 +607,105 @@ class SettingsViewModelTest {
         exporter: FeedbackLogExporterContract = createFakeExporter(),
         pluginManager: PluginManager = mock(),
         cacheCleaner: SettingsCacheCleaner = mock(),
+        backupRepository: BackupRepository = createFakeBackupRepository(),
     ): SettingsViewModel {
-        return SettingsViewModel(appPreferences, exporter, pluginManager, cacheCleaner)
+        return SettingsViewModel(
+            appPreferences = appPreferences,
+            feedbackLogExporter = exporter,
+            pluginManager = pluginManager,
+            cacheCleaner = cacheCleaner,
+            backupRepository = backupRepository,
+        )
+    }
+
+    private fun createBackupManifest(
+        sourcePackageName: String = "com.zili.android.musicfreeandroid",
+        appVersionName: String = "1.0.0",
+        fileCount: Int = 2,
+    ): BackupManifest {
+        return BackupManifest(
+            schemaVersion = BackupManifest.CURRENT_SCHEMA_VERSION,
+            sourcePackageName = sourcePackageName,
+            createdAt = "2026-01-01T00:00:00Z",
+            appVersionName = appVersionName,
+            appVersionCode = 1L,
+            databaseVersion = 1,
+            files = (0 until fileCount).map { index ->
+                BackupManifestFile(
+                    path = if (index == 0) {
+                        BackupArchivePaths.DB
+                    } else {
+                        "${BackupArchivePaths.PLAYLIST_COVERS_PREFIX}file-$index.bin"
+                    },
+                    sizeBytes = 100L,
+                    sha256 = "0".repeat(64),
+                )
+            },
+        )
+    }
+
+    private fun createStagedRestore(
+        manifest: BackupManifest = createBackupManifest(),
+        directory: File = tmpFolder.newFolder(),
+    ): StagedRestore {
+        return StagedRestore(
+            id = "staged-restore-id",
+            directory = directory,
+            manifest = manifest,
+        )
+    }
+
+    private fun createFakeBackupRepository(
+        exportManifest: BackupManifest = createBackupManifest(),
+        stagedRestoreToReturn: StagedRestore = createStagedRestore(exportManifest),
+        exportError: Throwable? = null,
+        validateError: Throwable? = null,
+        registerError: Throwable? = null,
+        exportDelayMs: Long = 0,
+    ): FakeBackupRepository {
+        return FakeBackupRepository(
+            exportManifest = exportManifest,
+            stagedRestoreToReturn = stagedRestoreToReturn,
+            exportError = exportError,
+            validateError = validateError,
+            registerError = registerError,
+            exportDelayMs = exportDelayMs,
+        )
+    }
+
+    private class FakeBackupRepository(
+        private val exportManifest: BackupManifest,
+        private val stagedRestoreToReturn: StagedRestore,
+        private val exportError: Throwable? = null,
+        private val validateError: Throwable? = null,
+        private val registerError: Throwable? = null,
+        private val exportDelayMs: Long = 0,
+    ) : BackupRepository {
+        var exportCalls = 0
+        var validateCalls = 0
+        var registerCalls = 0
+        var lastRegisteredRestoreId: String? = null
+
+        override suspend fun exportTo(uri: Uri): BackupManifest {
+            exportCalls++
+            if (exportDelayMs > 0) {
+                delay(exportDelayMs)
+            }
+            if (exportError != null) throw exportError
+            return exportManifest
+        }
+
+        override suspend fun stageRestoreFrom(uri: Uri): StagedRestore {
+            validateCalls++
+            if (validateError != null) throw validateError
+            return stagedRestoreToReturn
+        }
+
+        override suspend fun registerPendingRestore(stagedRestore: StagedRestore) {
+            registerCalls++
+            lastRegisteredRestoreId = stagedRestore.id
+            if (registerError != null) throw registerError
+        }
     }
 
     private fun createFeedbackPackage(fileName: String): FeedbackPackage {

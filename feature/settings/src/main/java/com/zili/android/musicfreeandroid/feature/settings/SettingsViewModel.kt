@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.zili.android.musicfreeandroid.core.model.AlbumMusicClickAction
 import com.zili.android.musicfreeandroid.core.model.AudioInterruptionAction
 import com.zili.android.musicfreeandroid.core.model.DesktopLyricAlignment
@@ -12,6 +13,8 @@ import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
 import com.zili.android.musicfreeandroid.core.model.SortMode
 import com.zili.android.musicfreeandroid.core.storage.DocumentTreeDirectory
+import com.zili.android.musicfreeandroid.data.backup.BackupRepository
+import com.zili.android.musicfreeandroid.data.backup.StagedRestore
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.logging.FeedbackLogExporterContract
 import com.zili.android.musicfreeandroid.logging.FeedbackPackage
@@ -98,6 +101,16 @@ data class FeedbackExportUiState(
 data class ErrorLogUiState(
     val visible: Boolean = false,
     val content: String = "",
+)
+
+data class BackupRestoreUiState(
+    val inProgress: Boolean = false,
+    val message: String? = null,
+    val errorMessage: String? = null,
+    val restoreConfirmationVisible: Boolean = false,
+    val restoreSourcePackageName: String? = null,
+    val restoreAppVersionName: String? = null,
+    val restoreFileCount: Int = 0,
 )
 
 private data class CommonBasicSettingsState(
@@ -205,6 +218,7 @@ class SettingsViewModel @Inject constructor(
     private val feedbackLogExporter: FeedbackLogExporterContract,
     private val pluginManager: PluginManager,
     private val cacheCleaner: SettingsCacheCleaner,
+    private val backupRepository: BackupRepository,
 ) : ViewModel() {
 
     val storageAccessState: StateFlow<StorageAccessState> = appPreferences.storageDirectoryUri
@@ -213,6 +227,7 @@ class SettingsViewModel @Inject constructor(
 
     private val feedbackActionLock = Mutex()
     private val cacheActionLock = Mutex()
+    private val backupActionLock = Mutex()
 
     private val _feedbackExportUiState = MutableStateFlow(FeedbackExportUiState())
     val feedbackExportUiState: StateFlow<FeedbackExportUiState> = _feedbackExportUiState.asStateFlow()
@@ -221,6 +236,10 @@ class SettingsViewModel @Inject constructor(
     val errorLogUiState: StateFlow<ErrorLogUiState> = _errorLogUiState.asStateFlow()
 
     private val _cacheActionState = MutableStateFlow(CacheActionState())
+    private val _backupRestoreUiState = MutableStateFlow(BackupRestoreUiState())
+    val backupRestoreUiState: StateFlow<BackupRestoreUiState> = _backupRestoreUiState.asStateFlow()
+
+    private var stagedRestore: StagedRestore? = null
 
     fun setStorageDirectory(treeUri: String) {
         viewModelScope.launch {
@@ -866,6 +885,159 @@ class SettingsViewModel @Inject constructor(
 
     fun clearFeedbackError() {
         _feedbackExportUiState.update { it.copy(errorMessage = null) }
+    }
+
+    fun createBackup(uri: Uri) {
+        launchBackupAction {
+            _backupRestoreUiState.update {
+                it.copy(inProgress = true, message = "正在创建备份", errorMessage = null)
+            }
+            try {
+                backupRepository.exportTo(uri)
+                _backupRestoreUiState.update {
+                    it.copy(
+                        inProgress = false,
+                        message = "备份已创建",
+                        errorMessage = null,
+                    )
+                }
+            } catch (error: CancellationException) {
+                _backupRestoreUiState.update { BackupRestoreUiState() }
+                throw error
+            } catch (error: Throwable) {
+                MfLog.error(
+                    category = LogCategory.SETTINGS,
+                    event = "backup_export_failed",
+                    throwable = error,
+                    fields = mapOf("uri" to uri.toString()),
+                )
+                _backupRestoreUiState.update {
+                    it.copy(
+                        inProgress = false,
+                        message = null,
+                        errorMessage = error.localizedMessage ?: "创建备份失败",
+                    )
+                }
+            }
+        }
+    }
+
+    fun validateRestore(uri: Uri) {
+        launchBackupAction {
+            _backupRestoreUiState.update {
+                it.copy(
+                    inProgress = true,
+                    message = "正在校验备份",
+                    errorMessage = null,
+                    restoreConfirmationVisible = false,
+                )
+            }
+            try {
+                val staged = backupRepository.stageRestoreFrom(uri)
+                stagedRestore = staged
+                _backupRestoreUiState.update {
+                    it.copy(
+                        inProgress = false,
+                        message = null,
+                        errorMessage = null,
+                        restoreConfirmationVisible = true,
+                        restoreSourcePackageName = staged.manifest.sourcePackageName,
+                        restoreAppVersionName = staged.manifest.appVersionName,
+                        restoreFileCount = staged.manifest.files.size,
+                    )
+                }
+            } catch (error: CancellationException) {
+                stagedRestore = null
+                _backupRestoreUiState.update { BackupRestoreUiState() }
+                throw error
+            } catch (error: Throwable) {
+                MfLog.error(
+                    category = LogCategory.SETTINGS,
+                    event = "backup_restore_validate_failed",
+                    throwable = error,
+                    fields = mapOf("uri" to uri.toString()),
+                )
+                stagedRestore = null
+                _backupRestoreUiState.update {
+                    it.copy(
+                        inProgress = false,
+                        message = null,
+                        errorMessage = error.localizedMessage ?: "备份校验失败",
+                        restoreConfirmationVisible = false,
+                        restoreSourcePackageName = null,
+                        restoreAppVersionName = null,
+                        restoreFileCount = 0,
+                    )
+                }
+            }
+        }
+    }
+
+    fun confirmRestore() {
+        val staged = stagedRestore ?: return
+        launchBackupAction {
+            _backupRestoreUiState.update {
+                it.copy(inProgress = true, message = null, errorMessage = null)
+            }
+            try {
+                backupRepository.registerPendingRestore(staged)
+                stagedRestore = null
+                _backupRestoreUiState.update {
+                    it.copy(
+                        inProgress = false,
+                        message = "已登记恢复，重启应用后生效",
+                        errorMessage = null,
+                        restoreConfirmationVisible = false,
+                    )
+                }
+            } catch (error: CancellationException) {
+                _backupRestoreUiState.update { BackupRestoreUiState() }
+                throw error
+            } catch (error: Throwable) {
+                MfLog.error(
+                    category = LogCategory.SETTINGS,
+                    event = "backup_restore_register_failed",
+                    throwable = error,
+                    fields = mapOf("restoreId" to staged.id),
+                )
+                _backupRestoreUiState.update {
+                    it.copy(
+                        inProgress = false,
+                        message = null,
+                        errorMessage = error.localizedMessage ?: "登记恢复失败",
+                    )
+                }
+            }
+        }
+    }
+
+    fun dismissRestoreConfirmation() {
+        stagedRestore = null
+        _backupRestoreUiState.update {
+            it.copy(
+                restoreConfirmationVisible = false,
+                restoreSourcePackageName = null,
+                restoreAppVersionName = null,
+                restoreFileCount = 0,
+            )
+        }
+    }
+
+    fun clearBackupRestoreMessage() {
+        _backupRestoreUiState.update {
+            it.copy(message = null, errorMessage = null)
+        }
+    }
+
+    private fun launchBackupAction(action: suspend () -> Unit) {
+        viewModelScope.launch {
+            if (!backupActionLock.tryLock()) return@launch
+            try {
+                action()
+            } finally {
+                backupActionLock.unlock()
+            }
+        }
     }
 
     private companion object {

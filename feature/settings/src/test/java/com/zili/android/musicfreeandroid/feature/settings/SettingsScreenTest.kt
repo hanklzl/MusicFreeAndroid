@@ -1,14 +1,22 @@
 package com.zili.android.musicfreeandroid.feature.settings
 
+import android.net.Uri
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.data.backup.BackupArchivePaths
+import com.zili.android.musicfreeandroid.data.backup.BackupManifest
+import com.zili.android.musicfreeandroid.data.backup.BackupManifestFile
+import com.zili.android.musicfreeandroid.data.backup.BackupRepository
+import com.zili.android.musicfreeandroid.data.backup.StagedRestore
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.logging.FeedbackLogExporterContract
 import com.zili.android.musicfreeandroid.logging.FeedbackPackage
@@ -54,12 +62,46 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag(FidelityAnchors.Settings.BasicRoot).assertIsDisplayed()
     }
 
-    private fun setContent(type: SettingsType) {
+    @Test
+    fun `backup type renders backup restore actions`() {
+        setContent(type = SettingsType.Backup)
+
+        composeRule.onNodeWithTag(FidelityAnchors.Settings.BackupRoot).assertIsDisplayed()
+        composeRule.onNodeWithTag(FidelityAnchors.Settings.BackupEntry).assertIsDisplayed()
+        composeRule.onNodeWithTag(FidelityAnchors.Settings.BackupCreate).assertIsDisplayed()
+        composeRule.onNodeWithTag(FidelityAnchors.Settings.BackupRestore).assertIsDisplayed()
+        composeRule.onNodeWithText("创建备份/迁移包").assertIsDisplayed()
+        composeRule.onNodeWithText("从备份恢复").assertIsDisplayed()
+    }
+
+    @Test
+    fun `backup restore confirmation can register pending restore`() {
+        val viewModel = setContent(type = SettingsType.Backup)
+
+        composeRule.runOnIdle {
+            viewModel.validateRestore(Uri.parse("content://com.zili.android.musicfreeandroid/restore"))
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("确认恢复备份").assertIsDisplayed()
+        composeRule.onNodeWithText("确认恢复").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("确认恢复备份").assertDoesNotExist()
+        composeRule.onNodeWithTag(FidelityAnchors.Settings.BackupStatus).assertIsDisplayed()
+        composeRule.onNodeWithText("已登记恢复，重启应用后生效").assertIsDisplayed()
+    }
+
+    private fun setContent(
+        type: SettingsType,
+        backupRepository: BackupRepository = FakeBackupRepository(),
+    ): SettingsViewModel {
         val viewModel = SettingsViewModel(
             appPreferences = createAppPreferences(),
             feedbackLogExporter = FakeFeedbackLogExporter(),
             pluginManager = mock<PluginManager>(),
             cacheCleaner = mock<SettingsCacheCleaner>(),
+            backupRepository = backupRepository,
         )
         composeRule.setContent {
             MusicFreeTheme {
@@ -73,6 +115,7 @@ class SettingsScreenTest {
                 )
             }
         }
+        return viewModel
     }
 
     private fun createAppPreferences(): AppPreferences {
@@ -96,6 +139,36 @@ class SettingsScreenTest {
         }
 
         override suspend fun pruneLogs() {
+            // no-op
+        }
+    }
+
+    private inner class FakeBackupRepository : BackupRepository {
+        private var restoreIndex = 0
+        private val manifest = BackupManifest(
+            schemaVersion = BackupManifest.CURRENT_SCHEMA_VERSION,
+            sourcePackageName = "com.zili.android.musicfreeandroid",
+            createdAt = "2026-05-17T00:00:00Z",
+            appVersionName = "1.0.2",
+            appVersionCode = 10002,
+            databaseVersion = 11,
+            files = listOf(
+                BackupManifestFile(
+                    path = BackupArchivePaths.DB,
+                    sizeBytes = 2,
+                    sha256 = "0".repeat(64),
+                ),
+            ),
+        )
+
+        override suspend fun exportTo(uri: android.net.Uri): BackupManifest = manifest
+
+        override suspend fun stageRestoreFrom(uri: android.net.Uri): StagedRestore {
+            val id = "restore-${restoreIndex++}"
+            return StagedRestore(id, tmpFolder.newFolder(id), manifest)
+        }
+
+        override suspend fun registerPendingRestore(stagedRestore: StagedRestore) {
             // no-op
         }
     }

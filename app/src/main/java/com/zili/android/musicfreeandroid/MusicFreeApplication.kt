@@ -1,9 +1,11 @@
 package com.zili.android.musicfreeandroid
 
 import android.app.Application
+import android.content.Context
 import com.zili.android.musicfreeandroid.bootstrap.DefaultPluginsBootstrapper
 import com.zili.android.musicfreeandroid.bootstrap.PlaybackStartupCoordinator
 import com.zili.android.musicfreeandroid.bootstrap.PluginAutoUpdateCoordinator
+import com.zili.android.musicfreeandroid.data.backup.StartupBackupRestore
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.logging.LoggingConfig
 import com.zili.android.musicfreeandroid.logging.LoggingInitializer
@@ -28,6 +30,11 @@ class MusicFreeApplication : Application() {
     @Inject lateinit var appPreferences: AppPreferences
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(base)
+        StartupBackupRestore.applyIfPending(this)
+    }
 
     override fun onCreate() {
         super.onCreate()
