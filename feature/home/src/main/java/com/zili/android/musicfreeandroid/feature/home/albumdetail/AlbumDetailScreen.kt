@@ -38,6 +38,8 @@ import com.zili.android.musicfreeandroid.core.ui.CoverImage
 import com.zili.android.musicfreeandroid.core.ui.DownloadQualityDialog
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.core.ui.MusicItemOptionsSheet
+import com.zili.android.musicfreeandroid.core.ui.MusicSheetPageHeader
+import com.zili.android.musicfreeandroid.core.ui.PlayAllBar
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -70,15 +72,10 @@ fun AlbumDetailScreen(
             }
         },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
         when {
             uiState.loading && uiState.musicList.isEmpty() -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().padding(innerPadding),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
@@ -87,7 +84,9 @@ fun AlbumDetailScreen(
 
             !uiState.errorMessage.isNullOrBlank() && uiState.musicList.isEmpty() -> {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
@@ -103,7 +102,27 @@ fun AlbumDetailScreen(
             }
 
             else -> {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+                    item(key = "header") {
+                        val album = uiState.albumItem
+                        val albumCover = album?.artwork ?: album?.raw?.get("coverImg")?.toString()
+                        MusicSheetPageHeader(
+                            cover = albumCover,
+                            title = album?.title ?: uiState.title,
+                            worksNum = album?.worksNum,
+                            musicListSize = uiState.musicList.size,
+                            description = album?.description,
+                            actions = {
+                                PlayAllBar(
+                                    onPlayAll = { viewModel.playAll() },
+                                    onAddToPlaylist = {},
+                                    starred = isStarred,
+                                    onToggleStarred = { viewModel.toggleAlbumStarred() },
+                                    showAddToPlaylist = false,
+                                )
+                            },
+                        )
+                    }
                     itemsIndexed(
                         items = uiState.musicList,
                         key = { _, item -> "${item.platform}:${item.id}" },
@@ -157,7 +176,7 @@ fun AlbumDetailScreen(
                     }
 
                     if (!uiState.isEnd) {
-                        item {
+                        item(key = "footer") {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -176,7 +195,6 @@ fun AlbumDetailScreen(
                     }
                 }
             }
-        }
         }
     }
 

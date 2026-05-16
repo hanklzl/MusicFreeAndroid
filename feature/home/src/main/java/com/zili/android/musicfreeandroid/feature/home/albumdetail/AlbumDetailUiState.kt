@@ -1,9 +1,11 @@
 package com.zili.android.musicfreeandroid.feature.home.albumdetail
 
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
 
 data class AlbumDetailUiState(
     val title: String = "专辑详情",
+    val albumItem: AlbumItemBase? = null,
     val loading: Boolean = true,
     val musicList: List<MusicItem> = emptyList(),
     val isEnd: Boolean = true,

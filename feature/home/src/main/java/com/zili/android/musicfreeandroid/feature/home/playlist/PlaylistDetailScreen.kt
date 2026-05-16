@@ -89,44 +89,46 @@ fun PlaylistDetailScreen(
             ) { Text("加载中…") }
             return@MusicFreeScreenScaffold
         }
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            PlaylistDetailHeader(
-                playlist = playlist,
-                musicCount = items.size,
-                onPlayAll = {
-                    viewModel.playAll()
-                },
-                onSearch = { onNavigateToSearchMusicList(playlist.id) },
-            )
+
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+            item(key = "header") {
+                PlaylistDetailHeader(
+                    playlist = playlist,
+                    musicCount = items.size,
+                    onPlayAll = {
+                        viewModel.playAll()
+                    },
+                    onSearch = { onNavigateToSearchMusicList(playlist.id) },
+                )
+            }
+
             if (items.isEmpty()) {
-                EmptyState(onSearchAdd = { onNavigateToSearchMusicList(playlist.id) })
+                item(key = "empty") {
+                    EmptyState(onSearchAdd = { onNavigateToSearchMusicList(playlist.id) })
+                }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    itemsIndexed(items = items, key = { _, item -> "${item.platform}::${item.id}" }) { index, item ->
-                        val isFavorite by viewModel.isFavoriteFlow(item)
-                            .collectAsStateWithLifecycle(initialValue = false)
-                        MusicItemRow(
-                            item = item,
-                            isFavorite = isFavorite,
-                            actions = setOf(
-                                MusicItemAction.PlayNext,
-                                MusicItemAction.ToggleFavorite,
-                                MusicItemAction.AddToPlaylist,
-                                MusicItemAction.RemoveFromPlaylist,
-                            ),
-                            onClick = {
-                                viewModel.playAll(startIndex = index)
-                            },
-                            onAction = { action ->
-                                when (action) {
-                                    MusicItemAction.ToggleFavorite -> viewModel.toggleFavorite(item)
-                                    MusicItemAction.RemoveFromPlaylist -> viewModel.removeFromPlaylist(item)
-                                    MusicItemAction.PlayNext -> { /* TODO: PlayerController.playNext when API exists */ }
-                                    MusicItemAction.AddToPlaylist -> viewModel.showAddToPlaylistSheet(item)
-                                }
-                            },
-                        )
-                    }
+                itemsIndexed(items = items, key = { _, item -> "${item.platform}::${item.id}" }) { index, item ->
+                    val isFavorite by viewModel.isFavoriteFlow(item)
+                        .collectAsStateWithLifecycle(initialValue = false)
+                    MusicItemRow(
+                        item = item,
+                        isFavorite = isFavorite,
+                        actions = setOf(
+                            MusicItemAction.PlayNext,
+                            MusicItemAction.ToggleFavorite,
+                            MusicItemAction.AddToPlaylist,
+                            MusicItemAction.RemoveFromPlaylist,
+                        ),
+                        onClick = { viewModel.playAll(startIndex = index) },
+                        onAction = { action ->
+                            when (action) {
+                                MusicItemAction.ToggleFavorite -> viewModel.toggleFavorite(item)
+                                MusicItemAction.RemoveFromPlaylist -> viewModel.removeFromPlaylist(item)
+                                MusicItemAction.PlayNext -> { /* TODO: PlayerController.playNext when API exists */ }
+                                MusicItemAction.AddToPlaylist -> viewModel.showAddToPlaylistSheet(item)
+                            }
+                        },
+                    )
                 }
             }
         }

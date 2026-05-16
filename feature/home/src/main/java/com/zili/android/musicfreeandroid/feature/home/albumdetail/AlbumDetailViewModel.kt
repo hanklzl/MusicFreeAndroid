@@ -104,9 +104,11 @@ class AlbumDetailViewModel @Inject constructor(
                     return@onSuccess
                 }
                 page += 1
-                currentAlbum = detail.albumItem ?: album
+                val resolvedAlbum = detail.albumItem ?: album
+                currentAlbum = resolvedAlbum
                 _uiState.value = _uiState.value.copy(
-                    title = detail.albumItem?.title ?: _uiState.value.title,
+                    title = resolvedAlbum?.title ?: _uiState.value.title,
+                    albumItem = resolvedAlbum,
                     musicList = _uiState.value.musicList + detail.musicList,
                     isEnd = detail.isEnd,
                     loadingMore = false,
@@ -155,7 +157,6 @@ class AlbumDetailViewModel @Inject constructor(
         }
 
         val seed = initialAlbumSeed
-        currentAlbum = seed
         runCatching {
             plugin.getAlbumInfo(seed, page = 1)
         }.onSuccess { detail ->
@@ -167,9 +168,11 @@ class AlbumDetailViewModel @Inject constructor(
                 return@onSuccess
             }
             page = 1
-            currentAlbum = detail.albumItem ?: seed
+            val resolvedAlbum = detail.albumItem ?: seed
+            currentAlbum = resolvedAlbum
             _uiState.value = AlbumDetailUiState(
-                title = detail.albumItem?.title ?: route.title ?: "专辑详情",
+                title = resolvedAlbum?.title ?: route.title ?: "专辑详情",
+                albumItem = resolvedAlbum,
                 loading = false,
                 musicList = detail.musicList,
                 isEnd = detail.isEnd,
@@ -180,6 +183,16 @@ class AlbumDetailViewModel @Inject constructor(
                 loading = false,
                 errorMessage = e.message ?: "加载专辑失败",
             )
+        }
+    }
+
+    fun playAll() {
+        val list = _uiState.value.musicList
+        if (list.isEmpty()) {
+            return
+        }
+        viewModelScope.launch {
+            playAt(0)
         }
     }
 

@@ -34,6 +34,7 @@ fun PlayAllBar(
     starred: Boolean? = null,
     onToggleStarred: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    showAddToPlaylist: Boolean = true,
 ) {
     val colors = MusicFreeTheme.colors
     Row(
@@ -79,16 +80,18 @@ fun PlayAllBar(
                 )
             }
         }
-        IconButton(
-            onClick = onAddToPlaylist,
-            modifier = Modifier.padding(start = rpx(36)),
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_folder_plus),
-                contentDescription = "添加到歌单",
-                tint = colors.text,
-                modifier = Modifier.size(IconSizes.normal),
-            )
+        if (showAddToPlaylist) {
+            IconButton(
+                onClick = onAddToPlaylist,
+                modifier = Modifier.padding(start = rpx(36)),
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_folder_plus),
+                    contentDescription = "添加到歌单",
+                    tint = colors.text,
+                    modifier = Modifier.size(IconSizes.normal),
+                )
+            }
         }
     }
 }

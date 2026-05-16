@@ -2,16 +2,23 @@ package com.zili.android.musicfreeandroid.feature.home.albumdetail
 
 import androidx.lifecycle.SavedStateHandle
 import com.zili.android.musicfreeandroid.core.media.MediaSourceResolver
+import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.model.StarredKind
 import com.zili.android.musicfreeandroid.core.model.StarredSheet
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.StarredSheetRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.player.controller.PlayerController
+import com.zili.android.musicfreeandroid.plugin.api.AlbumInfoResult
+import com.zili.android.musicfreeandroid.plugin.api.AlbumItemBase
+import com.zili.android.musicfreeandroid.plugin.api.PluginInfo
+import com.zili.android.musicfreeandroid.plugin.manager.LoadedPlugin
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -25,8 +32,6 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AlbumDetailViewModelTest {
@@ -112,4 +117,68 @@ class AlbumDetailViewModelTest {
 
         job.cancel()
     }
+
+    @Test
+    fun `loadInitial exposes resolved album item for page header`() = runTest(testDispatcher) {
+        val plugin = albumPlugin(
+            album = AlbumItemBase(
+                id = "alb-1",
+                platform = "qq",
+                title = "Resolved Album",
+                date = "2026",
+                artist = "Resolved Artist",
+                description = "Album intro",
+                artwork = "https://example.com/album.jpg",
+                worksNum = 12,
+                raw = mapOf("coverImg" to "https://example.com/cover.jpg"),
+            ),
+            musicList = listOf(musicItem("song-1")),
+        )
+        whenever(pluginManager.getPlugin("qq")).thenReturn(plugin)
+
+        val vm = newViewModel(MutableStateFlow(false))
+        advanceUntilIdle()
+
+        assertEquals(false, vm.uiState.value.loading)
+        assertEquals("Resolved Album", vm.uiState.value.title)
+        assertEquals("Resolved Album", vm.uiState.value.albumItem?.title)
+        assertEquals("Album intro", vm.uiState.value.albumItem?.description)
+        assertEquals(12, vm.uiState.value.albumItem?.worksNum)
+        assertEquals(listOf(musicItem("song-1")), vm.uiState.value.musicList)
+    }
+
+    private fun albumPlugin(
+        album: AlbumItemBase,
+        musicList: List<MusicItem>,
+    ): LoadedPlugin {
+        val plugin = mock<LoadedPlugin>()
+        whenever(plugin.info).thenReturn(
+            PluginInfo(
+                platform = "qq",
+                version = "1.0.0",
+                author = null,
+                description = null,
+                srcUrl = null,
+                supportedSearchType = listOf("music"),
+                supportedMethods = setOf("getAlbumInfo"),
+            ),
+        )
+        runBlocking {
+            whenever(plugin.getAlbumInfo(org.mockito.kotlin.any(), org.mockito.kotlin.eq(1)))
+                .thenReturn(AlbumInfoResult(isEnd = true, albumItem = album, musicList = musicList))
+        }
+        return plugin
+    }
+
+    private fun musicItem(id: String): MusicItem = MusicItem(
+        id = id,
+        platform = "qq",
+        title = "Song $id",
+        artist = "Artist",
+        album = "Album",
+        duration = 180_000,
+        url = "https://example.com/$id.mp3",
+        artwork = null,
+        qualities = null,
+    )
 }
