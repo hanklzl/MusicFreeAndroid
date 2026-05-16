@@ -94,6 +94,9 @@ data class SettingsRoute(
 )
 
 @Serializable
+data object SetCustomThemeRoute
+
+@Serializable
 data object PermissionsRoute
 
 @Serializable

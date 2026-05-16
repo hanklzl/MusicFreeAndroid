@@ -37,9 +37,12 @@ import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.theme.runtime.SelectedTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
 import com.zili.android.musicfreeandroid.core.ui.MusicFreeScreenScaffold
 import com.zili.android.musicfreeandroid.feature.settings.components.SettingSectionCard
+import com.zili.android.musicfreeandroid.feature.settings.themesetting.ThemeSettingsContent
+import com.zili.android.musicfreeandroid.feature.settings.themesetting.ThemeSettingsViewModel
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
 
@@ -50,6 +53,7 @@ fun SettingsScreen(
     onNavigateToPermissions: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
     onNavigateToLocalFileSelector: () -> Unit = onNavigateToFileSelector,
+    onNavigateToSetCustomTheme: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -175,15 +179,20 @@ fun SettingsScreen(
                 modifier = Modifier.padding(innerPadding),
             )
 
-            SettingsType.Theme -> SettingsTypeEntryContent(
-                rootTag = FidelityAnchors.Settings.ThemeRoot,
-                title = "主题设置",
-                description = "主题选项将显示在这里。",
-                entryTag = FidelityAnchors.Settings.ThemeEntry,
-                actionText = "待接入",
-                onClick = null,
-                modifier = Modifier.padding(innerPadding),
-            )
+            SettingsType.Theme -> {
+                val themeVm: ThemeSettingsViewModel = hiltViewModel()
+                val themeState by themeVm.state.collectAsStateWithLifecycle()
+                val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+                ThemeSettingsContent(
+                    state = themeState,
+                    onFollowSystemToggle = { themeVm.onFollowSystemToggle(it, systemDark) },
+                    onSelectLight = { themeVm.onSelectTheme(SelectedTheme.P_LIGHT) },
+                    onSelectDark = { themeVm.onSelectTheme(SelectedTheme.P_DARK) },
+                    onSelectCustom = { themeVm.onSelectTheme(SelectedTheme.CUSTOM) },
+                    onNavigateToSetCustomTheme = onNavigateToSetCustomTheme,
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
 
             SettingsType.Backup -> SettingsTypeEntryContent(
                 rootTag = FidelityAnchors.Settings.BackupRoot,

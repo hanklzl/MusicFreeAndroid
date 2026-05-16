@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -54,6 +55,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
+    // Serialization
+    implementation(libs.kotlinx.serialization.json)
+
     // Unit tests
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -63,6 +67,10 @@ dependencies {
     testImplementation(libs.androidx.room.testing)
     // Provide real org.json for JVM unit tests (Android stubs throw by default)
     testImplementation("org.json:json:20231013")
+    // Compose Color is part of :core's public API but :core uses
+    // `implementation` so tests need it explicitly on the classpath.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui)
 
     // Instrumented tests
     androidTestImplementation(libs.androidx.test.runner)

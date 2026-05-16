@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.reorderable)
+    implementation(libs.androidx.palette.ktx)
 
     testImplementation(libs.junit)
     testImplementation(libs.androidx.datastore.preferences)

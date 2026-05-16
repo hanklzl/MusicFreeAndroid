@@ -11,6 +11,7 @@ object FidelityAnchors {
         const val PluginListRoot = "screen.pluginList.root"
         const val PermissionsRoot = "screen.permissions.root"
         const val LocalRoot = "screen.local.root"
+        const val SetCustomThemeRoot = "screen.setCustomTheme.root"
     }
 
     object Home {
@@ -113,11 +114,26 @@ object FidelityAnchors {
         const val BasicUseCellularDownload = "settings.basic.useCellularDownload"
         const val BasicLyricAutoSearch = "settings.basic.lyricAutoSearch"
         const val ThemeRoot = "settings.theme.root"
+        const val ThemeSectionMode = "settings.theme.section.mode"
+        const val ThemeSectionTheme = "settings.theme.section.theme"
+        const val ThemeFollowSystemSwitch = "settings.theme.followSystemSwitch"
+        const val ThemeCardLight = "settings.theme.card.light"
+        const val ThemeCardDark = "settings.theme.card.dark"
+        const val ThemeCardCustom = "settings.theme.card.custom"
         const val BackupRoot = "settings.backup.root"
         const val AboutRoot = "settings.about.root"
         const val ThemeEntry = "settings.theme.entry"
         const val BackupEntry = "settings.backup.entry"
         const val AboutEntry = "settings.about.entry"
+    }
+
+    object SetCustomTheme {
+        const val Image = "setCustomTheme.image"
+        const val SliderBlur = "setCustomTheme.slider.blur"
+        const val SliderOpacity = "setCustomTheme.slider.opacity"
+        const val ColorItemPrefix = "setCustomTheme.colorItem."
+        const val ColorPickerSheet = "setCustomTheme.colorPicker.sheet"
+        const val ColorPickerConfirm = "setCustomTheme.colorPicker.confirm"
     }
 }
 

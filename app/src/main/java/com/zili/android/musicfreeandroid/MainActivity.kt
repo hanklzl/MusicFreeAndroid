@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -37,8 +39,12 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.zili.android.musicfreeandroid.core.navigation.PlayerRoute
 import com.zili.android.musicfreeandroid.core.permissions.requiredNotificationPermission
+import com.zili.android.musicfreeandroid.core.theme.DarkMusicFreeColors
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
+import com.zili.android.musicfreeandroid.core.theme.runtime.SelectedTheme
+import com.zili.android.musicfreeandroid.core.theme.runtime.ThemeRepository
+import com.zili.android.musicfreeandroid.core.theme.runtime.ThemeUiState
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
@@ -72,6 +78,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var appPreferences: AppPreferences
 
+    @Inject
+    lateinit var themeRepository: ThemeRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         MfLog.trace(LogCategory.APP, "main_activity_create_start")
@@ -95,7 +104,25 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         MfLog.trace(LogCategory.APP, "edge_to_edge_enabled")
         setContent {
-            MusicFreeTheme {
+            val systemDark = isSystemInDarkTheme()
+            val themeState by themeRepository.state.collectAsStateWithLifecycle(
+                initialValue = ThemeUiState(
+                    selected = SelectedTheme.P_DARK,
+                    effectiveColors = DarkMusicFreeColors,
+                    background = null,
+                    followSystem = false,
+                    isLoading = true,
+                ),
+            )
+            LaunchedEffect(systemDark, themeState.followSystem) {
+                if (themeState.followSystem) {
+                    val target = if (systemDark) SelectedTheme.P_DARK else SelectedTheme.P_LIGHT
+                    if (themeState.selected != target) {
+                        themeRepository.selectTheme(target)
+                    }
+                }
+            }
+            MusicFreeTheme(themeState = themeState) {
                 UpdateDialogHost(
                     checker = updateChecker,
                     downloader = apkDownloader,
@@ -153,6 +180,7 @@ class MainActivity : ComponentActivity() {
                 val showMiniPlayer = destination != null && !isPlayerRoute
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                    ThemeBackgroundLayer(themeState.background)
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         contentWindowInsets = WindowInsets.safeDrawing.only(

@@ -68,6 +68,7 @@ class SettingsScreenTest {
                     onBack = {},
                     onNavigateToPermissions = {},
                     onNavigateToFileSelector = {},
+                    onNavigateToSetCustomTheme = {},
                     viewModel = viewModel,
                 )
             }

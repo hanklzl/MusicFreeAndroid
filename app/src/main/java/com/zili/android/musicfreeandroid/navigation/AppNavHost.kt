@@ -23,6 +23,7 @@ import com.zili.android.musicfreeandroid.core.navigation.PluginSubscriptionRoute
 import com.zili.android.musicfreeandroid.core.navigation.RecommendSheetsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchRoute
 import com.zili.android.musicfreeandroid.core.navigation.SearchMusicListRoute
+import com.zili.android.musicfreeandroid.core.navigation.SetCustomThemeRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsRoute
 import com.zili.android.musicfreeandroid.core.navigation.SettingsType
 import com.zili.android.musicfreeandroid.core.navigation.TopListDetailRoute
@@ -55,6 +56,7 @@ import com.zili.android.musicfreeandroid.feature.settings.pluginlist.navigation.
 import com.zili.android.musicfreeandroid.feature.settings.pluginsort.navigation.pluginSortScreen
 import com.zili.android.musicfreeandroid.feature.listenstats.navigation.listenStatsScreen
 import com.zili.android.musicfreeandroid.feature.settings.pluginsub.navigation.pluginSubscriptionScreen
+import com.zili.android.musicfreeandroid.feature.settings.setcustomtheme.navigation.setCustomThemeScreen
 
 @Composable
 fun AppNavHost(
@@ -209,6 +211,7 @@ fun AppNavHost(
             onBack = { navController.popBackStack() },
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
             onNavigateToFileSelector = { navController.navigate(FileSelectorRoute) },
+            onNavigateToSetCustomTheme = { navController.navigate(SetCustomThemeRoute) },
         )
         fileSelectorLiteScreen(
             onBack = { navController.popBackStack() },
@@ -305,5 +308,8 @@ fun AppNavHost(
             onBack = { navController.popBackStack() },
         )
         listenStatsScreen(navController)
+        setCustomThemeScreen(
+            onBack = { navController.popBackStack() },
+        )
     }
 }

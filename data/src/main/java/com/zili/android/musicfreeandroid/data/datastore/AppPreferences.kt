@@ -20,6 +20,7 @@ import com.zili.android.musicfreeandroid.core.model.MusicDetailDefaultPage
 import com.zili.android.musicfreeandroid.core.model.QualityFallbackOrder
 import com.zili.android.musicfreeandroid.core.model.SearchResultClickAction
 import com.zili.android.musicfreeandroid.core.model.SortMode
+import com.zili.android.musicfreeandroid.core.theme.runtime.SelectedTheme
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.LogFields
 import com.zili.android.musicfreeandroid.logging.MfLog
@@ -560,6 +561,80 @@ class AppPreferences @Inject constructor(
         }
     }
 
+    // ── Theme ──
+
+    val selectedTheme: Flow<SelectedTheme> = dataStore.data.map { prefs ->
+        SelectedTheme.fromStorageKey(prefs[KEY_SELECTED_THEME])
+    }
+
+    suspend fun setSelectedTheme(value: SelectedTheme) {
+        writeRuntimeSetting(KEY_SELECTED_THEME, value.storageKey) {
+            it[KEY_SELECTED_THEME] = value.storageKey
+        }
+    }
+
+    val customColorsJson: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[KEY_CUSTOM_COLORS_JSON]
+    }
+
+    suspend fun setCustomColorsJson(value: String?) {
+        writeRuntimeSetting(KEY_CUSTOM_COLORS_JSON, value) {
+            if (value.isNullOrBlank()) {
+                it.remove(KEY_CUSTOM_COLORS_JSON)
+            } else {
+                it[KEY_CUSTOM_COLORS_JSON] = value
+            }
+        }
+    }
+
+    val themeBackgroundUrl: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[KEY_THEME_BACKGROUND_URL]
+    }
+
+    suspend fun setThemeBackgroundUrl(value: String?) {
+        writeRuntimeSetting(KEY_THEME_BACKGROUND_URL, value) {
+            if (value.isNullOrBlank()) {
+                it.remove(KEY_THEME_BACKGROUND_URL)
+            } else {
+                it[KEY_THEME_BACKGROUND_URL] = value
+            }
+        }
+    }
+
+    val themeBackgroundBlur: Flow<Float> = dataStore.data.map { prefs ->
+        (prefs[KEY_THEME_BACKGROUND_BLUR] ?: DEFAULT_THEME_BACKGROUND_BLUR)
+            .coerceIn(MIN_THEME_BACKGROUND_BLUR, MAX_THEME_BACKGROUND_BLUR)
+    }
+
+    suspend fun setThemeBackgroundBlur(value: Float) {
+        val coerced = value.coerceIn(MIN_THEME_BACKGROUND_BLUR, MAX_THEME_BACKGROUND_BLUR)
+        writeRuntimeSetting(KEY_THEME_BACKGROUND_BLUR, coerced) {
+            it[KEY_THEME_BACKGROUND_BLUR] = coerced
+        }
+    }
+
+    val themeBackgroundOpacity: Flow<Float> = dataStore.data.map { prefs ->
+        (prefs[KEY_THEME_BACKGROUND_OPACITY] ?: DEFAULT_THEME_BACKGROUND_OPACITY)
+            .coerceIn(MIN_THEME_BACKGROUND_OPACITY, MAX_THEME_BACKGROUND_OPACITY)
+    }
+
+    suspend fun setThemeBackgroundOpacity(value: Float) {
+        val coerced = value.coerceIn(MIN_THEME_BACKGROUND_OPACITY, MAX_THEME_BACKGROUND_OPACITY)
+        writeRuntimeSetting(KEY_THEME_BACKGROUND_OPACITY, coerced) {
+            it[KEY_THEME_BACKGROUND_OPACITY] = coerced
+        }
+    }
+
+    val themeFollowSystem: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_THEME_FOLLOW_SYSTEM] ?: false
+    }
+
+    suspend fun setThemeFollowSystem(value: Boolean) {
+        writeRuntimeSetting(KEY_THEME_FOLLOW_SYSTEM, value) {
+            it[KEY_THEME_FOLLOW_SYSTEM] = value
+        }
+    }
+
     private suspend fun writeRuntimeSetting(
         key: Preferences.Key<*>,
         value: Any?,
@@ -663,6 +738,18 @@ class AppPreferences @Inject constructor(
         val KEY_DEBUG_ERROR_LOG_ENABLED = booleanPreferencesKey("debug_error_log_enabled")
         val KEY_DEBUG_TRACE_LOG_ENABLED = booleanPreferencesKey("debug_trace_log_enabled")
         val KEY_DEBUG_DEV_LOG_ENABLED = booleanPreferencesKey("debug_dev_log_enabled")
+        val KEY_SELECTED_THEME = stringPreferencesKey("selected_theme")
+        val KEY_CUSTOM_COLORS_JSON = stringPreferencesKey("custom_colors_json")
+        val KEY_THEME_BACKGROUND_URL = stringPreferencesKey("theme_background_url")
+        val KEY_THEME_BACKGROUND_BLUR = floatPreferencesKey("theme_background_blur")
+        val KEY_THEME_BACKGROUND_OPACITY = floatPreferencesKey("theme_background_opacity")
+        val KEY_THEME_FOLLOW_SYSTEM = booleanPreferencesKey("theme_follow_system")
+        const val DEFAULT_THEME_BACKGROUND_BLUR = 20f
+        const val MIN_THEME_BACKGROUND_BLUR = 0f
+        const val MAX_THEME_BACKGROUND_BLUR = 30f
+        const val DEFAULT_THEME_BACKGROUND_OPACITY = 0.7f
+        const val MIN_THEME_BACKGROUND_OPACITY = 0.3f
+        const val MAX_THEME_BACKGROUND_OPACITY = 1f
     }
 }
 

@@ -10,6 +10,7 @@ fun NavGraphBuilder.settingsScreen(
     onBack: () -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
+    onNavigateToSetCustomTheme: () -> Unit,
     onNavigateToLocalFileSelector: () -> Unit = onNavigateToFileSelector,
 ) {
     composable<SettingsRoute> { backStackEntry ->
@@ -20,6 +21,7 @@ fun NavGraphBuilder.settingsScreen(
             onNavigateToPermissions = onNavigateToPermissions,
             onNavigateToFileSelector = onNavigateToFileSelector,
             onNavigateToLocalFileSelector = onNavigateToLocalFileSelector,
+            onNavigateToSetCustomTheme = onNavigateToSetCustomTheme,
         )
     }
 }

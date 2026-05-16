@@ -162,6 +162,9 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
 
+    // Coil — used by ThemeBackgroundLayer to render the app-level custom theme background.
+    implementation(libs.coil.compose)
+
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
