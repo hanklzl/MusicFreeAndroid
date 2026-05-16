@@ -71,7 +71,7 @@ interface ListenStatsDao {
               WHERE playedAtMs >= :startMs AND playedAtMs < :endMs""")
     fun totalSecondsFlow(startMs: Long, endMs: Long): Flow<Long>
 
-    @Query("""SELECT COUNT(DISTINCT musicId || '||' || platform) FROM listen_event
+    @Query("""SELECT COUNT(DISTINCT mergeKey) FROM listen_event
               WHERE playedAtMs >= :startMs AND playedAtMs < :endMs""")
     fun distinctSongsFlow(startMs: Long, endMs: Long): Flow<Int>
 
@@ -80,18 +80,24 @@ interface ListenStatsDao {
               WHERE e.playedAtMs >= :startMs AND e.playedAtMs < :endMs""")
     fun distinctArtistsFlow(startMs: Long, endMs: Long): Flow<Int>
 
-    @Query("""SELECT musicId, platform, title, artistRaw, album, artwork,
-                     COUNT(*) AS playCount, SUM(playedSeconds) AS totalSec
+    @Query("""SELECT MAX(musicId) AS musicId,
+                     MAX(platform) AS platform,
+                     MAX(title) AS title,
+                     MAX(artistRaw) AS artistRaw,
+                     MAX(album) AS album,
+                     MAX(artwork) AS artwork,
+                     COUNT(*) AS playCount,
+                     SUM(playedSeconds) AS totalSec
               FROM listen_event
               WHERE playedAtMs >= :startMs AND playedAtMs < :endMs
-              GROUP BY musicId, platform
+              GROUP BY mergeKey
               ORDER BY playCount DESC, totalSec DESC
               LIMIT :limit""")
     fun topSongsFlow(startMs: Long, endMs: Long, limit: Int): Flow<List<TopSongRow>>
 
     @Query("""SELECT a.artistName,
                      COUNT(DISTINCT e.id) AS playCount,
-                     COUNT(DISTINCT e.musicId || '||' || e.platform) AS songCount,
+                     COUNT(DISTINCT e.mergeKey) AS songCount,
                      IFNULL(SUM(e.playedSeconds), 0) AS totalSec
               FROM listen_event_artist a JOIN listen_event e ON a.eventId = e.id
               WHERE e.playedAtMs >= :startMs AND e.playedAtMs < :endMs
@@ -100,21 +106,21 @@ interface ListenStatsDao {
               LIMIT :limit""")
     fun topArtistsFlow(startMs: Long, endMs: Long, limit: Int): Flow<List<TopArtistRow>>
 
-    @Query("""SELECT CAST((playedAtMs / 86400000) AS INTEGER) AS dayEpochDay,
+    @Query("""SELECT CAST(((playedAtMs + :zoneOffsetMs) / 86400000) AS INTEGER) AS dayEpochDay,
                      SUM(playedSeconds) AS seconds
               FROM listen_event
               WHERE playedAtMs >= :startMs AND playedAtMs < :endMs
               GROUP BY dayEpochDay
               ORDER BY dayEpochDay ASC""")
-    fun dailyBucketsFlow(startMs: Long, endMs: Long): Flow<List<DailyBucketRow>>
+    fun dailyBucketsFlow(startMs: Long, endMs: Long, zoneOffsetMs: Long): Flow<List<DailyBucketRow>>
 
-    @Query("""SELECT CAST(((playedAtMs / 1000 / 3600) % 24) AS INTEGER) AS hourOfDay,
+    @Query("""SELECT CAST((((playedAtMs + :zoneOffsetMs) / 1000 / 3600) % 24) AS INTEGER) AS hourOfDay,
                      SUM(playedSeconds) AS seconds
               FROM listen_event
               WHERE playedAtMs >= :startMs AND playedAtMs < :endMs
               GROUP BY hourOfDay
               ORDER BY hourOfDay ASC""")
-    fun hourBucketsFlow(startMs: Long, endMs: Long): Flow<List<HourBucketRow>>
+    fun hourBucketsFlow(startMs: Long, endMs: Long, zoneOffsetMs: Long): Flow<List<HourBucketRow>>
 
     @Query("""SELECT language, COUNT(*) AS count FROM listen_event
               WHERE playedAtMs >= :startMs AND playedAtMs < :endMs
@@ -126,41 +132,56 @@ interface ListenStatsDao {
               GROUP BY genre ORDER BY count DESC""")
     fun genreDistributionFlow(startMs: Long, endMs: Long): Flow<List<GenreBucketRow>>
 
-    @Query("""SELECT CAST((playedAtMs / 86400000) AS INTEGER) AS dayEpochDay,
+    @Query("""SELECT CAST(((playedAtMs + :zoneOffsetMs) / 86400000) AS INTEGER) AS dayEpochDay,
                      SUM(playedSeconds) AS seconds
               FROM listen_event
               WHERE playedAtMs >= :startMs AND playedAtMs < :endMs
               GROUP BY dayEpochDay
               ORDER BY dayEpochDay ASC""")
-    fun heatmapFlow(startMs: Long, endMs: Long): Flow<List<DateBucketRow>>
+    fun heatmapFlow(startMs: Long, endMs: Long, zoneOffsetMs: Long): Flow<List<DateBucketRow>>
 
-    @Query("""SELECT e.musicId, e.platform, e.title, e.artistRaw, e.album, e.artwork,
+    @Query("""SELECT MAX(e.musicId) AS musicId,
+                     MAX(e.platform) AS platform,
+                     MAX(e.title) AS title,
+                     MAX(e.artistRaw) AS artistRaw,
+                     MAX(e.album) AS album,
+                     MAX(e.artwork) AS artwork,
                      MIN(e.playedAtMs) AS firstSeenMs,
                      MAX(e.playedAtMs) AS lastSeenMs,
                      COUNT(*) AS playCount,
                      SUM(e.playedSeconds) AS totalSec
               FROM listen_event e
               WHERE e.playedAtMs >= :startMs AND e.playedAtMs < :endMs
-              GROUP BY e.musicId, e.platform
+              GROUP BY e.mergeKey
               HAVING MIN(e.playedAtMs) = (
                   SELECT MIN(e2.playedAtMs) FROM listen_event e2
-                  WHERE e2.musicId = e.musicId AND e2.platform = e.platform
+                  WHERE e2.mergeKey = e.mergeKey
               )
               ORDER BY firstSeenMs DESC""")
     fun firstSeenInWindowFlow(startMs: Long, endMs: Long): Flow<List<ListenedSongRow>>
 
-    @Query("""SELECT musicId, platform, title, artistRaw, album, artwork,
+    @Query("""SELECT MAX(musicId) AS musicId,
+                     MAX(platform) AS platform,
+                     MAX(title) AS title,
+                     MAX(artistRaw) AS artistRaw,
+                     MAX(album) AS album,
+                     MAX(artwork) AS artwork,
                      MIN(playedAtMs) AS firstSeenMs,
                      MAX(playedAtMs) AS lastSeenMs,
                      COUNT(*) AS playCount,
                      SUM(playedSeconds) AS totalSec
               FROM listen_event
               WHERE playedAtMs >= :startMs AND playedAtMs < :endMs
-              GROUP BY musicId, platform
+              GROUP BY mergeKey
               ORDER BY playCount DESC, totalSec DESC""")
     fun allSongsInWindowFlow(startMs: Long, endMs: Long): Flow<List<ListenedSongRow>>
 
-    @Query("""SELECT e.musicId, e.platform, e.title, e.artistRaw, e.album, e.artwork,
+    @Query("""SELECT MAX(e.musicId) AS musicId,
+                     MAX(e.platform) AS platform,
+                     MAX(e.title) AS title,
+                     MAX(e.artistRaw) AS artistRaw,
+                     MAX(e.album) AS album,
+                     MAX(e.artwork) AS artwork,
                      MIN(e.playedAtMs) AS firstSeenMs,
                      MAX(e.playedAtMs) AS lastSeenMs,
                      COUNT(*) AS playCount,
@@ -169,11 +190,16 @@ interface ListenStatsDao {
               JOIN listen_event_artist a ON a.eventId = e.id
               WHERE e.playedAtMs >= :startMs AND e.playedAtMs < :endMs
                 AND a.artistName = :artistName
-              GROUP BY e.musicId, e.platform
+              GROUP BY e.mergeKey
               ORDER BY playCount DESC""")
     fun songsByArtistFlow(startMs: Long, endMs: Long, artistName: String): Flow<List<ListenedSongRow>>
 
-    @Query("""SELECT musicId, platform, title, artistRaw, album, artwork,
+    @Query("""SELECT MAX(musicId) AS musicId,
+                     MAX(platform) AS platform,
+                     MAX(title) AS title,
+                     MAX(artistRaw) AS artistRaw,
+                     MAX(album) AS album,
+                     MAX(artwork) AS artwork,
                      MIN(playedAtMs) AS firstSeenMs,
                      MAX(playedAtMs) AS lastSeenMs,
                      COUNT(*) AS playCount,
@@ -181,11 +207,16 @@ interface ListenStatsDao {
               FROM listen_event
               WHERE playedAtMs >= :startMs AND playedAtMs < :endMs
                 AND language = :language
-              GROUP BY musicId, platform
+              GROUP BY mergeKey
               ORDER BY playCount DESC""")
     fun songsByLanguageFlow(startMs: Long, endMs: Long, language: String): Flow<List<ListenedSongRow>>
 
-    @Query("""SELECT musicId, platform, title, artistRaw, album, artwork,
+    @Query("""SELECT MAX(musicId) AS musicId,
+                     MAX(platform) AS platform,
+                     MAX(title) AS title,
+                     MAX(artistRaw) AS artistRaw,
+                     MAX(album) AS album,
+                     MAX(artwork) AS artwork,
                      MIN(playedAtMs) AS firstSeenMs,
                      MAX(playedAtMs) AS lastSeenMs,
                      COUNT(*) AS playCount,
@@ -193,7 +224,7 @@ interface ListenStatsDao {
               FROM listen_event
               WHERE playedAtMs >= :startMs AND playedAtMs < :endMs
                 AND genre = :genre
-              GROUP BY musicId, platform
+              GROUP BY mergeKey
               ORDER BY playCount DESC""")
     fun songsByGenreFlow(startMs: Long, endMs: Long, genre: String): Flow<List<ListenedSongRow>>
 }

@@ -51,10 +51,25 @@ class ListenTrackerTest {
             assertEquals(60, firstValue.playedSeconds)
             assertEquals("zh-CN", firstValue.language)
             assertEquals("pop", firstValue.genre)
+            // 新增:mergeKey = title.lower|primaryArtist.lower
+            assertEquals("song|周杰伦", firstValue.mergeKey)
         }
         argumentCaptor<List<ListenEventArtistEntity>>().apply {
             verify(dao).insertEventWithArtists(any(), capture())
             assertEquals(listOf("周杰伦", "林俊杰"), firstValue.map { it.artistName })
+        }
+    }
+
+    @Test fun mergeKey_emptyArtistRaw_endsWithPipe() = runTest {
+        val tracker = newTracker(this)
+        val itemNoArtist = item.copy(artist = "")
+        setNow(0); tracker.onMediaItemTransition(itemNoArtist, Player.MEDIA_ITEM_TRANSITION_REASON_AUTO)
+        setNow(0); tracker.onIsPlayingChanged(true, itemNoArtist)
+        setNow(60_000); tracker.onTrackEnded(itemNoArtist)
+        advanceUntilIdle()
+        argumentCaptor<ListenEventEntity>().apply {
+            verify(dao).insertEventWithArtists(capture(), any())
+            assertEquals("song|", firstValue.mergeKey)
         }
     }
 

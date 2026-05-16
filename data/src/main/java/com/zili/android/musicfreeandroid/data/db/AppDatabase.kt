@@ -42,7 +42,7 @@ import com.zili.android.musicfreeandroid.data.db.entity.ListenEventArtistEntity
         ListenEventEntity::class,
         ListenEventArtistEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

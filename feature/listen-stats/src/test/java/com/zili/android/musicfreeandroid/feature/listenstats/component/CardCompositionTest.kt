@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.feature.listenstats.component
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -9,6 +10,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.data.db.dao.TopArtistRow
+import com.zili.android.musicfreeandroid.data.db.dao.TopSongRow
+import com.zili.android.musicfreeandroid.data.repository.listenstats.model.ListenedSong
 import com.zili.android.musicfreeandroid.data.repository.listenstats.model.TimeScope
 import org.junit.Rule
 import org.junit.Test
@@ -133,5 +136,44 @@ class CardCompositionTest {
         }
         composeRule.onNodeWithText("清除").performClick()
         assert(confirmed && !dismissed)
+    }
+
+    // ── Listen-Stats 修复:封面 + 移除 plugin 展示 ──
+
+    @Test fun topSongsCard_rowHasCover_andSubtitleNoPlatform() {
+        val row = TopSongRow(
+            musicId = "m1", platform = "qq",
+            title = "情人知己", artistRaw = "叶蒨文",
+            album = null, artwork = "https://x/cover.jpg",
+            playCount = 3, totalSec = 180,
+        )
+        composeRule.setContent {
+            MusicFreeTheme {
+                TopSongsCard(rows = listOf(row), onSeeAll = {}, onRowClick = {})
+            }
+        }
+        composeRule.onAllNodes(hasTestTag("top-song-cover"), useUnmergedTree = true).assertCountEquals(1)
+        composeRule.onNodeWithText("叶蒨文").assertIsDisplayed()
+        composeRule.onAllNodesWithText("qq", substring = true).assertCountEquals(0)
+        composeRule.onAllNodesWithText("·", substring = true).assertCountEquals(0)
+    }
+
+    @Test fun songDetailRow_hasCover_andSubtitleNoPlatform() {
+        val song = ListenedSong(
+            musicId = "m1", platform = "qq",
+            title = "情人知己", artistRaw = "叶蒨文",
+            album = null, artwork = "https://x/cover.jpg",
+            firstSeenMs = 0, lastSeenMs = 0,
+            playCount = 3, totalSec = 180,
+        )
+        composeRule.setContent {
+            MusicFreeTheme {
+                SongDetailRow(song = song)
+            }
+        }
+        composeRule.onAllNodes(hasTestTag("song-cover"), useUnmergedTree = true).assertCountEquals(1)
+        composeRule.onNodeWithText("叶蒨文").assertIsDisplayed()
+        composeRule.onAllNodesWithText("qq", substring = true).assertCountEquals(0)
+        composeRule.onAllNodesWithText("·", substring = true).assertCountEquals(0)
     }
 }

@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.player.listening
 
 import androidx.media3.common.Player
 import com.zili.android.musicfreeandroid.core.model.MusicItem
+import com.zili.android.musicfreeandroid.core.util.splitArtists
 import com.zili.android.musicfreeandroid.data.db.dao.ListenStatsDao
 import com.zili.android.musicfreeandroid.data.db.entity.ListenEventArtistEntity
 import com.zili.android.musicfreeandroid.data.db.entity.ListenEventEntity
@@ -100,6 +101,8 @@ class ListenTracker(
 
         val (lang, genre) = ListenDimExtractor.extract(s.item.raw)
         val artists = splitArtists(s.item.artist)
+        val primary = artists.firstOrNull().orEmpty()
+        val mergeKey = "${s.item.title.trim().lowercase()}|${primary.trim().lowercase()}"
         val durationMs = s.item.duration
         val completedBoundary = durationMs - COMPLETED_TAIL_TOLERANCE_MS
         val completed = s.endedNaturally || (durationMs > 0 && s.accumulatedMs >= completedBoundary)
@@ -112,6 +115,7 @@ class ListenTracker(
             playedSeconds = (s.accumulatedMs / 1000).toInt(),
             completed = completed,
             language = lang, genre = genre,
+            mergeKey = mergeKey,
         )
         val artistRows = artists.mapIndexed { i, name ->
             ListenEventArtistEntity(eventId = 0, artistName = name, artistOrder = i)

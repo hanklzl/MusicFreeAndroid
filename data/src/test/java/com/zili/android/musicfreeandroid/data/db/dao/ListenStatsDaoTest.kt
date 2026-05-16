@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.data.db.dao
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.zili.android.musicfreeandroid.core.util.splitArtists
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.entity.ListenEventArtistEntity
 import com.zili.android.musicfreeandroid.data.db.entity.ListenEventEntity
@@ -36,7 +37,7 @@ class ListenStatsDaoTest {
         playedAtMs: Long,
         musicId: String,
         platform: String = "netease",
-        title: String = "T",
+        title: String = musicId,
         artists: List<String> = listOf("A"),
         playedSeconds: Int = 60,
         completed: Boolean = true,
@@ -44,13 +45,17 @@ class ListenStatsDaoTest {
         genre: String? = "pop",
         durationMs: Long = 240_000,
     ) {
+        val artistRaw = artists.joinToString(" & ")
+        val primary = splitArtists(artistRaw).firstOrNull().orEmpty()
+        val mergeKey = "${title.trim().lowercase()}|${primary.trim().lowercase()}"
         dao.insertEventWithArtists(
             event = ListenEventEntity(
                 playedAtMs = playedAtMs, musicId = musicId, platform = platform,
-                title = title, artistRaw = artists.joinToString(" & "),
+                title = title, artistRaw = artistRaw,
                 album = null, artwork = null, durationMs = durationMs,
                 playedSeconds = playedSeconds, completed = completed,
                 language = language, genre = genre,
+                mergeKey = mergeKey,
             ),
             artists = artists.mapIndexed { i, n ->
                 ListenEventArtistEntity(eventId = 0, artistName = n, artistOrder = i)
@@ -120,5 +125,90 @@ class ListenStatsDaoTest {
         seed(1, "m1", artists = listOf("X", "Y"))
         assertEquals(1, dao.clearAllEvents())
         assertEquals(0, dao.distinctArtistsFlow(0, 100).first())
+    }
+
+    @Test
+    fun crossPlugin_sameSong_mergedIntoOneRow() = runTest {
+        seed(playedAtMs = 1, musicId = "A", platform = "qq",
+             title = "情人知己", artists = listOf("叶蒨文"))
+        seed(playedAtMs = 2, musicId = "B", platform = "netease",
+             title = "情人知己", artists = listOf("叶蒨文", "张学友"))
+        seed(playedAtMs = 3, musicId = "C", platform = "qq",
+             title = "情人知己", artists = listOf("张学友"))
+
+        assertEquals(2, dao.distinctSongsFlow(0, 100).first())
+
+        val tops = dao.topSongsFlow(0, 100, limit = 10).first()
+        assertEquals(2, tops.size)
+        val merged = tops.first { it.title == "情人知己" && it.playCount == 2 }
+        // MAX(musicId) 字典序最大:"A" vs "B" → "B"
+        assertEquals("B", merged.musicId)
+        assertEquals(120L, merged.totalSec)
+    }
+
+    @Test
+    fun crossPlugin_MAX_artwork_picksNonNullUrl() = runTest {
+        dao.insertEventWithArtists(
+            ListenEventEntity(
+                playedAtMs = 1, musicId = "A", platform = "qq", title = "T",
+                artistRaw = "X", album = null, artwork = null,
+                durationMs = 240_000, playedSeconds = 60, completed = true,
+                language = null, genre = null,
+                mergeKey = "t|x",
+            ),
+            listOf(ListenEventArtistEntity(eventId = 0, artistName = "X", artistOrder = 0)),
+        )
+        dao.insertEventWithArtists(
+            ListenEventEntity(
+                playedAtMs = 2, musicId = "B", platform = "netease", title = "T",
+                artistRaw = "X", album = null, artwork = "https://x/cover.jpg",
+                durationMs = 240_000, playedSeconds = 60, completed = true,
+                language = null, genre = null,
+                mergeKey = "t|x",
+            ),
+            listOf(ListenEventArtistEntity(eventId = 0, artistName = "X", artistOrder = 0)),
+        )
+        val tops = dao.topSongsFlow(0, 100, limit = 10).first()
+        assertEquals(1, tops.size)
+        assertEquals("https://x/cover.jpg", tops[0].artwork)
+    }
+
+    @Test
+    fun dailyBuckets_withZoneOffsetMs_returnsLocalDayBucket() = runTest {
+        // 本地 2026-05-11 02:00 (Asia/Shanghai UTC+8) → UTC 2026-05-10 18:00
+        val localDate = java.time.LocalDate.of(2026, 5, 11)
+        val localMs = localDate.atTime(2, 0)
+            .atZone(java.time.ZoneId.of("Asia/Shanghai"))
+            .toInstant().toEpochMilli()
+        seed(playedAtMs = localMs, musicId = "m", playedSeconds = 60)
+        val startMs = localDate.withDayOfMonth(1).atStartOfDay(java.time.ZoneId.of("Asia/Shanghai"))
+            .toInstant().toEpochMilli()
+        val endMs = localDate.withDayOfMonth(1).plusMonths(1).atStartOfDay(java.time.ZoneId.of("Asia/Shanghai"))
+            .toInstant().toEpochMilli()
+
+        val buckets = dao.dailyBucketsFlow(startMs, endMs, zoneOffsetMs = 8L * 3600 * 1000).first()
+        assertEquals(1, buckets.size)
+        assertEquals(localDate.toEpochDay(), buckets[0].dayEpochDay)
+    }
+
+    @Test
+    fun hourBuckets_withZoneOffsetMs_returnsLocalHour() = runTest {
+        val localMs = java.time.LocalDateTime.of(2026, 5, 11, 7, 0)
+            .atZone(java.time.ZoneId.of("Asia/Shanghai")).toInstant().toEpochMilli()
+        seed(playedAtMs = localMs, musicId = "m", playedSeconds = 60)
+
+        val buckets = dao.hourBucketsFlow(0, Long.MAX_VALUE, zoneOffsetMs = 8L * 3600 * 1000).first()
+        assertEquals(1, buckets.size)
+        assertEquals(7, buckets[0].hourOfDay)
+    }
+
+    @Test
+    fun zone_UTC_regression_zoneOffsetZero_isLegacyBehavior() = runTest {
+        val ms = java.time.LocalDateTime.of(2026, 5, 11, 14, 0)
+            .atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+        seed(playedAtMs = ms, musicId = "m", playedSeconds = 60)
+
+        val hourBuckets = dao.hourBucketsFlow(0, Long.MAX_VALUE, zoneOffsetMs = 0L).first()
+        assertEquals(14, hourBuckets[0].hourOfDay)
     }
 }

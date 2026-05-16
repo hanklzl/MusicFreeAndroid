@@ -37,18 +37,23 @@ class ListenStatsRepository @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     fun statsForWindow(scope: TimeScope, anchor: LocalDate): Flow<ListenStatsSnapshot> {
         return firstEventDate().flatMapLatest { firstDate ->
-            val window = windowFor(scope, anchor, zoneIdProvider(), firstDate)
+            val zone = zoneIdProvider()
+            val window = windowFor(scope, anchor, zone, firstDate)
+            val zoneOffsetMs = zone.rules
+                .getOffset(Instant.ofEpochMilli(window.startMs))
+                .totalSeconds * 1000L
+
             combine(
                 dao.totalSecondsFlow(window.startMs, window.endMs),
                 dao.distinctSongsFlow(window.startMs, window.endMs),
                 dao.distinctArtistsFlow(window.startMs, window.endMs),
                 dao.topSongsFlow(window.startMs, window.endMs, limit = 50),
                 dao.topArtistsFlow(window.startMs, window.endMs, limit = 50),
-                dao.dailyBucketsFlow(window.startMs, window.endMs),
-                dao.hourBucketsFlow(window.startMs, window.endMs),
+                dao.dailyBucketsFlow(window.startMs, window.endMs, zoneOffsetMs),
+                dao.hourBucketsFlow(window.startMs, window.endMs, zoneOffsetMs),
                 dao.languageDistributionFlow(window.startMs, window.endMs),
                 dao.genreDistributionFlow(window.startMs, window.endMs),
-                dao.heatmapFlow(window.startMs, window.endMs),
+                dao.heatmapFlow(window.startMs, window.endMs, zoneOffsetMs),
                 dao.firstSeenInWindowFlow(window.startMs, window.endMs),
             ) { fields ->
                 @Suppress("UNCHECKED_CAST")

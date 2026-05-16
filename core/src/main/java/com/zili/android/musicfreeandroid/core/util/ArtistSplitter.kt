@@ -1,4 +1,4 @@
-package com.zili.android.musicfreeandroid.player.listening
+package com.zili.android.musicfreeandroid.core.util
 
 private val SPLIT_REGEX = Regex(
     """\s*(?:[/&、,]|\sfeat\.?\s|\sft\.?\s|\swith\s)\s*""",

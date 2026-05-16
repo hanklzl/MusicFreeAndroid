@@ -1,4 +1,4 @@
-package com.zili.android.musicfreeandroid.player.listening
+package com.zili.android.musicfreeandroid.core.util
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -24,5 +24,10 @@ class ArtistSplitterTest {
     }
     @Test fun complex_mix() {
         assertEquals(listOf("A", "B", "C", "D", "E"), splitArtists("A, B feat. C / D、E"))
+    }
+    @Test fun firstOrNull_returnsPrimaryArtist_orNull() {
+        assertEquals("周杰伦", splitArtists("周杰伦 & 林俊杰").firstOrNull())
+        assertEquals(null, splitArtists("").firstOrNull())
+        assertEquals(null, splitArtists("   ").firstOrNull())
     }
 }

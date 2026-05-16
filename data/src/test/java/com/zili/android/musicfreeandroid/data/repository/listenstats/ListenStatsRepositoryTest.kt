@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.data.repository.listenstats
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.zili.android.musicfreeandroid.core.util.splitArtists
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.entity.ListenEventArtistEntity
 import com.zili.android.musicfreeandroid.data.db.entity.ListenEventEntity
@@ -46,11 +47,15 @@ class ListenStatsRepositoryTest {
         genre: String? = "pop",
     ) {
         val ms = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() + 10_000
+        val title = musicId
+        val artistRaw = "A"
+        val mergeKey = "${title.trim().lowercase()}|${splitArtists(artistRaw).firstOrNull().orEmpty().trim().lowercase()}"
         db.listenStatsDao().insertEventWithArtists(
             ListenEventEntity(
-                playedAtMs = ms, musicId = musicId, platform = "p", title = "T",
-                artistRaw = "A", album = null, artwork = null, durationMs = 240_000,
+                playedAtMs = ms, musicId = musicId, platform = "p", title = title,
+                artistRaw = artistRaw, album = null, artwork = null, durationMs = 240_000,
                 playedSeconds = secs, completed = true, language = lang, genre = genre,
+                mergeKey = mergeKey,
             ),
             listOf(ListenEventArtistEntity(eventId = 0, artistName = "A", artistOrder = 0)),
         )
@@ -92,12 +97,15 @@ class ListenStatsRepositoryTest {
 
     @Test
     fun detail_byArtist_filtersListByArtistName() = runTest {
+        val artistRaw = "X & Y"
+        val mergeKey = "t|${splitArtists(artistRaw).firstOrNull().orEmpty().lowercase()}"
         db.listenStatsDao().insertEventWithArtists(
             ListenEventEntity(
                 playedAtMs = 1, musicId = "m1", platform = "p", title = "T",
-                artistRaw = "X & Y", album = null, artwork = null,
+                artistRaw = artistRaw, album = null, artwork = null,
                 durationMs = 100_000, playedSeconds = 60, completed = false,
                 language = null, genre = null,
+                mergeKey = mergeKey,
             ),
             listOf(
                 ListenEventArtistEntity(eventId = 0, artistName = "X", artistOrder = 0),
@@ -126,5 +134,31 @@ class ListenStatsRepositoryTest {
         val snap = repo.statsForWindow(TimeScope.WEEK, LocalDate.of(2026, 5, 14)).first()
         assertEquals(0L, snap.totalSeconds)
         assertEquals(0, snap.distinctSongs)
+    }
+
+    @Test
+    fun snapshot_inAsiaShanghai_dailyBucketsMatchLocalDate() = runTest {
+        val zone = java.time.ZoneId.of("Asia/Shanghai")
+        val tzRepo = ListenStatsRepository(db.listenStatsDao(), zoneIdProvider = { zone })
+
+        val localDate = LocalDate.of(2026, 5, 11)
+        val playedAtMs = localDate.atTime(2, 0).atZone(zone).toInstant().toEpochMilli()
+        val title = "T"; val artistRaw = "A"
+        val mergeKey = "${title.lowercase()}|${artistRaw.lowercase()}"
+        db.listenStatsDao().insertEventWithArtists(
+            ListenEventEntity(
+                playedAtMs = playedAtMs, musicId = "m", platform = "p", title = title,
+                artistRaw = artistRaw, album = null, artwork = null, durationMs = 240_000,
+                playedSeconds = 60, completed = true, language = null, genre = null,
+                mergeKey = mergeKey,
+            ),
+            listOf(ListenEventArtistEntity(eventId = 0, artistName = "A", artistOrder = 0)),
+        )
+
+        val snap = tzRepo.statsForWindow(TimeScope.MONTH, localDate).first()
+        assertEquals(1, snap.dailyBuckets.size)
+        assertEquals(localDate.toEpochDay(), snap.dailyBuckets[0].dayEpochDay)
+        assertEquals(1, snap.hourBuckets.size)
+        assertEquals(2, snap.hourBuckets[0].hourOfDay)
     }
 }

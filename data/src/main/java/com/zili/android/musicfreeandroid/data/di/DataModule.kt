@@ -11,6 +11,7 @@ import com.zili.android.musicfreeandroid.core.model.PlaybackRuntimeSettings
 import com.zili.android.musicfreeandroid.data.db.AppDatabase
 import com.zili.android.musicfreeandroid.data.db.SeedFavoriteCallback
 import com.zili.android.musicfreeandroid.data.db.converter.Converters
+import com.zili.android.musicfreeandroid.data.db.migration.MIGRATION_10_11
 import com.zili.android.musicfreeandroid.data.db.migration.MIGRATION_9_10
 import com.zili.android.musicfreeandroid.data.db.dao.LyricCacheDao
 import com.zili.android.musicfreeandroid.data.db.dao.MediaCacheDao
@@ -46,7 +47,7 @@ object DataModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "musicfree.db")
-            .addMigrations(MIGRATION_9_10)
+            .addMigrations(MIGRATION_9_10, MIGRATION_10_11)
             .addCallback(SeedFavoriteCallback)
             .build()
 

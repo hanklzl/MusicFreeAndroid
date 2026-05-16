@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey
     indices = [
         Index("playedAtMs"),
         Index(value = ["musicId", "platform"]),
+        Index("mergeKey"),
     ],
 )
 data class ListenEventEntity(
@@ -25,4 +26,5 @@ data class ListenEventEntity(
     val completed: Boolean,
     val language: String?,
     val genre: String?,
+    val mergeKey: String,
 )
