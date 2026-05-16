@@ -102,13 +102,13 @@ class PlaylistRepositoryTest {
             playlistRepo.addMusicToPlaylist("pl1", m1)
             // skipItems(count) to skip any intermediate flatMapLatest re-subscriptions
             // and land on the first stable emission with count = 1
-            var size = -1
-            while (size < 1) size = awaitItem().size
-            assertEquals(1, size)
+            var current = emptyList<MusicItem>()
+            while (current.size < 1) current = awaitItem()
+            assertEquals(listOf("Song m1"), current.map { it.title })
 
             playlistRepo.addMusicToPlaylist("pl1", m2)
-            while (size < 2) size = awaitItem().size
-            assertEquals(2, size)
+            while (current.size < 2) current = awaitItem()
+            assertEquals(listOf("Song m2", "Song m1"), current.map { it.title })
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -201,9 +201,11 @@ class PlaylistRepositoryTest {
     }
 
     @Test
-    fun addMusicsToPlaylist_preservesImportOrderForManualSort() = runBlocking {
+    fun addMusicsToPlaylist_prependsBatchAndPreservesInputOrderForManualSort() = runBlocking {
         val id = UUID.randomUUID().toString()
         playlistRepo.createPlaylist(Playlist(id = id, name = "Imported", coverUri = null))
+        playlistRepo.addMusicToPlaylist(id, sampleMusic("existing-1", title = "Existing One"))
+        playlistRepo.addMusicToPlaylist(id, sampleMusic("existing-2", title = "Existing Two"))
         val items = listOf(
             sampleMusic("m3", title = "Third"),
             sampleMusic("m1", title = "First"),
@@ -213,7 +215,34 @@ class PlaylistRepositoryTest {
         playlistRepo.addMusicsToPlaylist(id, items)
 
         val titles = playlistRepo.observeMusicInPlaylist(id).first().map { it.title }
-        assertEquals(listOf("Third", "First", "Second"), titles)
+        assertEquals(listOf("Third", "First", "Second", "Existing Two", "Existing One"), titles)
+    }
+
+    @Test
+    fun addMusicsToPlaylist_prependsOnlyNewItemsWhenBatchContainsDuplicates() = runBlocking {
+        val id = UUID.randomUUID().toString()
+        playlistRepo.createPlaylist(Playlist(id = id, name = "Imported", coverUri = null))
+        playlistRepo.addMusicsToPlaylist(
+            id,
+            listOf(
+                sampleMusic("a", title = "Already"),
+                sampleMusic("x", title = "Existing X"),
+                sampleMusic("y", title = "Existing Y"),
+            ),
+        )
+
+        val added = playlistRepo.addMusicsToPlaylist(
+            id,
+            listOf(
+                sampleMusic("a", title = "Already Updated"),
+                sampleMusic("b", title = "Batch B"),
+                sampleMusic("c", title = "Batch C"),
+            ),
+        )
+
+        val titles = playlistRepo.observeMusicInPlaylist(id).first().map { it.title }
+        assertEquals(2, added)
+        assertEquals(listOf("Batch B", "Batch C", "Already Updated", "Existing X", "Existing Y"), titles)
     }
 
     @Test

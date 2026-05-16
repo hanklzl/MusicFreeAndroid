@@ -217,10 +217,19 @@ class PlaylistRepository @Inject constructor(
             skippedReason = { addedCount -> if (addedCount == 0) LogFields.Reason.DUPLICATE else null },
         ) {
             val insertedItems = mutableListOf<MusicItem>()
+            val addedAt = System.currentTimeMillis()
             val addedCount = db.withTransaction {
                 var addedCount = 0
-                for (item in items) {
-                    if (addMusicToPlaylistNoCoverSync(playlistId, item)) {
+                val baseOrder = playlistDao.minSortOrderInPlaylist(playlistId) - items.size
+                for ((index, item) in items.withIndex()) {
+                    if (
+                        addMusicToPlaylistNoCoverSync(
+                            playlistId = playlistId,
+                            item = item,
+                            sortOrder = baseOrder + index,
+                            addedAt = addedAt,
+                        )
+                    ) {
                         addedCount++
                         insertedItems.add(item)
                     }
@@ -235,25 +244,35 @@ class PlaylistRepository @Inject constructor(
     }
 
     private suspend fun addMusicToPlaylistWithCoverSync(playlistId: String, item: MusicItem): Boolean {
-        val added = addMusicToPlaylistNoCoverSync(playlistId, item)
+        val added = db.withTransaction {
+            addMusicToPlaylistNoCoverSync(
+                playlistId = playlistId,
+                item = item,
+                sortOrder = playlistDao.minSortOrderInPlaylist(playlistId) - 1,
+                addedAt = System.currentTimeMillis(),
+            )
+        }
         if (added) syncPlaylistCoverIfNeeded(playlistId, item)
         return added
     }
 
-    private suspend fun addMusicToPlaylistNoCoverSync(playlistId: String, item: MusicItem): Boolean {
+    private suspend fun addMusicToPlaylistNoCoverSync(
+        playlistId: String,
+        item: MusicItem,
+        sortOrder: Int,
+        addedAt: Long,
+    ): Boolean {
         // Keep this order (upsert before cross-ref insert) to preserve existing behavior:
         // duplicates should still refresh music metadata, while playlist membership is guarded
         // by the unique cross-ref insert.
         musicDao.upsert(item.toEntity(converters))
-        val nextOrder = playlistDao.maxSortOrderInPlaylist(playlistId) + 1
-        val now = System.currentTimeMillis()
         val rowId = playlistDao.insertCrossRefIgnore(
             PlaylistMusicCrossRef(
                 playlistId = playlistId,
                 musicId = item.id,
                 musicPlatform = item.platform,
-                sortOrder = nextOrder,
-                addedAt = now,
+                sortOrder = sortOrder,
+                addedAt = addedAt,
             )
         )
         return rowId != -1L

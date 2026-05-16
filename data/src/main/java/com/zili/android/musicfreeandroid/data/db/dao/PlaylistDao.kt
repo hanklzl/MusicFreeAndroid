@@ -99,6 +99,9 @@ interface PlaylistDao {
     @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM playlist_music WHERE playlistId = :playlistId")
     suspend fun maxSortOrderInPlaylist(playlistId: String): Int
 
+    @Query("SELECT COALESCE(MIN(sortOrder), 0) FROM playlist_music WHERE playlistId = :playlistId")
+    suspend fun minSortOrderInPlaylist(playlistId: String): Int
+
     @Query("""
         SELECT EXISTS(
             SELECT 1 FROM playlist_music
