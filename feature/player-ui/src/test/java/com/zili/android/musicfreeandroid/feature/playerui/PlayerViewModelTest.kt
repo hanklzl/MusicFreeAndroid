@@ -11,9 +11,11 @@ import com.zili.android.musicfreeandroid.core.model.LyricSourceInfo
 import com.zili.android.musicfreeandroid.core.model.ParsedLyricLine
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
+import com.zili.android.musicfreeandroid.data.repository.MediaCacheRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
+import com.zili.android.musicfreeandroid.downloader.model.DownloadStatus
 import com.zili.android.musicfreeandroid.downloader.model.DownloadTaskUi
 import com.zili.android.musicfreeandroid.downloader.model.MediaKey
 import com.zili.android.musicfreeandroid.feature.playerui.lyrics.LyricLoadState
@@ -63,6 +65,7 @@ class PlayerViewModelTest {
     private val playerLyricLoader: PlayerLyricLoader = mock()
     private val appPreferences: AppPreferences = mock()
     private val downloader: Downloader = mock()
+    private val mediaCacheRepository: MediaCacheRepository = mock()
     private val lyricShowTranslationFlow = MutableStateFlow(false)
     private val lyricDetailFontSizeFlow = MutableStateFlow(1)
     private val playQualityFlow = MutableStateFlow(PlayQuality.STANDARD)
@@ -107,6 +110,7 @@ class PlayerViewModelTest {
         playerLyricLoader,
         appPreferences,
         downloader,
+        mediaCacheRepository,
     )
 
     private fun readyLyricState(item: MusicItem, lines: List<ParsedLyricLine>): LyricLoadState.Ready {
@@ -688,7 +692,7 @@ class PlayerViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.downloadCurrent(PlayQuality.HIGH)
+        assertTrue(viewModel.downloadCurrent(PlayQuality.HIGH))
 
         verify(downloader).enqueue(eq(listOf(item)), eq(PlayQuality.HIGH))
     }
@@ -698,9 +702,72 @@ class PlayerViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.downloadCurrent(PlayQuality.HIGH)
+        assertFalse(viewModel.downloadCurrent(PlayQuality.HIGH))
 
         verify(downloader, never()).enqueue(any(), any())
+    }
+
+    @Test
+    fun `downloadCurrent skips already downloaded item`() = runTest {
+        val item = MusicItem(id = "downloaded", platform = "demo", title = "T", artist = "A", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        downloaderDownloadedKeysFlow.value = setOf(MediaKey.of(item))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.downloadCurrent(PlayQuality.HIGH))
+
+        verify(downloader, never()).enqueue(any(), any())
+    }
+
+    @Test
+    fun `downloadCurrent skips existing download task`() = runTest {
+        val item = MusicItem(id = "pending", platform = "demo", title = "T", artist = "A", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        downloaderTasksFlow.value = listOf(
+            DownloadTaskUi(
+                key = MediaKey.of(item),
+                title = item.title,
+                artist = item.artist,
+                artwork = item.artwork,
+                status = DownloadStatus.PENDING,
+                targetQuality = "high",
+                downloadedBytes = null,
+                totalBytes = null,
+                errorReason = null,
+            ),
+        )
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.downloadCurrent(PlayQuality.HIGH))
+
+        verify(downloader, never()).enqueue(any(), any())
+    }
+
+    @Test
+    fun `playCurrentNext delegates current item to controller`() = runTest {
+        val item = MusicItem(id = "next", platform = "demo", title = "T", artist = "A", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.playCurrentNext()
+
+        verify(playerController).addNextInQueue(item)
+    }
+
+    @Test
+    fun `clearCurrentPluginCache deletes current media cache`() = runTest {
+        val item = MusicItem(id = "cache", platform = "demo", title = "T", artist = "A", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.clearCurrentPluginCache()
+        advanceUntilIdle()
+
+        verify(mediaCacheRepository).deleteItem("demo", "cache")
     }
 
     @Test

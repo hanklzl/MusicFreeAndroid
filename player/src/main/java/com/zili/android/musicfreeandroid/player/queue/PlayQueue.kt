@@ -29,9 +29,23 @@ class PlayQueue {
     }
 
     fun addNext(item: MusicItem) {
-        val insertAt = if (isEmpty) 0 else currentIndex + 1
+        if (isEmpty) {
+            _items.add(item)
+            currentIndex = 0
+            return
+        }
+        if (currentItem?.sameQueueIdentity(item) == true) return
+
+        val existingIndex = _items.indexOfFirst { it.sameQueueIdentity(item) }
+        if (existingIndex >= 0) {
+            _items.removeAt(existingIndex)
+            if (existingIndex < currentIndex) {
+                currentIndex--
+            }
+        }
+
+        val insertAt = (currentIndex + 1).coerceIn(0, _items.size)
         _items.add(insertAt, item)
-        if (_items.size == 1) currentIndex = 0
     }
 
     fun remove(index: Int): MusicItem? {
@@ -155,4 +169,7 @@ class PlayQueue {
         currentIndex = -1
         originalOrder = null
     }
+
+    private fun MusicItem.sameQueueIdentity(other: MusicItem): Boolean =
+        id == other.id && platform == other.platform
 }

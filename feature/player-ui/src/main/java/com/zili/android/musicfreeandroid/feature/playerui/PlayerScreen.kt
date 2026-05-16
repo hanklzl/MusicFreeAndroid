@@ -388,7 +388,28 @@ fun PlayerScreen(
             PlayerMoreOptionsSheet(
                 item = currentItem,
                 desktopLyricEnabled = desktopLyricOverlayState.enabled,
+                isDownloaded = isDownloaded,
                 onDismiss = { showMoreOptionsSheet = false },
+                onPlayNext = {
+                    showMoreOptionsSheet = false
+                    viewModel.playCurrentNext()
+                    Toast.makeText(context, "已加入下一首播放", Toast.LENGTH_SHORT).show()
+                },
+                onAddToPlaylist = {
+                    showMoreOptionsSheet = false
+                    viewModel.showAddToPlaylistSheet()
+                },
+                onDownload = {
+                    showMoreOptionsSheet = false
+                    if (!isDownloaded) {
+                        qualitySheetMode = MusicQualitySheetMode.Download
+                    }
+                },
+                onClearPluginCache = {
+                    showMoreOptionsSheet = false
+                    viewModel.clearCurrentPluginCache()
+                    Toast.makeText(context, "缓存已清除", Toast.LENGTH_SHORT).show()
+                },
                 onToggleDesktopLyric = {
                     showMoreOptionsSheet = false
                     if (desktopLyricOverlayState.enabled) {
@@ -444,8 +465,12 @@ fun PlayerScreen(
                             viewModel.setCurrentQuality(quality)
                         }
                         MusicQualitySheetMode.Download -> {
-                            viewModel.downloadCurrent(quality)
-                            Toast.makeText(context, "已加入下载队列", Toast.LENGTH_SHORT).show()
+                            val enqueued = viewModel.downloadCurrent(quality)
+                            Toast.makeText(
+                                context,
+                                if (enqueued) "已加入下载队列" else "歌曲已在下载队列或已下载",
+                                Toast.LENGTH_SHORT,
+                            ).show()
                         }
                     }
                     qualitySheetMode = null

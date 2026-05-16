@@ -7,6 +7,7 @@ import com.zili.android.musicfreeandroid.core.model.PlaybackMode
 import com.zili.android.musicfreeandroid.core.model.PlaybackSpeeds
 import com.zili.android.musicfreeandroid.core.model.RepeatMode
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
+import com.zili.android.musicfreeandroid.data.repository.MediaCacheRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.downloader.engine.DownloadEvent
@@ -48,6 +49,7 @@ class PlayerViewModelQueueTest {
     private val playerLyricLoader: PlayerLyricLoader = mock()
     private val appPreferences: AppPreferences = mock()
     private val downloader: Downloader = mock()
+    private val mediaCacheRepository: MediaCacheRepository = mock()
     private val playerStateFlow = MutableStateFlow(PlayerState.EMPTY)
     private val queueStateFlow = MutableStateFlow(PlayQueueSnapshot.EMPTY)
     private val lyricShowTranslationFlow = MutableStateFlow(false)
@@ -92,6 +94,7 @@ class PlayerViewModelQueueTest {
         playerLyricLoader,
         appPreferences,
         downloader,
+        mediaCacheRepository,
     )
 
     private fun item(id: String) = MusicItem(

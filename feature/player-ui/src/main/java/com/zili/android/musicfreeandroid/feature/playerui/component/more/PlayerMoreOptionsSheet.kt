@@ -18,6 +18,11 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
+import androidx.compose.material.icons.automirrored.outlined.QueueMusic
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.outlined.Album
@@ -35,6 +40,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -59,7 +65,12 @@ internal const val PlayerMoreOptionsHeaderTestTag = "player.more.sheet.header"
 internal fun PlayerMoreOptionsSheet(
     item: MusicItem,
     desktopLyricEnabled: Boolean,
+    isDownloaded: Boolean,
     onDismiss: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onDownload: () -> Unit,
+    onClearPluginCache: () -> Unit,
     onToggleDesktopLyric: () -> Unit,
     onImportRawLyric: () -> Unit,
     onImportTranslatedLyric: () -> Unit,
@@ -77,6 +88,11 @@ internal fun PlayerMoreOptionsSheet(
         PlayerMoreOptionsSheetContent(
             item = item,
             desktopLyricEnabled = desktopLyricEnabled,
+            isDownloaded = isDownloaded,
+            onPlayNext = onPlayNext,
+            onAddToPlaylist = onAddToPlaylist,
+            onDownload = onDownload,
+            onClearPluginCache = onClearPluginCache,
             onToggleDesktopLyric = onToggleDesktopLyric,
             onImportRawLyric = onImportRawLyric,
             onImportTranslatedLyric = onImportTranslatedLyric,
@@ -90,6 +106,11 @@ internal fun PlayerMoreOptionsSheet(
 internal fun PlayerMoreOptionsSheetContent(
     item: MusicItem,
     desktopLyricEnabled: Boolean,
+    isDownloaded: Boolean,
+    onPlayNext: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onDownload: () -> Unit,
+    onClearPluginCache: () -> Unit,
     onToggleDesktopLyric: () -> Unit,
     onImportRawLyric: () -> Unit,
     onImportTranslatedLyric: () -> Unit,
@@ -135,6 +156,35 @@ internal fun PlayerMoreOptionsSheetContent(
                     },
                 )
             }
+            PlayerMoreOptionsRow(
+                text = "下一首播放",
+                icon = Icons.AutoMirrored.Outlined.QueueMusic,
+                onClick = onPlayNext,
+            )
+            PlayerMoreOptionsRow(
+                text = "加入歌单",
+                icon = Icons.AutoMirrored.Outlined.PlaylistAdd,
+                onClick = onAddToPlaylist,
+            )
+            if (isDownloaded) {
+                PlayerMoreOptionsRow(
+                    text = "已下载",
+                    icon = Icons.Outlined.CheckCircle,
+                    onClick = {},
+                    enabled = false,
+                )
+            } else {
+                PlayerMoreOptionsRow(
+                    text = "下载",
+                    icon = Icons.Outlined.FileDownload,
+                    onClick = onDownload,
+                )
+            }
+            PlayerMoreOptionsRow(
+                text = "清除插件缓存(播放异常时使用)",
+                icon = Icons.Outlined.DeleteSweep,
+                onClick = onClearPluginCache,
+            )
             PlayerMoreOptionsRow(
                 text = if (desktopLyricEnabled) "关闭桌面歌词" else "开启桌面歌词",
                 icon = Icons.Outlined.Lyrics,
@@ -225,12 +275,14 @@ private fun PlayerMoreOptionsRow(
     text: String,
     icon: ImageVector,
     onClick: () -> Unit,
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(rpx(96))
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
+            .alpha(if (enabled) 1f else 0.45f)
             .padding(horizontal = rpx(24))
             .testTag(PlayerMoreOptionsRowTestTag),
         verticalAlignment = Alignment.CenterVertically,

@@ -10,8 +10,12 @@ class PlayQueueTest {
 
     private lateinit var queue: PlayQueue
 
-    private fun item(id: String) = MusicItem(
-        id = id, platform = "test", title = "Song $id",
+    private fun item(
+        id: String,
+        platform: String = "test",
+        title: String = "Song $id",
+    ) = MusicItem(
+        id = id, platform = platform, title = title,
         artist = "Artist", album = null, duration = 180_000L,
         url = "https://example.com/$id.mp3", artwork = null, qualities = null,
     )
@@ -83,6 +87,59 @@ class PlayQueueTest {
         queue.addNext(song2)
         assertEquals(listOf(song1, song2, song3), queue.items)
         assertEquals(0, queue.currentIndex)
+    }
+
+    @Test
+    fun `addNext moves existing target after current without duplicating`() {
+        val updatedSong3 = item("3", title = "Updated Song 3")
+        queue.setQueue(listOf(song1, song2, song3, song4), startIndex = 1)
+
+        queue.addNext(updatedSong3)
+
+        assertEquals(listOf(song1, song2, updatedSong3, song4), queue.items)
+        assertEquals(1, queue.currentIndex)
+        assertEquals(song2, queue.currentItem)
+        assertEquals(1, queue.items.count { it.id == "3" && it.platform == "test" })
+    }
+
+    @Test
+    fun `addNext moves existing target before current and keeps current item`() {
+        val updatedSong1 = item("1", title = "Updated Song 1")
+        queue.setQueue(listOf(song1, song2, song3), startIndex = 1)
+
+        queue.addNext(updatedSong1)
+
+        assertEquals(listOf(song2, updatedSong1, song3), queue.items)
+        assertEquals(0, queue.currentIndex)
+        assertEquals(song2, queue.currentItem)
+        assertEquals(1, queue.items.count { it.id == "1" && it.platform == "test" })
+    }
+
+    @Test
+    fun `addNext does not duplicate current item`() {
+        val updatedCurrent = item("2", title = "Updated Song 2")
+        queue.setQueue(listOf(song1, song2, song3), startIndex = 1)
+
+        queue.addNext(updatedCurrent)
+
+        assertEquals(listOf(song1, song2, song3), queue.items)
+        assertEquals(1, queue.currentIndex)
+        assertEquals(song2, queue.currentItem)
+        assertEquals(1, queue.items.count { it.id == "2" && it.platform == "test" })
+    }
+
+    @Test
+    fun `addNext deduplicates by id and platform`() {
+        val otherPlatformSong2 = item("2", platform = "other")
+        val updatedSong2 = item("2", platform = "test", title = "Updated Song 2")
+        queue.setQueue(listOf(song1, otherPlatformSong2, song2), startIndex = 0)
+
+        queue.addNext(updatedSong2)
+
+        assertEquals(listOf(song1, updatedSong2, otherPlatformSong2), queue.items)
+        assertEquals(0, queue.currentIndex)
+        assertEquals(1, queue.items.count { it.id == "2" && it.platform == "test" })
+        assertEquals(1, queue.items.count { it.id == "2" && it.platform == "other" })
     }
 
     // --- remove ---

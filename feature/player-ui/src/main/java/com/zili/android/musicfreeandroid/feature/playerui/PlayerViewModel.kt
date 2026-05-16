@@ -14,6 +14,7 @@ import com.zili.android.musicfreeandroid.core.lyric.LyricTiming
 import com.zili.android.musicfreeandroid.core.ui.AddToPlaylistSheetState
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.repository.LocalLyricKind
+import com.zili.android.musicfreeandroid.data.repository.MediaCacheRepository
 import com.zili.android.musicfreeandroid.data.repository.PlaylistRepository
 import com.zili.android.musicfreeandroid.downloader.Downloader
 import com.zili.android.musicfreeandroid.downloader.model.MediaKey
@@ -58,6 +59,7 @@ class PlayerViewModel @Inject constructor(
     private val playerLyricLoader: PlayerLyricLoader,
     private val appPreferences: AppPreferences,
     private val downloader: Downloader,
+    private val mediaCacheRepository: MediaCacheRepository,
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = playerController.playerState
@@ -305,7 +307,7 @@ class PlayerViewModel @Inject constructor(
         item != null && keys.contains(MediaKey.of(item))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    fun downloadCurrent(quality: PlayQuality) {
+    fun downloadCurrent(quality: PlayQuality): Boolean {
         val item = playerState.value.currentItem
         if (item == null) {
             logPlayerDetail(
@@ -316,7 +318,18 @@ class PlayerViewModel @Inject constructor(
                 reason = REASON_NO_CURRENT_ITEM,
                 extra = mapOf("quality" to quality.logValue()),
             )
-            return
+            return false
+        }
+        duplicateDownloadReason(item)?.let { reason ->
+            logPlayerDetail(
+                event = "player_download_enqueue_skipped",
+                operation = "download",
+                item = item,
+                result = LogFields.Result.SKIPPED,
+                reason = reason,
+                extra = mapOf("quality" to quality.logValue()),
+            )
+            return false
         }
         try {
             downloader.enqueue(listOf(item), quality)
@@ -327,6 +340,7 @@ class PlayerViewModel @Inject constructor(
                 result = LogFields.Result.SUCCESS,
                 extra = mapOf("quality" to quality.logValue()),
             )
+            return true
         } catch (error: Throwable) {
             logPlayerError(
                 event = "player_download_enqueue_failed",
@@ -336,6 +350,15 @@ class PlayerViewModel @Inject constructor(
                 extra = mapOf("quality" to quality.logValue()),
             )
             throw error
+        }
+    }
+
+    private fun duplicateDownloadReason(item: MusicItem): String? {
+        val key = MediaKey.of(item)
+        return when {
+            downloader.downloadedKeys.value.contains(key) -> REASON_ALREADY_DOWNLOADED
+            downloader.tasks.value.any { it.key == key } -> REASON_ALREADY_IN_DOWNLOAD_QUEUE
+            else -> null
         }
     }
 
@@ -618,6 +641,69 @@ class PlayerViewModel @Inject constructor(
             result = LogFields.Result.SUCCESS,
             extra = mapOf("queueSize" to queueSize),
         )
+    }
+
+    fun playCurrentNext() {
+        val item = playerState.value.currentItem
+        if (item == null) {
+            logPlayerDetail(
+                event = "player_add_next_skipped",
+                operation = "add_next",
+                item = null,
+                result = LogFields.Result.SKIPPED,
+                reason = REASON_NO_CURRENT_ITEM,
+            )
+            return
+        }
+        playerController.addNextInQueue(item)
+        logPlayerDetail(
+            event = "player_add_next",
+            operation = "add_next",
+            item = item,
+            result = LogFields.Result.SUCCESS,
+        )
+    }
+
+    fun clearCurrentPluginCache() {
+        val item = playerState.value.currentItem
+        if (item == null) {
+            logPlayerDetail(
+                event = "player_plugin_cache_clear_skipped",
+                operation = "clear_plugin_cache",
+                item = null,
+                result = LogFields.Result.SKIPPED,
+                reason = REASON_NO_CURRENT_ITEM,
+            )
+            return
+        }
+        viewModelScope.launch {
+            try {
+                mediaCacheRepository.deleteItem(item.platform, item.id)
+                logPlayerDetail(
+                    event = "player_plugin_cache_clear",
+                    operation = "clear_plugin_cache",
+                    item = item,
+                    result = LogFields.Result.SUCCESS,
+                )
+            } catch (error: CancellationException) {
+                logPlayerDetail(
+                    event = "player_plugin_cache_clear_cancelled",
+                    operation = "clear_plugin_cache",
+                    item = item,
+                    result = LogFields.Result.CANCELLED,
+                    reason = LogFields.Reason.CANCELLED,
+                )
+                throw error
+            } catch (error: Throwable) {
+                logPlayerError(
+                    event = "player_plugin_cache_clear_failed",
+                    operation = "clear_plugin_cache",
+                    item = item,
+                    error = error,
+                )
+                _internalErrorEvents.tryEmit("清除插件缓存失败: ${error.message ?: error::class.simpleName}")
+            }
+        }
     }
 
     fun setLyricShowTranslation(enabled: Boolean) {
@@ -935,6 +1021,8 @@ private const val RESULT_START = "start"
 private const val REASON_INVALID_INDEX = "invalid_index"
 private const val REASON_NO_CURRENT_ITEM = "no_current_item"
 private const val REASON_NO_PENDING_ITEM = "no_pending_item"
+private const val REASON_ALREADY_DOWNLOADED = "already_downloaded"
+private const val REASON_ALREADY_IN_DOWNLOAD_QUEUE = "already_in_download_queue"
 private val REASON_NONE: String? = null
 
 private fun logPlayerDetail(

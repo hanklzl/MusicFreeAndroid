@@ -125,6 +125,52 @@ class MediaCacheRepository private constructor(
         }
     }
 
+    /** Delete all cached qualities for one song from DB and memory. */
+    suspend fun deleteItem(platform: String, id: String) = mutex.withLock {
+        val startedAt = System.nanoTime()
+        try {
+            dao.delete(platform, id)
+            memory.remove(memoryKey(platform, id))
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = "delete_media_cache_item",
+                fields = mapOf(
+                    "platform" to platform,
+                    "itemId" to id,
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.SUCCESS,
+                ),
+            )
+        } catch (error: CancellationException) {
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = "delete_media_cache_item",
+                fields = mapOf(
+                    "platform" to platform,
+                    "itemId" to id,
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.CANCELLED,
+                    "reason" to LogFields.Reason.CANCELLED,
+                ),
+            )
+            throw error
+        } catch (error: Throwable) {
+            MfLog.error(
+                category = LogCategory.DATA,
+                event = "delete_media_cache_item",
+                throwable = error,
+                fields = mapOf(
+                    "platform" to platform,
+                    "itemId" to id,
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.FAILURE,
+                    "reason" to "exception",
+                ),
+            )
+            throw error
+        }
+    }
+
     /**
      * Remove a single quality key from one row. If no quality keys remain the row is
      * deleted entirely. Memory layer is synced to match.

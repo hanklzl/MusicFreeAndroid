@@ -89,6 +89,24 @@ class MediaCacheRepositoryDeleteTest {
         assertNotNull(dao.get("kuwo", "1"))
     }
 
+    @Test fun `deleteItem removes all quality keys and clears memory`() = runTest {
+        repo.put(item, PlayQuality.STANDARD, MediaSourceResult("http://std", null, null, PlayQuality.STANDARD))
+        repo.put(item, PlayQuality.HIGH, MediaSourceResult("http://hi", null, null, PlayQuality.HIGH))
+
+        // Warm memory with the full row so the delete must clear both DB and LRU.
+        assertNotNull(repo.get(item, PlayQuality.STANDARD))
+        assertNotNull(repo.get(item, PlayQuality.HIGH))
+        repo.get(item, PlayQuality.HIGH)
+        assertEquals(true, repo.lastHitFromMemory)
+
+        repo.deleteItem("kuwo", "1")
+
+        assertNull(dao.get("kuwo", "1"))
+        assertNull(repo.get(item, PlayQuality.STANDARD))
+        assertNull(repo.get(item, PlayQuality.HIGH))
+        assertFalse("memory should be cleared after deleteItem", repo.lastHitFromMemory)
+    }
+
     @Test fun `deleteEntry deletes row when last quality is removed`() = runTest {
         repo.put(item, PlayQuality.STANDARD, MediaSourceResult("http://std", null, null, PlayQuality.STANDARD))
 
