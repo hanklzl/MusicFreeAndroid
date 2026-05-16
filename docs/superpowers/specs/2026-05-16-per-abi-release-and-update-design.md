@@ -97,7 +97,7 @@ splits {
 - `app/build/outputs/apk/release/MusicFreeAndroid-arm64-v8a-release.apk`
 - `app/build/outputs/apk/release/MusicFreeAndroid-x86_64-release.apk`
 
-不再生成 `app-release.apk`（universal）。`assembleDebug` 不启用 splits（保持原 universal 行为，方便本地 debug 装机）。
+不再生成 `app-release.apk`（universal）。`assembleDebug` 也启用 splits，保持本地构建与 CI 行为一致，避免开发期出现路径/产物差异。
 
 #### 3.2.2 archivesName
 

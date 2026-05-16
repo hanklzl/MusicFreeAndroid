@@ -3,8 +3,8 @@ package com.zili.android.musicfreeandroid.updater.downloader
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.LogFields
 import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.updater.checker.ResolvedUpdate
 import com.zili.android.musicfreeandroid.updater.checker.UpdateError
-import com.zili.android.musicfreeandroid.updater.model.UpdateInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Call
@@ -22,18 +22,27 @@ class OkHttpApkDownloader constructor(
     private val currentCall = AtomicReference<Call?>(null)
 
     override suspend fun download(
-        info: UpdateInfo,
+        update: ResolvedUpdate,
         onProgress: (Long, Long, Float) -> Unit,
     ): ApkDownloader.Result = withContext(Dispatchers.IO) {
         val startedAt = System.currentTimeMillis()
+        val versionCode = update.info.versionCode
+        val abi = update.abi
+        val variant = update.variant
         val dir = cacheRoot().apply { mkdirs() }
-        val finalFile = File(dir, "musicfree-${info.versionCode}.apk")
-        val partFile = File(dir, "musicfree-${info.versionCode}.apk.part")
+        val finalFile = File(dir, "musicfree-${versionCode}-${abi}.apk")
+        val partFile = File(dir, "musicfree-${versionCode}-${abi}.apk.part")
         partFile.delete()
         finalFile.delete()
 
-        for ((index, url) in info.download.withIndex()) {
-            val outcome = tryDownload(info = info, url = url, target = partFile, onProgress = onProgress)
+        for ((index, url) in variant.download.withIndex()) {
+            val outcome = tryDownload(
+                variantSize = variant.size,
+                variantSha256 = variant.sha256,
+                url = url,
+                target = partFile,
+                onProgress = onProgress,
+            )
             when (outcome) {
                 is StepOutcome.Ok -> {
                     if (!partFile.renameTo(finalFile)) {
@@ -43,7 +52,8 @@ class OkHttpApkDownloader constructor(
                             event = "apk_download_failed",
                             fields = mapOf(
                                 "cause" to UpdateError.Network.name,
-                                "versionCode" to info.versionCode,
+                                "versionCode" to versionCode,
+                                "abi" to abi,
                                 "reason" to "rename_failed",
                             ),
                         )
@@ -53,8 +63,9 @@ class OkHttpApkDownloader constructor(
                         category = LogCategory.UPDATE,
                         event = "apk_download_complete",
                         fields = mapOf(
-                            "versionCode" to info.versionCode,
-                            "bytes" to info.size,
+                            "versionCode" to versionCode,
+                            "abi" to abi,
+                            "bytes" to variant.size,
                             "durationMs" to (System.currentTimeMillis() - startedAt),
                             "result" to LogFields.Result.SUCCESS,
                         ),
@@ -68,7 +79,8 @@ class OkHttpApkDownloader constructor(
                         event = "apk_download_failed",
                         fields = mapOf(
                             "cause" to outcome.cause.name,
-                            "versionCode" to info.versionCode,
+                            "versionCode" to versionCode,
+                            "abi" to abi,
                             "durationMs" to (System.currentTimeMillis() - startedAt),
                         ),
                     )
@@ -76,13 +88,14 @@ class OkHttpApkDownloader constructor(
                 }
                 is StepOutcome.SoftFail -> {
                     partFile.delete()
-                    if (index == info.download.lastIndex) {
+                    if (index == variant.download.lastIndex) {
                         MfLog.error(
                             category = LogCategory.UPDATE,
                             event = "apk_download_failed",
                             fields = mapOf(
                                 "cause" to UpdateError.Network.name,
-                                "versionCode" to info.versionCode,
+                                "versionCode" to versionCode,
+                                "abi" to abi,
                                 "durationMs" to (System.currentTimeMillis() - startedAt),
                                 "mirrorsExhausted" to true,
                             ),
@@ -105,7 +118,8 @@ class OkHttpApkDownloader constructor(
     }
 
     private fun tryDownload(
-        info: UpdateInfo,
+        variantSize: Long,
+        variantSha256: String,
         url: String,
         target: File,
         onProgress: (Long, Long, Float) -> Unit,
@@ -116,10 +130,9 @@ class OkHttpApkDownloader constructor(
         return try {
             call.execute().use { response ->
                 if (!response.isSuccessful) return StepOutcome.SoftFail
-                // OkHttp 5.x: response.body is non-null
                 val body = response.body
                 val advertised = body.contentLength()
-                if (advertised >= 0 && advertised != info.size) {
+                if (advertised >= 0 && advertised != variantSize) {
                     return StepOutcome.HardFail(UpdateError.SizeMismatch)
                 }
                 val digest = MessageDigest.getInstance("SHA-256")
@@ -133,14 +146,14 @@ class OkHttpApkDownloader constructor(
                             out.write(buf, 0, n)
                             digest.update(buf, 0, n)
                             written += n
-                            val fraction = if (info.size > 0) (written.toFloat() / info.size) else 0f
-                            onProgress(written, info.size, fraction.coerceIn(0f, 1f))
+                            val fraction = if (variantSize > 0) (written.toFloat() / variantSize) else 0f
+                            onProgress(written, variantSize, fraction.coerceIn(0f, 1f))
                         }
                     }
                 }
-                if (written != info.size) return StepOutcome.HardFail(UpdateError.SizeMismatch)
+                if (written != variantSize) return StepOutcome.HardFail(UpdateError.SizeMismatch)
                 val actual = digest.digest().joinToString("") { "%02x".format(it) }
-                if (!actual.equals(info.sha256, ignoreCase = true)) {
+                if (!actual.equals(variantSha256, ignoreCase = true)) {
                     return StepOutcome.HardFail(UpdateError.Sha256Mismatch)
                 }
                 StepOutcome.Ok

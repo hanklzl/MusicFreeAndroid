@@ -23,9 +23,14 @@ jobs:
     permissions:
       contents: read
     outputs:
-      apk-name: ${{ steps.name-apk.outputs.apk_name }}
-      apk-sha256: ${{ steps.apk-meta.outputs.sha256 }}
-      apk-size: ${{ steps.apk-meta.outputs.size }}
+      apk-arm64-name: ${{ steps.name-apk.outputs.apk_arm64_v8a_name }}
+      apk-arm64-sha256: ${{ steps.apk-meta.outputs.sha256_arm64_v8a }}
+      apk-arm64-size: ${{ steps.apk-meta.outputs.size_arm64_v8a }}
+      apk-x86-64-name: ${{ steps.name-apk.outputs.apk_x86_64_name }}
+      apk-x86-64-sha256: ${{ steps.apk-meta.outputs.sha256_x86_64 }}
+      apk-x86-64-size: ${{ steps.apk-meta.outputs.size_x86_64 }}
+      mapping-name: ${{ steps.pack-mapping.outputs.mapping_name }}
+      mapping-sha256: ${{ steps.pack-mapping.outputs.mapping_sha256 }}
 
     steps:
       - name: Checkout
@@ -114,36 +119,91 @@ jobs:
           LOGAN_AES_IV: ${{ secrets.LOGAN_AES_IV }}
         run: ./gradlew :app:assembleRelease --no-daemon
 
-      - name: Name APK
+      - name: Name APKs
         id: name-apk
         if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            apk_name="MusicFreeAndroid-${GITHUB_REF_NAME}.apk"
+            tag_or_label="$GITHUB_REF_NAME"
           elif [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
-            apk_name="MusicFreeAndroid-nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD).apk"
+            tag_or_label="nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
           else
-            apk_name="MusicFreeAndroid-manual-${GITHUB_RUN_NUMBER}.apk"
+            tag_or_label="manual-${GITHUB_RUN_NUMBER}"
           fi
-          cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/$apk_name"
-          echo "apk_name=$apk_name" >> "$GITHUB_OUTPUT"
+          arm_src="app/build/outputs/apk/release/MusicFreeAndroid-arm64-v8a-release.apk"
+          x64_src="app/build/outputs/apk/release/MusicFreeAndroid-x86_64-release.apk"
+          if [ ! -f "$arm_src" ] || [ ! -f "$x64_src" ]; then
+            echo "::error::expected per-ABI APKs not produced; saw:"
+            ls -la app/build/outputs/apk/release/
+            exit 1
+          fi
+          arm_name="MusicFreeAndroid-${tag_or_label}-arm64-v8a.apk"
+          x64_name="MusicFreeAndroid-${tag_or_label}-x86_64.apk"
+          cp "$arm_src" "$RUNNER_TEMP/$arm_name"
+          cp "$x64_src" "$RUNNER_TEMP/$x64_name"
+          {
+            echo "apk_arm64_v8a_name=$arm_name"
+            echo "apk_x86_64_name=$x64_name"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Compute APK sha256 + size
         id: apk-meta
         if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         run: |
-          apk="$RUNNER_TEMP/${{ steps.name-apk.outputs.apk_name }}"
-          echo "sha256=$(sha256sum "$apk" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
-          echo "size=$(wc -c < "$apk")" >> "$GITHUB_OUTPUT"
+          arm_apk="$RUNNER_TEMP/${{ steps.name-apk.outputs.apk_arm64_v8a_name }}"
+          x64_apk="$RUNNER_TEMP/${{ steps.name-apk.outputs.apk_x86_64_name }}"
+          {
+            echo "sha256_arm64_v8a=$(sha256sum "$arm_apk" | awk '{print $1}')"
+            echo "size_arm64_v8a=$(wc -c < "$arm_apk")"
+            echo "sha256_x86_64=$(sha256sum "$x64_apk" | awk '{print $1}')"
+            echo "size_x86_64=$(wc -c < "$x64_apk")"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Upload Release APK artifact
+      - name: Pack mapping
+        id: pack-mapping
+        if: github.ref_type == 'tag'
+        run: |
+          mapping_src="app/build/outputs/mapping/release/mapping.txt"
+          if [ ! -f "$mapping_src" ]; then
+            echo "::error::expected mapping.txt not produced at $mapping_src"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/mapping"
+          cp "$mapping_src" "$RUNNER_TEMP/mapping/"
+          mapping_name="mapping-${GITHUB_REF_NAME}.zip"
+          (cd "$RUNNER_TEMP" && zip -9q "$mapping_name" mapping/mapping.txt)
+          sha=$(sha256sum "$RUNNER_TEMP/$mapping_name" | awk '{print $1}')
+          {
+            echo "mapping_name=$mapping_name"
+            echo "mapping_sha256=$sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload Release APK artifact (arm64-v8a)
         if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         uses: actions/upload-artifact@v7
         with:
-          name: MusicFreeAndroid-release-apk
-          path: ${{ runner.temp }}/${{ steps.name-apk.outputs.apk_name }}
+          name: MusicFreeAndroid-release-apk-arm64-v8a
+          path: ${{ runner.temp }}/${{ steps.name-apk.outputs.apk_arm64_v8a_name }}
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload Release APK artifact (x86_64)
+        if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
+        uses: actions/upload-artifact@v7
+        with:
+          name: MusicFreeAndroid-release-apk-x86_64
+          path: ${{ runner.temp }}/${{ steps.name-apk.outputs.apk_x86_64_name }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload mapping artifact
+        if: github.ref_type == 'tag'
+        uses: actions/upload-artifact@v7
+        with:
+          name: MusicFreeAndroid-release-mapping
+          path: ${{ runner.temp }}/${{ steps.pack-mapping.outputs.mapping_name }}
+          if-no-files-found: error
+          retention-days: 90
 
   publish-github-release:
     name: Publish GitHub Release
@@ -159,11 +219,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download Release APK artifact
+      - name: Download Release APK artifact (arm64-v8a)
         uses: actions/download-artifact@v7
         with:
-          name: MusicFreeAndroid-release-apk
-          path: release-apk
+          name: MusicFreeAndroid-release-apk-arm64-v8a
+          path: release-apk-arm64
+
+      - name: Download Release APK artifact (x86_64)
+        uses: actions/download-artifact@v7
+        with:
+          name: MusicFreeAndroid-release-apk-x86_64
+          path: release-apk-x86_64
+
+      - name: Download mapping artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: MusicFreeAndroid-release-mapping
+          path: release-mapping
 
       - name: Generate release notes
         env:
@@ -172,7 +244,26 @@ jobs:
           prev=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null \
                  || git rev-list --max-parents=0 HEAD | tail -1)
           bash scripts/release/generate-notes.sh "$prev" "$GITHUB_REF_NAME" > release_notes.md
-          head -30 release_notes.md
+          # 追加构建产物矩阵
+          arm_apk="${{ needs.build-release-apk.outputs.apk-arm64-name }}"
+          x64_apk="${{ needs.build-release-apk.outputs.apk-x86-64-name }}"
+          map_zip="${{ needs.build-release-apk.outputs.mapping-name }}"
+          arm_size_human=$(numfmt --to=iec --suffix=B "${{ needs.build-release-apk.outputs.apk-arm64-size }}")
+          x64_size_human=$(numfmt --to=iec --suffix=B "${{ needs.build-release-apk.outputs.apk-x86-64-size }}")
+          arm_sha_short=$(echo "${{ needs.build-release-apk.outputs.apk-arm64-sha256 }}" | cut -c1-12)
+          x64_sha_short=$(echo "${{ needs.build-release-apk.outputs.apk-x86-64-sha256 }}" | cut -c1-12)
+          map_sha_short=$(echo "${{ needs.build-release-apk.outputs.mapping-sha256 }}" | cut -c1-12)
+          {
+            echo ""
+            echo "### 构建产物"
+            echo ""
+            echo "- arm64-v8a: \`${arm_apk}\` · ${arm_size_human} · sha256 \`${arm_sha_short}\`"
+            echo "- x86_64: \`${x64_apk}\` · ${x64_size_human} · sha256 \`${x64_sha_short}\`"
+            echo "- mapping: \`${map_zip}\` · sha256 \`${map_sha_short}\` (R8 反混淆用)"
+            echo ""
+            echo "> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。"
+          } >> release_notes.md
+          head -60 release_notes.md
 
       - name: Upload release notes artifact
         uses: actions/upload-artifact@v7
@@ -203,12 +294,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          apk_path="release-apk/${{ needs.build-release-apk.outputs.apk-name }}"
+          arm_path="release-apk-arm64/${{ needs.build-release-apk.outputs.apk-arm64-name }}"
+          x64_path="release-apk-x86_64/${{ needs.build-release-apk.outputs.apk-x86-64-name }}"
+          map_path="release-mapping/${{ needs.build-release-apk.outputs.mapping-name }}"
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "$apk_path" --clobber
+            gh release upload "$GITHUB_REF_NAME" "$arm_path" "$x64_path" "$map_path" --clobber
             gh release edit "$GITHUB_REF_NAME" --notes-file release_notes.md
           else
-            gh release create "$GITHUB_REF_NAME" "$apk_path" \
+            gh release create "$GITHUB_REF_NAME" "$arm_path" "$x64_path" "$map_path" \
               --title "$GITHUB_REF_NAME" \
               --notes-file release_notes.md
           fi
@@ -263,9 +356,10 @@ jobs:
               --version "${GITHUB_REF_NAME#v}" \
               --version-code "$vcode" \
               --tag "$GITHUB_REF_NAME" \
-              --sha256 "${{ needs.build-release-apk.outputs.apk-sha256 }}" \
-              --size "${{ needs.build-release-apk.outputs.apk-size }}" \
-              --apk-name "${{ needs.build-release-apk.outputs.apk-name }}" \
+              --variant "arm64-v8a=${{ needs.build-release-apk.outputs.apk-arm64-name }},${{ needs.build-release-apk.outputs.apk-arm64-sha256 }},${{ needs.build-release-apk.outputs.apk-arm64-size }}" \
+              --variant "x86_64=${{ needs.build-release-apk.outputs.apk-x86-64-name }},${{ needs.build-release-apk.outputs.apk-x86-64-sha256 }},${{ needs.build-release-apk.outputs.apk-x86-64-size }}" \
+              --mapping-name "${{ needs.build-release-apk.outputs.mapping-name }}" \
+              --mapping-sha256 "${{ needs.build-release-apk.outputs.mapping-sha256 }}" \
               --notes source/release_notes.md \
               > gh-pages/release/version.json
           jq . gh-pages/release/version.json

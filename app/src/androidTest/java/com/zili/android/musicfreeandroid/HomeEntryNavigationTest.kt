@@ -5,6 +5,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -123,7 +124,26 @@ class HomeEntryNavigationTest {
     @Test
     fun checkUpdateEntry_opensUpdateCheckDialog() {
         openDrawerDestination(FidelityAnchors.Home.DrawerSoftwareCheckUpdate)
-        assertTagExists(FidelityAnchors.Dialog.UpdateCheckRoot)
+        composeRule.onNode(hasTestTag(FidelityAnchors.Dialog.UpdateCheckRoot))
+            .assertExists()
+        // dialog 内至少应能 render 一个状态文案（Checking / UpToDate / Failed / Available 等）
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            runCatching {
+                composeRule.onNode(
+                    hasText("正在检查更新", substring = true)
+                        .or(hasText("已是最新版本", substring = true))
+                        .or(hasText("发现新版本", substring = true))
+                        .or(hasText("检查更新失败", substring = true))
+                ).fetchSemanticsNode()
+                true
+            }.getOrElse { false }
+        }
+        composeRule.onNode(
+            hasText("正在检查更新", substring = true)
+                .or(hasText("已是最新版本", substring = true))
+                .or(hasText("发现新版本", substring = true))
+                .or(hasText("检查更新失败", substring = true))
+        ).assertExists()
     }
 
     @Test

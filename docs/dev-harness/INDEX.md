@@ -34,6 +34,7 @@
 ## 发布流程
 
 - 发布流程详见根目录 `RELEASE.md` 与 `docs/superpowers/specs/2026-05-13-android-release-pipeline-design.md`。
+- 分 ABI 发布与更新链路（双 APK + mapping 归档 + 侧栏检查更新）：详见 [docs/superpowers/specs/2026-05-16-per-abi-release-and-update-design.md](../superpowers/specs/2026-05-16-per-abi-release-and-update-design.md)。
 
 ## 项目记忆边界
 

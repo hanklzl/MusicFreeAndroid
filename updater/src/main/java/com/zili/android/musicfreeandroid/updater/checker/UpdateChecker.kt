@@ -14,10 +14,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.io.File
 
 class UpdateChecker(
     private val client: UpdateClient,
     private val prefs: UpdatePreferences,
+    private val abiResolver: AbiResolver,
     private val localCode: Long,
     private val localName: String,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob()),
@@ -53,10 +55,10 @@ class UpdateChecker(
                             event = "update_check_failed",
                             fields = mapOf("cause" to UpdateError.Network.name),
                         )
-                        _state.value = UpdateState.Failed(info = null, cause = UpdateError.Network)
+                        _state.value = UpdateState.Failed(update = null, cause = UpdateError.Network)
                         return@withLock
                     }
-                if (info.schemaVersion > UpdateInfo.SUPPORTED_SCHEMA_VERSION) {
+                if (info.schemaVersion > UpdateInfo.SUPPORTED_SCHEMA_VERSION || info.variants.isEmpty()) {
                     MfLog.error(
                         category = LogCategory.UPDATE,
                         event = "update_check_failed",
@@ -64,9 +66,10 @@ class UpdateChecker(
                             "cause" to UpdateError.SchemaUnsupported.name,
                             "remoteSchema" to info.schemaVersion,
                             "supportedSchema" to UpdateInfo.SUPPORTED_SCHEMA_VERSION,
+                            "variantsCount" to info.variants.size,
                         ),
                     )
-                    _state.value = UpdateState.Failed(info = info, cause = UpdateError.SchemaUnsupported)
+                    _state.value = UpdateState.Failed(update = null, cause = UpdateError.SchemaUnsupported)
                     return@withLock
                 }
                 val outcome = VersionCompare.compare(
@@ -96,20 +99,34 @@ class UpdateChecker(
                             event = "update_check_failed",
                             fields = mapOf("cause" to UpdateError.SchemaUnsupported.name),
                         )
-                        _state.value = UpdateState.Failed(info = info, cause = UpdateError.SchemaUnsupported)
+                        _state.value = UpdateState.Failed(update = null, cause = UpdateError.SchemaUnsupported)
                     }
                     VersionCompare.Outcome.NewerAvailable -> {
+                        val resolved = abiResolver.resolve(info)
+                            ?: run {
+                                MfLog.error(
+                                    category = LogCategory.UPDATE,
+                                    event = "update_check_failed",
+                                    fields = mapOf(
+                                        "cause" to UpdateError.UnsupportedAbi.name,
+                                        "variants" to info.variants.keys.joinToString(","),
+                                    ),
+                                )
+                                _state.value = UpdateState.Failed(update = null, cause = UpdateError.UnsupportedAbi)
+                                return@withLock
+                            }
                         prefs.setLastCheckedAt(now())
                         prefs.setLastSeenVersion(info.version)
                         val skip = if (respectSkip) prefs.getSkipVersion() else null
                         val isSkipped = skip != null && skip == info.version
-                        _state.value = UpdateState.Available(info = info, skipped = isSkipped)
+                        _state.value = UpdateState.Available(update = resolved, skipped = isSkipped)
                         MfLog.trace(
                             category = LogCategory.UPDATE,
                             event = "update_check_complete",
                             fields = mapOf(
                                 "outcome" to "newer_available",
                                 "versionCode" to info.versionCode,
+                                "abi" to resolved.abi,
                                 "respectSkip" to respectSkip,
                                 "result" to if (isSkipped) LogFields.Result.SKIPPED else LogFields.Result.SUCCESS,
                             ),
@@ -120,24 +137,24 @@ class UpdateChecker(
         }
     }
 
-    suspend fun markSkipped(info: UpdateInfo) {
-        prefs.setSkipVersion(info.version)
-        _state.value = UpdateState.Available(info = info, skipped = true)
+    suspend fun markSkipped(update: ResolvedUpdate) {
+        prefs.setSkipVersion(update.info.version)
+        _state.value = UpdateState.Available(update = update, skipped = true)
     }
 
-    fun transitionDownloading(info: UpdateInfo, progress: Float, bytes: Long, total: Long) {
-        _state.value = UpdateState.Downloading(info, progress, bytes, total)
+    fun transitionDownloading(update: ResolvedUpdate, progress: Float, bytes: Long, total: Long) {
+        _state.value = UpdateState.Downloading(update, progress, bytes, total)
     }
 
-    fun transitionReady(info: UpdateInfo, file: java.io.File) {
-        _state.value = UpdateState.ReadyToInstall(info, file)
+    fun transitionReady(update: ResolvedUpdate, file: File) {
+        _state.value = UpdateState.ReadyToInstall(update, file)
     }
 
-    fun transitionFailed(info: UpdateInfo?, cause: UpdateError) {
-        _state.value = UpdateState.Failed(info, cause)
+    fun transitionFailed(update: ResolvedUpdate?, cause: UpdateError) {
+        _state.value = UpdateState.Failed(update, cause)
     }
 
-    fun transitionAvailable(info: UpdateInfo, skipped: Boolean) {
-        _state.value = UpdateState.Available(info, skipped)
+    fun transitionAvailable(update: ResolvedUpdate, skipped: Boolean) {
+        _state.value = UpdateState.Available(update, skipped)
     }
 }

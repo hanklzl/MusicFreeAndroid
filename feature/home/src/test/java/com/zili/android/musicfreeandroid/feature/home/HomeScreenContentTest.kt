@@ -17,6 +17,7 @@ class HomeScreenContentTest {
         handleDrawerEntryClick(
             state = state,
             action = HomeDrawerAction.OpenSettingsRoot,
+            onTriggerManualUpdateCheck = {},
         ) {
             events += if (state.isDrawerOpen) "delegate-open" else "delegate-closed"
         }
@@ -35,6 +36,7 @@ class HomeScreenContentTest {
         handleDrawerEntryClick(
             state = state,
             action = HomeDrawerAction.ShowScheduleClosePanel,
+            onTriggerManualUpdateCheck = {},
         ) {
             delegateCalled = true
         }

@@ -25,16 +25,23 @@ import com.zili.android.musicfreeandroid.feature.home.component.HomeOperations
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
 import com.zili.android.musicfreeandroid.feature.home.sheets.homeSheetsSection
+import com.zili.android.musicfreeandroid.updater.checker.UpdateChecker
+import com.zili.android.musicfreeandroid.updater.downloader.ApkDownloader
+import com.zili.android.musicfreeandroid.updater.installer.ApkInstaller
 
 internal fun handleDrawerEntryClick(
     state: HomeScreenState,
     action: HomeDrawerAction,
+    onTriggerManualUpdateCheck: () -> Unit,
     onDrawerEntryClick: (HomeDrawerAction) -> Unit,
 ) {
     state.closeDrawer()
     when (action) {
         HomeDrawerAction.ShowScheduleClosePanel -> state.showTimingCloseDialog()
-        HomeDrawerAction.ShowUpdateCheckDialog -> state.showUpdateCheck()
+        HomeDrawerAction.TriggerManualUpdateCheck -> {
+            onTriggerManualUpdateCheck()
+            state.showUpdateCheck()
+        }
         else -> onDrawerEntryClick(action)
     }
 }
@@ -46,7 +53,9 @@ fun HomeScreenContent(
     drawerUiModel: HomeDrawerUiModel,
     currentVersion: String,
     scheduleCloseSummary: String,
-    hasUpdateRedDot: Boolean = false,
+    checker: UpdateChecker,
+    downloader: ApkDownloader,
+    installer: ApkInstaller,
     onDrawerEntryClick: (HomeDrawerAction) -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToRecommendSheets: () -> Unit,
@@ -92,11 +101,11 @@ fun HomeScreenContent(
         drawerContent = {
             HomeDrawerContent(
                 uiModel = drawerUiModel,
-                hasUpdateRedDot = hasUpdateRedDot,
                 onEntryClick = { action ->
                     handleDrawerEntryClick(
                         state = state,
                         action = action,
+                        onTriggerManualUpdateCheck = { checker.checkManually() },
                         onDrawerEntryClick = onDrawerEntryClick,
                     )
                 },
@@ -149,6 +158,9 @@ fun HomeScreenContent(
         isUpdateCheckVisible = state.isUpdateCheckVisible,
         currentVersion = currentVersion,
         scheduleCloseSummary = scheduleCloseSummary,
+        checker = checker,
+        downloader = downloader,
+        installer = installer,
         onDismissTimingClose = state::dismissTimingCloseDialog,
         onDismissUpdateCheck = state::dismissUpdateCheck,
     )

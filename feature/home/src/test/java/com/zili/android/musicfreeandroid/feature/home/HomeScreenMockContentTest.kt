@@ -10,10 +10,17 @@ import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchorPatterns
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetTab
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
+import com.zili.android.musicfreeandroid.updater.checker.UpdateChecker
+import com.zili.android.musicfreeandroid.updater.checker.UpdateState
+import com.zili.android.musicfreeandroid.updater.downloader.ApkDownloader
+import com.zili.android.musicfreeandroid.updater.installer.ApkInstaller
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -23,6 +30,12 @@ class HomeScreenMockContentTest {
 
     @get:Rule
     val composeRule = createComposeRule()
+
+    private val fakeChecker: UpdateChecker = mock<UpdateChecker>().also {
+        whenever(it.state).thenReturn(MutableStateFlow(UpdateState.Idle))
+    }
+    private val fakeDownloader: ApkDownloader = mock()
+    private val fakeInstaller: ApkInstaller = mock()
 
     private val fakeMineRows = listOf(
         HomeSheetUiModel(
@@ -59,6 +72,9 @@ class HomeScreenMockContentTest {
                     ),
                     currentVersion = "1.0.0",
                     scheduleCloseSummary = "",
+                    checker = fakeChecker,
+                    downloader = fakeDownloader,
+                    installer = fakeInstaller,
                     onDrawerEntryClick = {},
                     onNavigateToSearch = {},
                     onNavigateToRecommendSheets = {},

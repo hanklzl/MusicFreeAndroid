@@ -53,6 +53,7 @@ fun quotedBuildConfigString(value: String): String =
 
 android {
     namespace = "com.zili.android.musicfreeandroid"
+    base.archivesName = "MusicFreeAndroid"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -111,6 +112,16 @@ android {
             }
         }
     }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "x86_64")
+            isUniversalApk = false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

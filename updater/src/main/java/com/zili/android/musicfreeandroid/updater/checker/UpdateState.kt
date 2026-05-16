@@ -1,6 +1,5 @@
 package com.zili.android.musicfreeandroid.updater.checker
 
-import com.zili.android.musicfreeandroid.updater.model.UpdateInfo
 import java.io.File
 
 sealed interface UpdateState {
@@ -11,24 +10,24 @@ sealed interface UpdateState {
     data class UpToDate(val checkedAtEpochMillis: Long) : UpdateState
 
     data class Available(
-        val info: UpdateInfo,
+        val update: ResolvedUpdate,
         val skipped: Boolean,
     ) : UpdateState
 
     data class Downloading(
-        val info: UpdateInfo,
+        val update: ResolvedUpdate,
         val progress: Float,
         val bytes: Long,
         val total: Long,
     ) : UpdateState
 
     data class ReadyToInstall(
-        val info: UpdateInfo,
+        val update: ResolvedUpdate,
         val apkFile: File,
     ) : UpdateState
 
     data class Failed(
-        val info: UpdateInfo?,
+        val update: ResolvedUpdate?,
         val cause: UpdateError,
     ) : UpdateState
 
@@ -39,6 +38,7 @@ sealed interface UpdateState {
 enum class UpdateError {
     Network,
     SchemaUnsupported,
+    UnsupportedAbi,
     SizeMismatch,
     Sha256Mismatch,
     Canceled,

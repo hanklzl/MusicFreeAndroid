@@ -43,14 +43,15 @@
 5. `git tag v1.2.3`
 6. `git push origin main && git push origin v1.2.3`
 7. 观察 [GitHub Actions](https://github.com/hanklzl/MusicFreeAndroid/actions) 完成；验证：
-   - Release 已创建，notes 完整
+   - Release 已创建并含 3 个 asset：`MusicFreeAndroid-v1.2.3-arm64-v8a.apk`、`MusicFreeAndroid-v1.2.3-x86_64.apk`、`mapping-v1.2.3.zip`
+   - notes 末尾「构建产物」矩阵列全
    - `main` 上有 `docs(changelog): release v1.2.3 [skip ci]` 自动 commit
-   - `gh-pages/release/version.json` 已更新
+   - `gh-pages/release/version.json` schemaVersion=2、`variants` 双 key、`mapping.url` 指向 release asset
    - jsdelivr 镜像可拉：
      ```bash
      curl -I https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@gh-pages/release/version.json
      ```
-8. 装一台测试机冷启动验证启动 dialog → 下载 → 安装链路（首次 release 时必须做）。
+8. 装一台测试机冷启动验证启动 dialog → 下载 → 安装链路（arm64 与 x86_64 模拟器各一次）。
 
 ## 本地干跑 CI step
 
@@ -83,15 +84,27 @@ export LOGAN_AES_IV=abcdef0123456789
 ```bash
 source .env.release.local
 ./gradlew clean :app:assembleRelease --no-daemon
-ls -lh app/build/outputs/apk/release/app-release.apk
+ls -lh app/build/outputs/apk/release/MusicFreeAndroid-arm64-v8a-release.apk \
+       app/build/outputs/apk/release/MusicFreeAndroid-x86_64-release.apk
 ```
 
 ### `[dry] Compute APK sha256 + size`
 
 ```bash
-APK=app/build/outputs/apk/release/app-release.apk
-sha256sum "$APK" | awk '{print $1}'
-wc -c < "$APK"
+for abi in arm64-v8a x86_64; do
+  APK="app/build/outputs/apk/release/MusicFreeAndroid-${abi}-release.apk"
+  sha256sum "$APK" | awk '{print $1}'
+  wc -c < "$APK"
+done
+```
+
+### `[dry] Pack mapping`
+
+```bash
+mkdir -p /tmp/mf-mapping/mapping
+cp app/build/outputs/mapping/release/mapping.txt /tmp/mf-mapping/mapping/
+(cd /tmp/mf-mapping && zip -9q "mapping-v1.2.3.zip" mapping/mapping.txt)
+sha256sum /tmp/mf-mapping/mapping-v1.2.3.zip
 ```
 
 ### `[dry] Generate release notes`
@@ -121,11 +134,13 @@ bash scripts/release/build-version-json.sh \
     --version 1.2.3 \
     --version-code 10203 \
     --tag v1.2.3 \
-    --apk "$APK" \
-    --apk-name "MusicFreeAndroid-v1.2.3.apk" \
+    --variant "arm64-v8a=MusicFreeAndroid-v1.2.3-arm64-v8a.apk,<sha_arm>,<size_arm>" \
+    --variant "x86_64=MusicFreeAndroid-v1.2.3-x86_64.apk,<sha_x64>,<size_x64>" \
+    --mapping-name "mapping-v1.2.3.zip" \
+    --mapping-sha256 "<sha_mapping>" \
     --notes /tmp/release_notes.md \
     > /tmp/version.json
-jq . /tmp/version.json   # 语法校验
+jq . /tmp/version.json
 ```
 
 ### `[dry] Full pre-flight`
@@ -159,6 +174,23 @@ git push origin main
 git push --force-with-lease origin <gh-pages-prev-sha>:gh-pages
 ```
 
+## 线上崩溃反混淆
+
+线上某次崩溃需要恢复行号 / 类名，用对应 release tag 的 mapping zip：
+
+```bash
+gh release download v1.2.3 --pattern 'mapping-*.zip' --dir /tmp/mf-retrace/
+unzip /tmp/mf-retrace/mapping-v1.2.3.zip -d /tmp/mf-retrace/v1.2.3/
+
+# CLI retrace
+~/Library/Android/sdk/tools/proguard/bin/retrace.sh \
+    /tmp/mf-retrace/v1.2.3/mapping/mapping.txt \
+    crash.txt
+# 或者 IDEA: Tools → ReTrace → 选 mapping.txt + 贴堆栈
+```
+
+mapping zip 永久存在 GitHub Release asset 上，按 tag 一一对应。
+
 ## 故障排查
 
 | 现象 | 排查 |
@@ -169,3 +201,6 @@ git push --force-with-lease origin <gh-pages-prev-sha>:gh-pages
 | 客户端拉不到 `version.json` | 检查 `gh-pages` 分支；jsdelivr 缓存最多 12h；强制刷新 `https://purge.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@gh-pages/release/version.json` |
 | 用户装不上 | 检查 applicationId（release vs debug 不可覆盖）；用户系统设置「允许此应用安装未知来源」未开 |
 | 弹窗"安装包校验失败" | sha256 不匹配；通常是 jsdelivr 缓存旧 APK，命令同上强刷 |
+| 「设备架构不受支持」对话框 | 设备 ABI 不在 `arm64-v8a / x86_64` 内（如 32-bit only）；引导用户手动到 GitHub Release 页确认 |
+| 老 v1.0.x 客户端见「请前往 GitHub 下载新版」 | schemaVersion=2 兼容路径，预期；引导手动下载对应 ABI APK |
+| Release 缺少 mapping zip | 检查 build-release-apk job 的 `Pack mapping` step 是否在 tag 路径触发；mapping.txt 必须先由 R8 生成 |

@@ -1,61 +1,93 @@
 #!/usr/bin/env bash
-# Usage: preflight.sh <vX.Y.Z>
-# Local dry-run of CI release pipeline. Required to pass before pushing a real tag.
+# 本地干跑：模拟 CI 的关键 step，验证 release tag 推送前的所有条件就绪。
+# 用法：bash scripts/release/preflight.sh vX.Y.Z
 set -euo pipefail
 
-TAG=${1:?"tag required, e.g. v1.2.3"}
-ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-cd "$ROOT"
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 vX.Y.Z" >&2
+    exit 1
+fi
+tag="$1"
+expected="${tag#v}"
+
+cd "$(git rev-parse --show-toplevel)"
 
 echo "[dry] Validate version consistency"
-EXPECTED="${TAG#v}"
-ACTUAL=$(awk -F= '/^versionName/{print $2}' version.properties | tr -d '[:space:]')
-[[ "$EXPECTED" == "$ACTUAL" ]] || { echo "::error::tag $TAG vs versionName $ACTUAL mismatch"; exit 1; }
-echo "OK: $TAG ↔ versionName=$ACTUAL"
+actual=$(awk -F= '/^versionName/{print $2}' version.properties | tr -d '[:space:]')
+[ "$expected" = "$actual" ] || {
+    echo "::error::tag $tag vs versionName $actual mismatch" >&2
+    exit 1
+}
+echo "  OK: $tag ↔ versionName=$actual"
 
 echo "[dry] Build Release APK"
-if [[ -z "${ANDROID_RELEASE_KEYSTORE_PATH:-}" ]]; then
-    echo "::warning::ANDROID_RELEASE_KEYSTORE_PATH 未设置，跳过 Release 构建"
-else
+if [ -n "${ANDROID_RELEASE_KEYSTORE_PATH:-}" ] && [ -f "${ANDROID_RELEASE_KEYSTORE_PATH}" ]; then
     ./gradlew clean :app:assembleRelease --no-daemon
-    APK=app/build/outputs/apk/release/app-release.apk
-    [[ -f "$APK" ]] || { echo "::error::APK not produced"; exit 1; }
+else
+    echo "  WARN: ANDROID_RELEASE_KEYSTORE_PATH not set; skipping real Release build" >&2
+    echo "  (CI 必跑；本地若无签名 env 跳过)"
+fi
+arm_apk="app/build/outputs/apk/release/MusicFreeAndroid-arm64-v8a-release.apk"
+x64_apk="app/build/outputs/apk/release/MusicFreeAndroid-x86_64-release.apk"
+mapping_src="app/build/outputs/mapping/release/mapping.txt"
+
+if [ ! -f "$arm_apk" ] || [ ! -f "$x64_apk" ]; then
+    echo "  WARN: per-ABI Release APK not present; downstream steps using stub data" >&2
+    arm_apk=""; x64_apk=""; mapping_src=""
 fi
 
-APK="${APK:-app/build/outputs/apk/release/app-release.apk}"
-if [[ -f "$APK" ]]; then
-    echo "[dry] Compute APK sha256 + size"
-    if command -v sha256sum >/dev/null 2>&1; then
-        SHA=$(sha256sum "$APK" | awk '{print $1}')
-    else
-        SHA=$(shasum -a 256 "$APK" | awk '{print $1}')
-    fi
-    echo "sha256=$SHA"
-    echo "size=$(wc -c < "$APK")"
+echo "[dry] Compute APK sha256 + size"
+sha_arm=""; size_arm=""; sha_x64=""; size_x64=""
+if [ -n "$arm_apk" ]; then
+    sha_arm=$(sha256sum "$arm_apk" | awk '{print $1}')
+    size_arm=$(wc -c < "$arm_apk")
+    echo "  arm64-v8a: sha256=$sha_arm size=$size_arm"
+fi
+if [ -n "$x64_apk" ]; then
+    sha_x64=$(sha256sum "$x64_apk" | awk '{print $1}')
+    size_x64=$(wc -c < "$x64_apk")
+    echo "  x86_64:    sha256=$sha_x64 size=$size_x64"
+fi
+
+echo "[dry] Pack mapping"
+mapping_name=""; mapping_sha256=""
+if [ -n "$mapping_src" ] && [ -f "$mapping_src" ]; then
+    mkdir -p "/tmp/mf-mapping/mapping"
+    cp "$mapping_src" "/tmp/mf-mapping/mapping/"
+    mapping_name="mapping-${tag}.zip"
+    (cd /tmp/mf-mapping && zip -9q "$mapping_name" mapping/mapping.txt)
+    mapping_sha256=$(sha256sum "/tmp/mf-mapping/$mapping_name" | awk '{print $1}')
+    echo "  mapping zip: /tmp/mf-mapping/${mapping_name}  sha256=$mapping_sha256"
+else
+    echo "  WARN: mapping.txt not present; skipping mapping pack" >&2
 fi
 
 echo "[dry] Generate release notes"
-PREV=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD | tail -1)
-bash scripts/release/generate-notes.sh "$PREV" HEAD > /tmp/preflight-notes.md
-echo "Wrote /tmp/preflight-notes.md"
+prev=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD | tail -1)
+notes="/tmp/release_notes-${tag}.md"
+bash scripts/release/generate-notes.sh "$prev" HEAD > "$notes"
+echo "  notes -> $notes"
 
 echo "[dry] Prepend CHANGELOG.md (dry-run)"
-bash scripts/release/prepend-changelog.sh /tmp/preflight-notes.md "$TAG" --dry-run \
-    | diff CHANGELOG.md - || true
+bash scripts/release/prepend-changelog.sh "$notes" "$tag" --dry-run > /tmp/changelog-dry.md
+diff CHANGELOG.md /tmp/changelog-dry.md || true
 
-if [[ -f "$APK" ]]; then
-    echo "[dry] Build version.json"
-    VCODE=$(awk -F= '/^versionCode/{print $2}' version.properties | tr -d '[:space:]')
+echo "[dry] Build version.json"
+if [ -n "$sha_arm" ] && [ -n "$sha_x64" ]; then
+    out="/tmp/version-${tag}.json"
     bash scripts/release/build-version-json.sh \
-        --version "$EXPECTED" \
-        --version-code "$VCODE" \
-        --tag "$TAG" \
-        --apk "$APK" \
-        --apk-name "MusicFreeAndroid-$TAG.apk" \
-        --notes /tmp/preflight-notes.md \
-        > /tmp/preflight-version.json
-    jq . /tmp/preflight-version.json > /dev/null
-    echo "Wrote /tmp/preflight-version.json"
+        --version "$expected" \
+        --version-code "$(awk -F= '/^versionCode/{print $2}' version.properties | tr -d '[:space:]')" \
+        --tag "$tag" \
+        --variant "arm64-v8a=MusicFreeAndroid-${tag}-arm64-v8a.apk,${sha_arm},${size_arm}" \
+        --variant "x86_64=MusicFreeAndroid-${tag}-x86_64.apk,${sha_x64},${size_x64}" \
+        ${mapping_name:+--mapping-name "$mapping_name"} \
+        ${mapping_sha256:+--mapping-sha256 "$mapping_sha256"} \
+        --notes "$notes" > "$out"
+    jq . "$out"
+    echo "  version.json -> $out"
+else
+    echo "  SKIP: no per-ABI hash to fill; rerun preflight after a successful Release build" >&2
 fi
 
-echo "Preflight OK"
+echo "Preflight passed."

@@ -1,7 +1,9 @@
 package com.zili.android.musicfreeandroid.updater.downloader
 
 import androidx.test.core.app.ApplicationProvider
+import com.zili.android.musicfreeandroid.updater.checker.ResolvedUpdate
 import com.zili.android.musicfreeandroid.updater.checker.UpdateError
+import com.zili.android.musicfreeandroid.updater.model.ApkVariant
 import com.zili.android.musicfreeandroid.updater.model.UpdateInfo
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
@@ -48,29 +50,35 @@ class OkHttpApkDownloaderTest {
         cacheDir.deleteRecursively()
     }
 
-    private fun makeInfo(url: String, body: ByteArray, sha: String): UpdateInfo = UpdateInfo(
-        schemaVersion = 1,
-        version = "1.2.3",
-        versionCode = 10203,
-        releasedAt = "2026-05-13T18:00:00Z",
-        download = listOf(url),
-        size = body.size.toLong(),
-        sha256 = sha,
-        changeLog = emptyList(),
-        releaseNotesUrl = "https://example.com/notes",
-    )
+    private fun makeResolved(url: String, body: ByteArray, sha: String, abi: String = "arm64-v8a"): ResolvedUpdate {
+        val variant = ApkVariant(
+            download = listOf(url),
+            size = body.size.toLong(),
+            sha256 = sha,
+        )
+        val info = UpdateInfo(
+            schemaVersion = 2,
+            version = "1.2.3",
+            versionCode = 10203,
+            releasedAt = "2026-05-16T18:00:00Z",
+            releaseNotesUrl = "https://example.com/notes",
+            changeLog = emptyList(),
+            variants = mapOf(abi to variant),
+        )
+        return ResolvedUpdate(info = info, abi = abi, variant = variant)
+    }
 
     private fun sha256Hex(bytes: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
     @Test
-    fun `successful download writes file and reports progress`() = runTest {
+    fun `successful download writes abi-scoped file and reports progress`() = runTest {
         val body = ByteArray(4096) { 0x42 }
         server.enqueue(MockResponse().setBody(Buffer().apply { write(body) }))
-        val info = makeInfo(server.url("/app.apk").toString(), body, sha256Hex(body))
+        val resolved = makeResolved(server.url("/app.apk").toString(), body, sha256Hex(body))
 
         val progresses = mutableListOf<Float>()
-        val result = downloader.download(info) { _, _, fraction -> progresses.add(fraction) }
+        val result = downloader.download(resolved) { _, _, fraction -> progresses.add(fraction) }
 
         assertTrue(result is ApkDownloader.Result.Success)
         val file = (result as ApkDownloader.Result.Success).apkFile
@@ -78,30 +86,33 @@ class OkHttpApkDownloaderTest {
         assertEquals(body.size.toLong(), file.length())
         assertTrue(progresses.last() in 0.99f..1.0f)
         assertFalse(File(file.parentFile, "${file.name}.part").exists())
+        assertEquals("musicfree-10203-arm64-v8a.apk", file.name)
     }
 
     @Test
     fun `sha256 mismatch deletes file and returns mismatch`() = runTest {
         val body = ByteArray(2048) { 0x21 }
         server.enqueue(MockResponse().setBody(Buffer().apply { write(body) }))
-        val info = makeInfo(server.url("/app.apk").toString(), body, sha = "deadbeef")
+        val resolved = makeResolved(server.url("/app.apk").toString(), body, sha = "deadbeef")
 
-        val result = downloader.download(info) { _, _, _ -> }
+        val result = downloader.download(resolved) { _, _, _ -> }
 
         assertTrue(result is ApkDownloader.Result.Failure)
         assertEquals(UpdateError.Sha256Mismatch, (result as ApkDownloader.Result.Failure).cause)
-        assertFalse(File(cacheDir, "musicfree-${info.versionCode}.apk.part").exists())
-        assertFalse(File(cacheDir, "musicfree-${info.versionCode}.apk").exists())
+        val abi = resolved.abi
+        assertFalse(File(cacheDir, "musicfree-${resolved.info.versionCode}-${abi}.apk.part").exists())
+        assertFalse(File(cacheDir, "musicfree-${resolved.info.versionCode}-${abi}.apk").exists())
     }
 
     @Test
     fun `content length mismatch returns size mismatch`() = runTest {
         val body = ByteArray(1024) { 0x33 }
         server.enqueue(MockResponse().setBody(Buffer().apply { write(body) }))
-        val info = makeInfo(server.url("/app.apk").toString(), body, sha256Hex(body))
-            .copy(size = 9999L)
+        val resolved = makeResolved(server.url("/app.apk").toString(), body, sha256Hex(body))
+        // 重新构造一个 variant.size = 9999 的 ResolvedUpdate
+        val tampered = resolved.copy(variant = resolved.variant.copy(size = 9999L))
 
-        val result = downloader.download(info) { _, _, _ -> }
+        val result = downloader.download(tampered) { _, _, _ -> }
 
         assertEquals(UpdateError.SizeMismatch, (result as ApkDownloader.Result.Failure).cause)
     }
@@ -112,18 +123,28 @@ class OkHttpApkDownloaderTest {
         val sha = sha256Hex(body)
         server.enqueue(MockResponse().setResponseCode(500))
         server.enqueue(MockResponse().setBody(Buffer().apply { write(body) }))
-        val info = UpdateInfo(
-            schemaVersion = 1, version = "1.2.3", versionCode = 10203,
-            releasedAt = "2026-05-13T18:00:00Z",
+
+        val variant = ApkVariant(
             download = listOf(
                 server.url("/dead.apk").toString(),
                 server.url("/live.apk").toString(),
             ),
-            size = body.size.toLong(), sha256 = sha,
-            changeLog = emptyList(), releaseNotesUrl = "https://example.com/notes",
+            size = body.size.toLong(),
+            sha256 = sha,
         )
+        val info = UpdateInfo(
+            schemaVersion = 2,
+            version = "1.2.3",
+            versionCode = 10203,
+            releasedAt = "2026-05-16T18:00:00Z",
+            releaseNotesUrl = "https://example.com/notes",
+            changeLog = emptyList(),
+            variants = mapOf("x86_64" to variant),
+        )
+        val resolved = ResolvedUpdate(info = info, abi = "x86_64", variant = variant)
 
-        val result = downloader.download(info) { _, _, _ -> }
+        val result = downloader.download(resolved) { _, _, _ -> }
         assertTrue(result is ApkDownloader.Result.Success)
+        assertEquals("musicfree-10203-x86_64.apk", (result as ApkDownloader.Result.Success).apkFile.name)
     }
 }

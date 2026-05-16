@@ -15,18 +15,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zili.android.musicfreeandroid.updater.model.UpdateInfo
+import com.zili.android.musicfreeandroid.updater.checker.ResolvedUpdate
 
 @Composable
 fun AvailableUpdateDialog(
-    info: UpdateInfo,
+    update: ResolvedUpdate,
     onDownload: () -> Unit,
     onSkip: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("发现新版本 v${info.version}") },
+        title = { Text("发现新版本 v${update.info.version}") },
         text = {
             Column(
                 modifier = Modifier
@@ -34,7 +34,7 @@ fun AvailableUpdateDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                info.changeLog.take(8).forEach { line ->
+                update.info.changeLog.take(8).forEach { line ->
                     Text(line, style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -51,7 +51,7 @@ fun AvailableUpdateDialog(
 
 @Composable
 fun DownloadingDialog(
-    info: UpdateInfo,
+    update: ResolvedUpdate,
     bytes: Long,
     total: Long,
     fraction: Float,
@@ -59,7 +59,7 @@ fun DownloadingDialog(
 ) {
     AlertDialog(
         onDismissRequest = {},
-        title = { Text("正在下载 v${info.version}") },
+        title = { Text("正在下载 v${update.info.version}") },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -79,13 +79,13 @@ fun DownloadingDialog(
 
 @Composable
 fun ReadyToInstallDialog(
-    info: UpdateInfo,
+    update: ResolvedUpdate,
     onInstall: () -> Unit,
     onCancel: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("下载完成 v${info.version}") },
+        title = { Text("下载完成 v${update.info.version}") },
         text = { Text("立即安装新版本？") },
         confirmButton = { TextButton(onClick = onInstall) { Text("立即安装") } },
         dismissButton = { TextButton(onClick = onCancel) { Text("稍后") } },
@@ -108,15 +108,71 @@ fun InstallBlockedDialog(
 
 @Composable
 fun SchemaUnsupportedDialog(
-    info: UpdateInfo,
+    version: String?,
+    releaseNotesUrl: String,
     onOpenReleasePage: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("发现新版本 v${info.version}") },
+        title = { Text(if (version != null) "发现新版本 v$version" else "发现新版本") },
         text = { Text("当前客户端无法理解新版本元数据，请前往 GitHub 下载新版。") },
         confirmButton = { TextButton(onClick = onOpenReleasePage) { Text("打开下载页") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("稍后") } },
+    )
+}
+
+@Composable
+fun UnsupportedAbiDialog(
+    currentAbi: String?,
+    onOpenReleasePage: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("设备架构不受支持") },
+        text = {
+            Text(
+                "您的设备架构${if (currentAbi != null) "（$currentAbi）" else ""}未在本次发布的 APK 列表中。" +
+                    "请前往 GitHub Release 手动确认设备适配后下载。"
+            )
+        },
+        confirmButton = { TextButton(onClick = onOpenReleasePage) { Text("打开下载页") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("稍后") } },
+    )
+}
+
+@Composable
+fun CheckingDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("正在检查更新") },
+        text = {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
+}
+
+@Composable
+fun UpToDateDialog(localVersion: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("已是最新版本") },
+        text = { Text("当前版本 v$localVersion 已是最新。") },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("好的") } },
+        dismissButton = {},
+    )
+}
+
+@Composable
+fun NetworkFailedDialog(onRetry: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("检查更新失败") },
+        text = { Text("网络异常，请稍后重试。") },
+        confirmButton = { TextButton(onClick = onRetry) { Text("重试") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("关闭") } },
     )
 }

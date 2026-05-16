@@ -2,6 +2,7 @@ package com.zili.android.musicfreeandroid.updater.checker
 
 import app.cash.turbine.test
 import com.zili.android.musicfreeandroid.updater.api.UpdateClient
+import com.zili.android.musicfreeandroid.updater.model.ApkVariant
 import com.zili.android.musicfreeandroid.updater.model.UpdateInfo
 import com.zili.android.musicfreeandroid.updater.store.UpdatePreferences
 import io.mockk.coEvery
@@ -17,49 +18,57 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class UpdateCheckerTest {
 
-    private fun newInfo(version: String, code: Long) = UpdateInfo(
-        schemaVersion = 1,
+    private fun newInfo(
+        version: String,
+        code: Long,
+        abis: List<String> = listOf("arm64-v8a", "x86_64"),
+    ): UpdateInfo = UpdateInfo(
+        schemaVersion = 2,
         version = version,
         versionCode = code,
-        releasedAt = "2026-05-13T18:00:00Z",
-        download = listOf("https://example.com/a.apk"),
-        size = 1,
-        sha256 = "x",
-        changeLog = emptyList(),
+        releasedAt = "2026-05-16T18:00:00Z",
         releaseNotesUrl = "https://example.com/notes",
+        changeLog = emptyList(),
+        variants = abis.associateWith {
+            ApkVariant(
+                download = listOf("https://example.com/$it.apk"),
+                size = 1,
+                sha256 = it,
+            )
+        },
     )
 
     private fun mockPrefs(skip: String? = null): UpdatePreferences = mockk(relaxed = true) {
         coEvery { getSkipVersion() } returns skip
     }
 
+    private fun armResolver() = AbiResolver { listOf("arm64-v8a", "armeabi-v7a") }
+
     @Test
     fun `up to date when remote not newer`() = runTest(StandardTestDispatcher()) {
         val client = mockk<UpdateClient> { coEvery { fetchLatest() } returns newInfo("1.0.0", 10000) }
-        val prefs = mockPrefs()
-        val checker = UpdateChecker(client, prefs, localCode = 10000L, localName = "1.0.0", scope = this)
+        val checker = UpdateChecker(client, mockPrefs(), armResolver(), localCode = 10000L, localName = "1.0.0", scope = this)
         checker.checkOnLaunch()
         advanceUntilIdle()
         assertTrue(checker.state.value is UpdateState.UpToDate)
     }
 
     @Test
-    fun `available when remote newer and not skipped`() = runTest(StandardTestDispatcher()) {
+    fun `available when remote newer and not skipped and abi matches`() = runTest(StandardTestDispatcher()) {
         val client = mockk<UpdateClient> { coEvery { fetchLatest() } returns newInfo("1.2.3", 10203) }
-        val prefs = mockPrefs()
-        val checker = UpdateChecker(client, prefs, localCode = 10000L, localName = "1.0.0", scope = this)
+        val checker = UpdateChecker(client, mockPrefs(), armResolver(), localCode = 10000L, localName = "1.0.0", scope = this)
         checker.checkOnLaunch()
         advanceUntilIdle()
         val state = checker.state.value
         assertTrue(state is UpdateState.Available)
         assertEquals(false, (state as UpdateState.Available).skipped)
+        assertEquals("arm64-v8a", state.update.abi)
     }
 
     @Test
     fun `marks skipped when remote version equals skip`() = runTest(StandardTestDispatcher()) {
         val client = mockk<UpdateClient> { coEvery { fetchLatest() } returns newInfo("1.2.3", 10203) }
-        val prefs = mockPrefs(skip = "1.2.3")
-        val checker = UpdateChecker(client, prefs, localCode = 10000L, localName = "1.0.0", scope = this)
+        val checker = UpdateChecker(client, mockPrefs(skip = "1.2.3"), armResolver(), localCode = 10000L, localName = "1.0.0", scope = this)
         checker.checkOnLaunch()
         advanceUntilIdle()
         val state = checker.state.value
@@ -70,20 +79,16 @@ class UpdateCheckerTest {
     @Test
     fun `manual check ignores skip`() = runTest(StandardTestDispatcher()) {
         val client = mockk<UpdateClient> { coEvery { fetchLatest() } returns newInfo("1.2.3", 10203) }
-        val prefs = mockPrefs(skip = "1.2.3")
-        val checker = UpdateChecker(client, prefs, localCode = 10000L, localName = "1.0.0", scope = this)
+        val checker = UpdateChecker(client, mockPrefs(skip = "1.2.3"), armResolver(), localCode = 10000L, localName = "1.0.0", scope = this)
         checker.checkManually()
         advanceUntilIdle()
-        val state = checker.state.value
-        assertTrue(state is UpdateState.Available)
-        assertEquals(false, (state as UpdateState.Available).skipped)
+        assertEquals(false, (checker.state.value as UpdateState.Available).skipped)
     }
 
     @Test
     fun `failed when client returns null`() = runTest(StandardTestDispatcher()) {
         val client = mockk<UpdateClient> { coEvery { fetchLatest() } returns null }
-        val prefs = mockPrefs()
-        val checker = UpdateChecker(client, prefs, localCode = 10000L, localName = "1.0.0", scope = this)
+        val checker = UpdateChecker(client, mockPrefs(), armResolver(), localCode = 10000L, localName = "1.0.0", scope = this)
         checker.checkOnLaunch()
         advanceUntilIdle()
         val state = checker.state.value
@@ -96,8 +101,7 @@ class UpdateCheckerTest {
         val client = mockk<UpdateClient> {
             coEvery { fetchLatest() } returns newInfo("1.2.3", 10203).copy(schemaVersion = 99)
         }
-        val prefs = mockPrefs()
-        val checker = UpdateChecker(client, prefs, localCode = 10000L, localName = "1.0.0", scope = this)
+        val checker = UpdateChecker(client, mockPrefs(), armResolver(), localCode = 10000L, localName = "1.0.0", scope = this)
         checker.checkOnLaunch()
         advanceUntilIdle()
         val state = checker.state.value
@@ -106,10 +110,43 @@ class UpdateCheckerTest {
     }
 
     @Test
+    fun `empty variants marked failed as schema unsupported`() = runTest(StandardTestDispatcher()) {
+        val client = mockk<UpdateClient> {
+            coEvery { fetchLatest() } returns newInfo("1.2.3", 10203).copy(variants = emptyMap())
+        }
+        val checker = UpdateChecker(client, mockPrefs(), armResolver(), localCode = 10000L, localName = "1.0.0", scope = this)
+        checker.checkOnLaunch()
+        advanceUntilIdle()
+        assertEquals(
+            UpdateError.SchemaUnsupported,
+            (checker.state.value as UpdateState.Failed).cause,
+        )
+    }
+
+    @Test
+    fun `unsupported abi marked failed`() = runTest(StandardTestDispatcher()) {
+        val client = mockk<UpdateClient> {
+            coEvery { fetchLatest() } returns newInfo("1.2.3", 10203, abis = listOf("x86_64"))
+        }
+        val checker = UpdateChecker(
+            client,
+            mockPrefs(),
+            abiResolver = AbiResolver { listOf("armeabi-v7a") },
+            localCode = 10000L,
+            localName = "1.0.0",
+            scope = this,
+        )
+        checker.checkOnLaunch()
+        advanceUntilIdle()
+        val state = checker.state.value
+        assertTrue(state is UpdateState.Failed)
+        assertEquals(UpdateError.UnsupportedAbi, (state as UpdateState.Failed).cause)
+    }
+
+    @Test
     fun `state flow emits Checking before result`() = runTest(StandardTestDispatcher()) {
         val client = mockk<UpdateClient> { coEvery { fetchLatest() } returns newInfo("1.0.0", 10000) }
-        val prefs = mockPrefs()
-        val checker = UpdateChecker(client, prefs, localCode = 10000L, localName = "1.0.0", scope = this)
+        val checker = UpdateChecker(client, mockPrefs(), armResolver(), localCode = 10000L, localName = "1.0.0", scope = this)
         checker.state.test {
             assertTrue(awaitItem() is UpdateState.Idle)
             checker.checkOnLaunch()

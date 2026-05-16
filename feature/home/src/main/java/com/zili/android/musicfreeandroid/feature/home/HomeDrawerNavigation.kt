@@ -23,7 +23,7 @@ sealed interface HomeDrawerAction {
     data object ShowScheduleClosePanel : HomeDrawerAction
     data object OpenBackup : HomeDrawerAction
     data object OpenPermissions : HomeDrawerAction
-    data object ShowUpdateCheckDialog : HomeDrawerAction
+    data object TriggerManualUpdateCheck : HomeDrawerAction
     data object OpenAbout : HomeDrawerAction
 }
 
@@ -45,12 +45,15 @@ data class HomeDrawerItemUiModel(
     val iconRes: Int,
     val anchorTag: String,
     val trailingText: String? = null,
+    val hasBadge: Boolean = false,
     val action: HomeDrawerAction,
 )
 
 fun buildHomeDrawerUiModel(
     currentVersion: String,
     scheduleCloseSummary: String,
+    updateTrailingText: String = currentVersion,
+    hasUpdateBadge: Boolean = false,
 ): HomeDrawerUiModel = HomeDrawerUiModel(
     sections = listOf(
         HomeDrawerSectionUiModel(
@@ -122,8 +125,9 @@ fun buildHomeDrawerUiModel(
                     title = "检查更新",
                     iconRes = HomeIcons.DrawerCheckUpdate,
                     anchorTag = FidelityAnchors.Home.DrawerSoftwareCheckUpdate,
-                    trailingText = currentVersion,
-                    action = HomeDrawerAction.ShowUpdateCheckDialog,
+                    trailingText = updateTrailingText,
+                    hasBadge = hasUpdateBadge,
+                    action = HomeDrawerAction.TriggerManualUpdateCheck,
                 ),
                 HomeDrawerItemUiModel(
                     title = "关于 MusicFree",

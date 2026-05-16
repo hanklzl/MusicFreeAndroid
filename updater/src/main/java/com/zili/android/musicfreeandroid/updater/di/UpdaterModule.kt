@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.zili.android.musicfreeandroid.updater.api.OkHttpUpdateClient
 import com.zili.android.musicfreeandroid.updater.api.UpdateClient
 import com.zili.android.musicfreeandroid.updater.bootstrap.LocalAppVersion
+import com.zili.android.musicfreeandroid.updater.checker.AbiResolver
 import com.zili.android.musicfreeandroid.updater.checker.UpdateChecker
 import com.zili.android.musicfreeandroid.updater.downloader.ApkDownloader
 import com.zili.android.musicfreeandroid.updater.downloader.OkHttpApkDownloader
@@ -72,13 +73,19 @@ object UpdaterModule {
 
     @Provides
     @Singleton
+    fun provideAbiResolver(): AbiResolver = AbiResolver()
+
+    @Provides
+    @Singleton
     fun provideUpdateChecker(
         client: UpdateClient,
         prefs: UpdatePreferences,
+        abiResolver: AbiResolver,
         localAppVersion: LocalAppVersion,
     ): UpdateChecker = UpdateChecker(
         client = client,
         prefs = prefs,
+        abiResolver = abiResolver,
         localCode = localAppVersion.versionCode,
         localName = localAppVersion.versionName,
     )

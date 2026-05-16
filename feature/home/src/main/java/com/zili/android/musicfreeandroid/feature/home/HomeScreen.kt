@@ -21,6 +21,7 @@ import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetUiModel
 import com.zili.android.musicfreeandroid.feature.home.sheets.HomeSheetsViewModel
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.updater.checker.UpdateState
 
 @Composable
 fun HomeScreen(
@@ -46,7 +47,20 @@ fun HomeScreen(
     var selectedTab by rememberSaveable { mutableStateOf(HomeSheetTab.Mine) }
     val playlists by viewModel.playlists.collectAsState()
     val starredSheets by viewModel.starredSheets.collectAsState()
+    val currentVersion = remember(context) {
+        context.packageManager.versionNameForPackage(context.packageName).orEmpty()
+    }
+    val scheduleCloseSummary = ""
+
     val updateState by updateBadgeViewModel.checker.state.collectAsState()
+    val updateTrailingText = when (val s = updateState) {
+        is UpdateState.Available -> "v${s.update.info.version} 可用"
+        is UpdateState.Checking -> "检查中…"
+        is UpdateState.UpToDate -> currentVersion
+        is UpdateState.Failed -> "检查失败"
+        else -> currentVersion
+    }
+    val hasUpdateBadge = updateState.hasUnreadAvailableUpdate
 
     val mineRows = remember(playlists) {
         playlists.map { p ->
@@ -69,14 +83,12 @@ fun HomeScreen(
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
     var pendingUnstar by remember { mutableStateOf<HomeSheetUiModel?>(null) }
 
-    val currentVersion = remember(context) {
-        context.packageManager.versionNameForPackage(context.packageName).orEmpty()
-    }
-    val scheduleCloseSummary = ""
-    val drawerUiModel = remember(currentVersion, scheduleCloseSummary) {
+    val drawerUiModel = remember(currentVersion, scheduleCloseSummary, updateTrailingText, hasUpdateBadge) {
         buildHomeDrawerUiModel(
             currentVersion = currentVersion,
             scheduleCloseSummary = scheduleCloseSummary,
+            updateTrailingText = updateTrailingText,
+            hasUpdateBadge = hasUpdateBadge,
         )
     }
 
@@ -86,7 +98,9 @@ fun HomeScreen(
         drawerUiModel = drawerUiModel,
         currentVersion = currentVersion,
         scheduleCloseSummary = scheduleCloseSummary,
-        hasUpdateRedDot = updateState.hasUnreadAvailableUpdate,
+        checker = updateBadgeViewModel.checker,
+        downloader = updateBadgeViewModel.downloader,
+        installer = updateBadgeViewModel.installer,
         onDrawerEntryClick = { action ->
             when (action) {
                 HomeDrawerAction.OpenListenStats -> onNavigateToListenStats()
@@ -97,7 +111,7 @@ fun HomeScreen(
                 HomeDrawerAction.OpenAbout -> onNavigateToSettings(SettingsType.About)
                 HomeDrawerAction.OpenPermissions -> onNavigateToPermissions()
                 HomeDrawerAction.ShowScheduleClosePanel,
-                HomeDrawerAction.ShowUpdateCheckDialog -> Unit
+                HomeDrawerAction.TriggerManualUpdateCheck -> Unit
             }
         },
         onNavigateToSearch = onNavigateToSearch,

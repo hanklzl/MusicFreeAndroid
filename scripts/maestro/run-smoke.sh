@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_ID="com.zili.android.musicfreeandroid.debug"
-APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+APK_PATH="app/build/outputs/apk/debug/MusicFreeAndroid-arm64-v8a-debug.apk"
 SUITE="core"
 SKIP_BUILD=0
 SKIP_INSTALL=0

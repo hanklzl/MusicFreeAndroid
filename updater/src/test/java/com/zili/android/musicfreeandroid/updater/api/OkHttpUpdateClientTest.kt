@@ -37,15 +37,19 @@ class OkHttpUpdateClientTest {
 
     private fun canonicalJson(): String = """
         {
-          "schemaVersion": 1,
+          "schemaVersion": 2,
           "version": "1.2.3",
           "versionCode": 10203,
           "releasedAt": "2026-05-13T18:00:00Z",
-          "download": ["https://example.com/a.apk"],
-          "size": 1,
-          "sha256": "x",
+          "releaseNotesUrl": "https://example.com/notes",
           "changeLog": [],
-          "releaseNotesUrl": "https://example.com/notes"
+          "variants": {
+            "arm64-v8a": {
+              "download": ["https://example.com/arm64.apk"],
+              "size": 1,
+              "sha256": "x"
+            }
+          }
         }
     """.trimIndent()
 

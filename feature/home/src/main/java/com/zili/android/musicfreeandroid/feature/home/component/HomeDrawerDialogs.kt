@@ -23,6 +23,10 @@ import com.zili.android.musicfreeandroid.core.theme.FontSizes
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
 import com.zili.android.musicfreeandroid.core.theme.rpx
 import com.zili.android.musicfreeandroid.core.ui.FidelityAnchors
+import com.zili.android.musicfreeandroid.updater.checker.UpdateChecker
+import com.zili.android.musicfreeandroid.updater.downloader.ApkDownloader
+import com.zili.android.musicfreeandroid.updater.installer.ApkInstaller
+import com.zili.android.musicfreeandroid.updater.ui.ManualUpdateDialog
 
 @Composable
 fun HomeDrawerDialogs(
@@ -30,6 +34,9 @@ fun HomeDrawerDialogs(
     isUpdateCheckVisible: Boolean,
     currentVersion: String,
     scheduleCloseSummary: String,
+    checker: UpdateChecker,
+    downloader: ApkDownloader,
+    installer: ApkInstaller,
     onDismissTimingClose: () -> Unit,
     onDismissUpdateCheck: () -> Unit,
 ) {
@@ -41,12 +48,19 @@ fun HomeDrawerDialogs(
     }
 
     if (isUpdateCheckVisible) {
-        InfoDialog(
-            anchorTag = FidelityAnchors.Dialog.UpdateCheckRoot,
-            title = "检查更新",
-            body = "当前版本：$currentVersion",
-            onDismiss = onDismissUpdateCheck,
-        )
+        Box(
+            modifier = Modifier
+                .testTag(FidelityAnchors.Dialog.UpdateCheckRoot)
+                .semantics { testTagsAsResourceId = true },
+        ) {
+            ManualUpdateDialog(
+                checker = checker,
+                downloader = downloader,
+                installer = installer,
+                localVersionName = currentVersion,
+                onDismiss = onDismissUpdateCheck,
+            )
+        }
     }
 }
 
@@ -60,7 +74,7 @@ private fun TimingClosePanel(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MusicFreeTheme.colors.mask),
-                contentAlignment = Alignment.BottomCenter,
+            contentAlignment = Alignment.BottomCenter,
         ) {
             Surface(
                 modifier = Modifier
@@ -92,50 +106,6 @@ private fun TimingClosePanel(
                         TextButton(onClick = onDismiss) {
                             Text("关闭")
                         }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun InfoDialog(
-    anchorTag: String,
-    title: String,
-    body: String,
-    onDismiss: () -> Unit,
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = rpx(24))
-                .testTag(anchorTag)
-                .semantics { testTagsAsResourceId = true },
-            shape = RoundedCornerShape(rpx(24)),
-            color = MusicFreeTheme.colors.pageBackground,
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = rpx(24), vertical = rpx(20)),
-                verticalArrangement = Arrangement.spacedBy(rpx(16)),
-            ) {
-                Text(
-                    text = title,
-                    color = MusicFreeTheme.colors.text,
-                    fontSize = FontSizes.title,
-                )
-                Text(
-                    text = body,
-                    color = MusicFreeTheme.colors.textSecondary,
-                    fontSize = FontSizes.subTitle,
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("知道了")
                     }
                 }
             }
