@@ -6,6 +6,33 @@
 
 <!-- next-release -->
 
+## [v1.1.0] - 2026-05-17
+
+### 变更详情
+
+#### 新功能
+- feat(player): 冷启动恢复上次播放进度并支持继续播放 (68ed09b)
+
+#### 修复
+- fix(player-ui): 修复播放器插件源标签垂直对齐 (528ca10)
+
+#### 重构
+- refactor(app): 应用包名重命名为 com.hank.musicfree (a1488ca)
+
+#### 文档
+- docs(changelog): release v1.0.3 [skip ci] (47d71ba)
+
+#### 杂项
+- chore(release): bump to v1.1.0 (09ca2db)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.1.0-arm64-v8a.apk` · 7.4MB · sha256 `2b663719a75c`
+- x86_64: `MusicFreeAndroid-v1.1.0-x86_64.apk` · 7.4MB · sha256 `80fa7c2b3cbc`
+- mapping: `mapping-v1.1.0.zip` · sha256 `b2df290f8517` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.0.3] - 2026-05-17
 
 ### 变更详情
