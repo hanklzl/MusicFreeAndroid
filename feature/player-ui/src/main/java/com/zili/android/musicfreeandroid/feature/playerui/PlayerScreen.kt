@@ -629,7 +629,7 @@ internal fun PlayerContentLayer(
 }
 
 @Composable
-private fun PlayerNavBar(
+internal fun PlayerNavBar(
     title: String,
     artist: String,
     platform: String?,
@@ -669,7 +669,12 @@ private fun PlayerNavBar(
             )
             if (artist.isNotBlank()) {
                 Row(
-                    modifier = Modifier.padding(top = rpx(12)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = rpx(12))
+                        .height(rpx(32))
+                        .padding(horizontal = rpx(40)),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
@@ -678,20 +683,10 @@ private fun PlayerNavBar(
                         fontSize = FontSizes.subTitle,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                     if (!platform.isNullOrBlank()) {
-                        Spacer(Modifier.size(rpx(8)))
-                        Text(
-                            text = platform,
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = FontSizes.tag,
-                            modifier = Modifier
-                                .background(
-                                    color = Color.White.copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(rpx(4)),
-                                )
-                                .padding(horizontal = rpx(8), vertical = rpx(2)),
-                        )
+                        PlayerPlatformTag(text = platform)
                     }
                 }
             }
@@ -710,6 +705,30 @@ private fun PlayerNavBar(
         }
     }
 }
+
+@Composable
+private fun PlayerPlatformTag(text: String) {
+    Box(
+        modifier = Modifier
+            .padding(start = rpx(12))
+            .height(rpx(32))
+            .testTag(PlayerPlatformTagTestTag)
+            .clip(RoundedCornerShape(rpx(24)))
+            .background(Color.White.copy(alpha = 0.2f))
+            .padding(horizontal = rpx(12)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = FontSizes.tag,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+internal const val PlayerPlatformTagTestTag = "player-platform-tag"
 
 @Composable
 internal fun PlayerCoverPageContent(

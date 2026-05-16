@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.zili.android.musicfreeandroid.core.model.MusicItem
 import com.zili.android.musicfreeandroid.core.theme.MusicFreeTheme
@@ -27,10 +28,12 @@ class MiniPlayerContentTest {
     private fun buildTestUiModel(
         isPlaying: Boolean = false,
         progress: Float = 0f,
+        title: String = "Test Song",
+        artist: String = "Test Artist",
     ) = MiniPlayerUiModel(
         coverUri = null,
-        title = "Test Song",
-        artist = "Test Artist",
+        title = title,
+        artist = artist,
         isPlaying = isPlaying,
         progress = progress,
         hasPrev = true,
@@ -114,5 +117,33 @@ class MiniPlayerContentTest {
         }
 
         composeRule.onAllNodesWithTag(FidelityAnchors.Player.MiniQueue).assertCountEquals(1)
+    }
+
+    @Test
+    fun `mini player keeps long title in a shared one line text node`() {
+        val longTitle = "我们都是这样长大的一首需要共享歌手剩余空间的完整歌曲标题"
+
+        composeRule.setContent {
+            MusicFreeTheme {
+                MiniPlayerContent(
+                    uiModel = buildTestUiModel(
+                        title = longTitle,
+                        artist = "Eason",
+                    ),
+                    onOpenPlayer = {},
+                    onTogglePlayPause = {},
+                    onOpenQueue = {},
+                    onSkipNext = {},
+                    onSkipPrev = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(FidelityAnchors.Player.MiniRoot).assertIsDisplayed()
+        composeRule.onNodeWithText(longTitle, substring = true).assertIsDisplayed()
+        composeRule.onAllNodesWithTag(FidelityAnchors.Player.MiniQueue, useUnmergedTree = true)
+            .assertCountEquals(1)
+        composeRule.onNodeWithTag(FidelityAnchors.Player.MiniQueue, useUnmergedTree = true)
+            .assertIsDisplayed()
     }
 }

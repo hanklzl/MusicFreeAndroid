@@ -28,7 +28,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import coil3.compose.SubcomposeAsyncImage
 import kotlin.math.abs
 import com.zili.android.musicfreeandroid.core.theme.FontSizes
@@ -114,29 +117,28 @@ fun MiniPlayerContent(
             )
             Spacer(Modifier.width(rpx(24)))
             // Single-line title - artist
-            Row(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = uiModel.title,
-                    fontSize = FontSizes.content,
-                    color = MusicFreeTheme.colors.musicBarText,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                Text(
-                    text = " - ",
-                    color = MusicFreeTheme.colors.musicBarText.copy(alpha = 0.6f),
-                    fontSize = FontSizes.content,
-                )
-                Text(
-                    text = uiModel.artist,
-                    fontSize = FontSizes.description,
-                    color = MusicFreeTheme.colors.musicBarText.copy(alpha = 0.6f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-            }
+            val secondaryTextColor = MusicFreeTheme.colors.musicBarText.copy(alpha = 0.6f)
+            Text(
+                text = buildAnnotatedString {
+                    append(uiModel.title)
+                    if (uiModel.artist.isNotBlank()) {
+                        withStyle(
+                            SpanStyle(
+                                color = secondaryTextColor,
+                                fontSize = FontSizes.description,
+                            ),
+                        ) {
+                            append(" - ")
+                            append(uiModel.artist)
+                        }
+                    }
+                },
+                fontSize = FontSizes.content,
+                color = MusicFreeTheme.colors.musicBarText,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
         }
         // Circular play button
         CircularPlayButton(
