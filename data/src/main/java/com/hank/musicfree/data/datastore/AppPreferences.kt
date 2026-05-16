@@ -85,6 +85,22 @@ class AppPreferences @Inject constructor(
         dataStore.edit { it[KEY_CURRENT_MUSIC_INDEX] = index }
     }
 
+    val currentMusicPositionMs: Flow<Long> = dataStore.data.map { prefs ->
+        prefs[KEY_CURRENT_MUSIC_POSITION_MS] ?: 0L
+    }
+
+    suspend fun setCurrentMusicPositionMs(positionMs: Long) {
+        dataStore.edit { it[KEY_CURRENT_MUSIC_POSITION_MS] = positionMs.coerceAtLeast(0L) }
+    }
+
+    val currentMusicDurationMs: Flow<Long> = dataStore.data.map { prefs ->
+        prefs[KEY_CURRENT_MUSIC_DURATION_MS] ?: 0L
+    }
+
+    suspend fun setCurrentMusicDurationMs(durationMs: Long) {
+        dataStore.edit { it[KEY_CURRENT_MUSIC_DURATION_MS] = durationMs.coerceAtLeast(0L) }
+    }
+
     val storageDirectoryUri: Flow<String?> = dataStore.data.map { prefs ->
         prefs[KEY_STORAGE_DIRECTORY_URI]
     }
@@ -691,6 +707,8 @@ class AppPreferences @Inject constructor(
         val KEY_SHUFFLE_ENABLED = booleanPreferencesKey("shuffle_enabled")
         val KEY_DARK_MODE = booleanPreferencesKey("dark_mode")
         val KEY_CURRENT_MUSIC_INDEX = intPreferencesKey("current_music_index")
+        val KEY_CURRENT_MUSIC_POSITION_MS = longPreferencesKey("current_music_position_ms")
+        val KEY_CURRENT_MUSIC_DURATION_MS = longPreferencesKey("current_music_duration_ms")
         val KEY_STORAGE_DIRECTORY_URI = stringPreferencesKey("storage_directory_uri")
         val KEY_LYRIC_SHOW_TRANSLATION = booleanPreferencesKey("lyric_show_translation")
         val KEY_LYRIC_DETAIL_FONT_SIZE = intPreferencesKey("lyric_detail_font_size")

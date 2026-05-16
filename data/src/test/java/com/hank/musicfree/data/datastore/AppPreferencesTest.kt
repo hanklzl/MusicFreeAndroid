@@ -287,6 +287,28 @@ class AppPreferencesTest {
             prefs.searchHistory.first(),
         )
     }
+
+    @Test
+    fun `default currentMusicPositionMs is 0`() = testScope.runTest {
+        assertEquals(0L, prefs.currentMusicPositionMs.first())
+    }
+
+    @Test
+    fun `set and get currentMusicPositionMs`() = testScope.runTest {
+        prefs.setCurrentMusicPositionMs(123_456L)
+        assertEquals(123_456L, prefs.currentMusicPositionMs.first())
+    }
+
+    @Test
+    fun `default currentMusicDurationMs is 0`() = testScope.runTest {
+        assertEquals(0L, prefs.currentMusicDurationMs.first())
+    }
+
+    @Test
+    fun `set and get currentMusicDurationMs`() = testScope.runTest {
+        prefs.setCurrentMusicDurationMs(987_654L)
+        assertEquals(987_654L, prefs.currentMusicDurationMs.first())
+    }
 }
 
 private data class CapturedLogEvent(

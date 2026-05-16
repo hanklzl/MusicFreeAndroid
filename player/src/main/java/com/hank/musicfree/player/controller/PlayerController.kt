@@ -97,6 +97,13 @@ class PlayerController @Inject constructor(
     @Volatile
     private var currentPlayQuality: PlayQuality = PlayQuality.STANDARD
 
+    @Volatile
+    private var pendingRestorePosition: Long? = null
+
+    @VisibleForTesting
+    internal val pendingRestorePositionForTest: Long?
+        get() = pendingRestorePosition
+
     val playQueue = PlayQueue()
 
     private val _playerState = MutableStateFlow(PlayerState.EMPTY)
@@ -174,7 +181,12 @@ class PlayerController @Inject constructor(
 
     fun play() {
         withConnectedController { controller ->
-            controller.play()
+            val pending = pendingRestorePosition
+            if (pending != null && controller.currentMediaItem == null) {
+                playQueue.currentItem?.let { setMediaItemAndPlay(it) }
+            } else {
+                controller.play()
+            }
         }
     }
 
@@ -185,12 +197,21 @@ class PlayerController @Inject constructor(
     }
 
     fun seekTo(positionMs: Long) {
-        withConnectedController { controller ->
-            controller.seekTo(positionMs)
+        val sanitized = positionMs.coerceAtLeast(0L)
+        val controller = mediaController
+        if (controller == null || controller.currentMediaItem == null) {
+            // Not yet activated — record into pending and mirror into UI state.
+            pendingRestorePosition = sanitized
+            _playerState.value = _playerState.value.copy(position = sanitized)
+            return
+        }
+        withConnectedController { c ->
+            c.seekTo(sanitized)
         }
     }
 
     fun playItem(item: MusicItem) {
+        pendingRestorePosition = null
         val previousIndex = playQueue.currentIndex
         val index = playQueue.items.indexOfFirst {
             it.id == item.id && it.platform == item.platform
@@ -212,6 +233,7 @@ class PlayerController @Inject constructor(
     }
 
     fun playQueue(items: List<MusicItem>, startIndex: Int = 0) {
+        pendingRestorePosition = null
         playQueue.setQueue(items, startIndex)
         if (shuffleEnabled) playQueue.shuffle()
         playQueue.currentItem?.let { setMediaItemAndPlay(it) }
@@ -221,14 +243,26 @@ class PlayerController @Inject constructor(
     fun restoreQueue(
         items: List<MusicItem>,
         startIndex: Int = 0,
+        savedPositionMs: Long = 0L,
+        savedDurationMs: Long = 0L,
         playWhenRestored: Boolean = false,
     ) {
         playQueue.setQueue(items, startIndex)
+        pendingRestorePosition = savedPositionMs.takeIf { it > 0L }
         if (playWhenRestored) {
             playQueue.currentItem?.let { setMediaItemAndPlay(it) }
         } else {
             runOnControllerThread {
-                emitState()
+                _playerState.value = PlayerState(
+                    currentItem = playQueue.currentItem,
+                    isPlaying = false,
+                    playbackState = mediaController?.playbackState.toPlaybackState(),
+                    duration = savedDurationMs.coerceAtLeast(0L),
+                    position = savedPositionMs.coerceAtLeast(0L),
+                    repeatMode = repeatMode,
+                    shuffleEnabled = shuffleEnabled,
+                    playbackSpeed = playbackSpeed,
+                )
                 emitQueueState()
             }
         }
@@ -236,6 +270,7 @@ class PlayerController @Inject constructor(
     }
 
     fun skipToNext() {
+        pendingRestorePosition = null
         val previousIndex = playQueue.currentIndex
         val next = playQueue.next(repeatMode) ?: return
         setMediaItemAndPlay(
@@ -247,6 +282,7 @@ class PlayerController @Inject constructor(
     }
 
     fun skipToPrevious() {
+        pendingRestorePosition = null
         withConnectedController { controller ->
             val position = controller.currentPosition
             if (position > 3_000L) {
@@ -285,6 +321,7 @@ class PlayerController @Inject constructor(
     }
 
     fun skipTo(index: Int) {
+        pendingRestorePosition = null
         val previousIndex = playQueue.currentIndex
         val item = playQueue.skipTo(index) ?: return
         setMediaItemAndPlay(
@@ -369,6 +406,7 @@ class PlayerController @Inject constructor(
     }
 
     fun reset() {
+        pendingRestorePosition = null
         runOnControllerThread {
             positionUpdateJob?.cancel()
             positionUpdateJob = null
@@ -385,6 +423,7 @@ class PlayerController @Inject constructor(
     }
 
     fun removeFromQueue(index: Int): MusicItem? {
+        pendingRestorePosition = null
         val wasCurrentItem = playQueue.currentItem
         val newCurrent = playQueue.remove(index)
         if (newCurrent != null && newCurrent != wasCurrentItem) {
@@ -825,11 +864,32 @@ class PlayerController @Inject constructor(
         _playHistory.value = listOf(item) + deduped.take(HISTORY_MAX_SIZE - 1)
     }
 
+    private fun consumePendingRestoreIfReady(controllerDurationMs: Long, seek: (Long) -> Unit) {
+        val pending = pendingRestorePosition ?: return
+        val upper = if (controllerDurationMs > 0L) controllerDurationMs else pending
+        val target = pending.coerceIn(0L, upper)
+        pendingRestorePosition = null
+        seek(target)
+    }
+
+    @VisibleForTesting
+    internal fun consumePendingRestoreForTest(durationMs: Long, seek: (Long) -> Unit) {
+        consumePendingRestoreIfReady(durationMs, seek)
+    }
+
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_ENDED) {
                 listenTracker.onTrackEnded(playQueue.currentItem)
                 handleTrackEnded()
+            }
+            if (playbackState == Player.STATE_READY) {
+                val controllerRef = mediaController
+                if (controllerRef != null) {
+                    consumePendingRestoreIfReady(controllerRef.duration) { target ->
+                        controllerRef.seekTo(target)
+                    }
+                }
             }
             emitState()
             updatePositionTracking()

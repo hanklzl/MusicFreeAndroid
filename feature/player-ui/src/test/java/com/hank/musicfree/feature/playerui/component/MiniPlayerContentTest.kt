@@ -120,6 +120,33 @@ class MiniPlayerContentTest {
     }
 
     @Test
+    fun `restored state maps to non-playing ui model with progress at saved position`() {
+        val state = PlayerState.EMPTY.copy(
+            currentItem = MusicItem(
+                id = "42",
+                platform = "local",
+                title = "Restored Song",
+                artist = "Artist X",
+                album = null,
+                duration = 180_000L,
+                url = null,
+                artwork = null,
+                qualities = null,
+            ),
+            isPlaying = false,
+            duration = 180_000L,
+            position = 90_000L,
+        )
+
+        val uiModel = state.toMiniPlayerUiModel()
+
+        assertEquals("Restored Song", uiModel.title)
+        assertEquals("Artist X", uiModel.artist)
+        assertEquals(false, uiModel.isPlaying)
+        assertEquals(0.5f, uiModel.progress, 0.0001f)
+    }
+
+    @Test
     fun `mini player keeps long title in a shared one line text node`() {
         val longTitle = "我们都是这样长大的一首需要共享歌手剩余空间的完整歌曲标题"
 

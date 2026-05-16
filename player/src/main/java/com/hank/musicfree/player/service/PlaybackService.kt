@@ -17,6 +17,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.hank.musicfree.core.R as CoreR
 import com.hank.musicfree.core.model.PlaybackRuntimeSettings
+import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.player.R
@@ -27,7 +28,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -35,6 +38,7 @@ class PlaybackService : MediaSessionService() {
 
     @Inject lateinit var headerInjectingFactory: HeaderInjectingDataSourceFactory
     @Inject lateinit var playbackRuntimeSettings: PlaybackRuntimeSettings
+    @Inject lateinit var appPreferences: AppPreferences
 
     private var mediaSession: MediaSession? = null
     @Volatile
@@ -158,6 +162,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
+        flushLastPosition()
         val player = mediaSession?.player
         if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
             stopSelf()
@@ -172,6 +177,7 @@ class PlaybackService : MediaSessionService() {
                 "status" to "start",
             ),
         )
+        flushLastPosition()
         mediaSession?.run {
             player.release()
             release()
@@ -241,6 +247,30 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    private fun flushLastPosition() {
+        val player = mediaSession?.player ?: return
+        val positionMs = player.currentPosition.coerceAtLeast(0L)
+        val rawDuration = player.duration
+        val durationMs = if (rawDuration == C.TIME_UNSET || rawDuration <= 0L) 0L else rawDuration
+        if (positionMs <= 0L && durationMs <= 0L) return
+        val result = runBlocking {
+            withTimeoutOrNull(200L) {
+                flushLastPositionTo(appPreferences, positionMs, durationMs)
+                true
+            }
+        }
+        if (result == null) {
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "playback_flush_last_position_timeout",
+                fields = mapOf(
+                    "positionMs" to positionMs,
+                    "durationMs" to durationMs,
+                ),
+            )
+        }
+    }
+
     private fun createSessionActivityPendingIntent(): PendingIntent {
         val intent = packageManager.getLaunchIntentForPackage(packageName)
             ?: Intent(Intent.ACTION_MAIN).apply {
@@ -261,6 +291,16 @@ class PlaybackService : MediaSessionService() {
             withContext(Dispatchers.IO) {
                 !settings.allowConcurrentPlayback()
             }
+
+        internal suspend fun flushLastPositionTo(
+            prefs: AppPreferences,
+            positionMs: Long,
+            durationMs: Long,
+        ) {
+            if (positionMs <= 0L && durationMs <= 0L) return
+            if (positionMs > 0L) prefs.setCurrentMusicPositionMs(positionMs)
+            if (durationMs > 0L) prefs.setCurrentMusicDurationMs(durationMs)
+        }
 
         const val PLAYBACK_NOTIFICATION_CHANNEL_ID = "playback"
         const val PLAYBACK_NOTIFICATION_ID = 1001

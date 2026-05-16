@@ -218,6 +218,46 @@ class PlayerControllerQueueStateTest {
         }
     }
 
+    @Test
+    fun `restoreQueue with savedPosition and savedDuration emits PlayerState with both values`() {
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        try {
+            val items = listOf(item("1"), item("2"), item("3"))
+            controller.restoreQueue(
+                items = items,
+                startIndex = 1,
+                savedPositionMs = 42_000L,
+                savedDurationMs = 180_000L,
+                playWhenRestored = false,
+            )
+            val playerState = controller.playerState.value
+            assertEquals(item("2"), playerState.currentItem)
+            assertEquals(42_000L, playerState.position)
+            assertEquals(180_000L, playerState.duration)
+            assertEquals(false, playerState.isPlaying)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `restoreQueue with savedPosition zero leaves player position at 0`() {
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        try {
+            controller.restoreQueue(
+                items = listOf(item("1")),
+                startIndex = 0,
+                savedPositionMs = 0L,
+                savedDurationMs = 0L,
+                playWhenRestored = false,
+            )
+            assertEquals(0L, controller.playerState.value.position)
+            assertEquals(0L, controller.playerState.value.duration)
+        } finally {
+            controller.release()
+        }
+    }
+
     internal fun item(id: String) = MusicItem(
         id = id,
         platform = "test",

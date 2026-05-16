@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
 
 @Singleton
 class PlaybackStartupCoordinator @Inject constructor(
@@ -32,12 +33,16 @@ class PlaybackStartupCoordinator @Inject constructor(
                 val queue = playQueueRepository.getQueue()
                 if (queue.isNotEmpty()) {
                     val savedIndex = appPreferences.currentMusicIndex.first()
+                    val savedPositionMs = appPreferences.currentMusicPositionMs.first()
+                    val savedDurationMs = appPreferences.currentMusicDurationMs.first()
                     val startIndex = savedIndex.coerceIn(0, queue.lastIndex)
                     val autoPlay = playbackRuntimeSettings.autoPlayWhenAppStart()
                     withContext(Dispatchers.Main.immediate) {
                         playerController.restoreQueue(
                             items = queue,
                             startIndex = startIndex,
+                            savedPositionMs = savedPositionMs,
+                            savedDurationMs = savedDurationMs,
                             playWhenRestored = autoPlay,
                         )
                     }
@@ -47,6 +52,8 @@ class PlaybackStartupCoordinator @Inject constructor(
                         fields = mapOf(
                             "queueSize" to queue.size,
                             "startIndex" to startIndex,
+                            "savedPositionMs" to savedPositionMs,
+                            "savedDurationMs" to savedDurationMs,
                             "autoPlay" to autoPlay,
                             "durationMs" to elapsedMs(startedAt),
                         ),
@@ -75,6 +82,61 @@ class PlaybackStartupCoordinator @Inject constructor(
                         "durationMs" to elapsedMs(startedAt),
                     ),
                 )
+            }
+        }
+
+        applicationScope.launch(Dispatchers.IO) {
+            var lastIsPlaying = false
+            var lastItemKey: String? = null
+            var lastPersistedPosition = -1L
+            var lastPersistedDuration = -1L
+            var lastTickAt = System.currentTimeMillis()
+            playerController.playerState.collect { state ->
+                val itemKey = state.currentItem?.let { "${it.platform}:${it.id}" }
+                val now = System.currentTimeMillis()
+
+                val flush = when {
+                    // 切歌：把上一首终态写入（如果有）
+                    itemKey != lastItemKey -> true
+                    // 边沿：从播放变为暂停 / 停止
+                    lastIsPlaying && !state.isPlaying -> true
+                    // 周期：播放中 5s 写一次，且变化超过 1s
+                    state.isPlaying &&
+                        (now - lastTickAt) >= 5_000L &&
+                        abs(state.position - lastPersistedPosition) >= 1_000L -> true
+                    // duration 首次更新或变更
+                    state.duration > 0L && state.duration != lastPersistedDuration -> true
+                    else -> false
+                }
+
+                if (flush) {
+                    try {
+                        if (state.position != lastPersistedPosition) {
+                            appPreferences.setCurrentMusicPositionMs(state.position.coerceAtLeast(0L))
+                            lastPersistedPosition = state.position
+                        }
+                        if (state.duration > 0L && state.duration != lastPersistedDuration) {
+                            appPreferences.setCurrentMusicDurationMs(state.duration)
+                            lastPersistedDuration = state.duration
+                        }
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Throwable) {
+                        MfLog.error(
+                            category = LogCategory.PLAYER,
+                            event = "playback_position_persist_failed",
+                            throwable = error,
+                            fields = mapOf(
+                                "positionMs" to state.position,
+                                "durationMs" to state.duration,
+                            ),
+                        )
+                    }
+                    lastTickAt = now
+                }
+
+                lastIsPlaying = state.isPlaying
+                lastItemKey = itemKey
             }
         }
     }
