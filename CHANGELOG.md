@@ -6,6 +6,36 @@
 
 <!-- next-release -->
 
+## [v1.0.3] - 2026-05-17
+
+### 变更详情
+
+#### 新功能
+- feat(backup): 实现迁移备份恢复 (29d7f79)
+
+#### 修复
+- fix(playlist): 添加歌曲默认插入歌单首部 (a560517)
+- fix(player-ui): 修复播放器文字布局细节 (4c5c686)
+
+#### 文档
+- docs(plan): 应用包名重命名 com.hank.musicfree 实施计划 (a98b95b)
+- docs(spec): 应用包名重命名 com.hank.musicfree 设计 (472b602)
+- docs(changelog): release v1.0.2 [skip ci] (6541b17)
+
+#### 杂项
+- chore(release): bump to v1.0.3 (f99142b)
+
+#### 其它
+- 改大JVM内存 (639d8bf)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.0.3-arm64-v8a.apk` · 7.4MB · sha256 `cef87cf9538b`
+- x86_64: `MusicFreeAndroid-v1.0.3-x86_64.apk` · 7.4MB · sha256 `6d48b7384eba`
+- mapping: `mapping-v1.0.3.zip` · sha256 `2eef2024299d` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.0.2] - 2026-05-16
 
 ### 变更详情
