@@ -6,6 +6,41 @@
 
 <!-- next-release -->
 
+## [v1.0.2] - 2026-05-16
+
+### 变更详情
+
+#### 新功能
+- feat(release): 分 ABI APK 发布与更新链路改造 (a602d8a)
+- feat(theme): 实现 setCustomTheme 与主题设置子页 (b9b20e4)
+- feat(listen-stats): 修复封面、跨插件归并、本地时区三项问题 (ece9229)
+- feat(playlist): 支持歌单批量修改 (af12703)
+- feat(player): 补齐播放详情更多动作 (3d18717)
+
+#### 修复
+- fix(home): 清理专辑详情标题空值处理 (4a9da2f)
+- fix(plugin): 把网络下载移出 PluginManager mutex，并修正默认插件 bootstrap 重复下载 (da7b331)
+- fix(home): 对齐歌单详情整体滚动 (21b7678)
+
+#### 文档
+- docs(spec): 分 ABI APK 发布与更新链路改造设计 (48f0483)
+- docs(plan): set-custom-theme 实现计划（9 个 task） (89fa3c1)
+- docs(spec): set-custom-theme 主题设置与自定义主题设计 (55da65b)
+- docs(plan): listen-stats 三项修复实现计划（7 个 task） (35e5d47)
+- docs(spec): listen-stats 三项修复设计（封面 / 跨插件归并 / 时区） (91411c9)
+- docs(changelog): release v1.0.1 [skip ci] (2c08965)
+
+#### 杂项
+- chore(release): bump to v1.0.2 (fc67b2f)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.0.2-arm64-v8a.apk` · 7.3MB · sha256 `372ec1905a5f`
+- x86_64: `MusicFreeAndroid-v1.0.2-x86_64.apk` · 7.3MB · sha256 `ee536a45d9f8`
+- mapping: `mapping-v1.0.2.zip` · sha256 `9269c34e52d4` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.0.1] - 2026-05-16
 
 ### 变更详情
