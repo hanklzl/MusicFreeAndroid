@@ -1,6 +1,7 @@
 package com.zili.android.musicfreeandroid.plugin.manager
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import com.zili.android.musicfreeandroid.data.datastore.AppPreferences
 import com.zili.android.musicfreeandroid.data.db.dao.DownloadedTrackDao
 import com.zili.android.musicfreeandroid.data.repository.CachedPluginMetadata
@@ -154,6 +155,44 @@ class PluginManager @Inject constructor(
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .build()
+    }
+
+    /**
+     * Test hook: when non-null, replaces real OkHttp downloads in
+     * [downloadOutsideLock]. Lets unit tests inject a slow / failing /
+     * scripted response without standing up a `MockWebServer` for every
+     * call site. Production callers MUST NOT set this.
+     */
+    @VisibleForTesting
+    internal var downloadOverride: (suspend (String) -> ByteArray?)? = null
+
+    /**
+     * Run an HTTP plugin/subscription download on [Dispatchers.IO] WITHOUT
+     * holding [mutex]. Every install/update entry point MUST route its
+     * network IO through this helper so that the lock is only acquired to
+     * mutate `_plugins` / `_entries` / the filesystem — long-tail GitHub
+     * timeouts under GFW must not block concurrent lazy-load attachments
+     * (see `completeLazyLoad`).
+     */
+    private suspend fun downloadOutsideLock(url: String): ByteArray? {
+        downloadOverride?.let { return it(url) }
+        return withContext(Dispatchers.IO) { downloadUrlBytes(url) }
+    }
+
+    /**
+     * Prefetch every subscription entry's plugin bytes sequentially, all
+     * OUTSIDE the lock. Returns `url -> bytes-or-null` preserving order so
+     * the locked install loop can call `installFromBytesLocked` without
+     * doing any HTTP.
+     */
+    private suspend fun prefetchSubscriptionEntries(
+        entries: List<SubscriptionPluginEntry>,
+    ): Map<String, ByteArray?> {
+        val results = LinkedHashMap<String, ByteArray?>(entries.size)
+        for (entry in entries) {
+            results[entry.url] = downloadOutsideLock(entry.url)
+        }
+        return results
     }
 
     /**
@@ -612,10 +651,18 @@ class PluginManager @Inject constructor(
 
     /**
      * Install a plugin by downloading it from a URL.
+     *
+     * Network IO runs OUTSIDE [mutex] — only the file write / state mutation
+     * is locked. This keeps `completeLazyLoad` unblocked when a download
+     * stalls (e.g. GitHub timeouts on GFW networks).
      */
     suspend fun installFromUrl(url: String, fileName: String): LoadedPlugin? {
         val flowId = newFlowId()
         val operation = "install_from_url"
+        val installSource = PluginInstallSource(
+            type = PluginInstallSourceType.PLUGIN_URL,
+            value = url,
+        )
         logOperationStart(
             flowId = flowId,
             operation = operation,
@@ -623,9 +670,33 @@ class PluginManager @Inject constructor(
             targetCount = 1,
             extraFields = mapOf("fileName" to fileName),
         )
-        val plugin = mutex.withLock {
-            withContext(Dispatchers.IO) {
-                installFromUrlLocked(url = url, fileName = fileName)
+        val bytes = downloadOutsideLock(url)
+        val plugin = if (bytes == null) {
+            recordFailedEntry(
+                targetPath = File(pluginsDir, fileName).absolutePath,
+                reason = PluginErrorReason.DownloadFailed,
+                detail = "HTTP/IO download failed for $url",
+                installSource = installSource,
+                attemptedPlatform = null,
+            )
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_install_failed",
+                fields = mapOf(
+                    "operation" to "install_from_url",
+                    "status" to "failed",
+                    "url" to url,
+                    "fileName" to fileName,
+                    "state" to PluginStateKeys.STATE_FAILED,
+                    "reason" to PluginStateKeys.REASON_DOWNLOAD_FAILED,
+                ),
+            )
+            null
+        } else {
+            mutex.withLock {
+                withContext(Dispatchers.IO) {
+                    installFromBytesLocked(bytes, fileName, installSource)
+                }
             }
         }
         logSinglePluginResult(
@@ -644,112 +715,51 @@ class PluginManager @Inject constructor(
      * A `.json` URL is treated as a MusicFree subscription payload and each
      * `plugins[].url` entry is installed. Other URLs are treated as plugin JS.
      */
-    suspend fun installFromNetworkUrl(url: String): PluginOperationResult = mutex.withLock {
-        withContext(Dispatchers.IO) {
-            val flowId = newFlowId()
-            val operation = "install_from_network_url"
-            val startedAt = System.currentTimeMillis()
-            val trimmed = url.trim()
-            logOperationStart(
+    suspend fun installFromNetworkUrl(url: String): PluginOperationResult {
+        val flowId = newFlowId()
+        val operation = "install_from_network_url"
+        val startedAt = System.currentTimeMillis()
+        val trimmed = url.trim()
+        logOperationStart(
+            flowId = flowId,
+            operation = operation,
+            url = trimmed,
+            targetCount = 1,
+        )
+        fun finish(result: PluginOperationResult): PluginOperationResult {
+            logPluginOperationResult(
                 flowId = flowId,
                 operation = operation,
                 url = trimmed,
-                targetCount = 1,
+                result = result,
             )
-            fun finish(result: PluginOperationResult): PluginOperationResult {
-                logPluginOperationResult(
-                    flowId = flowId,
-                    operation = operation,
-                    url = trimmed,
-                    result = result,
-                )
-                return result
-            }
-            if (trimmed.isBlank()) {
-                return@withContext finish(PluginOperationResult(
-                    operationType = PluginOperationType.ADD,
-                    targetPlugins = emptyList(),
-                    successCount = 0,
-                    failureCount = 1,
-                    failures = listOf(
-                        PluginOperationFailure(
-                            sourceRef = url,
-                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
-                            message = "URL 不能为空",
-                        ),
+            return result
+        }
+        if (trimmed.isBlank()) {
+            return finish(PluginOperationResult(
+                operationType = PluginOperationType.ADD,
+                targetPlugins = emptyList(),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        sourceRef = url,
+                        errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                        message = "URL 不能为空",
                     ),
-                    startedAtEpochMs = startedAt,
-                    finishedAtEpochMs = startedAt,
-                ))
-            }
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = startedAt,
+            ))
+        }
 
-            val normalizedPath = trimmed.substringBefore("#").substringBefore("?")
-            if (normalizedPath.endsWith(".json", ignoreCase = true)) {
-                val rawJson = downloadUrlBytes(trimmed)
-                    ?: return@withContext finish(PluginOperationResult(
-                        operationType = PluginOperationType.ADD,
-                        targetPlugins = listOf(trimmed),
-                        successCount = 0,
-                        failureCount = 1,
-                        failures = listOf(
-                            PluginOperationFailure(
-                                sourceRef = trimmed,
-                                errorCode = PluginOperationErrorCode.SOURCE_UNREACHABLE,
-                                message = "订阅下载失败",
-                            ),
-                        ),
-                        startedAtEpochMs = startedAt,
-                        finishedAtEpochMs = System.currentTimeMillis(),
-                    ))
-
-                val parsed = SubscriptionParser.parse(rawJson.toString(StandardCharsets.UTF_8))
-                if (parsed.isMalformed) {
-                    return@withContext finish(PluginOperationResult(
-                        operationType = PluginOperationType.ADD,
-                        targetPlugins = listOf(trimmed),
-                        successCount = 0,
-                        failureCount = 1,
-                        failures = listOf(
-                            PluginOperationFailure(
-                                sourceRef = trimmed,
-                                errorCode = PluginOperationErrorCode.SOURCE_INVALID,
-                                message = "订阅格式无效",
-                            ),
-                        ),
-                        startedAtEpochMs = startedAt,
-                        finishedAtEpochMs = System.currentTimeMillis(),
-                    ))
-                }
-
-                val targets = parsed.installableEntries.map { it.url }
-                return@withContext finish(updateSubscriptionEntriesLocked(
-                    subscriptionUrl = trimmed,
-                    entries = parsed.installableEntries,
-                    totalEntries = parsed.totalEntries,
-                    startedAt = startedAt,
-                    targets = targets,
-                    operationType = PluginOperationType.ADD,
-                    installSourceType = PluginInstallSourceType.SUBSCRIPTION_URL,
-                ))
-            }
-
-            val fileName = SubscriptionFileNames.networkPluginFileName(trimmed)
-            val installSource = PluginInstallSource(
-                type = PluginInstallSourceType.PLUGIN_URL,
-                value = trimmed,
-            )
-            val bytes = downloadUrlBytes(trimmed)
-            if (bytes == null) {
-                // Phase C: record a structured Failed entry so the UI can
-                // surface the download failure with reason DownloadFailed.
-                recordFailedEntry(
-                    targetPath = File(pluginsDir, fileName).absolutePath,
-                    reason = PluginErrorReason.DownloadFailed,
-                    detail = "HTTP/IO download failed for $trimmed",
-                    installSource = installSource,
-                    attemptedPlatform = null,
-                )
-                return@withContext finish(PluginOperationResult(
+        val normalizedPath = trimmed.substringBefore("#").substringBefore("?")
+        if (normalizedPath.endsWith(".json", ignoreCase = true)) {
+            // Subscription path: prefetch JSON + every entry's plugin bytes
+            // OUTSIDE the lock so GitHub / GFW timeouts can't stall lazy
+            // load attachments.
+            val rawJson = downloadOutsideLock(trimmed)
+                ?: return finish(PluginOperationResult(
                     operationType = PluginOperationType.ADD,
                     targetPlugins = listOf(trimmed),
                     successCount = 0,
@@ -758,36 +768,16 @@ class PluginManager @Inject constructor(
                         PluginOperationFailure(
                             sourceRef = trimmed,
                             errorCode = PluginOperationErrorCode.SOURCE_UNREACHABLE,
-                            message = "下载失败",
+                            message = "订阅下载失败",
                         ),
                     ),
                     startedAtEpochMs = startedAt,
                     finishedAtEpochMs = System.currentTimeMillis(),
                 ))
-            }
 
-            val installed = installFromBytesLocked(
-                bytes = bytes,
-                fileName = fileName,
-                installSource = installSource,
-            )
-
-            if (installed != null) {
-                finish(PluginOperationResult(
-                    operationType = PluginOperationType.ADD,
-                    targetPlugins = listOf(installed.info.platform),
-                    successCount = 1,
-                    failureCount = 0,
-                    failures = emptyList(),
-                    startedAtEpochMs = startedAt,
-                    finishedAtEpochMs = System.currentTimeMillis(),
-                ))
-            } else {
-                val errorCode = inferFailureErrorCode(
-                    targetPath = File(pluginsDir, fileName).absolutePath,
-                )
-                val message = errorCode.toUiMessage()
-                finish(PluginOperationResult(
+            val parsed = SubscriptionParser.parse(rawJson.toString(StandardCharsets.UTF_8))
+            if (parsed.isMalformed) {
+                return finish(PluginOperationResult(
                     operationType = PluginOperationType.ADD,
                     targetPlugins = listOf(trimmed),
                     successCount = 0,
@@ -795,14 +785,110 @@ class PluginManager @Inject constructor(
                     failures = listOf(
                         PluginOperationFailure(
                             sourceRef = trimmed,
-                            errorCode = errorCode,
-                            message = message,
+                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                            message = "订阅格式无效",
                         ),
                     ),
                     startedAtEpochMs = startedAt,
                     finishedAtEpochMs = System.currentTimeMillis(),
                 ))
             }
+
+            val entryBytes = prefetchSubscriptionEntries(parsed.installableEntries)
+            val targets = parsed.installableEntries.map { it.url }
+            val result = mutex.withLock {
+                withContext(Dispatchers.IO) {
+                    updateSubscriptionEntriesLocked(
+                        subscriptionUrl = trimmed,
+                        entries = parsed.installableEntries,
+                        entryBytes = entryBytes,
+                        totalEntries = parsed.totalEntries,
+                        startedAt = startedAt,
+                        targets = targets,
+                        operationType = PluginOperationType.ADD,
+                        installSourceType = PluginInstallSourceType.SUBSCRIPTION_URL,
+                    )
+                }
+            }
+            return finish(result)
+        }
+
+        // Single-plugin .js path: prefetch bytes OUTSIDE the lock.
+        val fileName = SubscriptionFileNames.networkPluginFileName(trimmed)
+        val installSource = PluginInstallSource(
+            type = PluginInstallSourceType.PLUGIN_URL,
+            value = trimmed,
+        )
+        val bytes = downloadOutsideLock(trimmed)
+        if (bytes == null) {
+            // Phase C: record a structured Failed entry so the UI can
+            // surface the download failure with reason DownloadFailed.
+            // `recordFailedEntry` mutates `_entries` via atomic CAS, so it
+            // does not need the mutex.
+            recordFailedEntry(
+                targetPath = File(pluginsDir, fileName).absolutePath,
+                reason = PluginErrorReason.DownloadFailed,
+                detail = "HTTP/IO download failed for $trimmed",
+                installSource = installSource,
+                attemptedPlatform = null,
+            )
+            return finish(PluginOperationResult(
+                operationType = PluginOperationType.ADD,
+                targetPlugins = listOf(trimmed),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        sourceRef = trimmed,
+                        errorCode = PluginOperationErrorCode.SOURCE_UNREACHABLE,
+                        message = "下载失败",
+                    ),
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            ))
+        }
+
+        val installed = mutex.withLock {
+            withContext(Dispatchers.IO) {
+                installFromBytesLocked(
+                    bytes = bytes,
+                    fileName = fileName,
+                    installSource = installSource,
+                )
+            }
+        }
+
+        return if (installed != null) {
+            finish(PluginOperationResult(
+                operationType = PluginOperationType.ADD,
+                targetPlugins = listOf(installed.info.platform),
+                successCount = 1,
+                failureCount = 0,
+                failures = emptyList(),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            ))
+        } else {
+            val errorCode = inferFailureErrorCode(
+                targetPath = File(pluginsDir, fileName).absolutePath,
+            )
+            val message = errorCode.toUiMessage()
+            finish(PluginOperationResult(
+                operationType = PluginOperationType.ADD,
+                targetPlugins = listOf(trimmed),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        sourceRef = trimmed,
+                        errorCode = errorCode,
+                        message = message,
+                    ),
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            ))
         }
     }
 
@@ -818,9 +904,34 @@ class PluginManager @Inject constructor(
             url = subscriptionUrl,
             targetCount = 1,
         )
-        val result = mutex.withLock {
-            withContext(Dispatchers.IO) {
-                installFromSubscriptionUrlLocked(subscriptionUrl)
+        val prefetch = prefetchSubscriptionForInstall(subscriptionUrl)
+        val result = when (prefetch) {
+            is SubscriptionPrefetchOutcome.BlankUrl -> SubscriptionInstallResult(
+                totalEntries = 0,
+                successfulInstalls = 0,
+                failedInstalls = 0,
+                errorMessage = "订阅地址不能为空",
+            )
+            is SubscriptionPrefetchOutcome.DownloadFailed -> SubscriptionInstallResult(
+                totalEntries = 0,
+                successfulInstalls = 0,
+                failedInstalls = 0,
+                errorMessage = "订阅下载失败",
+            )
+            is SubscriptionPrefetchOutcome.Malformed -> SubscriptionInstallResult(
+                totalEntries = 0,
+                successfulInstalls = 0,
+                failedInstalls = 0,
+                errorMessage = "订阅格式无效",
+            )
+            is SubscriptionPrefetchOutcome.Ready -> mutex.withLock {
+                withContext(Dispatchers.IO) {
+                    installFromSubscriptionUrlLocked(
+                        subscriptionUrl = subscriptionUrl,
+                        parsed = prefetch.parsed,
+                        entryBytes = prefetch.entryBytes,
+                    )
+                }
             }
         }
         logSubscriptionInstallResult(
@@ -833,34 +944,73 @@ class PluginManager @Inject constructor(
     }
 
     /**
+     * Result of [prefetchSubscriptionForInstall]: capture every early-exit
+     * reason as data so callers can map them to either
+     * [SubscriptionInstallResult] (for `install_from_subscription`) or
+     * [PluginOperationResult] (for `install_from_network_url` /
+     * `update_from_subscription`) without re-doing the network IO.
+     */
+    private sealed interface SubscriptionPrefetchOutcome {
+        object BlankUrl : SubscriptionPrefetchOutcome
+        object DownloadFailed : SubscriptionPrefetchOutcome
+        object Malformed : SubscriptionPrefetchOutcome
+        data class Ready(
+            val parsed: SubscriptionParseResult,
+            val entryBytes: Map<String, ByteArray?>,
+        ) : SubscriptionPrefetchOutcome
+    }
+
+    private suspend fun prefetchSubscriptionForInstall(
+        subscriptionUrl: String,
+    ): SubscriptionPrefetchOutcome {
+        if (subscriptionUrl.isBlank()) return SubscriptionPrefetchOutcome.BlankUrl
+        val rawJson = downloadOutsideLock(subscriptionUrl) ?: return SubscriptionPrefetchOutcome.DownloadFailed
+        val parsed = SubscriptionParser.parse(rawJson.toString(StandardCharsets.UTF_8))
+        if (parsed.isMalformed) return SubscriptionPrefetchOutcome.Malformed
+        val entryBytes = prefetchSubscriptionEntries(parsed.installableEntries)
+        return SubscriptionPrefetchOutcome.Ready(parsed, entryBytes)
+    }
+
+    /**
      * Update a single installed plugin using its source URL.
      */
     suspend fun updatePlugin(platform: String): PluginOperationResult {
         val flowId = newFlowId()
         val operation = "update_plugin"
         logOperationStart(flowId = flowId, operation = operation, platform = platform, targetCount = 1)
+        val startedAt = System.currentTimeMillis()
+
+        // Snapshot the target plugin + its source URL OUTSIDE the lock so we
+        // can run the HTTP download with the mutex released.
+        val plugin = _plugins.value.find { it.info.platform == platform }
+        if (plugin == null) {
+            val result = PluginOperationResult(
+                operationType = PluginOperationType.UPDATE_SINGLE,
+                targetPlugins = listOf(platform),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        targetPlugin = platform,
+                        errorCode = PluginOperationErrorCode.INTERNAL_ERROR,
+                        message = "插件未找到",
+                    ),
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = startedAt,
+            )
+            logPluginOperationResult(flowId = flowId, operation = operation, platform = platform, result = result)
+            return result
+        }
+
+        val sourceUrl = plugin.info.srcUrl?.trim().orEmpty()
+        val bytes = if (sourceUrl.isBlank() || plugin.filePath == null) null else downloadOutsideLock(sourceUrl)
+
         val result = mutex.withLock {
             withContext(Dispatchers.IO) {
-                val startedAt = System.currentTimeMillis()
-                val plugin = _plugins.value.find { it.info.platform == platform }
-                    ?: return@withContext PluginOperationResult(
-                        operationType = PluginOperationType.UPDATE_SINGLE,
-                        targetPlugins = listOf(platform),
-                        successCount = 0,
-                        failureCount = 1,
-                        failures = listOf(
-                            PluginOperationFailure(
-                                targetPlugin = platform,
-                                errorCode = PluginOperationErrorCode.INTERNAL_ERROR,
-                                message = "插件未找到",
-                            ),
-                        ),
-                        startedAtEpochMs = startedAt,
-                        finishedAtEpochMs = startedAt,
-                    )
-
                 updateInstalledPluginLocked(
                     targetPlugin = plugin,
+                    prefetchedBytes = bytes,
                     operationType = PluginOperationType.UPDATE_SINGLE,
                     startedAt = startedAt,
                 )
@@ -877,15 +1027,26 @@ class PluginManager @Inject constructor(
     suspend fun updateAllPlugins(): PluginOperationResult {
         val flowId = newFlowId()
         val operation = "update_all_plugins"
-        val initialTargets = _plugins.value
+        val targets = _plugins.value
             .filter { it.info.platform != LocalFilePluginConstants.PLATFORM }
-        logOperationStart(flowId = flowId, operation = operation, targetCount = initialTargets.size)
+        logOperationStart(flowId = flowId, operation = operation, targetCount = targets.size)
+        val startedAt = System.currentTimeMillis()
+
+        // Prefetch every plugin's bytes OUTSIDE the lock — a single slow
+        // source can no longer stall the rest of the update or any
+        // unrelated plugin lifecycle work.
+        val byPlatform = LinkedHashMap<String, ByteArray?>(targets.size)
+        for (target in targets) {
+            val sourceUrl = target.info.srcUrl?.trim().orEmpty()
+            byPlatform[target.info.platform] =
+                if (sourceUrl.isBlank() || target.filePath == null) null else downloadOutsideLock(sourceUrl)
+        }
+
         val result = mutex.withLock {
             withContext(Dispatchers.IO) {
-                val startedAt = System.currentTimeMillis()
                 updateInstalledPluginsLocked(
-                    targets = _plugins.value
-                        .filter { it.info.platform != LocalFilePluginConstants.PLATFORM },
+                    targets = targets,
+                    prefetchedBytesByPlatform = byPlatform,
                     operationType = PluginOperationType.UPDATE_ALL,
                     startedAt = startedAt,
                 )
@@ -898,88 +1059,88 @@ class PluginManager @Inject constructor(
     /**
      * Update plugins listed in a subscription JSON URL.
      */
-    suspend fun updateFromSubscriptionUrl(subscriptionUrl: String): PluginOperationResult = mutex.withLock {
-        withContext(Dispatchers.IO) {
-            val flowId = newFlowId()
-            val operation = "update_from_subscription"
-            val startedAt = System.currentTimeMillis()
-            logOperationStart(
+    suspend fun updateFromSubscriptionUrl(subscriptionUrl: String): PluginOperationResult {
+        val flowId = newFlowId()
+        val operation = "update_from_subscription"
+        val startedAt = System.currentTimeMillis()
+        logOperationStart(
+            flowId = flowId,
+            operation = operation,
+            url = subscriptionUrl,
+            targetCount = 1,
+        )
+        fun finish(result: PluginOperationResult): PluginOperationResult {
+            logPluginOperationResult(
                 flowId = flowId,
                 operation = operation,
                 url = subscriptionUrl,
-                targetCount = 1,
+                result = result,
             )
-            fun finish(result: PluginOperationResult): PluginOperationResult {
-                logPluginOperationResult(
-                    flowId = flowId,
-                    operation = operation,
-                    url = subscriptionUrl,
-                    result = result,
-                )
-                return result
-            }
-            if (subscriptionUrl.isBlank()) {
-                return@withContext finish(PluginOperationResult(
-                    operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
-                    targetPlugins = emptyList(),
-                    successCount = 0,
-                    failureCount = 1,
-                    failures = listOf(
-                        PluginOperationFailure(
-                            sourceRef = subscriptionUrl,
-                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
-                            message = "订阅地址不能为空",
-                        ),
+            return result
+        }
+        val prefetch = prefetchSubscriptionForInstall(subscriptionUrl)
+        return when (prefetch) {
+            is SubscriptionPrefetchOutcome.BlankUrl -> finish(PluginOperationResult(
+                operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
+                targetPlugins = emptyList(),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        sourceRef = subscriptionUrl,
+                        errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                        message = "订阅地址不能为空",
                     ),
-                    startedAtEpochMs = startedAt,
-                    finishedAtEpochMs = startedAt,
-                ))
-            }
-
-            val rawJson = downloadUrlBytes(subscriptionUrl)
-                ?: return@withContext finish(PluginOperationResult(
-                    operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
-                    targetPlugins = listOf(subscriptionUrl),
-                    successCount = 0,
-                    failureCount = 1,
-                    failures = listOf(
-                        PluginOperationFailure(
-                            sourceRef = subscriptionUrl,
-                            errorCode = PluginOperationErrorCode.SOURCE_UNREACHABLE,
-                            message = "订阅下载失败",
-                        ),
-                    ),
-                    startedAtEpochMs = startedAt,
-                    finishedAtEpochMs = System.currentTimeMillis(),
-                ))
-
-            val parsed = SubscriptionParser.parse(rawJson.toString(StandardCharsets.UTF_8))
-            if (parsed.isMalformed) {
-                return@withContext finish(PluginOperationResult(
-                    operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
-                    targetPlugins = listOf(subscriptionUrl),
-                    successCount = 0,
-                    failureCount = 1,
-                    failures = listOf(
-                        PluginOperationFailure(
-                            sourceRef = subscriptionUrl,
-                            errorCode = PluginOperationErrorCode.SOURCE_INVALID,
-                            message = "订阅格式无效",
-                        ),
-                    ),
-                    startedAtEpochMs = startedAt,
-                    finishedAtEpochMs = System.currentTimeMillis(),
-                ))
-            }
-
-            val targets = parsed.installableEntries.map { it.url }
-            finish(updateSubscriptionEntriesLocked(
-                subscriptionUrl = subscriptionUrl,
-                entries = parsed.installableEntries,
-                totalEntries = parsed.totalEntries,
-                startedAt = startedAt,
-                targets = targets,
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = startedAt,
             ))
+            is SubscriptionPrefetchOutcome.DownloadFailed -> finish(PluginOperationResult(
+                operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
+                targetPlugins = listOf(subscriptionUrl),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        sourceRef = subscriptionUrl,
+                        errorCode = PluginOperationErrorCode.SOURCE_UNREACHABLE,
+                        message = "订阅下载失败",
+                    ),
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            ))
+            is SubscriptionPrefetchOutcome.Malformed -> finish(PluginOperationResult(
+                operationType = PluginOperationType.UPDATE_SUBSCRIPTION,
+                targetPlugins = listOf(subscriptionUrl),
+                successCount = 0,
+                failureCount = 1,
+                failures = listOf(
+                    PluginOperationFailure(
+                        sourceRef = subscriptionUrl,
+                        errorCode = PluginOperationErrorCode.SOURCE_INVALID,
+                        message = "订阅格式无效",
+                    ),
+                ),
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            ))
+            is SubscriptionPrefetchOutcome.Ready -> {
+                val targets = prefetch.parsed.installableEntries.map { it.url }
+                val result = mutex.withLock {
+                    withContext(Dispatchers.IO) {
+                        updateSubscriptionEntriesLocked(
+                            subscriptionUrl = subscriptionUrl,
+                            entries = prefetch.parsed.installableEntries,
+                            entryBytes = prefetch.entryBytes,
+                            totalEntries = prefetch.parsed.totalEntries,
+                            startedAt = startedAt,
+                            targets = targets,
+                        )
+                    }
+                }
+                finish(result)
+            }
         }
     }
 
@@ -1947,107 +2108,6 @@ class PluginManager @Inject constructor(
         }
     }
 
-    private suspend fun installFromUrlLocked(
-        url: String,
-        fileName: String,
-        installSource: PluginInstallSource = PluginInstallSource(
-            type = PluginInstallSourceType.PLUGIN_URL,
-            value = url,
-        ),
-    ): LoadedPlugin? {
-        MfLog.detail(
-            category = LogCategory.PLUGIN,
-            event = "plugin_install_start",
-            fields = mapOf(
-                "operation" to "install_from_url",
-                "status" to "start",
-                "url" to url,
-                "fileName" to fileName,
-            ),
-        )
-
-        return try {
-            val bytes = downloadUrlBytes(url)
-            if (bytes == null) {
-                // Phase C: download failure is now a structured Failed entry
-                // (DownloadFailed). The download function itself already logged
-                // the underlying HTTP/IO error, so we don't duplicate stack
-                // traces — we only surface the state transition.
-                recordFailedEntry(
-                    targetPath = File(pluginsDir, fileName).absolutePath,
-                    reason = PluginErrorReason.DownloadFailed,
-                    detail = "HTTP/IO download failed for $url",
-                    installSource = installSource,
-                    attemptedPlatform = null,
-                )
-                MfLog.error(
-                    category = LogCategory.PLUGIN,
-                    event = "plugin_install_failed",
-                    fields = mapOf(
-                        "operation" to "install_from_url",
-                        "status" to "failed",
-                        "url" to url,
-                        "fileName" to fileName,
-                        "state" to PluginStateKeys.STATE_FAILED,
-                        "reason" to PluginStateKeys.REASON_DOWNLOAD_FAILED,
-                    ),
-                )
-                return null
-            }
-            val (plugin, durationMs) = timedSuspend {
-                installFromBytesLocked(bytes, fileName, installSource)
-            }
-            if (plugin != null) {
-                MfLog.detail(
-                    category = LogCategory.PLUGIN,
-                    event = "plugin_install_success",
-                    fields = mapOf(
-                        "operation" to "install_from_url",
-                        "status" to "success",
-                        "platform" to plugin.info.platform,
-                        "url" to url,
-                        "fileName" to fileName,
-                        "durationMs" to durationMs,
-                    ),
-                )
-            } else {
-                MfLog.error(
-                    category = LogCategory.PLUGIN,
-                    event = "plugin_install_failed",
-                    fields = mapOf(
-                        "operation" to "install_from_url",
-                        "status" to "failed",
-                        "url" to url,
-                        "fileName" to fileName,
-                    ),
-                )
-            }
-            plugin
-        } catch (e: Exception) {
-            recordFailedEntry(
-                targetPath = File(pluginsDir, fileName).absolutePath,
-                reason = PluginErrorReason.CannotParse,
-                detail = e.message ?: e::class.qualifiedName,
-                installSource = installSource,
-                attemptedPlatform = null,
-            )
-            MfLog.error(
-                category = LogCategory.PLUGIN,
-                event = "plugin_install_failed",
-                throwable = e,
-                fields = mapOf(
-                    "operation" to "install_from_url",
-                    "status" to "failed",
-                    "url" to url,
-                    "fileName" to fileName,
-                    "state" to PluginStateKeys.STATE_FAILED,
-                    "reason" to PluginStateKeys.REASON_CANNOT_PARSE,
-                ),
-            )
-            null
-        }
-    }
-
     private suspend fun installFromBytesLocked(
         bytes: ByteArray,
         fileName: String,
@@ -2083,7 +2143,18 @@ class PluginManager @Inject constructor(
         }
     }
 
-    private suspend fun installFromSubscriptionUrlLocked(subscriptionUrl: String): SubscriptionInstallResult {
+    /**
+     * Install every subscription entry from already-downloaded bytes. The
+     * caller is responsible for fetching the subscription JSON and each
+     * entry's plugin bytes OUTSIDE the lock (see
+     * [prefetchSubscriptionForInstall]); this helper only mutates state
+     * and writes files while [mutex] is held.
+     */
+    private suspend fun installFromSubscriptionUrlLocked(
+        subscriptionUrl: String,
+        parsed: SubscriptionParseResult,
+        entryBytes: Map<String, ByteArray?>,
+    ): SubscriptionInstallResult {
         MfLog.detail(
             category = LogCategory.PLUGIN,
             event = "plugin_install_start",
@@ -2093,78 +2164,38 @@ class PluginManager @Inject constructor(
                 "url" to subscriptionUrl,
             ),
         )
-        if (subscriptionUrl.isBlank()) {
-            MfLog.error(
-                category = LogCategory.PLUGIN,
-                event = "plugin_install_failed",
-                fields = mapOf(
-                    "operation" to "install_from_subscription",
-                    "status" to "failed",
-                    "url" to subscriptionUrl,
-                    "message" to "subscription_url_empty",
-                ),
-            )
-            return SubscriptionInstallResult(
-                totalEntries = 0,
-                successfulInstalls = 0,
-                failedInstalls = 0,
-                errorMessage = "订阅地址不能为空",
-            )
-        }
 
-        val rawJson = downloadUrlBytes(subscriptionUrl)?.toString(StandardCharsets.UTF_8)
-            ?: run {
+        var successfulInstalls = 0
+        for (entry in parsed.installableEntries) {
+            val fileName = SubscriptionFileNames.pluginFileName(entry)
+            val bytes = entryBytes[entry.url]
+            val installSource = PluginInstallSource(
+                type = PluginInstallSourceType.SUBSCRIPTION_URL,
+                value = subscriptionUrl,
+            )
+            if (bytes == null) {
+                recordFailedEntry(
+                    targetPath = File(pluginsDir, fileName).absolutePath,
+                    reason = PluginErrorReason.DownloadFailed,
+                    detail = "HTTP/IO download failed for ${entry.url}",
+                    installSource = installSource,
+                    attemptedPlatform = null,
+                )
                 MfLog.error(
                     category = LogCategory.PLUGIN,
                     event = "plugin_install_failed",
                     fields = mapOf(
                         "operation" to "install_from_subscription",
                         "status" to "failed",
-                        "url" to subscriptionUrl,
-                        "message" to "subscription_download_failed",
+                        "url" to entry.url,
+                        "fileName" to fileName,
+                        "state" to PluginStateKeys.STATE_FAILED,
+                        "reason" to PluginStateKeys.REASON_DOWNLOAD_FAILED,
                     ),
                 )
-                return SubscriptionInstallResult(
-                    totalEntries = 0,
-                    successfulInstalls = 0,
-                    failedInstalls = 0,
-                    errorMessage = "订阅下载失败",
-                )
+                continue
             }
-
-        val parsed = SubscriptionParser.parse(rawJson)
-        if (parsed.isMalformed) {
-            MfLog.error(
-                category = LogCategory.PLUGIN,
-                event = "plugin_install_failed",
-                fields = mapOf(
-                    "operation" to "install_from_subscription",
-                    "status" to "failed",
-                    "url" to subscriptionUrl,
-                    "message" to "subscription_json_invalid",
-                ),
-            )
-            return SubscriptionInstallResult(
-                totalEntries = 0,
-                successfulInstalls = 0,
-                failedInstalls = 0,
-                errorMessage = "订阅格式无效",
-            )
-        }
-
-        var successfulInstalls = 0
-        for (entry in parsed.installableEntries) {
-            val fileName = SubscriptionFileNames.pluginFileName(entry)
-            if (
-                installFromUrlLocked(
-                    url = entry.url,
-                    fileName = fileName,
-                    installSource = PluginInstallSource(
-                        type = PluginInstallSourceType.SUBSCRIPTION_URL,
-                        value = subscriptionUrl,
-                    ),
-                ) != null
-            ) {
+            if (installFromBytesLocked(bytes, fileName, installSource) != null) {
                 successfulInstalls += 1
             }
         }
@@ -2471,8 +2502,15 @@ class PluginManager @Inject constructor(
         }
     }
 
+    /**
+     * Apply an update to a single plugin from already-downloaded bytes.
+     * Callers MUST run the HTTP fetch via [downloadOutsideLock] BEFORE
+     * acquiring [mutex] and pass the resulting bytes (or `null` for a
+     * download failure) via [prefetchedBytes].
+     */
     private suspend fun updateInstalledPluginLocked(
         targetPlugin: LoadedPlugin,
+        prefetchedBytes: ByteArray?,
         operationType: PluginOperationType,
         startedAt: Long,
     ): PluginOperationResult {
@@ -2518,8 +2556,7 @@ class PluginManager @Inject constructor(
             )
         }
 
-        val bytes = downloadUrlBytes(sourceUrl)
-        if (bytes == null) {
+        if (prefetchedBytes == null) {
             return PluginOperationResult(
                 operationType = operationType,
                 targetPlugins = listOf(targetPlugin.info.platform),
@@ -2539,7 +2576,7 @@ class PluginManager @Inject constructor(
         }
 
         val updated = installFromBytesLocked(
-            bytes = bytes,
+            bytes = prefetchedBytes,
             fileName = File(targetFilePath).name,
             installSource = PluginInstallSource(
                 type = operationType.toInstallSourceType(),
@@ -2577,8 +2614,13 @@ class PluginManager @Inject constructor(
         }
     }
 
+    /**
+     * Apply updates to multiple plugins from a `platform -> bytes-or-null`
+     * map prefetched OUTSIDE the lock (see [updateAllPlugins]).
+     */
     private suspend fun updateInstalledPluginsLocked(
         targets: List<LoadedPlugin>,
+        prefetchedBytesByPlatform: Map<String, ByteArray?>,
         operationType: PluginOperationType,
         startedAt: Long,
     ): PluginOperationResult {
@@ -2587,7 +2629,12 @@ class PluginManager @Inject constructor(
         val targetNames = targets.map { it.info.platform }
 
         targets.forEach { plugin ->
-            val result = updateInstalledPluginLocked(plugin, operationType, startedAt)
+            val result = updateInstalledPluginLocked(
+                targetPlugin = plugin,
+                prefetchedBytes = prefetchedBytesByPlatform[plugin.info.platform],
+                operationType = operationType,
+                startedAt = startedAt,
+            )
             successCount += result.successCount
             failures += result.failures
         }
@@ -2603,9 +2650,16 @@ class PluginManager @Inject constructor(
         )
     }
 
+    /**
+     * Apply subscription updates from already-downloaded bytes. Callers
+     * MUST prefetch each entry's bytes OUTSIDE the lock (see
+     * [prefetchSubscriptionEntries]) so this loop only does file writes
+     * and state mutation under [mutex].
+     */
     private suspend fun updateSubscriptionEntriesLocked(
         subscriptionUrl: String,
         entries: List<SubscriptionPluginEntry>,
+        entryBytes: Map<String, ByteArray?>,
         totalEntries: Int,
         startedAt: Long,
         targets: List<String>,
@@ -2626,7 +2680,7 @@ class PluginManager @Inject constructor(
 
         entries.forEach { entry ->
             val fileName = SubscriptionFileNames.pluginFileName(entry)
-            val bytes = downloadUrlBytes(entry.url)
+            val bytes = entryBytes[entry.url]
             val installed = if (bytes != null) {
                 installFromBytesLocked(
                     bytes = bytes,

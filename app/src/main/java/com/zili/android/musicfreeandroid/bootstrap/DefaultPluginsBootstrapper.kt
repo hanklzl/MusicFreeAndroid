@@ -4,9 +4,11 @@ import androidx.annotation.VisibleForTesting
 import com.zili.android.musicfreeandroid.di.ApplicationScope
 import com.zili.android.musicfreeandroid.logging.LogCategory
 import com.zili.android.musicfreeandroid.logging.MfLog
+import com.zili.android.musicfreeandroid.plugin.manager.PluginEntry
 import com.zili.android.musicfreeandroid.plugin.manager.PluginInstallSourceType
 import com.zili.android.musicfreeandroid.plugin.manager.PluginManager
 import com.zili.android.musicfreeandroid.plugin.meta.PluginMetaStore
+import com.zili.android.musicfreeandroid.plugin.runtime.PluginState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -46,15 +48,19 @@ class DefaultPluginsBootstrapper @Inject constructor(
         var failedCount = 0
 
         pluginManager.ensurePluginsLoaded()
-        val installedPlugins = pluginManager.plugins.value
+        // Read [allEntries] (not [plugins]) so Phase E cache-hit entries that
+        // are still in [PluginState.Loading] also count as "already
+        // installed" — otherwise the bootstrap would re-download every
+        // default plugin on every cold start because lazy-load races the
+        // reconcile read. Failed entries are intentionally NOT considered
+        // present so the bootstrap can retry a previously-broken default
+        // plugin.
+        val presentEntries = pluginManager.allEntries.value
+            .filter { it.state is PluginState.Mounted || it.state is PluginState.Loading }
 
         val existingSubscriptionUrls =
             pluginMetaStore.subscriptions.first().map { it.url.trim() }.toSet() +
-                installedPlugins
-                    .filter { it.installSource?.type == PluginInstallSourceType.SUBSCRIPTION_URL }
-                    .mapNotNull { it.installSource?.value?.trim() }
-                    .filter { it.isNotEmpty() }
-                    .toSet()
+                presentEntries.sourceUrlsOfType(PluginInstallSourceType.SUBSCRIPTION_URL)
 
         for (raw in subscriptionUrls) {
             val url = raw.trim()
@@ -99,7 +105,7 @@ class DefaultPluginsBootstrapper @Inject constructor(
         }
 
         if (pluginUrls.isNotEmpty()) {
-            val existingPluginUrls = installedPlugins
+            val existingPluginUrls = presentEntries
                 .mapNotNull { it.installSource?.value?.trim() }
                 .filter { it.isNotEmpty() }
                 .toSet()
@@ -159,4 +165,11 @@ class DefaultPluginsBootstrapper @Inject constructor(
             ),
         )
     }
+
+    private fun List<PluginEntry>.sourceUrlsOfType(type: PluginInstallSourceType): Set<String> =
+        asSequence()
+            .filter { it.installSource?.type == type }
+            .mapNotNull { it.installSource?.value?.trim() }
+            .filter { it.isNotEmpty() }
+            .toSet()
 }
