@@ -18,6 +18,7 @@ import com.hank.musicfree.data.db.SeedFavoriteCallback
 import com.hank.musicfree.data.db.converter.Converters
 import com.hank.musicfree.data.db.migration.MIGRATION_10_11
 import com.hank.musicfree.data.db.migration.MIGRATION_11_12
+import com.hank.musicfree.data.db.migration.MIGRATION_12_13
 import com.hank.musicfree.data.db.migration.MIGRATION_9_10
 import com.hank.musicfree.data.db.dao.LyricCacheDao
 import com.hank.musicfree.data.db.dao.MediaCacheDao
@@ -29,6 +30,7 @@ import com.hank.musicfree.data.db.dao.DownloadedTrackDao
 import com.hank.musicfree.data.db.dao.PluginMetadataCacheDao
 import com.hank.musicfree.data.db.dao.ListenStatsDao
 import com.hank.musicfree.data.db.dao.StarredSheetDao
+import com.hank.musicfree.data.db.dao.TrafficDailyDao
 import com.hank.musicfree.data.datastore.AppPlaybackRuntimeSettings
 import com.hank.musicfree.data.local.Mp3MetadataReaderImpl
 import com.hank.musicfree.data.repository.AppPlaylistDefaultSortProvider
@@ -54,7 +56,7 @@ object DataModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "musicfree.db")
-            .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+            .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
             .addCallback(SeedFavoriteCallback)
             .build()
 
@@ -88,6 +90,9 @@ object DataModule {
     @Provides
     fun providePluginMetadataCacheDao(db: AppDatabase): PluginMetadataCacheDao =
         db.pluginMetadataCacheDao()
+
+    @Provides
+    fun provideTrafficDailyDao(db: AppDatabase): TrafficDailyDao = db.trafficDailyDao()
 
     @Provides
     @Singleton

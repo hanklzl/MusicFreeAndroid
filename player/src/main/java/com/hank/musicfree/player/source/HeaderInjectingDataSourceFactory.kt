@@ -2,47 +2,82 @@ package com.hank.musicfree.player.source
 
 import android.content.Context
 import androidx.annotation.OptIn as AndroidXOptIn
+import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.cache.CacheDataSink
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import com.hank.musicfree.core.network.BaseOkHttp
+import com.hank.musicfree.player.cache.SimpleCacheHolder
 import dagger.hilt.android.qualifiers.ApplicationContext
+import okhttp3.OkHttpClient
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * DataSource.Factory that injects per-track HTTP headers + user agent into outgoing requests.
+ * DataSource.Factory that:
+ * 1. routes Media3 HTTP through @BaseOkHttp (流量统计 EventListener)
+ * 2. injects per-track HTTP headers/UA from TrackHeaderRegistry
+ * 3. caches via SimpleCache with stable mediaId-based cache keys
  *
- * Lookup key is the dataSpec.uri (the resolved playback url). PlayerController writes
- * (url, headers, ua) into [registry] just before setMediaItem; here we read it during
- * dataSpec resolution and merge into [androidx.media3.datasource.DataSpec.httpRequestHeaders].
- *
- * For non-http(s) schemes (e.g. file://) we pass the dataSpec through unchanged.
+ * SimpleCache 不可用时降级到 OkHttpDataSource without caching (FLAG_IGNORE_CACHE_ON_ERROR style)
  */
 @Singleton
+@AndroidXOptIn(markerClass = [UnstableApi::class])
 class HeaderInjectingDataSourceFactory @Inject constructor(
     @ApplicationContext private val context: Context,
+    @BaseOkHttp private val okHttpClient: OkHttpClient,
     private val registry: TrackHeaderRegistry,
+    private val simpleCacheHolder: SimpleCacheHolder,
 ) : DataSource.Factory {
 
-    @AndroidXOptIn(markerClass = [UnstableApi::class])
+    /**
+     * Pure DataSpec transformer for the [ResolvingDataSource]:
+     * - non-http(s) schemes are passed through untouched (file://, asset://...)
+     * - registry miss leaves the DataSpec alone (no header injection, no cacheKey)
+     * - registry hit merges headers, fills in UA only if absent (case-insensitive),
+     *   and applies the stable cacheKey via [DataSpec.Builder.setKey] so signature-rotated
+     *   urls still hit the same SimpleCache entry.
+     *
+     * Visible for tests so the closure logic can be exercised without standing up Media3.
+     */
+    internal fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
+        val scheme = dataSpec.uri.scheme?.lowercase()
+        if (scheme != "http" && scheme != "https") return dataSpec
+        val key = dataSpec.uri.toString()
+        val entry = registry.get(key) ?: return dataSpec
+        val merged = buildMap {
+            putAll(dataSpec.httpRequestHeaders)
+            putAll(entry.headers)
+            entry.userAgent
+                ?.takeIf { !this.containsKey("User-Agent") && !this.containsKey("user-agent") }
+                ?.let { put("User-Agent", it) }
+        }
+        val builder = dataSpec.buildUpon().setHttpRequestHeaders(merged)
+        entry.cacheKey?.let { builder.setKey(it) }
+        return builder.build()
+    }
+
     override fun createDataSource(): DataSource {
-        val httpFactory = DefaultHttpDataSource.Factory()
+        val httpFactory = OkHttpDataSource.Factory(okHttpClient)
         val baseFactory = DefaultDataSource.Factory(context, httpFactory)
-        return ResolvingDataSource.Factory(baseFactory) { dataSpec ->
-            val scheme = dataSpec.uri.scheme?.lowercase()
-            if (scheme != "http" && scheme != "https") return@Factory dataSpec
-            val key = dataSpec.uri.toString()
-            val entry = registry.get(key) ?: return@Factory dataSpec
-            val merged = buildMap {
-                putAll(dataSpec.httpRequestHeaders)
-                putAll(entry.headers)
-                entry.userAgent
-                    ?.takeIf { !this.containsKey("User-Agent") && !this.containsKey("user-agent") }
-                    ?.let { put("User-Agent", it) }
-            }
-            dataSpec.buildUpon().setHttpRequestHeaders(merged).build()
-        }.createDataSource()
+        val resolving = ResolvingDataSource.Factory(baseFactory) { dataSpec ->
+            resolveDataSpec(dataSpec)
+        }
+        val cache = simpleCacheHolder.current ?: return resolving.createDataSource()
+        return CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory(resolving)
+            .setCacheWriteDataSinkFactory(
+                CacheDataSink.Factory()
+                    .setCache(cache)
+                    .setFragmentSize(C.LENGTH_UNSET.toLong())
+            )
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+            .createDataSource()
     }
 }

@@ -42,6 +42,7 @@ echo "==> Compile-only test sources (all modules) — guards INC-2026-0016"
   :downloader:compileDebugUnitTestKotlin :plugin:compileDebugUnitTestKotlin :player:compileDebugUnitTestKotlin \
   :feature:home:compileDebugUnitTestKotlin :feature:player-ui:compileDebugUnitTestKotlin \
   :feature:search:compileDebugUnitTestKotlin :feature:settings:compileDebugUnitTestKotlin \
+  :updater:compileDebugUnitTestKotlin \
   --no-daemon
 
 echo "==> Contract tests (JVM)"
@@ -49,4 +50,5 @@ echo "==> Contract tests (JVM)"
 # Adding tests in other modules requires extending this list.
 ./gradlew \
   :app:testDebugUnitTest :plugin:testDebugUnitTest :feature:player-ui:testDebugUnitTest \
+  :downloader:testDebugUnitTest :updater:testDebugUnitTest \
   --tests '*harness.contracts.*' --no-daemon

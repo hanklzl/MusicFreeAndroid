@@ -76,6 +76,8 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.hilt.android.testing)
+    kspTest(libs.hilt.compiler)
 
     // Instrumented tests
     androidTestImplementation(libs.androidx.test.runner)

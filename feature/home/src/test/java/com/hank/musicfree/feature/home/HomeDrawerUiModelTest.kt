@@ -12,13 +12,17 @@ class HomeDrawerUiModelTest {
         val first = model.sections.first()
         assertEquals("me", first.sectionKey)
         assertEquals("我的", first.title)
-        val item = first.items.single()
+        val item = first.items.first { it.anchorTag == FidelityAnchors.Home.DrawerMeListenStats }
         assertEquals("听歌足迹", item.title)
         assertEquals(HomeDrawerAction.OpenListenStats, item.action)
-        assertEquals(
-            FidelityAnchors.Home.DrawerMeListenStats,
-            item.anchorTag,
-        )
+    }
+
+    @Test
+    fun me_section_contains_traffic_stats() {
+        val model = buildHomeDrawerUiModel(currentVersion = "1.0", scheduleCloseSummary = "")
+        val me = model.sections.first { it.sectionKey == "me" }
+        val titles = me.items.map { it.title }
+        assert(titles.contains("流量统计"))
     }
 
     @Test

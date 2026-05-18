@@ -28,6 +28,7 @@ import com.hank.musicfree.core.navigation.SettingsRoute
 import com.hank.musicfree.core.navigation.SettingsType
 import com.hank.musicfree.core.navigation.TopListDetailRoute
 import com.hank.musicfree.core.navigation.TopListRoute
+import com.hank.musicfree.core.navigation.TrafficStatsRoute
 import com.hank.musicfree.feature.home.navigation.homeScreen
 import com.hank.musicfree.feature.home.albumdetail.navigation.AlbumDetailSeedStore
 import com.hank.musicfree.feature.home.albumdetail.navigation.albumDetailScreen
@@ -57,6 +58,7 @@ import com.hank.musicfree.feature.settings.pluginsort.navigation.pluginSortScree
 import com.hank.musicfree.feature.listenstats.navigation.listenStatsScreen
 import com.hank.musicfree.feature.settings.pluginsub.navigation.pluginSubscriptionScreen
 import com.hank.musicfree.feature.settings.setcustomtheme.navigation.setCustomThemeScreen
+import com.hank.musicfree.feature.settings.traffic.navigation.trafficStatsRoute
 
 @Composable
 fun AppNavHost(
@@ -77,6 +79,7 @@ fun AppNavHost(
             onNavigateToRecommendSheets = { navController.navigate(RecommendSheetsRoute) },
             onNavigateToHistory = { navController.navigate(HistoryRoute) },
             onNavigateToListenStats = { navController.navigate(ListenStatsRoute()) },
+            onNavigateToTrafficStats = { navController.navigate(TrafficStatsRoute()) },
             onNavigateToLocal = { navController.navigate(LocalRoute) },
             onNavigateToSettings = { type: SettingsType -> navController.navigate(SettingsRoute(type)) },
             onNavigateToPluginList = { navController.navigate(PluginListRoute) },
@@ -311,5 +314,6 @@ fun AppNavHost(
         setCustomThemeScreen(
             onBack = { navController.popBackStack() },
         )
+        trafficStatsRoute(onBack = { navController.popBackStack() })
     }
 }

@@ -1,7 +1,7 @@
 package com.hank.musicfree.bootstrap
 
 import androidx.annotation.VisibleForTesting
-import com.hank.musicfree.di.ApplicationScope
+import com.hank.musicfree.core.di.ApplicationScope
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.plugin.manager.PluginEntry

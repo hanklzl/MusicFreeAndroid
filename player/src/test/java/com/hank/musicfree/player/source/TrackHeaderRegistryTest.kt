@@ -44,4 +44,18 @@ class TrackHeaderRegistryTest {
         assertNull(r.get("k1"))
         assertEquals(emptyMap<String, String>(), r.get("k0")?.headers)
     }
+
+    @Test
+    fun `put with cacheKey returns in entry`() {
+        val r = TrackHeaderRegistry()
+        r.put("https://x/a", mapOf("k" to "v"), "UA", cacheKey = "media-123")
+        assertEquals("media-123", r.get("https://x/a")?.cacheKey)
+    }
+
+    @Test
+    fun `put without cacheKey default null`() {
+        val r = TrackHeaderRegistry()
+        r.put("https://x/b", emptyMap(), null)
+        assertNull(r.get("https://x/b")?.cacheKey)
+    }
 }

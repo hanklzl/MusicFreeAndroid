@@ -65,6 +65,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.okhttp.mockwebserver)
     // Provide real org.json for JVM unit tests (Android stubs throw by default)
     testImplementation(libs.org.json)
     // Compose Color is part of :core's public API but :core uses

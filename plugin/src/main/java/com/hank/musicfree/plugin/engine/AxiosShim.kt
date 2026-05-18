@@ -55,11 +55,33 @@ object AxiosShim {
      * Shared base client — connection pool / dispatcher are reused across calls.
      * Per-call we derive a `.newBuilder()` copy with the requested timeout to avoid
      * GC churn on every plugin request.
+     *
+     * Defaults to a bare builder so unit tests and (very) early app startup can
+     * call into [AxiosShim] before Hilt finishes wiring. Production swaps this in
+     * via [setBaseClient] from [com.hank.musicfree.MusicFreeApplication.onCreate],
+     * promoting the client to a `@BaseOkHttp` derivative so all axios traffic
+     * flows through [com.hank.musicfree.core.network.NetworkTrafficEventListener.Factory].
      */
-    private val baseClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .followRedirects(true)
-            .build()
+    @Volatile
+    private var baseClient: OkHttpClient = OkHttpClient.Builder()
+        .followRedirects(true)
+        .build()
+
+    /**
+     * Static injection point for the `@BaseOkHttp` client. Called exactly once by
+     * [com.hank.musicfree.MusicFreeApplication.onCreate] after Hilt finishes
+     * field injection. The new client must already carry the
+     * [com.hank.musicfree.core.network.NetworkTrafficEventListener.Factory]; we
+     * reseat it through `.newBuilder().followRedirects(true).build()` so the
+     * axios-side default (auto-follow 30x) is preserved regardless of how the
+     * base client was configured.
+     *
+     * `@Volatile` makes the swap visible across threads without taking a lock;
+     * per-call [clientFor] always reads the latest reference.
+     */
+    @JvmStatic
+    fun setBaseClient(client: OkHttpClient) {
+        baseClient = client.newBuilder().followRedirects(true).build()
     }
 
     private fun clientFor(timeoutMs: Long): OkHttpClient {

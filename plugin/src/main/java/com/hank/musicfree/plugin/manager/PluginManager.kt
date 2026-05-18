@@ -2,6 +2,7 @@ package com.hank.musicfree.plugin.manager
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import com.hank.musicfree.core.network.BaseOkHttp
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.db.dao.DownloadedTrackDao
 import com.hank.musicfree.data.repository.CachedPluginMetadata
@@ -82,6 +83,8 @@ class PluginManager @Inject constructor(
     @Named(PluginModule.APP_VERSION_NAMED) private val currentAppVersion: String,
     private val metadataCache: PluginMetadataCacheGateway,
     private val appPreferences: AppPreferences,
+    @BaseOkHttp private val baseOkHttpClient: OkHttpClient,
+    private val webDavShim: WebDavShim,
 ) {
 
     companion object {
@@ -151,7 +154,7 @@ class PluginManager @Inject constructor(
     private val _loaded = AtomicBoolean(false)
 
     private val httpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        baseOkHttpClient.newBuilder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .build()
@@ -2917,7 +2920,7 @@ class PluginManager @Inject constructor(
 
             // Register shims
             AxiosShim.register(engine)
-            WebDavShim.register(engine)
+            WebDavShim.register(engine, webDavShim)
             RequireShim.register(appContext = context, engine = engine)
 
             // Inject env object + process global.

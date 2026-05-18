@@ -12,6 +12,7 @@ object FidelityAnchors {
         const val PermissionsRoot = "screen.permissions.root"
         const val LocalRoot = "screen.local.root"
         const val SetCustomThemeRoot = "screen.setCustomTheme.root"
+        const val TrafficStatsRoot = "screen.traffic_stats.root"
     }
 
     object Home {
@@ -31,6 +32,7 @@ object FidelityAnchors {
         const val DrawerRoot = "home.drawer.root"
         const val DrawerTitle = "home.drawer.title"
         const val DrawerMeListenStats = "home.drawer.me.listenStats"
+        const val DrawerMeTrafficStats = "home.drawer.me.traffic_stats"
         const val DrawerSettings = "home.drawer.settings"
         const val DrawerPluginManagement = "home.drawer.pluginManagement"
         const val DrawerPermissions = "home.drawer.permissions"

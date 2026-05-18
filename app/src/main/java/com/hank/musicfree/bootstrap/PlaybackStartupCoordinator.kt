@@ -4,7 +4,7 @@ import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlaybackRuntimeSettings
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.repository.PlayQueueRepository
-import com.hank.musicfree.di.ApplicationScope
+import com.hank.musicfree.core.di.ApplicationScope
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.player.controller.PlayerController

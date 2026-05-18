@@ -241,3 +241,9 @@ data class ListenDetailRoute(
     val anchorEpochDay: Long,
     val filterValue: String? = null,
 )
+
+@Serializable
+data class TrafficStatsRoute(
+    val scope: String = "MONTH",
+    val anchorEpochDay: Long = -1L,
+)

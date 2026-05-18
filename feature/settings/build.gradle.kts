@@ -47,6 +47,7 @@ kotlin {
 dependencies {
     implementation(project(":core"))
     implementation(project(":data"))
+    implementation(project(":player"))
     implementation(project(":plugin"))
     implementation(project(":updater"))
     implementation(project(":logging"))
@@ -69,6 +70,7 @@ dependencies {
     testImplementation(libs.androidx.datastore.preferences)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.mockk)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

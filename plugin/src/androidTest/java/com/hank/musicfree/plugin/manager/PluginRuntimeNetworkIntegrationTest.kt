@@ -9,6 +9,7 @@ import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.MfLogger
+import com.hank.musicfree.plugin.engine.WebDavShim
 import com.hank.musicfree.plugin.meta.PluginMetaStore
 import com.hank.musicfree.plugin.runtime.PluginAppVersionGate
 import kotlinx.coroutines.CoroutineScope
@@ -16,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -60,6 +62,7 @@ class PluginRuntimeNetworkIntegrationTest {
             scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-runtime-network-it-prefs") },
         )
+        val baseClient = OkHttpClient.Builder().build()
         pluginManager = PluginManager(
             appContext,
             PluginMetaStore(dataStore),
@@ -71,6 +74,8 @@ class PluginRuntimeNetworkIntegrationTest {
             "1.0.0",
             InMemoryPluginMetadataCacheGateway(),
             com.hank.musicfree.data.datastore.AppPreferences(prefsDataStore),
+            baseClient,
+            WebDavShim(baseClient),
         )
         clearPluginStorage()
     }

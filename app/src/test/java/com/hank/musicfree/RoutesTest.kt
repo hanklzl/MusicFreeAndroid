@@ -335,6 +335,22 @@ class RoutesTest {
     }
 
     @Test
+    fun `TrafficStatsRoute defaults serialize round-trip`() {
+        val route = com.hank.musicfree.core.navigation.TrafficStatsRoute()
+        val json = kotlinx.serialization.json.Json.encodeToString(
+            com.hank.musicfree.core.navigation.TrafficStatsRoute.serializer(),
+            route,
+        )
+        val decoded = kotlinx.serialization.json.Json.decodeFromString(
+            com.hank.musicfree.core.navigation.TrafficStatsRoute.serializer(),
+            json,
+        )
+        assertEquals(route, decoded)
+        assertEquals("MONTH", decoded.scope)
+        assertEquals(-1L, decoded.anchorEpochDay)
+    }
+
+    @Test
     fun `ListenDetailRoute requires mode and propagates filterValue`() {
         val route = com.hank.musicfree.core.navigation.ListenDetailRoute(
             mode = "BY_ARTIST",

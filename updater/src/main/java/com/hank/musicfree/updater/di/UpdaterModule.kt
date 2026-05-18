@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.hank.musicfree.core.network.BaseOkHttp
 import com.hank.musicfree.updater.api.OkHttpUpdateClient
 import com.hank.musicfree.updater.api.UpdateClient
 import com.hank.musicfree.updater.bootstrap.LocalAppVersion
@@ -47,8 +48,8 @@ object UpdaterModule {
     @Provides
     @Singleton
     @UpdaterHttp
-    fun provideUpdaterOkHttp(): OkHttpClient =
-        OkHttpClient.Builder()
+    fun provideUpdaterOkHttp(@BaseOkHttp base: OkHttpClient): OkHttpClient =
+        base.newBuilder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .build()

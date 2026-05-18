@@ -17,6 +17,7 @@ suspend fun runHomeDrawerNavigation(
 
 sealed interface HomeDrawerAction {
     data object OpenListenStats : HomeDrawerAction
+    data object OpenTrafficStats : HomeDrawerAction
     data object OpenSettingsRoot : HomeDrawerAction
     data object OpenPluginManagement : HomeDrawerAction
     data object OpenThemeSettings : HomeDrawerAction
@@ -65,6 +66,12 @@ fun buildHomeDrawerUiModel(
                     iconRes = HomeIcons.DrawerListenStats,
                     anchorTag = FidelityAnchors.Home.DrawerMeListenStats,
                     action = HomeDrawerAction.OpenListenStats,
+                ),
+                HomeDrawerItemUiModel(
+                    title = "流量统计",
+                    iconRes = HomeIcons.DrawerTrafficStats,
+                    anchorTag = FidelityAnchors.Home.DrawerMeTrafficStats,
+                    action = HomeDrawerAction.OpenTrafficStats,
                 ),
             ),
         ),

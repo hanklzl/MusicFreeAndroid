@@ -40,3 +40,6 @@
 | INC-2026-0016 | test | 测试 fixture 没跟生产 VM 构造器更新 | [test/rules.md#rule-test-fixture-must-track-vm-ctor](../test/rules.md#rule-test-fixture-must-track-vm-ctor) | ci-step |
 | INC-2026-0017 | player | 纯秒小数 LRC 时间戳 [s.ff] 未识别 | [player/rules.md#rule-lyric-parser-supports-second-only-timestamp](../player/rules.md#rule-lyric-parser-supports-second-only-timestamp) | contract-test |
 | INC-2026-0018 | plugin | 插件加载失败被静默吞掉，UI 无法定位 | [plugin/rules.md#rule-plugin-failure-must-surface](../plugin/rules.md#rule-plugin-failure-must-surface) | manual |
+| INC-2026-0019 | network | 新建 OkHttpClient 绕过 @BaseOkHttp 派生 | [network/rules.md#rule-okhttp-derive-from-base](../network/rules.md#rule-okhttp-derive-from-base) | grep |
+| INC-2026-0020 | network | Media3 使用 DefaultHttpDataSource 绕过 base client | [network/rules.md#rule-media3-okhttp-data-source](../network/rules.md#rule-media3-okhttp-data-source) | grep |
+| INC-2026-0021 | network | Coil ImageLoader 走默认 fetcher 绕过 base client | [network/rules.md#rule-coil-uses-base-okhttp](../network/rules.md#rule-coil-uses-base-okhttp) | grep |

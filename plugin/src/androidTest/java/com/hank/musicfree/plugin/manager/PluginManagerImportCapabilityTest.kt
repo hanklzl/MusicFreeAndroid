@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.hank.musicfree.plugin.engine.WebDavShim
 import com.hank.musicfree.plugin.meta.PluginMetaStore
 import com.hank.musicfree.plugin.runtime.PluginAppVersionGate
 import kotlinx.coroutines.runBlocking
+import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -31,6 +33,7 @@ class PluginManagerImportCapabilityTest {
         val prefsDataStore = PreferenceDataStoreFactory.create(
             produceFile = { File(appContext.cacheDir, "plugin-import-capability-prefs-${UUID.randomUUID()}.preferences_pb") },
         )
+        val baseClient = OkHttpClient.Builder().build()
         pluginManager = PluginManager(
             appContext,
             PluginMetaStore(dataStore),
@@ -42,6 +45,8 @@ class PluginManagerImportCapabilityTest {
             "1.0.0",
             InMemoryPluginMetadataCacheGateway(),
             com.hank.musicfree.data.datastore.AppPreferences(prefsDataStore),
+            baseClient,
+            WebDavShim(baseClient),
         )
         clearPluginStorage()
     }

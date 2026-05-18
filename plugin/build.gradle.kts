@@ -30,8 +30,11 @@ android {
     }
 
     testOptions {
-        unitTests.all {
-            it.jvmArgs("-Dnet.bytebuddy.experimental=true")
+        unitTests {
+            isIncludeAndroidResources = true
+            all {
+                it.jvmArgs("-Dnet.bytebuddy.experimental=true")
+            }
         }
     }
 }
@@ -61,6 +64,8 @@ dependencies {
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.robolectric)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.hilt.android.testing)
+    kspTest(libs.hilt.compiler)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

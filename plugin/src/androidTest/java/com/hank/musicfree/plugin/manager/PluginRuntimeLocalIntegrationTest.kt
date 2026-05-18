@@ -5,8 +5,10 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.hank.musicfree.plugin.api.musicItems
+import com.hank.musicfree.plugin.engine.WebDavShim
 import com.hank.musicfree.plugin.meta.PluginMetaStore
 import com.hank.musicfree.plugin.runtime.PluginAppVersionGate
+import okhttp3.OkHttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,6 +47,7 @@ class PluginRuntimeLocalIntegrationTest {
             scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-runtime-local-it-prefs") },
         )
+        val baseClient = OkHttpClient.Builder().build()
         pluginManager = PluginManager(
             appContext,
             PluginMetaStore(dataStore),
@@ -56,6 +59,8 @@ class PluginRuntimeLocalIntegrationTest {
             "1.0.0",
             InMemoryPluginMetadataCacheGateway(),
             com.hank.musicfree.data.datastore.AppPreferences(prefsDataStore),
+            baseClient,
+            WebDavShim(baseClient),
         )
         clearPluginStorage()
     }

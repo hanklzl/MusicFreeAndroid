@@ -21,4 +21,5 @@ internal object HomeIcons {
     @DrawableRes val DrawerCheckUpdate = R.drawable.ic_home_arrow_path
     @DrawableRes val DrawerAbout = R.drawable.ic_home_information_circle
     @DrawableRes val DrawerListenStats = R.drawable.ic_home_chart_bar_outline
+    @DrawableRes val DrawerTrafficStats = com.hank.musicfree.core.R.drawable.ic_home_data_usage
 }

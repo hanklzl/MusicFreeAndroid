@@ -180,6 +180,10 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
+    // OkHttp — Application.onCreate hands the @BaseOkHttp instance to AxiosShim
+    // so plugin axios requests share the NetworkTrafficEventListener.Factory.
+    implementation(libs.okhttp)
+
     // Test
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -1,4 +1,4 @@
-package com.hank.musicfree.di
+package com.hank.musicfree.core.di
 
 import dagger.Module
 import dagger.Provides

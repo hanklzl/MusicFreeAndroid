@@ -15,7 +15,11 @@ import javax.inject.Singleton
 @Singleton
 class TrackHeaderRegistry @Inject constructor() {
 
-    data class HeaderEntry(val headers: Map<String, String>, val userAgent: String?)
+    data class HeaderEntry(
+        val headers: Map<String, String>,
+        val userAgent: String?,
+        val cacheKey: String? = null,
+    )
 
     // accessOrder=true: get() bumps recency
     private val map = object : LinkedHashMap<String, HeaderEntry>(MAX, 0.75f, true) {
@@ -24,8 +28,13 @@ class TrackHeaderRegistry @Inject constructor() {
     }
 
     @Synchronized
-    fun put(url: String, headers: Map<String, String>, userAgent: String?) {
-        map[url] = HeaderEntry(headers, userAgent)
+    fun put(
+        url: String,
+        headers: Map<String, String>,
+        userAgent: String?,
+        cacheKey: String? = null,
+    ) {
+        map[url] = HeaderEntry(headers, userAgent, cacheKey)
     }
 
     @Synchronized

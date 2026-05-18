@@ -17,7 +17,7 @@ import subprocess
 import sys
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-AREAS = ("ui", "plugin", "player", "test")
+AREAS = ("ui", "plugin", "player", "test", "network")
 
 
 def parse_incidents(path: pathlib.Path) -> list[dict[str, str]]:

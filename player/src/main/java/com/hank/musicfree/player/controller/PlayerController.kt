@@ -717,6 +717,7 @@ class PlayerController @Inject constructor(
                     resolvedUrl,
                     source.headers.orEmpty(),
                     source.userAgent,
+                    cacheKey = "${item.platform}:${item.id}",
                 )
             }
             MfLog.detail(
@@ -1061,6 +1062,7 @@ class PlayerController @Inject constructor(
                 freshUrl,
                 source.headers.orEmpty(),
                 source.userAgent,
+                cacheKey = "${item.platform}:${item.id}",
             )
         }
         playQueue.replaceCurrent(expectedIndex, item, refreshedItem)
@@ -1166,6 +1168,7 @@ class PlayerController @Inject constructor(
                 changedUrl,
                 source.headers.orEmpty(),
                 source.userAgent,
+                cacheKey = "${item.platform}:${item.id}",
             )
         }
         playQueue.replaceCurrent(expectedIndex, item, changedItem)

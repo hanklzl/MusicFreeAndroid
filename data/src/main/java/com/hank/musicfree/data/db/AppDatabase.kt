@@ -14,6 +14,7 @@ import com.hank.musicfree.data.db.dao.PlayQueueDao
 import com.hank.musicfree.data.db.dao.ListenStatsDao
 import com.hank.musicfree.data.db.dao.PluginMetadataCacheDao
 import com.hank.musicfree.data.db.dao.StarredSheetDao
+import com.hank.musicfree.data.db.dao.TrafficDailyDao
 import com.hank.musicfree.data.db.entity.DownloadTaskEntity
 import com.hank.musicfree.data.db.entity.DownloadedTrackEntity
 import com.hank.musicfree.data.db.entity.LyricCacheEntity
@@ -24,6 +25,7 @@ import com.hank.musicfree.data.db.entity.PlaylistMusicCrossRef
 import com.hank.musicfree.data.db.entity.PlayQueueEntity
 import com.hank.musicfree.data.db.entity.PluginMetadataCacheEntity
 import com.hank.musicfree.data.db.entity.StarredSheetEntity
+import com.hank.musicfree.data.db.entity.TrafficDailyEntity
 import com.hank.musicfree.data.db.entity.ListenEventEntity
 import com.hank.musicfree.data.db.entity.ListenEventArtistEntity
 
@@ -41,8 +43,9 @@ import com.hank.musicfree.data.db.entity.ListenEventArtistEntity
         PluginMetadataCacheEntity::class,
         ListenEventEntity::class,
         ListenEventArtistEntity::class,
+        TrafficDailyEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -57,4 +60,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun downloadedTrackDao(): DownloadedTrackDao
     abstract fun pluginMetadataCacheDao(): PluginMetadataCacheDao
     abstract fun listenStatsDao(): ListenStatsDao
+    abstract fun trafficDailyDao(): TrafficDailyDao
 }

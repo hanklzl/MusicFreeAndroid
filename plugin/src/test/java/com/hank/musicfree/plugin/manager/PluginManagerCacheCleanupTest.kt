@@ -7,9 +7,11 @@ import com.hank.musicfree.data.repository.LyricRepository
 import com.hank.musicfree.data.repository.MediaCacheRepository
 import com.hank.musicfree.data.repository.PluginMetadataCacheGateway
 import com.hank.musicfree.plugin.api.PluginInfo
+import com.hank.musicfree.plugin.engine.WebDavShim
 import com.hank.musicfree.plugin.local.LocalFilePlugin
 import com.hank.musicfree.plugin.meta.PluginMetaStore
 import com.hank.musicfree.plugin.runtime.PluginAppVersionGate
+import okhttp3.OkHttpClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -109,6 +111,7 @@ class PluginManagerCacheCleanupTest {
         val appPreferences = mock<AppPreferences>()
         whenever(appPreferences.lazyLoadPlugins).thenReturn(flowOf(false))
         whenever(appPreferences.skipPluginVersionCheck).thenReturn(flowOf(false))
+        val baseClient = OkHttpClient.Builder().build()
         return PluginManager(
             context,
             metaStore,
@@ -120,6 +123,8 @@ class PluginManagerCacheCleanupTest {
             "1.0.0",
             mock<PluginMetadataCacheGateway>(),
             appPreferences,
+            baseClient,
+            WebDavShim(baseClient),
         )
     }
 

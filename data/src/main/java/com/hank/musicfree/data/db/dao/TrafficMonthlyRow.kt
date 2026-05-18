@@ -1,0 +1,8 @@
+package com.hank.musicfree.data.db.dao
+
+data class TrafficMonthlyRow(
+    val yearMonth: String,
+    val networkType: String,
+    val bytesReceived: Long,
+    val bytesSent: Long,
+)

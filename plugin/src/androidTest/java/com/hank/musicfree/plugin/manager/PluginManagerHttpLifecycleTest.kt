@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.hank.musicfree.plugin.engine.WebDavShim
 import com.hank.musicfree.plugin.meta.PluginMetaStore
 import com.hank.musicfree.plugin.runtime.PluginAppVersionGate
 import kotlinx.coroutines.CoroutineScope
@@ -11,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -50,6 +52,7 @@ class PluginManagerHttpLifecycleTest {
             scope = dataStoreScope,
             produceFile = { testPreferencesFile("plugin-http-lifecycle-it-prefs") },
         )
+        val baseClient = OkHttpClient.Builder().build()
         pluginManager = PluginManager(
             appContext,
             PluginMetaStore(dataStore),
@@ -61,6 +64,8 @@ class PluginManagerHttpLifecycleTest {
             "1.0.0",
             InMemoryPluginMetadataCacheGateway(),
             com.hank.musicfree.data.datastore.AppPreferences(prefsDataStore),
+            baseClient,
+            WebDavShim(baseClient),
         )
         clearPluginStorage()
         server = MockWebServer()

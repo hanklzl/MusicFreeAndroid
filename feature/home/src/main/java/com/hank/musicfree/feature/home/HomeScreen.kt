@@ -29,6 +29,7 @@ fun HomeScreen(
     onNavigateToRecommendSheets: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToListenStats: () -> Unit,
+    onNavigateToTrafficStats: () -> Unit,
     onNavigateToLocal: () -> Unit,
     onNavigateToSettings: (SettingsType) -> Unit,
     onNavigateToPluginList: () -> Unit,
@@ -104,6 +105,7 @@ fun HomeScreen(
         onDrawerEntryClick = { action ->
             when (action) {
                 HomeDrawerAction.OpenListenStats -> onNavigateToListenStats()
+                HomeDrawerAction.OpenTrafficStats -> onNavigateToTrafficStats()
                 HomeDrawerAction.OpenSettingsRoot -> onNavigateToSettings(SettingsType.Basic)
                 HomeDrawerAction.OpenPluginManagement -> onNavigateToPluginList()
                 HomeDrawerAction.OpenThemeSettings -> onNavigateToSettings(SettingsType.Theme)

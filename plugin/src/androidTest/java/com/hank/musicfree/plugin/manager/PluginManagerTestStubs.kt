@@ -17,11 +17,13 @@ import com.hank.musicfree.data.repository.CachedPluginMetadata
 import com.hank.musicfree.data.repository.LyricRepository
 import com.hank.musicfree.data.repository.MediaCacheRepository
 import com.hank.musicfree.data.repository.PluginMetadataCacheGateway
+import com.hank.musicfree.plugin.engine.WebDavShim
 import com.hank.musicfree.plugin.local.LocalFilePlugin
 import com.hank.musicfree.plugin.meta.PluginMetaStore
 import com.hank.musicfree.plugin.runtime.PluginAppVersionGate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import okhttp3.OkHttpClient
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -138,6 +140,7 @@ internal fun makeTestManager(
     val prefsDataStore = PreferenceDataStoreFactory.create(
         produceFile = { File(appContext.cacheDir, "$prefix-prefs-${UUID.randomUUID()}.preferences_pb") },
     )
+    val baseClient = OkHttpClient.Builder().build()
     return PluginManager(
         appContext,
         PluginMetaStore(dataStore),
@@ -149,5 +152,7 @@ internal fun makeTestManager(
         appVersion,
         metadataCache,
         AppPreferences(prefsDataStore),
+        baseClient,
+        WebDavShim(baseClient),
     )
 }

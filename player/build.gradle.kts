@@ -49,6 +49,7 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.datasource.okhttp)
+    implementation(libs.androidx.media3.database)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
@@ -60,6 +61,7 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.androidx.test.core)
 
     // 集成测试
     androidTestImplementation(libs.androidx.junit)

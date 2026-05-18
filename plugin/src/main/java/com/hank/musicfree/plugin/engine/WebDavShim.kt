@@ -12,7 +12,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.IOException
 import java.util.Base64
-import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -37,12 +36,15 @@ data class WebDavAuth(val username: String, val password: String)
  * will throw `__webdav_X is not a function` at call time — which is the
  * explicit failure mode we want (vs. silently misbehaving).
  *
- * The shared OkHttpClient is a separate instance from [AxiosShim]'s — WebDAV
- * traffic typically has higher latency tolerance (10s) and we don't want it
- * to inherit axios' 2000ms default.
+ * The OkHttpClient is provided by [WebDavShimModule] as a Hilt singleton —
+ * derived from `@BaseOkHttp` so all WebDAV traffic flows through the
+ * [com.hank.musicfree.core.network.NetworkTrafficEventListener.Factory] and gets
+ * counted into `traffic_daily`. WebDAV uses a separate timeout profile (10s)
+ * from [AxiosShim]'s 2000ms axios default, but shares the same base client
+ * (connection pool / dispatcher / event listener factory).
  */
 class WebDavShim(
-    private val client: OkHttpClient = defaultClient(),
+    private val client: OkHttpClient,
 ) {
 
     suspend fun get(baseUrl: String, path: String, auth: WebDavAuth?): String =
@@ -117,19 +119,6 @@ class WebDavShim(
     }
 
     companion object {
-        private fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
-            .followRedirects(true)
-            .build()
-
-        /**
-         * Singleton instance shared by all registered runtimes. Re-using the
-         * same shim across plugins means we re-use the underlying OkHttp pool.
-         */
-        private val SHARED: WebDavShim by lazy { WebDavShim() }
-
         /**
          * Register `__webdav_get` / `__webdav_put` global async functions on the
          * QuickJS context. The matching JS shim lives at
@@ -139,8 +128,12 @@ class WebDavShim(
          *
          *   __webdav_get(baseUrl: string, path: string, auth: { username, password } | null)
          *   __webdav_put(baseUrl: string, path: string, data: string, auth: { username, password } | null)
+         *
+         * The [shim] must be injected by the caller — typically a Hilt-provided
+         * singleton from [WebDavShimModule] so every QuickJS context shares the
+         * same `@BaseOkHttp`-derived OkHttp pool / event listener factory.
          */
-        suspend fun register(engine: JsEngine, shim: WebDavShim = SHARED) {
+        suspend fun register(engine: JsEngine, shim: WebDavShim) {
             engine.asyncFunction<String>("__webdav_get") { args ->
                 val baseUrl = args.getOrNull(0)?.toString().orEmpty()
                 val path = args.getOrNull(1)?.toString().orEmpty()

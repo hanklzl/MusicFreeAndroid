@@ -1,6 +1,7 @@
 package com.hank.musicfree.downloader.di
 
 import android.content.Context
+import com.hank.musicfree.core.network.BaseOkHttp
 import com.hank.musicfree.data.db.dao.DownloadTaskDao
 import com.hank.musicfree.data.db.dao.DownloadedTrackDao
 import com.hank.musicfree.data.db.converter.Converters
@@ -42,7 +43,8 @@ abstract class DownloaderBindingsModule {
 object DownloaderProvidersModule {
 
     @Provides @Singleton
-    fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder().build()
+    fun provideOkHttpClient(@BaseOkHttp base: OkHttpClient): OkHttpClient =
+        base.newBuilder().build()
 
     @Provides @Singleton
     fun provideConfigFlow(source: DownloadConfigSource): @JvmSuppressWildcards StateFlow<DownloadConfig> = source.state
