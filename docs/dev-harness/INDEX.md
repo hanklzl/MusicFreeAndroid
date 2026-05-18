@@ -1,7 +1,7 @@
 # Dev Harness — INDEX
 
 > 文档状态：当前规范（Dev Harness 总入口）
-> 适用范围：UI / 插件 / 播放器 / 测试 四域的开发守门、错误库与 AI skills 关联
+> 适用范围：UI / 插件 / 播放器 / 测试 / Runtime State 五域的开发守门、错误库与 AI skills 关联
 > 直接执行：是
 > 当前入口：[AGENTS](../../AGENTS.md) ｜ [DOCS_STATUS](../DOCS_STATUS.md)
 > 设计来源：[Dev Harness 基础设施设计](../superpowers/specs/2026-05-09-dev-harness-foundation-design.md)
@@ -15,6 +15,7 @@
 | 插件系统 | [plugin/rules.md](./plugin/rules.md) | [plugin/incidents.md](./plugin/incidents.md) |
 | 播放器 / Media3 | [player/rules.md](./player/rules.md) | [player/incidents.md](./player/incidents.md) |
 | 测试 / 测试基建 | [test/rules.md](./test/rules.md) | [test/incidents.md](./test/incidents.md) |
+| Runtime State / 持久化恢复 | [runtime/rules.md](./runtime/rules.md) | [runtime/incidents.md](./runtime/incidents.md) |
 
 ## 错误库
 

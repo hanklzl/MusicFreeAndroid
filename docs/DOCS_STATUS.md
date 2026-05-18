@@ -47,6 +47,7 @@
 | [docs/dev-harness/plugin/rules.md](./dev-harness/plugin/rules.md) | 当前规范（Dev Harness — Plugin） | 是 | QuickJS 线程模型、网络通道门控、PluginManager 编排 |
 | [docs/dev-harness/player/rules.md](./dev-harness/player/rules.md) | 当前规范（Dev Harness — Player） | 是 | PlayerController 连接、沉浸式 chrome、歌词跟随防抖 |
 | [docs/dev-harness/test/rules.md](./dev-harness/test/rules.md) | 当前规范（Dev Harness — Test） | 是 | runTest 范式、instrumentation 主线程模型、DataStore 隔离、runner 基线、JVM 内存基线 |
+| [docs/dev-harness/runtime/rules.md](./dev-harness/runtime/rules.md) | 当前规范（Dev Harness — Runtime State） | 是 | RuntimeStore、SnapshotStore、Activity 重建恢复、进程冷启动恢复、Route seed、冷启动非阻塞恢复规则 |
 | [docs/dev-harness/incidents/index.md](./dev-harness/incidents/index.md) | 当前规范（Dev Harness — Incidents 索引） | 是 | INC-YYYY-NNNN 全仓索引；guard 类型反查 |
 | [docs/plugin-parity/rn-plugin-oracle.md](./plugin-parity/rn-plugin-oracle.md) | 当前规范（RN 插件能力 Oracle） | 是 | RN 插件协议 oracle 生成、Android contract test 与默认订阅源守门 |
 | [docs/superpowers/specs/2026-05-09-dev-harness-foundation-design.md](./superpowers/specs/2026-05-09-dev-harness-foundation-design.md) | 当前规范（Dev Harness 基础设施专项） | 是（作为实现计划输入） | 总入口 + 错误库 + 5 skills + 测试守门 + 3 PR 编排设计 |
@@ -70,6 +71,7 @@
 | [docs/superpowers/specs/2026-05-10-favorite-starred-playlists-design.md](./superpowers/specs/2026-05-10-favorite-starred-playlists-design.md) | 当前规范（默认我喜欢与收藏歌单修复） | 是（作为实现计划输入） | 默认 `我喜欢` 歌单自动恢复、首页收藏歌单真实数据、插件歌单详情 heart 收藏入口设计 |
 | [docs/superpowers/specs/2026-05-11-wy-recommend-toplist-detail-fix.md](./superpowers/specs/2026-05-11-wy-recommend-toplist-detail-fix.md) | 当前规范（网易推荐歌单与榜单详情修复） | 是（作为实现计划输入） | 插件返回数值型整数 ID 时规范化为无 `.0` 字符串，避免网易歌单/榜单详情调用失败 |
 | [docs/superpowers/specs/2026-05-15-enable-horizontal-swipe-design.md](./superpowers/specs/2026-05-15-enable-horizontal-swipe-design.md) | 当前规范（搜索结果与榜单横向手势） | 是（作为实现计划输入） | 搜索结果、推荐歌单和榜单 Tab 内容区支持左右滑动切换，保持现有页面 chrome、加载与分页语义 |
+| [docs/superpowers/specs/2026-05-19-runtime-store-architecture-design.md](./superpowers/specs/2026-05-19-runtime-store-architecture-design.md) | 当前规范（RuntimeStore 运行时架构） | 是（作为实现计划输入） | RuntimeStore + SnapshotStore 分层、插件/播放/下载/搜索/详情/Route seed 持久化恢复设计 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/parity-audit/README.md](./parity-audit/README.md) | 当前规范（Parity Audit 专项） | 是 | parity-audit-skill 管理的状态、scenario catalog 与运行产物目录索引 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |

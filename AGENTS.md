@@ -31,6 +31,7 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - 插件系统：`docs/dev-harness/plugin/rules.md`
 - 播放器 / Media3：`docs/dev-harness/player/rules.md`
 - 测试代码 / 测试基建：`docs/dev-harness/test/rules.md`
+- Runtime State / 持久化恢复：`docs/dev-harness/runtime/rules.md`
 
 每条 rule 都关联一条或多条 incident（`docs/dev-harness/incidents/index.md`）和 / 或一条 contract test。
 违反 rules.md 中标记 MUST / MUST NOT 的条款由人工 review 拦截；本地可跑 `bash scripts/dev-harness/check.sh` 自查。
@@ -130,6 +131,17 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - 特殊 Chrome 页面必须在规则文档中登记，并自行负责状态栏背景和顶部 inset。
 - `docs/superpowers/plans/*.md` 中旧动画或 AppBar 写法不作为当前 UI Harness 规范来源。
 - 旧入口 `docs/ui-harness/screen-chrome-rules.md` 已迁移；保留只读 redirect stub 以兼容历史引用。
+
+### Runtime State Harness Rules
+
+新增或修改跨页面运行态、Activity 重建恢复、进程冷启动恢复、Route seed、搜索结果缓存、插件详情分页、播放/下载/插件运行状态前，必须读取并遵守 [docs/dev-harness/runtime/rules.md](docs/dev-harness/runtime/rules.md)。
+
+- 高价值运行态必须明确归类为 UI transient、ViewModel local、RuntimeStore 或 SnapshotStore。
+- RuntimeStore 保存可描述用户上下文的进程级状态，SnapshotStore 保存可序列化落盘快照；不得持久化 QuickJS、Media3、Coroutine、Android Context、Repository/DAO 等运行对象。
+- ViewModel 作为 RuntimeStore 的页面适配层，负责订阅状态与转发 action，不应独占搜索结果、详情分页、播放会话、插件加载状态等高价值运行态。
+- Route seed 若影响插件请求、详情 header、分页或 raw 字段，必须可恢复；不得只依赖一次性 `ConcurrentHashMap + take()`。
+- 下载、播放、插件等长生命周期运行对象只能根据可序列化快照重建，不得直接持久化 Service、Media3、QuickJS、Coroutine job 等实例。
+- Compose 普通 `remember` 只适合短暂 UI 状态；跨 Activity 重建或冷启动有价值的状态必须使用 RuntimeStore / SnapshotStore，或在小型 UI 状态场景下使用 `rememberSaveable`。
 
 ### R8 与反射保留规则
 
