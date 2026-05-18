@@ -1,159 +1,59 @@
 # MusicFreeAndroid
 
-MusicFreeAndroid 是 [MusicFree](../MusicFree) 的 Android 原生重写版本。项目仍处于开发中，目标是在 Kotlin、Jetpack Compose 与 QuickJS 基础上复刻原版的插件化播放器能力与主要交互体验。
+[![CI](https://github.com/hanklzl/MusicFreeAndroid/actions/workflows/android-release-apk.yml/badge.svg)](https://github.com/hanklzl/MusicFreeAndroid/actions/workflows/android-release-apk.yml)
+[![Release](https://img.shields.io/github/v/release/hanklzl/MusicFreeAndroid)](https://github.com/hanklzl/MusicFreeAndroid/releases/latest)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+![MinSDK](https://img.shields.io/badge/minSdk-29-brightgreen)
+![Kotlin](https://img.shields.io/badge/kotlin-2.3-purple)
+![Compose](https://img.shields.io/badge/compose-2026.04-blue)
 
-应用本身不内置任何音源。搜索、播放、歌单、歌词、榜单、专辑与作者详情等能力依赖用户安装的插件提供。
+> MusicFree 的 Android 原生重写版。无内置音源，通过用户安装的插件实现搜索、播放、歌单、歌词等能力。
 
-## 当前状态
+## 项目状态
 
-这是一个可持续迭代中的 WIP 项目，不应按正式稳定发布版本理解。当前导航与页面覆盖、缺失页面和优先事项以 [AGENTS.md](AGENTS.md)、[docs/DOCS_STATUS.md](docs/DOCS_STATUS.md) 以及代码为准。
+当前版本 v1.1.0，CI 持续构建中。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
-当前长期优先事项包括：
+## 立即下载
 
-- 补齐仍缺的 `downloading`、`setCustomTheme` 页面。
-- 强化 `topListDetail`、`pluginSheetDetail`、`musicDetail` 等插件详情链路的运行态验收。
-- 加强插件安装、搜索、播放、队列和状态一致性的端到端验证。
-- 持续治理文档，避免历史计划被误当成当前规范。
+- 官网：<https://hanklzl.github.io/MusicFreeAndroid/>（按 ABI 自动推荐 APK）
+- 或直接到 [Releases](https://github.com/hanklzl/MusicFreeAndroid/releases/latest) 手动选 `arm64-v8a` / `x86_64`
 
-## 功能范围
+## 功能简介
 
-已在 Android 原生侧推进或覆盖的主要方向包括：
+- 🧩 **插件市场**：本地文件 / 订阅 URL 两种安装方式
+- 🔍 **多源搜索**：跨插件统一搜索结果
+- 🎧 **后台播放**：基于 Media3 / ExoPlayer，锁屏控制 + 通知栏卡片
+- 📋 **歌单管理**：本地歌单创建、导入导出、跨插件聚合
+- 📝 **歌词同步**：滚动跟随、偏移微调、跨源关联
+- 🌗 **主题**：亮色 / 暗色 / 自定义
+- 💾 **本地音乐**：扫描设备文件，与插件源混合播放
+- ⏱ **历史与收藏**：自动记录播放历史，可收藏单曲与歌单
 
-- 首页、本地音乐、历史记录、用户歌单、歌单详情与歌单内搜索。
-- 插件管理、插件排序、插件订阅、本地文件选择器。
-- 插件驱动搜索、推荐歌单、榜单、歌单详情、音乐详情、专辑详情和作者详情。
-- Media3 播放服务、播放队列、迷你播放器和全屏播放器。
-- 歌词加载、搜索、同步展示、偏移与关联等播放器歌词能力。
-- Room 持久化、DataStore 偏好、Hilt 依赖注入和多模块单向依赖结构。
+## 复刻自 MusicFree
 
-功能完成度会随代码继续变化。判断当前可用状态时，优先查看 `core/src/main/java/com/hank/musicfree/core/navigation/Routes.kt` 和 `app/src/main/java/com/hank/musicfree/navigation/AppNavHost.kt`。
+本项目是 [MusicFree](https://github.com/maotoumao/MusicFree)（React Native 版）的 Android 原生重写，目标对齐原版交互与插件生态。感谢上游作者 [@maotoumao](https://github.com/maotoumao)。
 
 ## 技术栈
 
-- UI：Jetpack Compose + Material3
-- 架构：MVVM + 多模块 + 单向数据流
-- DI：Hilt
-- 播放：Media3 / ExoPlayer / MediaSessionService
-- 插件运行时：QuickJS (`quickjs-kt`)
-- 数据：Room + DataStore
-- 异步：Kotlin Coroutines + Flow
-- 导航：Navigation Compose + `@Serializable` 路由对象
-- 图片：Coil
-- 网络：OkHttp
+Kotlin · Jetpack Compose + Material3 · Media3 · QuickJS · Room · Hilt · Coroutines · Navigation Compose
 
-当前构建基线：
+详细基线见 [AGENTS.md](AGENTS.md)。
 
-| 项目 | 版本 |
-|---|---|
-| Min SDK | 29 |
-| Target SDK | 36 |
-| compileSdk | 36.1 |
-| Java compatibility | `VERSION_17` |
-| JVM toolchain | JDK 21 |
-| Gradle Wrapper | `9.4.1` |
-| AGP | `9.2.0` |
-| Kotlin | `2.3.21` |
-| Compose BOM | `2026.04.01` |
+## 面向开发者
 
-## 模块架构
+- 环境：JDK 21、Android SDK 36、Gradle Wrapper 自动下载
+- 一行命令构建 Debug：`./gradlew :app:assembleDebug`
+- 详细开发约束、模块架构、Dev Harness：[AGENTS.md](AGENTS.md)
+- 发布流程与 secrets 配置：[RELEASE.md](RELEASE.md)
 
-依赖方向保持单向：
+## 开源协议
 
-```text
-:app -> :feature:* -> :data, :player, :plugin -> :core
-```
+本项目使用 [GNU Affero General Public License v3.0](LICENSE)。本项目衍生自同样使用 AGPL-3.0 的 [MusicFree](https://github.com/maotoumao/MusicFree)，按协议要求保持同样许可。
 
-| 模块 | 职责 |
-|---|---|
-| `:app` | 应用入口、NavHost、跨模块编排 |
-| `:core` | 主题、导航路由、基础模型、通用工具 |
-| `:data` | Room、DataStore、Repository |
-| `:player` | Media3/ExoPlayer、MediaSessionService、PlayerController |
-| `:plugin` | QuickJS 引擎、JS 桥接、插件管理 |
-| `:feature:home` | 首页、本地音乐、歌单、榜单、详情链路 |
-| `:feature:player-ui` | 全屏播放器、迷你播放器 |
-| `:feature:search` | 插件驱动搜索 |
-| `:feature:settings` | 设置、插件管理、文件选择器 |
+Copyright (C) 2026 MusicFreeAndroid Contributors
 
-## 快速开始
+## 免责声明
 
-准备环境：
+本应用本身不内置任何音源。搜索、播放、歌单、歌词等能力依赖用户安装的第三方插件提供，本项目对插件来源、安全性与合法性不做担保。
 
-- Android Studio 或命令行 Android SDK。
-- JDK 21。
-- Android SDK Platform 36 与当前 Gradle 配置所需构建工具。
-- 如需对照原版 React Native 实现，将 `MusicFree` 仓库放在本仓库同级目录，使 `../MusicFree` 可用。
-
-进入仓库根目录后执行：
-
-```bash
-./gradlew :app:assembleDebug
-```
-
-Debug 包使用独立包名后缀 `.debug`，便于和 release 包并存安装。
-
-## 常用构建与测试命令
-
-```bash
-./gradlew assembleDebug              # 构建 Debug APK
-./gradlew :app:assembleDebug         # 仅构建 app Debug 变体
-./gradlew test                       # 运行单元测试
-./gradlew :app:testDebugUnitTest     # 运行 app 模块单元测试
-./gradlew lint                       # 运行 lint
-./gradlew connectedAndroidTest       # 运行仪器测试，需设备或模拟器
-```
-
-普通本地功能收尾默认验证 Debug 构建。Release 构建需要签名环境变量齐备，不应因为缺少 Release 签名而阻塞普通功能开发。
-
-本地 Release 构建使用以下环境变量：
-
-- `ANDROID_RELEASE_KEYSTORE_PATH`
-- `ANDROID_RELEASE_STORE_PASSWORD`
-- `ANDROID_RELEASE_KEY_ALIAS`
-- `ANDROID_RELEASE_KEY_PASSWORD`
-
-## 插件系统
-
-插件运行在 QuickJS 沙箱中，由 `JsBridge` 负责 Kotlin 与 JavaScript 之间的桥接。当前 `require()` shim 支持 `cheerio`、`crypto-js`、`dayjs`、`axios`、`qs`、`he`、`big-integer`。
-
-`PluginApi` 覆盖搜索、播放源、歌词、榜单、推荐歌单、歌单详情等核心能力。插件 API 和数据结构需要优先对齐原版 RN 侧实现，参考 `../MusicFree/src/types/` 与 `../MusicFree/src/core/pluginManager/`。
-
-## 文档入口
-
-执行任务前先阅读：
-
-1. [docs/DOCS_STATUS.md](docs/DOCS_STATUS.md)
-2. [AGENTS.md](AGENTS.md)
-3. 与任务相关的当前规范文档
-
-UI Screen 相关改动还必须遵守 [docs/ui-harness/screen-chrome-rules.md](docs/ui-harness/screen-chrome-rules.md)。
-
-`docs/superpowers/plans/*.md` 默认是历史执行快照，不应直接作为当前执行指令。
-
-## 开发约束
-
-- 默认使用 `git worktree` 进行功能开发，worktree 放在 `.worktrees/` 下。
-- 文档和脚本引用路径必须使用相对路径。
-- 新增或修改 Compose Screen 前先读 UI Harness 规则。
-- 数据层不要把 Room Entity 直接暴露给上层，Repository 对外统一返回 `Flow<T>`。
-- UI、插件协议、关键请求参数和响应式尺寸优先对照 `../MusicFree`。
-- 完成结论应以构建、测试和必要运行态验收为依据。
-
-## CI 与发布
-
-仓库包含一个 GitHub Actions workflow：
-
-- `.github/workflows/android-release-apk.yml`：在 `v*` tag push、按北京时间 02:00 的 nightly schedule（24h 内 main 有新提交才构建）、或手动触发时构建 Release APK。tag 触发时会上传 APK 到 GitHub Release；nightly / manual 仅以 artifact 形式产出。
-
-GitHub Release workflow 使用 `release` Environment secrets：
-
-- `ANDROID_RELEASE_KEYSTORE_BASE64`
-- `ANDROID_RELEASE_STORE_PASSWORD`
-- `ANDROID_RELEASE_KEY_ALIAS`
-- `ANDROID_RELEASE_KEY_PASSWORD`
-
-## 免责声明 / 合规说明
-
-MusicFreeAndroid 本身只是播放器与插件运行容器，不提供、内置或分发任何音源。第三方插件及其产生的数据与本项目无关，使用者应自行确认插件来源、安全性和合法性。
-
-请在符合法律法规和开源协议的前提下使用本项目，不要以 VIP、破解、绕过付费或类似表述宣传本项目。
+不得以 VIP、破解、绕过付费等表述宣传本项目。
