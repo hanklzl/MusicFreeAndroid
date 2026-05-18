@@ -3,11 +3,11 @@ package com.hank.musicfree.feature.playerui
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.os.Build
 import android.provider.Settings
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.TextView
+import androidx.core.graphics.toColorInt
 import com.hank.musicfree.core.model.DesktopLyricAlignment
 import kotlin.math.roundToInt
 
@@ -74,12 +74,7 @@ internal class DesktopLyricOverlayController(
         return WindowManager.LayoutParams(
             (displayMetrics.widthPixels * widthPercent.coerceIn(0.2f, 1f)).roundToInt(),
             WindowManager.LayoutParams.WRAP_CONTENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                @Suppress("DEPRECATION")
-                WindowManager.LayoutParams.TYPE_PHONE
-            },
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
@@ -93,5 +88,5 @@ internal class DesktopLyricOverlayController(
 }
 
 internal fun parseAndroidColor(raw: String, fallback: Int): Int {
-    return runCatching { Color.parseColor(raw) }.getOrDefault(fallback)
+    return runCatching { raw.toColorInt() }.getOrDefault(fallback)
 }

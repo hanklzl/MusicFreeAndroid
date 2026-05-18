@@ -1,10 +1,9 @@
 package com.hank.musicfree.feature.settings
 
-import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import com.hank.musicfree.core.permissions.requiredAudioPermission
 import com.hank.musicfree.core.permissions.requiredNotificationPermission
@@ -13,9 +12,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -28,7 +24,7 @@ class PermissionsHelpersTest {
     @Test
     fun `requiredAudioPermission returns READ_MEDIA_AUDIO on API 33 and above`() {
         assertEquals(
-            Manifest.permission.READ_MEDIA_AUDIO,
+            "android.permission.READ_MEDIA_AUDIO",
             requiredAudioPermission(Build.VERSION_CODES.TIRAMISU),
         )
     }
@@ -36,7 +32,7 @@ class PermissionsHelpersTest {
     @Test
     fun `requiredAudioPermission returns READ_EXTERNAL_STORAGE below API 33`() {
         assertEquals(
-            Manifest.permission.READ_EXTERNAL_STORAGE,
+            "android.permission.READ_EXTERNAL_STORAGE",
             requiredAudioPermission(Build.VERSION_CODES.TIRAMISU - 1),
         )
     }
@@ -44,7 +40,7 @@ class PermissionsHelpersTest {
     @Test
     fun `requiredNotificationPermission returns POST_NOTIFICATIONS on API 33 and above`() {
         assertEquals(
-            Manifest.permission.POST_NOTIFICATIONS,
+            "android.permission.POST_NOTIFICATIONS",
             requiredNotificationPermission(Build.VERSION_CODES.TIRAMISU),
         )
     }
@@ -62,17 +58,26 @@ class PermissionsHelpersTest {
     }
 
     @Test
-    fun `openOverlaySettings returns false when intent cannot resolve`() {
-        val packageManager = mock<PackageManager>()
-        whenever(packageManager.resolveActivity(any(), any<Int>())).thenReturn(null)
+    fun `openOverlaySettings returns false when start activity fails`() {
         val context = OverlaySettingsTestContext(
             baseContext = RuntimeEnvironment.getApplication(),
             packageNameValue = "com.example.app",
-            packageManagerValue = packageManager,
+            shouldThrowOnStart = true,
         )
 
         assertFalse(openOverlaySettings(context))
         assertNull(context.startedIntent)
+    }
+
+    @Test
+    fun `openOverlaySettings starts overlay settings with package uri`() {
+        val context = OverlaySettingsTestContext(
+            baseContext = RuntimeEnvironment.getApplication(),
+            packageNameValue = "com.example.app",
+        )
+
+        assertTrue(openOverlaySettings(context))
+        assertEquals("package:com.example.app", context.startedIntent?.dataString)
     }
 
     @Test
@@ -90,16 +95,17 @@ class PermissionsHelpersTest {
 private class OverlaySettingsTestContext(
     baseContext: Context,
     private val packageNameValue: String,
-    private val packageManagerValue: PackageManager,
+    private val shouldThrowOnStart: Boolean = false,
 ) : ContextWrapper(baseContext) {
     var startedIntent: Intent? = null
         private set
 
     override fun getPackageName(): String = packageNameValue
 
-    override fun getPackageManager(): PackageManager = packageManagerValue
-
     override fun startActivity(intent: Intent) {
+        if (shouldThrowOnStart) {
+            throw ActivityNotFoundException("No activity found")
+        }
         startedIntent = intent
     }
 }

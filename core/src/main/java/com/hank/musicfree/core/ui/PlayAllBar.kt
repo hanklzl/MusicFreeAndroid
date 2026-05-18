@@ -31,9 +31,9 @@ private val StarredRed = Color(0xFFE31639)
 fun PlayAllBar(
     onPlayAll: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    modifier: Modifier = Modifier,
     starred: Boolean? = null,
     onToggleStarred: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
     showAddToPlaylist: Boolean = true,
 ) {
     val colors = MusicFreeTheme.colors

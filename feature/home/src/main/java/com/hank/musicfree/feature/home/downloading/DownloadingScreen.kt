@@ -34,6 +34,7 @@ import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 import com.hank.musicfree.downloader.model.DownloadFailReason
 import com.hank.musicfree.downloader.model.DownloadStatus
 import com.hank.musicfree.downloader.model.DownloadTaskUi
+import java.util.Locale
 
 @Composable
 fun DownloadingScreen(
@@ -169,7 +170,7 @@ private fun formatSize(bytes: Long?): String {
     if (bytes == null || bytes < 0) return "-"
     if (bytes < 1024) return "${bytes}B"
     val kb = bytes / 1024.0
-    if (kb < 1024) return String.format("%.1fKB", kb)
+    if (kb < 1024) return String.format(Locale.ROOT, "%.1fKB", kb)
     val mb = kb / 1024.0
-    return String.format("%.1fMB", mb)
+    return String.format(Locale.ROOT, "%.1fMB", mb)
 }

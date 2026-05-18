@@ -1,11 +1,10 @@
 package com.hank.musicfree.core.theme
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.min
 
@@ -15,17 +14,18 @@ import kotlin.math.min
  * Based on 750px design width.
  */
 @Composable
-@ReadOnlyComposable
 fun rpx(value: Int): Dp {
-    val config = LocalConfiguration.current
-    val minEdge = min(config.screenWidthDp, config.screenHeightDp)
-    return ((value.toFloat() / 750f) * minEdge).dp
+    val containerSize = LocalWindowInfo.current.containerSize
+    val minEdge = min(containerSize.width, containerSize.height)
+    return with(LocalDensity.current) {
+        minEdge.toDp() * (value.toFloat() / 750f)
+    }
 }
 
 @Composable
-@ReadOnlyComposable
 fun rpxSp(value: Int): TextUnit {
-    val config = LocalConfiguration.current
-    val minEdge = min(config.screenWidthDp, config.screenHeightDp)
-    return ((value.toFloat() / 750f) * minEdge).sp
+    val containerSize = LocalWindowInfo.current.containerSize
+    val minEdge = min(containerSize.width, containerSize.height)
+    val minEdgeDp = with(LocalDensity.current) { minEdge.toDp().value }
+    return ((value.toFloat() / 750f) * minEdgeDp).sp
 }

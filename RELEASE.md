@@ -38,7 +38,7 @@
    ```bash
    bash scripts/release/preflight.sh v1.2.3
    ```
-   通过后再继续；任何报错都不要 push。
+   该脚本会先执行 `./gradlew lint --no-daemon`，通过后再继续；任何报错都不要 push。
 4. `git add version.properties && git commit -m "chore(release): bump to v1.2.3"`
 5. `git tag v1.2.3`
 6. `git push origin main && git push origin v1.2.3`
@@ -66,6 +66,12 @@ TAG=v1.2.3 bash -c '
   [ "$expected" = "$actual" ] || { echo "::error::tag $TAG vs versionName $actual mismatch"; exit 1; }
   echo "OK: $TAG ↔ versionName=$actual"
 '
+```
+
+### `[dry] Run release lint`
+
+```bash
+./gradlew lint --no-daemon
 ```
 
 ### `[dry] Build Release APK`

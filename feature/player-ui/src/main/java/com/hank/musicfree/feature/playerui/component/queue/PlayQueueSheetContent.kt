@@ -165,11 +165,11 @@ private fun QueueEmptyState() {
 
 @Composable
 private fun IconTextButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    iconPainter: androidx.compose.ui.graphics.painter.Painter? = null,
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    iconPainter: androidx.compose.ui.graphics.painter.Painter? = null,
 ) {
     Column(
         modifier = modifier

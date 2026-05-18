@@ -28,19 +28,16 @@ internal fun hasNotificationPermission(context: Context, sdkInt: Int = Build.VER
     return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 }
 
-internal fun buildOverlaySettingsIntent(context: Context): Intent? {
-    val intent = Intent(
+internal fun buildOverlaySettingsIntent(context: Context): Intent {
+    return Intent(
         AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION,
-        Uri.parse("package:${context.packageName}"),
+        Uri.fromParts("package", context.packageName, null),
     ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    return intent.takeIf { it.resolveActivity(context.packageManager) != null }
 }
 
 internal fun openOverlaySettings(context: Context): Boolean {
     return runCatching {
-        buildOverlaySettingsIntent(context)?.let {
-            context.startActivity(it)
-            true
-        } ?: false
+        context.startActivity(buildOverlaySettingsIntent(context))
+        true
     }.getOrDefault(false)
 }

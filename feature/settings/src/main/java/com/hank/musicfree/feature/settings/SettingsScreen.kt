@@ -55,9 +55,9 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
-    onNavigateToLocalFileSelector: () -> Unit = onNavigateToFileSelector,
     onNavigateToSetCustomTheme: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToLocalFileSelector: () -> Unit = onNavigateToFileSelector,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val basicState by viewModel.basicSettingsUiState.collectAsStateWithLifecycle()

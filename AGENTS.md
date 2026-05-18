@@ -69,22 +69,22 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 ./gradlew test                       # 运行单元测试
 ./gradlew :app:testDebugUnitTest     # 运行 app 模块单元测试
 ./gradlew connectedAndroidTest       # 运行仪器测试（需设备/模拟器）
-./gradlew lint                       # 运行 lint
+./gradlew lint                       # 发布前 lint 检查；日常 Debug 验证默认不跑
 ```
 
-本地功能收尾默认验证 Debug 构建，不要求验证 Release 构建。Release 构建只在签名环境变量齐备或任务明确涉及发布/签名时验证。
+本地功能收尾默认验证 Debug 构建，不要求验证 Release 构建或 lint。Lint 作为发布前检查由 release workflow 与 `scripts/release/preflight.sh` 执行。Release 构建只在签名环境变量齐备或任务明确涉及发布/签名时验证。
 
 ## 当前构建基线（已校验）
 
 - Min SDK：29（Android 10）
-- Target SDK：36
-- compileSdk：36.1
+- Target SDK：37
+- compileSdk：37.0
 - Java compatibility：`VERSION_17`
 - JVM toolchain：JDK 21
 - Gradle Wrapper：`9.4.1`
-- AGP：`9.2.0`
+- AGP：`9.2.1`
 - Kotlin：`2.3.21`
-- Compose BOM：`2026.04.01`
+- Compose BOM：`2026.05.00`
 
 ## 模块架构
 

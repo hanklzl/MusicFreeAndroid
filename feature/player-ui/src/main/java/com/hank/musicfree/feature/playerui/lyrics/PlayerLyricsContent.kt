@@ -90,24 +90,20 @@ fun PlayerLyricsContent(
         mutableStateOf<Int?>(null)
     }
 
-    val centerVisibleLine by remember(
-        document,
-        listState.layoutInfo.visibleItemsInfo,
-        listState.layoutInfo.viewportStartOffset,
-        listState.layoutInfo.viewportSize.height,
-    ) {
+    val centerVisibleLine by remember(document, lines) {
         derivedStateOf {
+            val layoutInfo = listState.layoutInfo
             centerVisibleLyricLine(
                 lines = lines,
-                visibleItems = listState.layoutInfo.visibleItemsInfo.map {
+                visibleItems = layoutInfo.visibleItemsInfo.map {
                     VisibleLyricListItem(
                         index = it.index,
                         offset = it.offset,
                         size = it.size,
                     )
                 },
-                viewportStartOffset = listState.layoutInfo.viewportStartOffset,
-                viewportHeight = listState.layoutInfo.viewportSize.height,
+                viewportStartOffset = layoutInfo.viewportStartOffset,
+                viewportHeight = layoutInfo.viewportSize.height,
             )
         }
     }

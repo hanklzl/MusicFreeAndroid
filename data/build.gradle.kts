@@ -9,8 +9,8 @@ plugins {
 android {
     namespace = "com.hank.musicfree.data"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
+        version = release(37) {
+            minorApiLevel = 0
         }
     }
 
@@ -66,7 +66,7 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.room.testing)
     // Provide real org.json for JVM unit tests (Android stubs throw by default)
-    testImplementation("org.json:json:20231013")
+    testImplementation(libs.org.json)
     // Compose Color is part of :core's public API but :core uses
     // `implementation` so tests need it explicitly on the classpath.
     testImplementation(platform(libs.androidx.compose.bom))

@@ -151,40 +151,27 @@ class SplashScreenResourceContractTest {
     }
 
     @Test
-    fun `RN splash and launcher resources are copied byte for byte`() {
+    fun `RN splash and launcher bitmap resources are copied byte for byte`() {
         val copiedResources = listOf(
-            "res/drawable/splashscreen_image.png",
-            "res/drawable/spashscreen_branding_image.png",
-            "res/drawable/splashscreen.xml",
-            "res/values/ic_launcher_background.xml",
-            "res/mipmap-anydpi-v26/ic_launcher.xml",
-            "res/mipmap-anydpi-v26/ic_launcher_round.xml",
-            "res/mipmap-mdpi/ic_launcher.webp",
-            "res/mipmap-mdpi/ic_launcher_round.webp",
-            "res/mipmap-mdpi/ic_launcher_foreground.webp",
-            "res/mipmap-hdpi/ic_launcher.webp",
-            "res/mipmap-hdpi/ic_launcher_round.webp",
-            "res/mipmap-hdpi/ic_launcher_foreground.webp",
-            "res/mipmap-xhdpi/ic_launcher.webp",
-            "res/mipmap-xhdpi/ic_launcher_round.webp",
-            "res/mipmap-xhdpi/ic_launcher_foreground.webp",
-            "res/mipmap-xxhdpi/ic_launcher.webp",
-            "res/mipmap-xxhdpi/ic_launcher_round.webp",
-            "res/mipmap-xxhdpi/ic_launcher_foreground.webp",
-            "res/mipmap-xxxhdpi/ic_launcher.webp",
-            "res/mipmap-xxxhdpi/ic_launcher_round.webp",
-            "res/mipmap-xxxhdpi/ic_launcher_foreground.webp",
-            "ic_launcher-playstore.png",
+            "res/drawable/splashscreen_image.png" to "res/drawable-nodpi/splashscreen_image.png",
+            "res/drawable/spashscreen_branding_image.png" to "res/drawable-nodpi/spashscreen_branding_image.png",
+            "res/values/ic_launcher_background.xml" to "res/values/ic_launcher_background.xml",
+            "res/mipmap-mdpi/ic_launcher_foreground.webp" to "res/mipmap-mdpi/ic_launcher_foreground.webp",
+            "res/mipmap-hdpi/ic_launcher_foreground.webp" to "res/mipmap-hdpi/ic_launcher_foreground.webp",
+            "res/mipmap-xhdpi/ic_launcher_foreground.webp" to "res/mipmap-xhdpi/ic_launcher_foreground.webp",
+            "res/mipmap-xxhdpi/ic_launcher_foreground.webp" to "res/mipmap-xxhdpi/ic_launcher_foreground.webp",
+            "res/mipmap-xxxhdpi/ic_launcher_foreground.webp" to "res/mipmap-xxxhdpi/ic_launcher_foreground.webp",
+            "ic_launcher-playstore.png" to "ic_launcher-playstore.png",
         )
 
-        copiedResources.forEach { relativePath ->
-            val expected = rnMain.resolve(relativePath)
-            val actual = appMain.resolve(relativePath)
+        copiedResources.forEach { (expectedPath, actualPath) ->
+            val expected = rnMain.resolve(expectedPath)
+            val actual = appMain.resolve(actualPath)
 
             assertTrue("RN reference resource should exist: $expected", Files.exists(expected))
             assertTrue("Android resource should exist: $actual", Files.exists(actual))
             assertArrayEquals(
-                "Android resource should match RN reference byte-for-byte: $relativePath",
+                "Android resource should match RN reference byte-for-byte: $expectedPath -> $actualPath",
                 Files.readAllBytes(expected),
                 Files.readAllBytes(actual),
             )
@@ -192,12 +179,39 @@ class SplashScreenResourceContractTest {
     }
 
     @Test
-    fun `default Android template launcher resources are removed`() {
+    fun `launcher adaptive icons are in base mipmap folder and include monochrome`() {
+        listOf(
+            appMain.resolve("res/mipmap/ic_launcher.xml"),
+            appMain.resolve("res/mipmap/ic_launcher_round.xml"),
+        ).forEach { path ->
+            val icon = parseXml(path).firstElement("adaptive-icon")
+            val monochrome = icon.childElements("monochrome").singleOrNull()
+                ?: throw AssertionError("Expected monochrome layer in $path")
+
+            assertAndroidAttribute(monochrome, "drawable", "@drawable/ic_launcher_monochrome")
+        }
+    }
+
+    @Test
+    fun `obsolete and template launcher resources are removed`() {
         val removedTemplateResources = listOf(
+            "res/mipmap-anydpi-v26/ic_launcher.xml",
+            "res/mipmap-anydpi-v26/ic_launcher_round.xml",
             "res/mipmap-anydpi/ic_launcher.xml",
             "res/mipmap-anydpi/ic_launcher_round.xml",
             "res/drawable/ic_launcher_background.xml",
             "res/drawable/ic_launcher_foreground.xml",
+            "res/drawable/splashscreen.xml",
+            "res/mipmap-mdpi/ic_launcher.webp",
+            "res/mipmap-mdpi/ic_launcher_round.webp",
+            "res/mipmap-hdpi/ic_launcher.webp",
+            "res/mipmap-hdpi/ic_launcher_round.webp",
+            "res/mipmap-xhdpi/ic_launcher.webp",
+            "res/mipmap-xhdpi/ic_launcher_round.webp",
+            "res/mipmap-xxhdpi/ic_launcher.webp",
+            "res/mipmap-xxhdpi/ic_launcher_round.webp",
+            "res/mipmap-xxxhdpi/ic_launcher.webp",
+            "res/mipmap-xxxhdpi/ic_launcher_round.webp",
         )
 
         removedTemplateResources.forEach { relativePath ->

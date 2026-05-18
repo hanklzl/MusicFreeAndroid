@@ -41,8 +41,10 @@ Kotlin · Jetpack Compose + Material3 · Media3 · QuickJS · Room · Hilt · Co
 
 ## 面向开发者
 
-- 环境：JDK 21、Android SDK 36、Gradle Wrapper 自动下载
+- 环境：JDK 21、Android SDK Platform 37.0、Gradle Wrapper 自动下载
 - 一行命令构建 Debug：`./gradlew :app:assembleDebug`
+- Debug 包使用独立包名后缀 `.debug`，便于和 Release 包并存安装
+- `./gradlew lint` 是发布前检查的一部分，由 release workflow 与 `scripts/release/preflight.sh` 执行，日常 Debug 验证默认不要求开启
 - 详细开发约束、模块架构、Dev Harness：[AGENTS.md](AGENTS.md)
 - 发布流程与 secrets 配置：[RELEASE.md](RELEASE.md)
 

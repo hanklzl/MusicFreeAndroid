@@ -2,6 +2,7 @@ package com.hank.musicfree.data.cover
 
 import android.content.Context
 import android.net.Uri
+import androidx.core.net.toUri
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
@@ -76,7 +77,7 @@ class PlaylistCoverStore @Inject constructor(
             logCopySkipped(playlistId, sourceScheme = "", pathType = "unknown", reason = LogFields.Reason.EMPTY_INPUT)
             return null
         }
-        val uri = runCatching { Uri.parse(artworkUrl) }.getOrNull() ?: run {
+        val uri = runCatching { artworkUrl.toUri() }.getOrNull() ?: run {
             logCopySkipped(playlistId, sourceScheme = "", pathType = "unknown", reason = LogFields.Reason.INVALID_URL)
             return null
         }

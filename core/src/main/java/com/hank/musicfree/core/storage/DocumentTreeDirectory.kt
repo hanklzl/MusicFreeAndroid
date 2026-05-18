@@ -1,17 +1,18 @@
 package com.hank.musicfree.core.storage
 
 import android.net.Uri
+import androidx.core.net.toUri
 
 data class DocumentTreeDirectory(
     val treeUri: String,
     val displayName: String,
 ) {
     val uri: Uri
-        get() = Uri.parse(treeUri)
+        get() = treeUri.toUri()
 
     companion object {
         fun fromTreeUri(treeUri: String): DocumentTreeDirectory {
-            val uri = Uri.parse(treeUri)
+            val uri = treeUri.toUri()
             val displayName = uri.lastPathSegment
                 ?.substringAfterLast(':')
                 ?.takeIf { it.isNotBlank() }

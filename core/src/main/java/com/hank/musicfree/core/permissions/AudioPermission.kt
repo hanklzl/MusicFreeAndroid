@@ -1,12 +1,14 @@
 package com.hank.musicfree.core.permissions
 
-import android.Manifest
 import android.os.Build
+
+const val READ_MEDIA_AUDIO_PERMISSION = "android.permission.READ_MEDIA_AUDIO"
+const val READ_EXTERNAL_STORAGE_PERMISSION = "android.permission.READ_EXTERNAL_STORAGE"
 
 fun requiredAudioPermission(sdkInt: Int = Build.VERSION.SDK_INT): String {
     return if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
-        Manifest.permission.READ_MEDIA_AUDIO
+        READ_MEDIA_AUDIO_PERMISSION
     } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE
+        READ_EXTERNAL_STORAGE_PERMISSION
     }
 }

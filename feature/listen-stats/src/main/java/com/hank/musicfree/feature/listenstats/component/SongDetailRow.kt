@@ -19,7 +19,7 @@ import java.time.Instant
 import java.time.ZoneId
 
 @Composable
-fun SongDetailRow(song: ListenedSong, showFirstSeen: Boolean = false, modifier: Modifier = Modifier) {
+fun SongDetailRow(song: ListenedSong, modifier: Modifier = Modifier, showFirstSeen: Boolean = false) {
     Row(
         modifier = modifier.fillMaxWidth().padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

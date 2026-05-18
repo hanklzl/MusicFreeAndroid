@@ -55,15 +55,15 @@ android {
     namespace = "com.hank.musicfree"
     base.archivesName = "MusicFreeAndroid"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
+        version = release(37) {
+            minorApiLevel = 0
         }
     }
 
     defaultConfig {
         applicationId = "com.hank.musicfree"
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 37
         versionCode = appVersionCode
         versionName = appVersionName
 

@@ -5,6 +5,7 @@ import android.content.ContentUris
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import androidx.core.net.toUri
 import com.hank.musicfree.core.model.MusicItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -65,7 +66,7 @@ class LocalMusicScanner @Inject constructor(
             while (it.moveToNext()) {
                 val albumId = it.getLong(albumIdCol)
                 val artworkUri = ContentUris.withAppendedId(
-                    Uri.parse("content://media/external/audio/albumart"),
+                    "content://media/external/audio/albumart".toUri(),
                     albumId,
                 ).toString()
 
@@ -88,7 +89,7 @@ class LocalMusicScanner @Inject constructor(
     }
 
     private fun queryDocumentTree(treeUriString: String): List<MusicItem> {
-        val treeUri = Uri.parse(treeUriString)
+        val treeUri = treeUriString.toUri()
         val rootDocumentId = DocumentsContract.getTreeDocumentId(treeUri)
 
         return scanDocumentTree(treeUri, rootDocumentId)

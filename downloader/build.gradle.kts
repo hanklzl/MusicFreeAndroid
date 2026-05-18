@@ -9,8 +9,8 @@ plugins {
 android {
     namespace = "com.hank.musicfree.downloader"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
+        version = release(37) {
+            minorApiLevel = 0
         }
     }
 

@@ -20,6 +20,9 @@ actual=$(awk -F= '/^versionName/{print $2}' version.properties | tr -d '[:space:
 }
 echo "  OK: $tag ↔ versionName=$actual"
 
+echo "[dry] Run release lint"
+./gradlew lint --no-daemon
+
 echo "[dry] Build Release APK"
 if [ -n "${ANDROID_RELEASE_KEYSTORE_PATH:-}" ] && [ -f "${ANDROID_RELEASE_KEYSTORE_PATH}" ]; then
     ./gradlew clean :app:assembleRelease --no-daemon

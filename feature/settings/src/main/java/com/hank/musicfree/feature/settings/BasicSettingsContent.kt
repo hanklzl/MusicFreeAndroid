@@ -69,7 +69,6 @@ private enum class BasicSettingsDialog {
 @Composable
 fun BasicSettingsContent(
     state: BasicSettingsUiState,
-    feedbackExportState: FeedbackExportUiState = FeedbackExportUiState(),
     onMaxSearchHistoryLengthChange: (Int) -> Unit,
     onMusicDetailDefaultPageChange: (MusicDetailDefaultPage) -> Unit,
     onMusicDetailAwakeChange: (Boolean) -> Unit,
@@ -108,13 +107,14 @@ fun BasicSettingsContent(
     onClearLyricCache: () -> Unit,
     onClearImageCache: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
-    onCreateFeedbackPackage: () -> Unit = {},
-    onClearLogs: () -> Unit = {},
     onDebugErrorLogEnabledChange: (Boolean) -> Unit,
     onDebugTraceLogEnabledChange: (Boolean) -> Unit,
     onDebugDevLogEnabledChange: (Boolean) -> Unit,
     onViewErrorLog: () -> Unit,
     modifier: Modifier = Modifier,
+    feedbackExportState: FeedbackExportUiState = FeedbackExportUiState(),
+    onCreateFeedbackPackage: () -> Unit = {},
+    onClearLogs: () -> Unit = {},
 ) {
     var activeDialog by remember { mutableStateOf<BasicSettingsDialog?>(null) }
     val isFeedbackActionInProgress = feedbackExportState.isOperationInProgress

@@ -552,14 +552,10 @@ private fun openDesktopLyricPermissionSettings(context: Context): Boolean {
     return runCatching {
         val intent = Intent(
             AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:${context.packageName}"),
+            Uri.fromParts("package", context.packageName, null),
         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        if (intent.resolveActivity(context.packageManager) == null) {
-            false
-        } else {
-            context.startActivity(intent)
-            true
-        }
+        context.startActivity(intent)
+        true
     }.getOrDefault(false)
 }
 

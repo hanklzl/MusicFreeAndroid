@@ -1,7 +1,6 @@
 package com.hank.musicfree.updater.ui
 
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -12,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import com.hank.musicfree.updater.checker.UpdateChecker
 import com.hank.musicfree.updater.checker.UpdateError
 import com.hank.musicfree.updater.checker.UpdateState
@@ -104,7 +104,7 @@ fun UpdateDialogHost(
                         version = update?.info?.version,
                         releaseNotesUrl = notesUrl,
                         onOpenReleasePage = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(notesUrl)))
+                            context.startActivity(Intent(Intent.ACTION_VIEW, notesUrl.toUri()))
                         },
                         onDismiss = {
                             if (update != null) checker.transitionAvailable(update, skipped = false)
