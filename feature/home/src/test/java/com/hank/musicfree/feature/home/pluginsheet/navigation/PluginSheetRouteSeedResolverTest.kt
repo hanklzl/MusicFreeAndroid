@@ -23,9 +23,9 @@ class PluginSheetRouteSeedResolverTest {
         val first = resolver.resolve()
         val second = resolver.resolve()
 
-        assertSame(seed, first)
-        assertSame(seed, second)
-        assertEquals(null, PluginSheetSeedStore.take(token))
+        assertEquals(seed, first)
+        assertSame(first, second)
+        assertEquals(seed, PluginSheetSeedStore.take(token))
     }
 
     @Test

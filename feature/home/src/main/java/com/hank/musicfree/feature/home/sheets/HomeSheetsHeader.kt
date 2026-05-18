@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
 import com.hank.musicfree.core.theme.FontSizes
@@ -106,7 +107,8 @@ private fun HomeSheetTabButton(
                 shape = RoundedCornerShape(rpx(12)),
                 minHeight = null,
             )
-            .testTag(anchorTag),
+            .testTag(anchorTag)
+            .semantics { this.selected = selected },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(

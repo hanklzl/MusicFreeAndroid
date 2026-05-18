@@ -18,11 +18,13 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class OkHttpApkDownloaderTest {
 
     private lateinit var server: MockWebServer

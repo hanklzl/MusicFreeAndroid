@@ -80,6 +80,8 @@ import com.hank.musicfree.core.model.MusicDetailDefaultPage
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.PlaybackMode
+import com.hank.musicfree.core.runtime.PlayerView
+import com.hank.musicfree.core.runtime.rememberUiRuntimeStore
 import com.hank.musicfree.core.theme.FontSizes
 import com.hank.musicfree.core.theme.IconSizes
 import com.hank.musicfree.core.theme.rpx
@@ -119,6 +121,8 @@ fun PlayerScreen(
     val musicDetailAwake by viewModel.musicDetailAwake.collectAsStateWithLifecycle()
     val lyricAssociationType by viewModel.lyricAssociationType.collectAsStateWithLifecycle()
     val desktopLyricOverlayState by viewModel.desktopLyricOverlayState.collectAsStateWithLifecycle()
+    val uiRuntimeStore = rememberUiRuntimeStore()
+    val uiRuntimeState by uiRuntimeStore.state.collectAsStateWithLifecycle()
     var contentPage by remember { mutableStateOf(PlayerContentPage.Cover) }
     var defaultPageApplied by remember { mutableStateOf(false) }
     var showLyricSearchSheet by remember { mutableStateOf(false) }
@@ -156,12 +160,17 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(musicDetailDefaultPage) {
+    LaunchedEffect(musicDetailDefaultPage, uiRuntimeState.restoreAttempted, uiRuntimeState.restored) {
         val defaultPage = musicDetailDefaultPage ?: return@LaunchedEffect
-        if (!defaultPageApplied) {
-            contentPage = defaultPage.toPlayerContentPage()
+        if (!defaultPageApplied && uiRuntimeState.restoreAttempted && !uiRuntimeState.restored) {
+            val defaultView = defaultPage.toPlayerView()
+            contentPage = defaultView.toPlayerContentPage()
+            uiRuntimeStore.setPlayerView(defaultView)
             defaultPageApplied = true
         }
+    }
+    LaunchedEffect(uiRuntimeState.playerView) {
+        contentPage = uiRuntimeState.playerView.toPlayerContentPage()
     }
 
     val desktopLyricController = remember(context) {
@@ -187,6 +196,11 @@ fun PlayerScreen(
                 showManualLyricAssociationDialog = true
             }
         }
+    }
+
+    fun selectContentPage(page: PlayerContentPage) {
+        contentPage = page
+        uiRuntimeStore.setPlayerView(page.toPlayerView())
     }
 
     DisposableEffect(context, musicDetailAwake) {
@@ -257,7 +271,7 @@ fun PlayerScreen(
                         isDownloaded = isDownloaded,
                         currentSpeed = currentSpeed,
                         onToggleFav = { viewModel.toggleCurrentFavorite() },
-                        onToggleLyrics = { contentPage = PlayerContentPage.Lyrics },
+                        onToggleLyrics = { selectContentPage(PlayerContentPage.Lyrics) },
                         onQualityClick = { qualitySheetMode = MusicQualitySheetMode.Play },
                         onDownloadClick = {
                             if (!isDownloaded) qualitySheetMode = MusicQualitySheetMode.Download
@@ -273,7 +287,7 @@ fun PlayerScreen(
                         state = lyricsUiState,
                         durationMs = state.duration,
                         isPlaying = state.isPlaying,
-                        onBackToCover = { contentPage = PlayerContentPage.Cover },
+                        onBackToCover = { selectContentPage(PlayerContentPage.Cover) },
                         onSeekToLine = viewModel::seekToLyricLine,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -530,9 +544,19 @@ private enum class PlayerContentPage {
     Lyrics,
 }
 
-private fun MusicDetailDefaultPage.toPlayerContentPage(): PlayerContentPage = when (this) {
-    MusicDetailDefaultPage.Album -> PlayerContentPage.Cover
-    MusicDetailDefaultPage.Lyric -> PlayerContentPage.Lyrics
+private fun MusicDetailDefaultPage.toPlayerView(): PlayerView = when (this) {
+    MusicDetailDefaultPage.Album -> PlayerView.COVER
+    MusicDetailDefaultPage.Lyric -> PlayerView.LYRIC
+}
+
+private fun PlayerView.toPlayerContentPage(): PlayerContentPage = when (this) {
+    PlayerView.COVER -> PlayerContentPage.Cover
+    PlayerView.LYRIC -> PlayerContentPage.Lyrics
+}
+
+private fun PlayerContentPage.toPlayerView(): PlayerView = when (this) {
+    PlayerContentPage.Cover -> PlayerView.COVER
+    PlayerContentPage.Lyrics -> PlayerView.LYRIC
 }
 
 private fun PlayerLyricsUiState.desktopLyricText(currentItem: MusicItem?): String {

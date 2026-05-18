@@ -15,6 +15,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * End-to-end stability test for the cacheKey path of [HeaderInjectingDataSourceFactory].
@@ -26,6 +27,7 @@ import org.robolectric.RobolectricTestRunner
  * that controls cacheKey propagation.
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 @AndroidXOptIn(markerClass = [UnstableApi::class])
 class MediaCacheKeyStabilityTest {
 

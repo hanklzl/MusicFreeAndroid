@@ -7,9 +7,14 @@ import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.SearchResultClickAction
+import com.hank.musicfree.core.runtime.RuntimeSnapshot
+import com.hank.musicfree.core.runtime.SnapshotStore
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.repository.PlaylistRepository
 import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.feature.search.runtime.PluginManagerSearchSessionGateway
+import com.hank.musicfree.feature.search.runtime.SearchSessionClock
+import com.hank.musicfree.feature.search.runtime.SearchSessionStore
 import com.hank.musicfree.player.controller.PlayerController
 import com.hank.musicfree.plugin.api.AlbumItemBase
 import com.hank.musicfree.plugin.api.PluginInfo
@@ -27,6 +32,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -72,14 +78,27 @@ class SearchViewModelTest {
 
     private fun createViewModel(
         mediaSourceResolver: MediaSourceResolver = EmptyMediaSourceResolver,
+        searchSessionStore: SearchSessionStore = createSearchSessionStore(),
     ) = SearchViewModel(
         pluginManager = pluginManager,
         playerController = playerController,
         appPreferences = appPreferences,
         playlistRepository = playlistRepository,
         downloader = downloader,
-        mediaSourceResolver,
+        mediaSourceResolver = mediaSourceResolver,
+        searchSessionStore = searchSessionStore,
     )
+
+    private fun createSearchSessionStore(): SearchSessionStore {
+        val gateway = PluginManagerSearchSessionGateway(pluginManager)
+        return SearchSessionStore(
+            snapshotStore = InMemorySnapshotStore(),
+            gateway = gateway,
+            signatureProvider = gateway,
+            json = Json { ignoreUnknownKeys = true },
+            clock = SearchSessionClock { 1_000L },
+        )
+    }
 
     @Test
     fun `initial autofocus request is consumed once per view model instance`() = runTest {
@@ -699,5 +718,14 @@ class SearchViewModelTest {
             artwork = null,
             qualities = null,
         )
+    }
+
+    private class InMemorySnapshotStore : SnapshotStore {
+        override suspend fun read(namespace: String, key: String): RuntimeSnapshot? = null
+        override suspend fun write(snapshot: RuntimeSnapshot) = Unit
+        override suspend fun delete(namespace: String, key: String) = Unit
+        override suspend fun deleteExpired(namespace: String, nowEpochMs: Long): Int = 0
+        override suspend fun pruneNamespace(namespace: String, keepLatest: Int): Int = 0
+        override suspend fun keys(namespace: String, limit: Int): List<String> = emptyList()
     }
 }

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.hank.musicfree.core.local.Mp3MetadataReader
 import com.hank.musicfree.core.model.PlaybackRuntimeSettings
+import com.hank.musicfree.core.runtime.SnapshotStore
 import com.hank.musicfree.data.backup.BackupAppMetadata
 import com.hank.musicfree.data.backup.BackupPrivateLayout
 import com.hank.musicfree.data.backup.BackupRepository
@@ -16,35 +17,38 @@ import com.hank.musicfree.data.backup.checkpointWal
 import com.hank.musicfree.data.db.AppDatabase
 import com.hank.musicfree.data.db.SeedFavoriteCallback
 import com.hank.musicfree.data.db.converter.Converters
-import com.hank.musicfree.data.db.migration.MIGRATION_10_11
-import com.hank.musicfree.data.db.migration.MIGRATION_11_12
-import com.hank.musicfree.data.db.migration.MIGRATION_12_13
-import com.hank.musicfree.data.db.migration.MIGRATION_9_10
+import com.hank.musicfree.data.db.dao.DownloadTaskDao
+import com.hank.musicfree.data.db.dao.DownloadedTrackDao
+import com.hank.musicfree.data.db.dao.ListenStatsDao
 import com.hank.musicfree.data.db.dao.LyricCacheDao
 import com.hank.musicfree.data.db.dao.MediaCacheDao
 import com.hank.musicfree.data.db.dao.MusicDao
-import com.hank.musicfree.data.db.dao.PlaylistDao
 import com.hank.musicfree.data.db.dao.PlayQueueDao
-import com.hank.musicfree.data.db.dao.DownloadTaskDao
-import com.hank.musicfree.data.db.dao.DownloadedTrackDao
+import com.hank.musicfree.data.db.dao.PlaylistDao
 import com.hank.musicfree.data.db.dao.PluginMetadataCacheDao
-import com.hank.musicfree.data.db.dao.ListenStatsDao
+import com.hank.musicfree.data.db.dao.RuntimeSnapshotDao
 import com.hank.musicfree.data.db.dao.StarredSheetDao
 import com.hank.musicfree.data.db.dao.TrafficDailyDao
+import com.hank.musicfree.data.db.migration.MIGRATION_10_11
+import com.hank.musicfree.data.db.migration.MIGRATION_11_12
+import com.hank.musicfree.data.db.migration.MIGRATION_12_13
+import com.hank.musicfree.data.db.migration.MIGRATION_13_14
+import com.hank.musicfree.data.db.migration.MIGRATION_9_10
 import com.hank.musicfree.data.datastore.AppPlaybackRuntimeSettings
 import com.hank.musicfree.data.local.Mp3MetadataReaderImpl
 import com.hank.musicfree.data.repository.AppPlaylistDefaultSortProvider
 import com.hank.musicfree.data.repository.PlaylistDefaultSortProvider
 import com.hank.musicfree.data.repository.PluginMetadataCacheGateway
 import com.hank.musicfree.data.repository.PluginMetadataCacheRepository
+import com.hank.musicfree.data.runtime.RoomRuntimeSnapshotStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import java.time.ZoneId
-import kotlinx.serialization.json.Json
 import javax.inject.Singleton
+import kotlinx.serialization.json.Json
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_preferences")
 
@@ -56,7 +60,13 @@ object DataModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "musicfree.db")
-            .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+            .addMigrations(
+                MIGRATION_9_10,
+                MIGRATION_10_11,
+                MIGRATION_11_12,
+                MIGRATION_12_13,
+                MIGRATION_13_14,
+            )
             .addCallback(SeedFavoriteCallback)
             .build()
 
@@ -93,6 +103,13 @@ object DataModule {
 
     @Provides
     fun provideTrafficDailyDao(db: AppDatabase): TrafficDailyDao = db.trafficDailyDao()
+
+    @Provides
+    fun provideRuntimeSnapshotDao(db: AppDatabase): RuntimeSnapshotDao = db.runtimeSnapshotDao()
+
+    @Provides
+    @Singleton
+    fun provideSnapshotStore(impl: RoomRuntimeSnapshotStore): SnapshotStore = impl
 
     @Provides
     @Singleton
@@ -144,7 +161,7 @@ object DataModule {
         databaseCheckpoint = appDatabase::checkpointWal,
         layout = layout,
         appMetadata = appMetadata,
-        databaseVersion = 11,
+        databaseVersion = 14,
         json = json,
     )
 
@@ -175,5 +192,4 @@ object DataModule {
     @Provides
     @Singleton
     fun provideZoneIdProvider(): () -> ZoneId = { ZoneId.systemDefault() }
-
 }

@@ -84,6 +84,9 @@ class DownloadEngine(
         }
         .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
+    suspend fun taskSnapshot(): List<DownloadTaskUi> = taskDao.observeAll().first()
+        .map { it.toUi(progressCache[MediaKey.of(it.id, it.platform)]) }
+
     fun start() {
         if (!started.compareAndSet(false, true)) return
         scope.launch {

@@ -8,6 +8,7 @@ import coil3.SingletonImageLoader
 import com.hank.musicfree.bootstrap.DefaultPluginsBootstrapper
 import com.hank.musicfree.bootstrap.PlaybackStartupCoordinator
 import com.hank.musicfree.bootstrap.PluginAutoUpdateCoordinator
+import com.hank.musicfree.core.di.ApplicationScope
 import com.hank.musicfree.core.network.BaseOkHttp
 import com.hank.musicfree.data.backup.StartupBackupRestore
 import com.hank.musicfree.data.datastore.AppPreferences
@@ -15,16 +16,15 @@ import com.hank.musicfree.logging.LoggingConfig
 import com.hank.musicfree.logging.LoggingInitializer
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.plugin.engine.AxiosShim
+import com.hank.musicfree.runtime.RuntimeRestoreCoordinator
 import com.hank.musicfree.updater.bootstrap.UpdateCheckCoordinator
 import dagger.hilt.android.HiltAndroidApp
 import java.io.File
 import javax.inject.Inject
-import okhttp3.OkHttpClient
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 
 @HiltAndroidApp
 class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
@@ -34,6 +34,8 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
     @Inject lateinit var playbackStartupCoordinator: PlaybackStartupCoordinator
     @Inject lateinit var updateCheckCoordinator: UpdateCheckCoordinator
     @Inject lateinit var appPreferences: AppPreferences
+    @Inject lateinit var runtimeRestoreCoordinator: RuntimeRestoreCoordinator
+    @Inject @ApplicationScope lateinit var applicationScope: CoroutineScope
 
     /**
      * `@BaseOkHttp` is the only OkHttp client whose [okhttp3.EventListener.Factory]
@@ -50,8 +52,6 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
      * 接到 `@BaseOkHttp` 派生 client,因此图片加载流量也会进入 traffic_daily。
      */
     @Inject lateinit var imageLoader: ImageLoader
-
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(base)
@@ -92,6 +92,7 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
         }
 
         startLoggingPreferenceBridge()
+        runtimeRestoreCoordinator.start()
         defaultPluginsBootstrapper.start()
         pluginAutoUpdateCoordinator.start()
         playbackStartupCoordinator.start()

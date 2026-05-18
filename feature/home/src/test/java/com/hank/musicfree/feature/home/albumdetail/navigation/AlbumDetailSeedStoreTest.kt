@@ -14,13 +14,13 @@ class AlbumDetailSeedStoreTest {
     }
 
     @Test
-    fun `take returns stored seed once`() {
+    fun `take resolves stored seed repeatedly`() {
         val seed = album("album-1")
 
         val token = AlbumDetailSeedStore.put(seed)
 
         assertEquals(seed, AlbumDetailSeedStore.take(token))
-        assertNull(AlbumDetailSeedStore.take(token))
+        assertEquals(seed, AlbumDetailSeedStore.take(token))
     }
 
     @Test

@@ -12,7 +12,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hank.musicfree.core.navigation.SettingsType
+import com.hank.musicfree.core.runtime.rememberUiRuntimeStore
 import com.hank.musicfree.feature.home.playlist.CreatePlaylistDialog
 import com.hank.musicfree.feature.home.playlistimport.PlaylistImportRoute
 import com.hank.musicfree.feature.home.playlistimport.PlaylistImportViewModel
@@ -45,7 +47,11 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val state = remember { HomeScreenState() }
-    var selectedTab by rememberSaveable { mutableStateOf(HomeSheetTab.Mine) }
+    val uiRuntimeStore = rememberUiRuntimeStore()
+    val uiRuntimeState by uiRuntimeStore.state.collectAsStateWithLifecycle()
+    val selectedTab = remember(uiRuntimeState.homeTab) {
+        uiRuntimeState.homeTab.toHomeSheetTabOrDefault()
+    }
     val playlists by viewModel.playlists.collectAsState()
     val starredSheets by viewModel.starredSheets.collectAsState()
     val currentVersion = remember(context) {
@@ -121,7 +127,7 @@ fun HomeScreen(
         onNavigateToTopList = onNavigateToTopList,
         onNavigateToHistory = onNavigateToHistory,
         onNavigateToLocal = onNavigateToLocal,
-        onSelectTab = { selectedTab = it },
+        onSelectTab = { uiRuntimeStore.setHomeTab(it.name) },
         onCreateClick = { showCreateDialog = true },
         onImportClick = { importViewModel.openImportSheet() },
         onOpenMineSheet = { sheetId -> onNavigateToPlaylistDetail(sheetId) },
@@ -187,3 +193,6 @@ private fun PackageManager.versionNameForPackage(packageName: String): String? {
     }
     return packageInfo.versionName
 }
+
+private fun String?.toHomeSheetTabOrDefault(): HomeSheetTab =
+    HomeSheetTab.entries.firstOrNull { it.name == this } ?: HomeSheetTab.Mine

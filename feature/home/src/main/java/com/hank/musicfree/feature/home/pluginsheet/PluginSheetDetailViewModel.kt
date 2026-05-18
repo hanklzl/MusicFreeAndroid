@@ -10,18 +10,23 @@ import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.Playlist
 import com.hank.musicfree.core.navigation.PluginSheetDetailRoute
+import com.hank.musicfree.core.runtime.RuntimeStoreKey
 import com.hank.musicfree.core.ui.AddToPlaylistSheetState
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.repository.PlaylistRepository
 import com.hank.musicfree.data.repository.StarredSheetRepository
 import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.feature.home.runtime.DetailRouteTypes
+import com.hank.musicfree.feature.home.runtime.DetailSessionEntry
+import com.hank.musicfree.feature.home.runtime.DetailSessionHeader
+import com.hank.musicfree.feature.home.runtime.DetailSessionRequest
+import com.hank.musicfree.feature.home.runtime.DetailSessionStore
 import com.hank.musicfree.player.controller.PlayerController
 import com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetRouteSeedResolver
 import com.hank.musicfree.feature.home.pluginsheet.navigation.fallbackSheetSeed
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
-import com.hank.musicfree.logging.timedSuspend
 import com.hank.musicfree.plugin.api.MusicSheetItemBase
 import com.hank.musicfree.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +37,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -47,18 +54,30 @@ class PluginSheetDetailViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
     private val downloader: Downloader,
     private val mediaSourceResolver: MediaSourceResolver,
+    private val detailSessionStore: DetailSessionStore,
 ) : ViewModel() {
     private val route = savedStateHandle.toRoute<PluginSheetDetailRoute>()
     private val seedResolver = PluginSheetRouteSeedResolver(route.seedToken) {
         route.fallbackSheetSeed()
     }
+    private val detailKey = RuntimeStoreKey.detail(
+        DetailRouteTypes.PLUGIN_SHEET,
+        route.pluginPlatform,
+        route.sheetId,
+    ).value
+    private val detailRequest: DetailSessionRequest by lazy {
+        DetailSessionRequest(
+            key = detailKey,
+            routeType = DetailRouteTypes.PLUGIN_SHEET,
+            platform = route.pluginPlatform,
+            itemId = route.sheetId,
+            seed = DetailSessionHeader.Sheet(seedSheet()),
+            fallbackTitle = "歌单详情",
+        )
+    }
 
     private val _uiState = MutableStateFlow(PluginSheetDetailUiState(loading = true))
     val uiState: StateFlow<PluginSheetDetailUiState> = _uiState.asStateFlow()
-
-    private var page = 0
-    private var currentSheet: MusicSheetItemBase? = null
-    private var loadGeneration: Long = 0
 
     val isSheetStarred: StateFlow<Boolean> = starredSheetRepository
         .observeIsStarred(route.sheetId, route.pluginPlatform)
@@ -199,7 +218,7 @@ class PluginSheetDetailViewModel @Inject constructor(
     }
 
     fun toggleSheetStarred() {
-        val sheet = currentSheet ?: seedSheet()
+        val sheet = currentSheet() ?: seedSheet()
         val starredSheet = sheet.toStarredSheet()
         val wasStarred = isSheetStarred.value
         viewModelScope.launch {
@@ -228,107 +247,25 @@ class PluginSheetDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            detailSessionStore.state
+                .map { it.sessions[detailKey].toPluginSheetUiState(seedSheet()) }
+                .collect { _uiState.value = it }
+        }
+        viewModelScope.launch {
             pluginManager.ensurePluginsLoaded()
-            loadInitial(nextLoadGeneration())
+            loadInitial()
         }
     }
 
     fun retry() {
         viewModelScope.launch {
-            loadInitial(nextLoadGeneration())
+            loadInitial(forceRefresh = true)
         }
     }
 
     fun loadMore() {
-        val state = _uiState.value
-        val sheet = currentSheet
-        if (state.loading || state.loadingMore || state.isEnd || sheet == null) {
-            return
-        }
-
-        val generation = nextLoadGeneration()
-        val operation = "load_more"
-        val flowId = newFlowId(operation, generation)
-        val plugin = pluginManager.getPlugin(route.pluginPlatform)
-        if (plugin == null) {
-            logLoadFailure(
-                throwable = null,
-                operation = operation,
-                flowId = flowId,
-                generation = generation,
-                startedAt = System.nanoTime(),
-                fields = sheetFields(sheet) + mapOf("page" to page + 1, "reason" to "plugin_missing"),
-            )
-            return
-        }
         viewModelScope.launch {
-            val startedAt = System.nanoTime()
-            _uiState.value = state.copy(loadingMore = true, errorMessage = null)
-            logLoadStart(operation, flowId, generation, sheetFields(sheet) + mapOf("page" to page + 1))
-            runCatching {
-                timedSuspend { plugin.getMusicSheetInfo(sheet, page + 1) }
-            }.onSuccess { (detail, durationMs) ->
-                if (!isCurrentLoad(generation)) {
-                    logLoadStale(operation, flowId, generation, startedAt, sheetFields(sheet) + mapOf("page" to page + 1))
-                    return@onSuccess
-                }
-                if (detail == null) {
-                    logLoadFailure(
-                        throwable = null,
-                        operation = operation,
-                        flowId = flowId,
-                        generation = generation,
-                        startedAt = startedAt,
-                        fields = sheetFields(sheet) + mapOf("page" to page + 1, "reason" to LogFields.Reason.UNKNOWN),
-                    )
-                    _uiState.value = _uiState.value.copy(
-                        loadingMore = false,
-                        errorMessage = "加载歌单失败",
-                    )
-                    return@onSuccess
-                }
-                page += 1
-                currentSheet = detail.sheetItem ?: sheet
-                logLoadSuccess(
-                    operation = operation,
-                    flowId = flowId,
-                    generation = generation,
-                    durationMs = durationMs,
-                    fields = sheetFields(currentSheet) + mapOf(
-                        "page" to page,
-                        "count" to detail.musicList.size,
-                        "isEnd" to detail.isEnd,
-                    ),
-                )
-                _uiState.value = _uiState.value.copy(
-                    title = detail.sheetItem?.title ?: _uiState.value.title,
-                    sheetItem = currentSheet,
-                    musicList = _uiState.value.musicList + detail.musicList,
-                    isEnd = detail.isEnd,
-                    loadingMore = false,
-                )
-            }.onFailure { e ->
-                if (e is CancellationException) {
-                    logLoadCancelled(operation, flowId, generation, startedAt, sheetFields(sheet) + mapOf("page" to page + 1))
-                    throw e
-                }
-                if (!isCurrentLoad(generation)) {
-                    logLoadStale(operation, flowId, generation, startedAt, sheetFields(sheet) + mapOf("page" to page + 1))
-                    return@onFailure
-                }
-                logLoadFailure(
-                    throwable = e,
-                    operation = operation,
-                    flowId = flowId,
-                    generation = generation,
-                    startedAt = startedAt,
-                    fields = sheetFields(sheet) + mapOf("page" to page + 1),
-                )
-                _uiState.value = _uiState.value.copy(
-                    loadingMore = false,
-                    errorMessage = e.message ?: "加载歌单失败",
-                )
-            }
+            detailSessionStore.loadMore(detailKey)
         }
     }
 
@@ -394,100 +331,15 @@ class PluginSheetDetailViewModel @Inject constructor(
         return true
     }
 
-    private suspend fun loadInitial(generation: Long) {
-        val operation = "load_initial"
-        val flowId = newFlowId(operation, generation)
-        val startedAt = System.nanoTime()
-        _uiState.value = PluginSheetDetailUiState(loading = true)
-
-        val plugin = pluginManager.getPlugin(route.pluginPlatform)
-        if (plugin == null) {
-            logLoadFailure(
-                throwable = null,
-                operation = operation,
-                flowId = flowId,
-                generation = generation,
-                startedAt = startedAt,
-                fields = mapOf("sheetId" to route.sheetId, "reason" to "plugin_missing"),
-            )
-            _uiState.value = PluginSheetDetailUiState(
-                loading = false,
-                errorMessage = "插件不存在：${route.pluginPlatform}",
-            )
-            return
-        }
-
-        val seed = seedSheet()
-        logLoadStart(operation, flowId, generation, sheetFields(seed) + mapOf("page" to 1))
-        runCatching {
-            timedSuspend { plugin.getMusicSheetInfo(seed, page = 1) }
-        }.onSuccess { (detail, durationMs) ->
-            if (!isCurrentLoad(generation)) {
-                logLoadStale(operation, flowId, generation, startedAt, sheetFields(seed) + mapOf("page" to 1))
-                return@onSuccess
-            }
-            if (detail == null) {
-                logLoadFailure(
-                    throwable = null,
-                    operation = operation,
-                    flowId = flowId,
-                    generation = generation,
-                    startedAt = startedAt,
-                    fields = sheetFields(seed) + mapOf("page" to 1, "reason" to LogFields.Reason.UNKNOWN),
-                )
-                _uiState.value = PluginSheetDetailUiState(
-                    loading = false,
-                    errorMessage = "加载歌单失败",
-                )
-                return@onSuccess
-            }
-            page = 1
-            currentSheet = detail.sheetItem ?: seed
-            logLoadSuccess(
-                operation = operation,
-                flowId = flowId,
-                generation = generation,
-                durationMs = durationMs,
-                fields = sheetFields(currentSheet) + mapOf(
-                    "page" to 1,
-                    "count" to detail.musicList.size,
-                    "isEnd" to detail.isEnd,
-                ),
-            )
-            _uiState.value = PluginSheetDetailUiState(
-                title = detail.sheetItem?.title ?: seed.title ?: "歌单详情",
-                sheetItem = currentSheet,
-                musicList = detail.musicList,
-                loading = false,
-                isEnd = detail.isEnd,
-                errorMessage = null,
-            )
-        }.onFailure { e ->
-            if (e is CancellationException) {
-                logLoadCancelled(operation, flowId, generation, startedAt, sheetFields(seed) + mapOf("page" to 1))
-                throw e
-            }
-            if (!isCurrentLoad(generation)) {
-                logLoadStale(operation, flowId, generation, startedAt, sheetFields(seed) + mapOf("page" to 1))
-                return@onFailure
-            }
-            logLoadFailure(
-                throwable = e,
-                operation = operation,
-                flowId = flowId,
-                generation = generation,
-                startedAt = startedAt,
-                fields = sheetFields(seed) + mapOf("page" to 1),
-            )
-            _uiState.value = PluginSheetDetailUiState(
-                loading = false,
-                errorMessage = e.message ?: "加载歌单失败",
-            )
-        }
+    private suspend fun loadInitial(forceRefresh: Boolean = false) {
+        detailSessionStore.loadInitial(detailRequest, forceRefresh = forceRefresh)
     }
 
     private fun seedSheet(): MusicSheetItemBase =
         seedResolver.resolve()
+
+    private fun currentSheet(): MusicSheetItemBase? =
+        (detailSessionStore.session(detailKey)?.header as? DetailSessionHeader.Sheet)?.item
 
     val defaultDownloadQuality = appPreferences.defaultDownloadQuality
 
@@ -505,93 +357,6 @@ class PluginSheetDetailViewModel @Inject constructor(
             ),
         )
         downloader.enqueue(listOf(item), quality)
-    }
-
-    private fun nextLoadGeneration(): Long {
-        loadGeneration += 1
-        return loadGeneration
-    }
-
-    private fun isCurrentLoad(generation: Long): Boolean = loadGeneration == generation
-
-    private fun logLoadStart(operation: String, flowId: String, generation: Long, fields: Map<String, Any?>) {
-        MfLog.detail(
-            LogCategory.HOME,
-            "plugin_sheet_load_start",
-            baseLoadFields(operation, flowId, generation) + fields,
-        )
-    }
-
-    private fun logLoadSuccess(
-        operation: String,
-        flowId: String,
-        generation: Long,
-        durationMs: Long,
-        fields: Map<String, Any?>,
-    ) {
-        MfLog.detail(
-            LogCategory.HOME,
-            "plugin_sheet_load_success",
-            baseLoadFields(operation, flowId, generation) + fields + mapOf(
-                "durationMs" to durationMs,
-                "result" to LogFields.Result.SUCCESS,
-            ),
-        )
-    }
-
-    private fun logLoadFailure(
-        throwable: Throwable?,
-        operation: String,
-        flowId: String,
-        generation: Long,
-        startedAt: Long,
-        fields: Map<String, Any?>,
-    ) {
-        MfLog.error(
-            LogCategory.HOME,
-            "plugin_sheet_load_failed",
-            throwable,
-            baseLoadFields(operation, flowId, generation) + fields + mapOf(
-                "durationMs" to elapsedMs(startedAt),
-                "result" to LogFields.Result.FAILURE,
-            ),
-        )
-    }
-
-    private fun logLoadStale(
-        operation: String,
-        flowId: String,
-        generation: Long,
-        startedAt: Long,
-        fields: Map<String, Any?>,
-    ) {
-        MfLog.detail(
-            LogCategory.HOME,
-            "plugin_sheet_load_stale",
-            baseLoadFields(operation, flowId, generation) + fields + mapOf(
-                "durationMs" to elapsedMs(startedAt),
-                "result" to LogFields.Result.STALE,
-                "reason" to LogFields.Reason.STALE_GENERATION,
-            ),
-        )
-    }
-
-    private fun logLoadCancelled(
-        operation: String,
-        flowId: String,
-        generation: Long,
-        startedAt: Long,
-        fields: Map<String, Any?>,
-    ) {
-        MfLog.detail(
-            LogCategory.HOME,
-            "plugin_sheet_load_cancelled",
-            baseLoadFields(operation, flowId, generation) + fields + mapOf(
-                "durationMs" to elapsedMs(startedAt),
-                "result" to LogFields.Result.CANCELLED,
-                "reason" to LogFields.Reason.CANCELLED,
-            ),
-        )
     }
 
     private suspend fun runUserAction(
@@ -643,9 +408,6 @@ class PluginSheetDetailViewModel @Inject constructor(
         }
     }
 
-    private fun baseLoadFields(operation: String, flowId: String, generation: Long): Map<String, Any?> =
-        actionFields(operation, flowId) + mapOf("generation" to generation)
-
     private fun actionFields(operation: String, flowId: String): Map<String, Any?> = mapOf(
         "screen" to SCREEN_PLUGIN_SHEET_DETAIL,
         "operation" to operation,
@@ -673,4 +435,18 @@ class PluginSheetDetailViewModel @Inject constructor(
     private companion object {
         const val SCREEN_PLUGIN_SHEET_DETAIL = "plugin_sheet_detail"
     }
+}
+
+private fun DetailSessionEntry?.toPluginSheetUiState(seed: MusicSheetItemBase): PluginSheetDetailUiState {
+    if (this == null) return PluginSheetDetailUiState(loading = true)
+    val sheet = (header as? DetailSessionHeader.Sheet)?.item ?: seed
+    return PluginSheetDetailUiState(
+        title = sheet.title ?: fallbackTitle,
+        sheetItem = sheet,
+        musicList = items,
+        loading = loading,
+        loadingMore = loadingMore,
+        isEnd = isEnd,
+        errorMessage = errorMessage,
+    )
 }

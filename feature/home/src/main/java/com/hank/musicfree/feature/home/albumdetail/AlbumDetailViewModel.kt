@@ -9,10 +9,16 @@ import com.hank.musicfree.core.model.AlbumMusicClickAction
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.navigation.AlbumDetailRoute
+import com.hank.musicfree.core.runtime.RuntimeStoreKey
 import com.hank.musicfree.feature.home.albumdetail.navigation.AlbumDetailSeedStore
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.repository.StarredSheetRepository
 import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.feature.home.runtime.DetailRouteTypes
+import com.hank.musicfree.feature.home.runtime.DetailSessionEntry
+import com.hank.musicfree.feature.home.runtime.DetailSessionHeader
+import com.hank.musicfree.feature.home.runtime.DetailSessionRequest
+import com.hank.musicfree.feature.home.runtime.DetailSessionStore
 import com.hank.musicfree.player.controller.PlayerController
 import com.hank.musicfree.plugin.api.AlbumItemBase
 import com.hank.musicfree.plugin.manager.PluginManager
@@ -22,6 +28,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,23 +43,36 @@ class AlbumDetailViewModel @Inject constructor(
     private val downloader: Downloader,
     private val mediaSourceResolver: MediaSourceResolver,
     private val starredSheetRepository: StarredSheetRepository,
+    private val detailSessionStore: DetailSessionStore,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toAlbumDetailRoute()
     private val initialAlbumSeed: AlbumItemBase by lazy { resolveInitialAlbumSeed() }
+    private val detailKey = RuntimeStoreKey.detail(
+        DetailRouteTypes.ALBUM,
+        route.pluginPlatform,
+        route.albumId,
+    ).value
+    private val detailRequest: DetailSessionRequest by lazy {
+        DetailSessionRequest(
+            key = detailKey,
+            routeType = DetailRouteTypes.ALBUM,
+            platform = route.pluginPlatform,
+            itemId = route.albumId,
+            seed = DetailSessionHeader.Album(initialAlbumSeed),
+            fallbackTitle = route.title ?: "专辑详情",
+        )
+    }
 
     private val _uiState = MutableStateFlow(AlbumDetailUiState())
     val uiState: StateFlow<AlbumDetailUiState> = _uiState.asStateFlow()
-
-    private var page = 0
-    private var currentAlbum: AlbumItemBase? = null
 
     val isAlbumStarred: StateFlow<Boolean> = starredSheetRepository
         .observeIsStarred(id = route.albumId, platform = route.pluginPlatform)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun toggleAlbumStarred() {
-        val seed = currentAlbum ?: initialAlbumSeed
+        val seed = currentAlbum() ?: initialAlbumSeed
         val starred = seed.toStarredSheet()
         val wasStarred = isAlbumStarred.value
         viewModelScope.launch {
@@ -72,6 +93,11 @@ class AlbumDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            detailSessionStore.state
+                .map { it.sessions[detailKey].toAlbumUiState(initialAlbumSeed, route.title ?: "专辑详情") }
+                .collect { _uiState.value = it }
+        }
+        viewModelScope.launch {
             pluginManager.ensurePluginsLoaded()
             loadInitial()
         }
@@ -79,46 +105,13 @@ class AlbumDetailViewModel @Inject constructor(
 
     fun retry() {
         viewModelScope.launch {
-            loadInitial()
+            loadInitial(forceRefresh = true)
         }
     }
 
     fun loadMore() {
-        val state = _uiState.value
-        val album = currentAlbum
-        if (state.loading || state.loadingMore || state.isEnd || album == null) {
-            return
-        }
-
-        val plugin = pluginManager.getPlugin(route.pluginPlatform) ?: return
         viewModelScope.launch {
-            _uiState.value = state.copy(loadingMore = true, errorMessage = null)
-            runCatching {
-                plugin.getAlbumInfo(album, page + 1)
-            }.onSuccess { detail ->
-                if (detail == null) {
-                    _uiState.value = _uiState.value.copy(
-                        loadingMore = false,
-                        errorMessage = "加载专辑失败",
-                    )
-                    return@onSuccess
-                }
-                page += 1
-                val resolvedAlbum = detail.albumItem ?: album
-                currentAlbum = resolvedAlbum
-                _uiState.value = _uiState.value.copy(
-                    title = resolvedAlbum.title ?: _uiState.value.title,
-                    albumItem = resolvedAlbum,
-                    musicList = _uiState.value.musicList + detail.musicList,
-                    isEnd = detail.isEnd,
-                    loadingMore = false,
-                )
-            }.onFailure { e ->
-                _uiState.value = _uiState.value.copy(
-                    loadingMore = false,
-                    errorMessage = e.message ?: "加载专辑失败",
-                )
-            }
+            detailSessionStore.loadMore(detailKey)
         }
     }
 
@@ -144,46 +137,8 @@ class AlbumDetailViewModel @Inject constructor(
         return true
     }
 
-    private suspend fun loadInitial() {
-        _uiState.value = AlbumDetailUiState(loading = true)
-
-        val plugin = pluginManager.getPlugin(route.pluginPlatform)
-        if (plugin == null) {
-            _uiState.value = AlbumDetailUiState(
-                loading = false,
-                errorMessage = "插件不存在：${route.pluginPlatform}",
-            )
-            return
-        }
-
-        val seed = initialAlbumSeed
-        runCatching {
-            plugin.getAlbumInfo(seed, page = 1)
-        }.onSuccess { detail ->
-            if (detail == null) {
-                _uiState.value = AlbumDetailUiState(
-                    loading = false,
-                    errorMessage = "加载专辑失败",
-                )
-                return@onSuccess
-            }
-            page = 1
-            val resolvedAlbum = detail.albumItem ?: seed
-            currentAlbum = resolvedAlbum
-            _uiState.value = AlbumDetailUiState(
-                title = resolvedAlbum.title ?: route.title ?: "专辑详情",
-                albumItem = resolvedAlbum,
-                loading = false,
-                musicList = detail.musicList,
-                isEnd = detail.isEnd,
-                errorMessage = null,
-            )
-        }.onFailure { e ->
-            _uiState.value = AlbumDetailUiState(
-                loading = false,
-                errorMessage = e.message ?: "加载专辑失败",
-            )
-        }
+    private suspend fun loadInitial(forceRefresh: Boolean = false) {
+        detailSessionStore.loadInitial(detailRequest, forceRefresh = forceRefresh)
     }
 
     fun playAll() {
@@ -228,6 +183,23 @@ class AlbumDetailViewModel @Inject constructor(
     fun download(item: MusicItem, quality: PlayQuality) {
         downloader.enqueue(listOf(item), quality)
     }
+
+    private fun currentAlbum(): AlbumItemBase? =
+        (detailSessionStore.session(detailKey)?.header as? DetailSessionHeader.Album)?.item
+}
+
+private fun DetailSessionEntry?.toAlbumUiState(seed: AlbumItemBase, fallbackTitle: String): AlbumDetailUiState {
+    if (this == null) return AlbumDetailUiState(loading = true)
+    val album = (header as? DetailSessionHeader.Album)?.item ?: seed
+    return AlbumDetailUiState(
+        title = album.title ?: fallbackTitle,
+        albumItem = album,
+        loading = loading,
+        musicList = items,
+        isEnd = isEnd,
+        loadingMore = loadingMore,
+        errorMessage = errorMessage,
+    )
 }
 
 private fun SavedStateHandle.toAlbumDetailRoute(): AlbumDetailRoute {

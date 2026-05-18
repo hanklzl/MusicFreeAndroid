@@ -7,8 +7,14 @@ import androidx.navigation.toRoute
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.core.model.AlbumMusicClickAction
 import com.hank.musicfree.core.navigation.ArtistDetailRoute
+import com.hank.musicfree.core.runtime.RuntimeStoreKey
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.feature.home.artistdetail.navigation.ArtistDetailSeedStore
+import com.hank.musicfree.feature.home.runtime.DetailRouteTypes
+import com.hank.musicfree.feature.home.runtime.DetailSessionEntry
+import com.hank.musicfree.feature.home.runtime.DetailSessionHeader
+import com.hank.musicfree.feature.home.runtime.DetailSessionRequest
+import com.hank.musicfree.feature.home.runtime.DetailSessionStore
 import com.hank.musicfree.player.controller.PlayerController
 import com.hank.musicfree.plugin.api.ArtistItemBase
 import com.hank.musicfree.plugin.manager.PluginManager
@@ -17,6 +23,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -27,18 +35,36 @@ class ArtistDetailViewModel @Inject constructor(
     private val playerController: PlayerController,
     private val mediaSourceResolver: MediaSourceResolver,
     private val appPreferences: AppPreferences,
+    private val detailSessionStore: DetailSessionStore,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<ArtistDetailRoute>()
     private val initialArtistSeed: ArtistItemBase by lazy { resolveInitialArtistSeed() }
+    private val detailKey = RuntimeStoreKey.detail(
+        DetailRouteTypes.ARTIST,
+        route.pluginPlatform,
+        route.artistId,
+    ).value
+    private val detailRequest: DetailSessionRequest by lazy {
+        DetailSessionRequest(
+            key = detailKey,
+            routeType = DetailRouteTypes.ARTIST,
+            platform = route.pluginPlatform,
+            itemId = route.artistId,
+            seed = DetailSessionHeader.Artist(initialArtistSeed),
+            fallbackTitle = route.name,
+        )
+    }
 
     private val _uiState = MutableStateFlow(ArtistDetailUiState())
     val uiState: StateFlow<ArtistDetailUiState> = _uiState.asStateFlow()
 
-    private var page = 0
-    private var currentArtist: ArtistItemBase? = null
-
     init {
+        viewModelScope.launch {
+            detailSessionStore.state
+                .map { it.sessions[detailKey].toArtistUiState(route.name) }
+                .collect { _uiState.value = it }
+        }
         viewModelScope.launch {
             pluginManager.ensurePluginsLoaded()
             loadInitial()
@@ -47,42 +73,13 @@ class ArtistDetailViewModel @Inject constructor(
 
     fun retry() {
         viewModelScope.launch {
-            loadInitial()
+            loadInitial(forceRefresh = true)
         }
     }
 
     fun loadMore() {
-        val state = _uiState.value
-        val artist = currentArtist
-        if (state.loading || state.loadingMore || state.isEnd || artist == null) {
-            return
-        }
-
-        val plugin = pluginManager.getPlugin(route.pluginPlatform) ?: return
         viewModelScope.launch {
-            _uiState.value = state.copy(loadingMore = true, errorMessage = null)
-            runCatching {
-                plugin.getArtistWorks(artist, page + 1, type = "music")
-            }.onSuccess { result ->
-                if (result == null) {
-                    _uiState.value = _uiState.value.copy(
-                        loadingMore = false,
-                        errorMessage = "加载歌手作品失败",
-                    )
-                    return@onSuccess
-                }
-                page += 1
-                _uiState.value = _uiState.value.copy(
-                    musicList = _uiState.value.musicList + result.musicList,
-                    isEnd = result.isEnd,
-                    loadingMore = false,
-                )
-            }.onFailure { e ->
-                _uiState.value = _uiState.value.copy(
-                    loadingMore = false,
-                    errorMessage = e.message ?: "加载歌手作品失败",
-                )
-            }
+            detailSessionStore.loadMore(detailKey)
         }
     }
 
@@ -108,44 +105,8 @@ class ArtistDetailViewModel @Inject constructor(
         return true
     }
 
-    private suspend fun loadInitial() {
-        _uiState.value = ArtistDetailUiState(loading = true)
-
-        val plugin = pluginManager.getPlugin(route.pluginPlatform)
-        if (plugin == null) {
-            _uiState.value = ArtistDetailUiState(
-                loading = false,
-                errorMessage = "插件不存在：${route.pluginPlatform}",
-            )
-            return
-        }
-
-        val seed = initialArtistSeed
-        currentArtist = seed
-        runCatching {
-            plugin.getArtistWorks(seed, page = 1, type = "music")
-        }.onSuccess { result ->
-            if (result == null) {
-                _uiState.value = ArtistDetailUiState(
-                    loading = false,
-                    errorMessage = "加载歌手作品失败",
-                )
-                return@onSuccess
-            }
-            page = 1
-            _uiState.value = ArtistDetailUiState(
-                title = route.name,
-                loading = false,
-                musicList = result.musicList,
-                isEnd = result.isEnd,
-                errorMessage = null,
-            )
-        }.onFailure { e ->
-            _uiState.value = ArtistDetailUiState(
-                loading = false,
-                errorMessage = e.message ?: "加载歌手作品失败",
-            )
-        }
+    private suspend fun loadInitial(forceRefresh: Boolean = false) {
+        detailSessionStore.loadInitial(detailRequest, forceRefresh = forceRefresh)
     }
 
     private fun resolveInitialArtistSeed(): ArtistItemBase {
@@ -172,4 +133,16 @@ class ArtistDetailViewModel @Inject constructor(
             raw = raw,
         )
     }
+}
+
+private fun DetailSessionEntry?.toArtistUiState(fallbackTitle: String): ArtistDetailUiState {
+    if (this == null) return ArtistDetailUiState(loading = true)
+    return ArtistDetailUiState(
+        title = header.title ?: fallbackTitle,
+        loading = loading,
+        musicList = items,
+        isEnd = isEnd,
+        loadingMore = loadingMore,
+        errorMessage = errorMessage,
+    )
 }

@@ -3,11 +3,17 @@ package com.hank.musicfree.feature.home.albumdetail
 import androidx.lifecycle.SavedStateHandle
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.core.model.MusicItem
+import com.hank.musicfree.core.runtime.RuntimeSnapshot
+import com.hank.musicfree.core.runtime.SnapshotStore
 import com.hank.musicfree.core.model.StarredKind
 import com.hank.musicfree.core.model.StarredSheet
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.repository.StarredSheetRepository
 import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.feature.home.runtime.DetailPluginSignatureProvider
+import com.hank.musicfree.feature.home.runtime.DetailSessionClock
+import com.hank.musicfree.feature.home.runtime.DetailSessionStore
+import com.hank.musicfree.feature.home.runtime.PluginManagerDetailSessionGateway
 import com.hank.musicfree.player.controller.PlayerController
 import com.hank.musicfree.plugin.api.AlbumInfoResult
 import com.hank.musicfree.plugin.api.AlbumItemBase
@@ -24,12 +30,14 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
@@ -66,7 +74,10 @@ class AlbumDetailViewModelTest {
         )
     )
 
-    private fun newViewModel(starredFlow: MutableStateFlow<Boolean>): AlbumDetailViewModel {
+    private fun newViewModel(
+        starredFlow: MutableStateFlow<Boolean>,
+        detailSessionStore: DetailSessionStore = newDetailSessionStore(),
+    ): AlbumDetailViewModel {
         whenever(starredRepo.observeIsStarred(id = "alb-1", platform = "qq"))
             .thenReturn(starredFlow)
         return AlbumDetailViewModel(
@@ -77,8 +88,17 @@ class AlbumDetailViewModelTest {
             downloader = downloader,
             mediaSourceResolver = mediaSourceResolver,
             starredSheetRepository = starredRepo,
+            detailSessionStore = detailSessionStore,
         )
     }
+
+    private fun newDetailSessionStore(): DetailSessionStore = DetailSessionStore(
+        snapshotStore = InMemorySnapshotStore(),
+        gateway = PluginManagerDetailSessionGateway(pluginManager),
+        signatureProvider = DetailPluginSignatureProvider { "sig" },
+        json = Json { ignoreUnknownKeys = true },
+        clock = DetailSessionClock { 1_000L },
+    )
 
     @Test
     fun `isAlbumStarred mirrors repository flow`() = runTest(testDispatcher) {
@@ -147,6 +167,38 @@ class AlbumDetailViewModelTest {
         assertEquals(listOf(musicItem("song-1")), vm.uiState.value.musicList)
     }
 
+    @Test
+    fun `recreated view model reuses detail session without reloading first page`() = runTest(testDispatcher) {
+        val plugin = albumPlugin(
+            album = AlbumItemBase(
+                id = "alb-1",
+                platform = "qq",
+                title = "Resolved Album",
+                date = "2026",
+                artist = "Resolved Artist",
+                description = "Album intro",
+                artwork = "https://example.com/album.jpg",
+                worksNum = 12,
+                raw = emptyMap(),
+            ),
+            musicList = listOf(musicItem("song-1")),
+        )
+        whenever(pluginManager.getPlugin("qq")).thenReturn(plugin)
+        val store = newDetailSessionStore()
+
+        val first = newViewModel(MutableStateFlow(false), detailSessionStore = store)
+        advanceUntilIdle()
+        assertEquals(listOf(musicItem("song-1")), first.uiState.value.musicList)
+
+        val recreated = newViewModel(MutableStateFlow(false), detailSessionStore = store)
+        advanceUntilIdle()
+
+        assertEquals(listOf(musicItem("song-1")), recreated.uiState.value.musicList)
+        runBlocking {
+            verify(plugin, times(1)).getAlbumInfo(org.mockito.kotlin.any(), org.mockito.kotlin.eq(1))
+        }
+    }
+
     private fun albumPlugin(
         album: AlbumItemBase,
         musicList: List<MusicItem>,
@@ -181,4 +233,13 @@ class AlbumDetailViewModelTest {
         artwork = null,
         qualities = null,
     )
+
+    private class InMemorySnapshotStore : SnapshotStore {
+        override suspend fun read(namespace: String, key: String): RuntimeSnapshot? = null
+        override suspend fun write(snapshot: RuntimeSnapshot) = Unit
+        override suspend fun delete(namespace: String, key: String) = Unit
+        override suspend fun deleteExpired(namespace: String, nowEpochMs: Long): Int = 0
+        override suspend fun pruneNamespace(namespace: String, keepLatest: Int): Int = 0
+        override suspend fun keys(namespace: String, limit: Int): List<String> = emptyList()
+    }
 }

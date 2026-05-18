@@ -6,6 +6,10 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.hank.musicfree.data.db.migration.MIGRATION_9_10
+import com.hank.musicfree.data.db.migration.MIGRATION_10_11
+import com.hank.musicfree.data.db.migration.MIGRATION_11_12
+import com.hank.musicfree.data.db.migration.MIGRATION_12_13
+import com.hank.musicfree.data.db.migration.MIGRATION_13_14
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -64,7 +68,13 @@ class AppDatabaseMigration9To10Test {
             InstrumentationRegistry.getInstrumentation().targetContext,
             AppDatabase::class.java,
             TEST_DB,
-        ).addMigrations(MIGRATION_9_10).build().apply {
+        ).addMigrations(
+            MIGRATION_9_10,
+            MIGRATION_10_11,
+            MIGRATION_11_12,
+            MIGRATION_12_13,
+            MIGRATION_13_14,
+        ).build().apply {
             openHelper.writableDatabase
             close()
         }

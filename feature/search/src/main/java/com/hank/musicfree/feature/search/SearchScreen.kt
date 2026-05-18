@@ -69,6 +69,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hank.musicfree.core.R
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.runtime.rememberUiRuntimeStore
 import com.hank.musicfree.core.theme.FontSizes
 import com.hank.musicfree.core.theme.IconSizes
 import com.hank.musicfree.core.theme.MusicFreeTheme
@@ -109,6 +110,8 @@ fun SearchScreen(
 
     val sheetState by viewModel.sheetState.collectAsState()
     val allPlaylists by viewModel.allPlaylists.collectAsState()
+    val uiRuntimeStore = rememberUiRuntimeStore()
+    val uiRuntimeState by uiRuntimeStore.state.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val searchFocusRequester = remember { FocusRequester() }
@@ -116,6 +119,7 @@ fun SearchScreen(
     var query by remember { mutableStateOf(viewModel.currentQuery.value) }
     var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
     var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
+    var uiRuntimeSearchTabApplied by remember { mutableStateOf(false) }
     val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
     // 如果 ViewModel 已有查询（如从历史恢复），同步初始化本地状态
     LaunchedEffect(Unit) {
@@ -129,6 +133,18 @@ fun SearchScreen(
         withFrameNanos { }
         searchFocusRequester.requestFocus()
         keyboardController?.show()
+    }
+    LaunchedEffect(uiRuntimeState.searchTab, pageStatus, selectedMediaType) {
+        if (uiRuntimeSearchTabApplied) return@LaunchedEffect
+        val restoredType = uiRuntimeState.searchTab.toSearchMediaTypeOrNull() ?: return@LaunchedEffect
+        uiRuntimeSearchTabApplied = true
+        val canApplyUiRuntimeTab =
+            pageStatus == SearchPageStatus.EDITING &&
+                viewModel.currentQuery.value.isBlank() &&
+                selectedMediaType != restoredType
+        if (canApplyUiRuntimeTab) {
+            viewModel.selectMediaType(restoredType)
+        }
     }
 
     // Observe play events from ViewModel (runs in ViewModel scope, survives navigation)
@@ -269,7 +285,10 @@ fun SearchScreen(
                     selectedMediaType = selectedMediaType,
                     selectedPlatform = selectedPlatform,
                     currentPluginState = currentPluginState,
-                    onSelectMediaType = { viewModel.selectMediaType(it) },
+                    onSelectMediaType = {
+                        uiRuntimeStore.setSearchTab(it.key)
+                        viewModel.selectMediaType(it)
+                    },
                     onSelectPlatform = { viewModel.selectPlatform(it) },
                     onLoadMore = { viewModel.loadMore() },
                     onMusicClick = { music, items ->
@@ -327,6 +346,9 @@ fun SearchScreen(
         )
     }
 }
+
+private fun String?.toSearchMediaTypeOrNull(): SearchMediaType? =
+    SearchMediaType.entries.firstOrNull { it.key == this }
 
 // ── SearchHistoryPanel ────────────────────────────────────────────────────────
 

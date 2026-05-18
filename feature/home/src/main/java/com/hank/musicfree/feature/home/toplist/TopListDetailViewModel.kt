@@ -10,16 +10,21 @@ import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.Playlist
 import com.hank.musicfree.core.navigation.TopListDetailRoute
+import com.hank.musicfree.core.runtime.RuntimeStoreKey
 import com.hank.musicfree.core.ui.AddToPlaylistSheetState
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.repository.PlaylistRepository
 import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.feature.home.runtime.DetailRouteTypes
+import com.hank.musicfree.feature.home.runtime.DetailSessionEntry
+import com.hank.musicfree.feature.home.runtime.DetailSessionHeader
+import com.hank.musicfree.feature.home.runtime.DetailSessionRequest
+import com.hank.musicfree.feature.home.runtime.DetailSessionStore
 import com.hank.musicfree.feature.home.pluginsheet.navigation.PluginSheetRouteSeedResolver
 import com.hank.musicfree.feature.home.pluginsheet.navigation.fallbackTopListSeed
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
-import com.hank.musicfree.logging.timedSuspend
 import com.hank.musicfree.player.controller.PlayerController
 import com.hank.musicfree.plugin.api.MusicSheetItemBase
 import com.hank.musicfree.plugin.manager.PluginManager
@@ -31,6 +36,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -45,18 +52,30 @@ class TopListDetailViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
     private val downloader: Downloader,
     private val mediaSourceResolver: MediaSourceResolver,
+    private val detailSessionStore: DetailSessionStore,
 ) : ViewModel() {
     private val route = savedStateHandle.toRoute<TopListDetailRoute>()
     private val seedResolver = PluginSheetRouteSeedResolver(route.seedToken) {
         route.fallbackTopListSeed()
     }
+    private val detailKey = RuntimeStoreKey.detail(
+        DetailRouteTypes.TOP_LIST,
+        route.pluginPlatform,
+        route.topListId,
+    ).value
+    private val detailRequest: DetailSessionRequest by lazy {
+        DetailSessionRequest(
+            key = detailKey,
+            routeType = DetailRouteTypes.TOP_LIST,
+            platform = route.pluginPlatform,
+            itemId = route.topListId,
+            seed = DetailSessionHeader.TopList(seedTopList()),
+            fallbackTitle = "榜单详情",
+        )
+    }
 
     private val _uiState = MutableStateFlow(TopListDetailUiState(loading = true))
     val uiState: StateFlow<TopListDetailUiState> = _uiState.asStateFlow()
-
-    private var page = 0
-    private var currentTopList: MusicSheetItemBase? = null
-    private var loadGeneration: Long = 0
 
     // ── Playlist / Favorite ──────────────────────────────────────────────────
 
@@ -244,110 +263,25 @@ class TopListDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            detailSessionStore.state
+                .map { it.sessions[detailKey].toTopListUiState(seedTopList()) }
+                .collect { _uiState.value = it }
+        }
+        viewModelScope.launch {
             pluginManager.ensurePluginsLoaded()
-            loadInitial(nextLoadGeneration())
+            loadInitial()
         }
     }
 
     fun retry() {
         viewModelScope.launch {
-            loadInitial(nextLoadGeneration())
+            loadInitial(forceRefresh = true)
         }
     }
 
     fun loadMore() {
-        val state = _uiState.value
-        val topList = currentTopList
-        if (state.loading || state.loadingMore || state.isEnd || topList == null) {
-            return
-        }
-
-        val generation = nextLoadGeneration()
-        val operation = "load_more"
-        val flowId = newFlowId(operation, generation)
-        val plugin = pluginManager.getPlugin(route.pluginPlatform)
-        if (plugin == null) {
-            logLoadFailure(
-                event = "top_list_detail_load_failed",
-                throwable = null,
-                operation = operation,
-                flowId = flowId,
-                generation = generation,
-                startedAt = System.nanoTime(),
-                fields = topListFields(topList) + mapOf("page" to page + 1, "reason" to "plugin_missing"),
-            )
-            return
-        }
         viewModelScope.launch {
-            val startedAt = System.nanoTime()
-            _uiState.value = state.copy(loadingMore = true, errorMessage = null)
-            logLoadStart(operation, flowId, generation, topListFields(topList) + mapOf("page" to page + 1))
-            runCatching {
-                timedSuspend { plugin.getTopListDetail(topList, page + 1) }
-            }.onSuccess { (detail, durationMs) ->
-                if (!isCurrentLoad(generation)) {
-                    logLoadStale(operation, flowId, generation, startedAt, topListFields(topList) + mapOf("page" to page + 1))
-                    return@onSuccess
-                }
-                if (detail == null) {
-                    logLoadFailure(
-                        event = "top_list_detail_load_failed",
-                        throwable = null,
-                        operation = operation,
-                        flowId = flowId,
-                        generation = generation,
-                        startedAt = startedAt,
-                        fields = topListFields(topList) + mapOf("page" to page + 1, "reason" to LogFields.Reason.UNKNOWN),
-                    )
-                    _uiState.value = _uiState.value.copy(
-                        loadingMore = false,
-                        errorMessage = "加载榜单失败",
-                    )
-                    return@onSuccess
-                }
-                page += 1
-                currentTopList = detail.topListItem ?: topList
-                logLoadSuccess(
-                    operation = operation,
-                    flowId = flowId,
-                    generation = generation,
-                    durationMs = durationMs,
-                    fields = topListFields(currentTopList) + mapOf(
-                        "page" to page,
-                        "count" to detail.musicList.size,
-                        "isEnd" to detail.isEnd,
-                    ),
-                )
-                _uiState.value = _uiState.value.copy(
-                    title = detail.topListItem?.title ?: _uiState.value.title,
-                    topListItem = currentTopList,
-                    musicList = _uiState.value.musicList + detail.musicList,
-                    isEnd = detail.isEnd,
-                    loadingMore = false,
-                )
-            }.onFailure { e ->
-                if (e is CancellationException) {
-                    logLoadCancelled(operation, flowId, generation, startedAt, topListFields(topList) + mapOf("page" to page + 1))
-                    throw e
-                }
-                if (!isCurrentLoad(generation)) {
-                    logLoadStale(operation, flowId, generation, startedAt, topListFields(topList) + mapOf("page" to page + 1))
-                    return@onFailure
-                }
-                logLoadFailure(
-                    event = "top_list_detail_load_failed",
-                    throwable = e,
-                    operation = operation,
-                    flowId = flowId,
-                    generation = generation,
-                    startedAt = startedAt,
-                    fields = topListFields(topList) + mapOf("page" to page + 1),
-                )
-                _uiState.value = _uiState.value.copy(
-                    loadingMore = false,
-                    errorMessage = e.message ?: "加载榜单失败",
-                )
-            }
+            detailSessionStore.loadMore(detailKey)
         }
     }
 
@@ -410,101 +344,11 @@ class TopListDetailViewModel @Inject constructor(
         return true
     }
 
-    private suspend fun loadInitial(generation: Long) {
-        val operation = "load_initial"
-        val flowId = newFlowId(operation, generation)
-        val startedAt = System.nanoTime()
-        _uiState.value = TopListDetailUiState(loading = true)
-
-        val plugin = pluginManager.getPlugin(route.pluginPlatform)
-        if (plugin == null) {
-            logLoadFailure(
-                event = "top_list_detail_load_failed",
-                throwable = null,
-                operation = operation,
-                flowId = flowId,
-                generation = generation,
-                startedAt = startedAt,
-                fields = mapOf("reason" to "plugin_missing"),
-            )
-            _uiState.value = TopListDetailUiState(
-                loading = false,
-                errorMessage = "插件不存在：${route.pluginPlatform}",
-            )
-            return
-        }
-
-        val seedTopList = seedResolver.resolve()
-
-        logLoadStart(operation, flowId, generation, topListFields(seedTopList) + mapOf("page" to 1))
-        runCatching {
-            timedSuspend { plugin.getTopListDetail(seedTopList, page = 1) }
-        }.onSuccess { (detail, durationMs) ->
-            if (!isCurrentLoad(generation)) {
-                logLoadStale(operation, flowId, generation, startedAt, topListFields(seedTopList) + mapOf("page" to 1))
-                return@onSuccess
-            }
-            if (detail == null) {
-                logLoadFailure(
-                    event = "top_list_detail_load_failed",
-                    throwable = null,
-                    operation = operation,
-                    flowId = flowId,
-                    generation = generation,
-                    startedAt = startedAt,
-                    fields = topListFields(seedTopList) + mapOf("page" to 1, "reason" to LogFields.Reason.UNKNOWN),
-                )
-                _uiState.value = TopListDetailUiState(
-                    loading = false,
-                    errorMessage = "加载榜单失败",
-                )
-                return@onSuccess
-            }
-            page = 1
-            currentTopList = detail.topListItem ?: seedTopList
-            logLoadSuccess(
-                operation = operation,
-                flowId = flowId,
-                generation = generation,
-                durationMs = durationMs,
-                fields = topListFields(currentTopList) + mapOf(
-                    "page" to 1,
-                    "count" to detail.musicList.size,
-                    "isEnd" to detail.isEnd,
-                ),
-            )
-            _uiState.value = TopListDetailUiState(
-                title = detail.topListItem?.title ?: seedTopList.title ?: "榜单详情",
-                topListItem = currentTopList,
-                musicList = detail.musicList,
-                loading = false,
-                isEnd = detail.isEnd,
-                errorMessage = null,
-            )
-        }.onFailure { e ->
-            if (e is CancellationException) {
-                logLoadCancelled(operation, flowId, generation, startedAt, topListFields(seedTopList) + mapOf("page" to 1))
-                throw e
-            }
-            if (!isCurrentLoad(generation)) {
-                logLoadStale(operation, flowId, generation, startedAt, topListFields(seedTopList) + mapOf("page" to 1))
-                return@onFailure
-            }
-            logLoadFailure(
-                event = "top_list_detail_load_failed",
-                throwable = e,
-                operation = operation,
-                flowId = flowId,
-                generation = generation,
-                startedAt = startedAt,
-                fields = topListFields(seedTopList) + mapOf("page" to 1),
-            )
-            _uiState.value = TopListDetailUiState(
-                loading = false,
-                errorMessage = e.message ?: "加载榜单失败",
-            )
-        }
+    private suspend fun loadInitial(forceRefresh: Boolean = false) {
+        detailSessionStore.loadInitial(detailRequest, forceRefresh = forceRefresh)
     }
+
+    private fun seedTopList(): MusicSheetItemBase = seedResolver.resolve()
 
     val defaultDownloadQuality = appPreferences.defaultDownloadQuality
 
@@ -522,107 +366,6 @@ class TopListDetailViewModel @Inject constructor(
         )
         downloader.enqueue(listOf(item), quality)
     }
-
-    private fun nextLoadGeneration(): Long {
-        loadGeneration += 1
-        return loadGeneration
-    }
-
-    private fun isCurrentLoad(generation: Long): Boolean = loadGeneration == generation
-
-    private fun logLoadStart(
-        operation: String,
-        flowId: String,
-        generation: Long,
-        fields: Map<String, Any?> = emptyMap(),
-    ) {
-        MfLog.detail(
-            LogCategory.HOME,
-            "top_list_detail_load_start",
-            baseLoadFields(operation, flowId, generation) + fields,
-        )
-    }
-
-    private fun logLoadSuccess(
-        operation: String,
-        flowId: String,
-        generation: Long,
-        durationMs: Long,
-        fields: Map<String, Any?> = emptyMap(),
-    ) {
-        MfLog.detail(
-            LogCategory.HOME,
-            "top_list_detail_load_success",
-            baseLoadFields(operation, flowId, generation) + fields + mapOf(
-                "durationMs" to durationMs,
-                "result" to LogFields.Result.SUCCESS,
-            ),
-        )
-    }
-
-    private fun logLoadFailure(
-        event: String,
-        throwable: Throwable?,
-        operation: String,
-        flowId: String,
-        generation: Long,
-        startedAt: Long,
-        fields: Map<String, Any?> = emptyMap(),
-    ) {
-        MfLog.error(
-            LogCategory.HOME,
-            event,
-            throwable,
-            baseLoadFields(operation, flowId, generation) + fields + mapOf(
-                "durationMs" to elapsedMs(startedAt),
-                "result" to LogFields.Result.FAILURE,
-            ),
-        )
-    }
-
-    private fun logLoadStale(
-        operation: String,
-        flowId: String,
-        generation: Long,
-        startedAt: Long,
-        fields: Map<String, Any?> = emptyMap(),
-    ) {
-        MfLog.detail(
-            LogCategory.HOME,
-            "top_list_detail_load_stale",
-            baseLoadFields(operation, flowId, generation) + fields + mapOf(
-                "durationMs" to elapsedMs(startedAt),
-                "result" to LogFields.Result.STALE,
-                "reason" to LogFields.Reason.STALE_GENERATION,
-            ),
-        )
-    }
-
-    private fun logLoadCancelled(
-        operation: String,
-        flowId: String,
-        generation: Long,
-        startedAt: Long,
-        fields: Map<String, Any?> = emptyMap(),
-    ) {
-        MfLog.detail(
-            LogCategory.HOME,
-            "top_list_detail_load_cancelled",
-            baseLoadFields(operation, flowId, generation) + fields + mapOf(
-                "durationMs" to elapsedMs(startedAt),
-                "result" to LogFields.Result.CANCELLED,
-                "reason" to LogFields.Reason.CANCELLED,
-            ),
-        )
-    }
-
-    private fun baseLoadFields(operation: String, flowId: String, generation: Long): Map<String, Any?> = mapOf(
-        "screen" to SCREEN_TOP_LIST_DETAIL,
-        "operation" to operation,
-        "flowId" to flowId,
-        "generation" to generation,
-        "platform" to route.pluginPlatform,
-    )
 
     private fun topListFields(item: MusicSheetItemBase?): Map<String, Any?> = mapOf(
         "listId" to item?.id.orEmpty(),
@@ -699,4 +442,18 @@ class TopListDetailViewModel @Inject constructor(
     private companion object {
         const val SCREEN_TOP_LIST_DETAIL = "top_list_detail"
     }
+}
+
+private fun DetailSessionEntry?.toTopListUiState(seed: MusicSheetItemBase): TopListDetailUiState {
+    if (this == null) return TopListDetailUiState(loading = true)
+    val topList = (header as? DetailSessionHeader.TopList)?.item ?: seed
+    return TopListDetailUiState(
+        title = topList.title ?: fallbackTitle,
+        topListItem = topList,
+        musicList = items,
+        loading = loading,
+        loadingMore = loadingMore,
+        isEnd = isEnd,
+        errorMessage = errorMessage,
+    )
 }

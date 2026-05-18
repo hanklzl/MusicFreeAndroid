@@ -12,6 +12,7 @@ import com.hank.musicfree.core.ui.AddToPlaylistSheetState
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.repository.PlaylistRepository
 import com.hank.musicfree.downloader.Downloader
+import com.hank.musicfree.feature.search.runtime.SearchSessionStore
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.timedSuspend
@@ -33,7 +34,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -47,51 +47,34 @@ class SearchViewModel @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val downloader: Downloader,
     private val mediaSourceResolver: MediaSourceResolver,
+    private val searchSessionStore: SearchSessionStore,
 ) : ViewModel() {
 
     // ── 插件状态 ──
     private val _searchablePlugins = MutableStateFlow<List<PluginInfo>>(emptyList())
     val searchablePlugins: StateFlow<List<PluginInfo>> = _searchablePlugins.asStateFlow()
 
-    // ── 页面状态 ──
-    private val _pageStatus = MutableStateFlow(SearchPageStatus.EDITING)
-    val pageStatus: StateFlow<SearchPageStatus> = _pageStatus.asStateFlow()
+    val pageStatus: StateFlow<SearchPageStatus> = searchSessionStore.state
+        .map { it.pageStatus }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, searchSessionStore.state.value.pageStatus)
 
-    private var pluginsReady = false
-    private var searchablePluginsMediaType: SearchMediaType? = null
     private var initialAutofocusConsumed = false
-
-    private data class PendingSearch(
-        val query: String,
-        val mediaType: SearchMediaType,
-    )
-
-    private data class LoadMoreRequest(
-        val generation: Long,
-        val query: String,
-        val mediaType: SearchMediaType,
-        val platform: String,
-        val page: Int,
-    )
-
-    private var pendingSearch: PendingSearch? = null
-    private val loadMoreInFlight = mutableSetOf<LoadMoreRequest>()
-    private var searchGeneration: Long = 0L
 
     // ── 搜索历史 ──
     val searchHistory: StateFlow<List<String>> = appPreferences.searchHistory
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // ── 当前查询 ──
-    private val _currentQuery = MutableStateFlow("")
-    val currentQuery: StateFlow<String> = _currentQuery.asStateFlow()
+    val currentQuery: StateFlow<String> = searchSessionStore.state
+        .map { it.query }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, searchSessionStore.state.value.query)
 
-    // ── Tab 选择 ──
-    private val _selectedMediaType = MutableStateFlow(SearchMediaType.MUSIC)
-    val selectedMediaType: StateFlow<SearchMediaType> = _selectedMediaType.asStateFlow()
+    val selectedMediaType: StateFlow<SearchMediaType> = searchSessionStore.state
+        .map { it.selectedMediaType }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, searchSessionStore.state.value.selectedMediaType)
 
-    private val _selectedPlatform = MutableStateFlow<String?>(null)
-    val selectedPlatform: StateFlow<String?> = _selectedPlatform.asStateFlow()
+    val selectedPlatform: StateFlow<String?> = searchSessionStore.state
+        .map { it.selectedPlatform }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, searchSessionStore.state.value.selectedPlatform)
 
     // ── 歌单 / 收藏 ──
     private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())
@@ -143,21 +126,25 @@ class SearchViewModel @Inject constructor(
 
     // ── 二维搜索结果 ──
     // searchResults[mediaType][platform] = PluginSearchState
-    private val _searchResults = MutableStateFlow<Map<SearchMediaType, Map<String, PluginSearchState>>>(emptyMap())
-    val searchResults: StateFlow<Map<SearchMediaType, Map<String, PluginSearchState>>> = _searchResults.asStateFlow()
+    val searchResults: StateFlow<Map<SearchMediaType, Map<String, PluginSearchState>>> = searchSessionStore.state
+        .map { it.results }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, searchSessionStore.state.value.results)
 
     /** 当前选中的 Tab 组合对应的搜索状态 */
     val currentPluginState: StateFlow<PluginSearchState> = combine(
-        _searchResults,
-        _selectedMediaType,
-        _selectedPlatform,
+        searchResults,
+        selectedMediaType,
+        selectedPlatform,
     ) { results, mediaType, platform ->
         platform?.let { results[mediaType]?.get(it) } ?: PluginSearchState.Idle
     }.stateIn(viewModelScope, SharingStarted.Lazily, PluginSearchState.Idle)
 
     init {
         viewModelScope.launch {
-            _selectedMediaType
+            searchSessionStore.restore()
+        }
+        viewModelScope.launch {
+            selectedMediaType
                 .flatMapLatest { mediaType ->
                     pluginManager.getSearchablePlugins(mediaType.key)
                         .map { plugins -> mediaType to plugins }
@@ -177,295 +164,41 @@ class SearchViewModel @Inject constructor(
                     fields = mapOf("status" to "failed"),
                 )
             }
-            pluginsReady = true
-            updatePageStatusForPluginAvailability()
-            runPendingSearchIfPossible()
+            searchSessionStore.setPluginsReady()
         }
     }
 
-    private fun handleSearchablePluginsChanged(mediaType: SearchMediaType, searchable: List<PluginInfo>) {
-        if (mediaType != _selectedMediaType.value) return
-
-        searchablePluginsMediaType = mediaType
+    private suspend fun handleSearchablePluginsChanged(mediaType: SearchMediaType, searchable: List<PluginInfo>) {
         _searchablePlugins.value = searchable
-
-        val selected = _selectedPlatform.value
-        if (selected == null && searchable.isNotEmpty()) {
-            _selectedPlatform.value = searchable.first().platform
-        } else if (selected != null && searchable.none { it.platform == selected }) {
-            _selectedPlatform.value = searchable.firstOrNull()?.platform
-        }
-
-        updatePageStatusForPluginAvailability()
-        runPendingSearchIfPossible()
-    }
-
-    private fun updatePageStatusForPluginAvailability() {
-        val searchable = searchablePluginsFor(_selectedMediaType.value)
-        if (searchable == null) return
-        if (searchable.isNotEmpty()) {
-            if (_pageStatus.value == SearchPageStatus.NO_PLUGIN) {
-                _pageStatus.value = SearchPageStatus.EDITING
-            }
-            return
-        }
-
-        if (!pluginsReady) return
-
-        if (_pageStatus.value != SearchPageStatus.RESULT) {
-            _pageStatus.value = SearchPageStatus.NO_PLUGIN
-        }
-    }
-
-    private fun runPendingSearchIfPossible() {
-        val pending = pendingSearch ?: return
-        if (pending.mediaType != _selectedMediaType.value) return
-        if (searchablePluginsFor(pending.mediaType).isNullOrEmpty()) return
-
-        pendingSearch = null
-        _pageStatus.value = SearchPageStatus.SEARCHING
-        searchForMediaType(pending.query, pending.mediaType)
-    }
-
-    private fun searchablePluginsFor(mediaType: SearchMediaType): List<PluginInfo>? {
-        return if (searchablePluginsMediaType == mediaType) {
-            _searchablePlugins.value
-        } else {
-            null
-        }
+        searchSessionStore.setSearchablePlugins(mediaType, searchable)
     }
 
     // ── 搜索 ──
 
     fun searchAll(query: String) {
         if (query.isBlank()) return
-        searchGeneration += 1
-        _currentQuery.value = query
-        _pageStatus.value = SearchPageStatus.SEARCHING
-
-        viewModelScope.launch { appPreferences.addSearchQuery(query) }
-
-        val mediaType = _selectedMediaType.value
-        searchForMediaType(query, mediaType)
-    }
-
-    private fun searchForMediaType(query: String, mediaType: SearchMediaType) {
-        val plugins = searchablePluginsFor(mediaType)
-        if (plugins.isNullOrEmpty()) {
-            pendingSearch = PendingSearch(query, mediaType)
-            updatePageStatusForPluginAvailability()
-            return
-        }
-
-        pendingSearch = null
-
-        // 初始化该 mediaType 下所有插件为 Loading
-        val typeResults = plugins.associate { it.platform to (PluginSearchState.Loading as PluginSearchState) }
-        _searchResults.update { current ->
-            current.toMutableMap().apply { put(mediaType, typeResults) }
-        }
-        MfLog.detail(
-            category = LogCategory.SEARCH,
-            event = "search_start",
-            fields = mapOf(
-                "query" to query,
-                "type" to mediaType.key,
-                "platformCount" to plugins.size,
-                "status" to "start",
-            ),
-        )
-
-        // 并行搜索每个插件
-        plugins.forEach { pluginInfo ->
-            viewModelScope.launch {
-                val plugin = pluginManager.getPlugin(pluginInfo.platform)
-                if (plugin == null) {
-                    MfLog.error(
-                        category = LogCategory.SEARCH,
-                        event = "search_plugin_failed",
-                        fields = mapOf(
-                            "platform" to pluginInfo.platform,
-                            "type" to mediaType.key,
-                            "query" to query,
-                            "page" to 1,
-                            "status" to "failed",
-                            "reason" to "plugin_missing",
-                        ),
-                    )
-                    updatePluginState(mediaType, pluginInfo.platform, PluginSearchState.Error("插件不可用"))
-                    checkSearchCompletion(mediaType)
-                    return@launch
-                }
-
-                val startedAt = System.nanoTime()
-                try {
-                    val (result, durationMs) = timedSuspend {
-                        plugin.search(query, page = 1, type = mediaType.key)
-                    }
-                    MfLog.detail(
-                        category = LogCategory.SEARCH,
-                        event = "search_plugin_success",
-                        fields = mapOf(
-                            "platform" to pluginInfo.platform,
-                            "type" to mediaType.key,
-                            "query" to query,
-                            "page" to 1,
-                            "resultCount" to result.data.size,
-                            "isEnd" to result.isEnd,
-                            "status" to "success",
-                            "durationMs" to durationMs,
-                        ),
-                    )
-                    updatePluginState(
-                        mediaType,
-                        pluginInfo.platform,
-                        PluginSearchState.Success(
-                            items = result.data,
-                            isEnd = result.isEnd,
-                            page = 1,
-                        ),
-                    )
-                } catch (error: Exception) {
-                    MfLog.error(
-                        category = LogCategory.SEARCH,
-                        event = "search_plugin_failed",
-                        throwable = error,
-                        fields = mapOf(
-                            "platform" to pluginInfo.platform,
-                            "type" to mediaType.key,
-                            "query" to query,
-                            "page" to 1,
-                            "status" to "failed",
-                            "durationMs" to elapsedMs(startedAt),
-                        ),
-                    )
-                    updatePluginState(
-                        mediaType,
-                        pluginInfo.platform,
-                        PluginSearchState.Error(error.message ?: "搜索失败"),
-                    )
-                }
-                checkSearchCompletion(mediaType)
-            }
-        }
-    }
-
-    private fun updatePluginState(mediaType: SearchMediaType, platform: String, state: PluginSearchState) {
-        _searchResults.update { current ->
-            current.toMutableMap().apply {
-                val typeMap = (get(mediaType) ?: emptyMap()).toMutableMap()
-                typeMap[platform] = state
-                put(mediaType, typeMap)
-            }
-        }
-    }
-
-    private fun checkSearchCompletion(mediaType: SearchMediaType) {
-        if (mediaType != _selectedMediaType.value) return  // 已切换 tab，忽略
-        val typeResults = _searchResults.value[mediaType] ?: return
-        val anyLoading = typeResults.values.any { it is PluginSearchState.Loading }
-        if (!anyLoading) {
-            _pageStatus.value = SearchPageStatus.RESULT
+        viewModelScope.launch {
+            appPreferences.addSearchQuery(query)
+            searchSessionStore.search(query)
         }
     }
 
     // ── Tab 切换 ──
 
     fun selectMediaType(type: SearchMediaType) {
-        if (_selectedMediaType.value == type) return
-
-        val query = _currentQuery.value
-        // 先登记 pending，再切换类型，避免插件列表 collector 提前收到新类型。
-        if (query.isNotBlank() && _searchResults.value[type] == null) {
-            pendingSearch = PendingSearch(query, type)
-            _pageStatus.value = SearchPageStatus.SEARCHING
-        }
-        searchablePluginsMediaType = null
         _searchablePlugins.value = emptyList()
-        _selectedPlatform.value = null
-        _selectedMediaType.value = type
+        searchSessionStore.selectMediaType(type)
     }
 
     fun selectPlatform(platform: String) {
-        _selectedPlatform.value = platform
+        searchSessionStore.selectPlatform(platform)
     }
 
     // ── 分页 ──
 
     fun loadMore() {
-        val mediaType = _selectedMediaType.value
-        val platform = _selectedPlatform.value ?: return
-        val current = _searchResults.value[mediaType]?.get(platform)
-        if (current !is PluginSearchState.Success || current.isEnd) return
-
-        val plugin = pluginManager.getPlugin(platform) ?: return
-        val nextPage = current.page + 1
-        val query = _currentQuery.value
-        val generation = searchGeneration
-        val request = LoadMoreRequest(
-            generation = generation,
-            query = query,
-            mediaType = mediaType,
-            platform = platform,
-            page = nextPage,
-        )
-        if (!loadMoreInFlight.add(request)) return
-
         viewModelScope.launch {
-            val startedAt = System.nanoTime()
-            try {
-                val (result, durationMs) = timedSuspend {
-                    plugin.search(query, page = nextPage, type = mediaType.key)
-                }
-                MfLog.detail(
-                    category = LogCategory.SEARCH,
-                    event = "search_plugin_success",
-                    fields = mapOf(
-                        "platform" to platform,
-                        "type" to mediaType.key,
-                        "query" to query,
-                        "page" to nextPage,
-                        "resultCount" to result.data.size,
-                        "isEnd" to result.isEnd,
-                        "status" to "success",
-                        "durationMs" to durationMs,
-                    ),
-                )
-                val latest = _searchResults.value[mediaType]?.get(platform)
-                if (
-                    generation != searchGeneration ||
-                    query != _currentQuery.value ||
-                    latest !is PluginSearchState.Success ||
-                    latest.page != current.page
-                ) {
-                    return@launch
-                }
-                updatePluginState(
-                    mediaType,
-                    platform,
-                    latest.copy(
-                        items = latest.items + result.data,
-                        isEnd = result.isEnd,
-                        page = nextPage,
-                    ),
-                )
-            } catch (error: Exception) {
-                MfLog.error(
-                    category = LogCategory.SEARCH,
-                    event = "search_plugin_failed",
-                    throwable = error,
-                    fields = mapOf(
-                        "platform" to platform,
-                        "type" to mediaType.key,
-                        "query" to query,
-                        "page" to nextPage,
-                        "status" to "failed",
-                        "durationMs" to elapsedMs(startedAt),
-                    ),
-                )
-            } finally {
-                loadMoreInFlight.remove(request)
-            }
+            searchSessionStore.loadMore()
         }
     }
 
@@ -575,7 +308,7 @@ class SearchViewModel @Inject constructor(
     }
 
     fun backToEditing() {
-        _pageStatus.value = SearchPageStatus.EDITING
+        searchSessionStore.backToEditing()
     }
 
     // ── Download ──

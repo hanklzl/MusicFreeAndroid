@@ -14,13 +14,26 @@ class PluginSheetSeedStoreTest {
     }
 
     @Test
-    fun `take returns stored seed once`() {
+    fun `take resolves stored seed repeatedly`() {
         val seed = musicSheet("sheet-1")
 
         val token = PluginSheetSeedStore.put(seed)
 
         assertEquals(seed, PluginSheetSeedStore.take(token))
-        assertNull(PluginSheetSeedStore.take(token))
+        assertEquals(seed, PluginSheetSeedStore.take(token))
+    }
+
+    @Test
+    fun `put creates unique tokens for same platform and id`() {
+        val sheetSeed = musicSheet("same-id", raw = mapOf("source" to "sheet"))
+        val topListSeed = musicSheet("same-id", raw = mapOf("source" to "top_list"))
+
+        val sheetToken = PluginSheetSeedStore.put(sheetSeed)
+        val topListToken = PluginSheetSeedStore.put(topListSeed)
+
+        assertEquals(false, sheetToken == topListToken)
+        assertEquals(sheetSeed, PluginSheetSeedStore.take(sheetToken))
+        assertEquals(topListSeed, PluginSheetSeedStore.take(topListToken))
     }
 
     @Test
@@ -30,7 +43,10 @@ class PluginSheetSeedStoreTest {
         assertNull(PluginSheetSeedStore.take("missing"))
     }
 
-    private fun musicSheet(id: String): MusicSheetItemBase = MusicSheetItemBase(
+    private fun musicSheet(
+        id: String,
+        raw: Map<String, Any?> = mapOf("id" to id, "custom" to "kept"),
+    ): MusicSheetItemBase = MusicSheetItemBase(
         id = id,
         platform = "demo",
         title = "Title $id",
@@ -39,6 +55,6 @@ class PluginSheetSeedStoreTest {
         coverImg = "https://example.com/$id.jpg",
         artwork = "https://example.com/$id-art.jpg",
         worksNum = 12,
-        raw = mapOf("id" to id, "custom" to "kept"),
+        raw = raw,
     )
 }
