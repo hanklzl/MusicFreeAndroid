@@ -102,25 +102,25 @@ Hard constraints:
   - Modify: `downloader/src/main/java/com/hank/musicfree/downloader/engine/DownloadEngine.kt`
   - Test: `downloader/src/test/java/com/hank/musicfree/downloader/runtime/DownloadRuntimeStoreTest.kt`
 - Route seed:
-  - Create: `feature/home/src/main/java/com/hank/musicfree/home/runtime/RouteSeedRuntimeStore.kt`
-  - Modify: `feature/home/src/main/java/com/hank/musicfree/home/pluginsheet/navigation/PluginSheetSeedStore.kt`
-  - Modify: `feature/home/src/main/java/com/hank/musicfree/home/musicdetail/navigation/MusicDetailSeedStore.kt`
-  - Modify: `feature/home/src/main/java/com/hank/musicfree/home/albumdetail/navigation/AlbumDetailSeedStore.kt`
-  - Modify: `feature/home/src/main/java/com/hank/musicfree/home/artistdetail/navigation/ArtistDetailSeedStore.kt`
-  - Test: `feature/home/src/test/java/com/hank/musicfree/home/runtime/RouteSeedRuntimeStoreTest.kt`
+  - Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/runtime/RouteSeedRuntimeStore.kt`
+  - Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetSeedStore.kt`
+  - Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/musicdetail/navigation/MusicDetailSeedStore.kt`
+  - Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/navigation/AlbumDetailSeedStore.kt`
+  - Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/navigation/ArtistDetailSeedStore.kt`
+  - Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/runtime/RouteSeedRuntimeStoreTest.kt`
 - Search:
-  - Create: `feature/search/src/main/java/com/hank/musicfree/search/runtime/SearchSessionStore.kt`
-  - Modify: `feature/search/src/main/java/com/hank/musicfree/search/SearchViewModel.kt`
-  - Test: `feature/search/src/test/java/com/hank/musicfree/search/runtime/SearchSessionStoreTest.kt`
-  - Test: `feature/search/src/test/java/com/hank/musicfree/search/SearchViewModelRuntimeStoreTest.kt`
+  - Create: `feature/search/src/main/java/com/hank/musicfree/feature/search/runtime/SearchSessionStore.kt`
+  - Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+  - Test: `feature/search/src/test/java/com/hank/musicfree/feature/search/runtime/SearchSessionStoreTest.kt`
+  - Test: `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelRuntimeStoreTest.kt`
 - Detail:
-  - Create: `feature/home/src/main/java/com/hank/musicfree/home/runtime/DetailSessionStore.kt`
+  - Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/runtime/DetailSessionStore.kt`
   - Modify detail ViewModels:
-    - `feature/home/src/main/java/com/hank/musicfree/home/pluginsheet/PluginSheetDetailViewModel.kt`
-    - `feature/home/src/main/java/com/hank/musicfree/home/toplist/TopListDetailViewModel.kt`
-    - `feature/home/src/main/java/com/hank/musicfree/home/albumdetail/AlbumDetailViewModel.kt`
-    - `feature/home/src/main/java/com/hank/musicfree/home/artistdetail/ArtistDetailViewModel.kt`
-  - Test: `feature/home/src/test/java/com/hank/musicfree/home/runtime/DetailSessionStoreTest.kt`
+    - `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+    - `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt`
+    - `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`
+    - `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailViewModel.kt`
+  - Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/runtime/DetailSessionStoreTest.kt`
 
 ### Activity Recreate / Runtime Acceptance
 
@@ -382,6 +382,15 @@ class RuntimeStoreKeyTest {
             ).value,
         )
     }
+
+    @Test
+    fun keyPreservesCaseForOpaquePluginIds() {
+        // 插件返回的 id 可能是 base64 / hash，大小写敏感，不能合并
+        val upper = RuntimeStoreKey.detail("plugin_sheet", "demo", "ABCdef").value
+        val lower = RuntimeStoreKey.detail("plugin_sheet", "demo", "abcdef").value
+        org.junit.Assert.assertNotEquals(upper, lower)
+        assertEquals("detail:plugin_sheet:demo:ABCdef", upper)
+    }
 }
 ```
 
@@ -472,7 +481,7 @@ value class RuntimeStoreKey(val value: String) {
 }
 
 private fun String.clean(): String =
-    trim().lowercase().replace(Regex("[^a-z0-9._-]+"), "-").trim('-').ifEmpty { "unknown" }
+    trim().replace(Regex("[^A-Za-z0-9._-]+"), "-").trim('-').ifEmpty { "unknown" }
 ```
 
 Create `core/src/main/java/com/hank/musicfree/core/runtime/RuntimeSnapshot.kt`:
@@ -1223,7 +1232,65 @@ override fun onCreate() {
 }
 ```
 
-- [ ] **Step 6: Run app tests**
+- [ ] **Step 6: Add periodic snapshot cleanup**
+
+Extend `RuntimeRestoreCoordinator` with a `schedulePeriodicCleanup()` that runs after the initial restore wave:
+
+```kotlin
+fun start() {
+    applicationScope.launch {
+        supervisorScope {
+            registry.stores.forEach { store -> launch { restoreOne(store) } }
+        }
+        schedulePeriodicCleanup()
+    }
+}
+
+private suspend fun schedulePeriodicCleanup() {
+    while (true) {
+        delay(CLEANUP_INTERVAL_MS) // 6 hours
+        val now = System.currentTimeMillis()
+        registry.stores.forEach { store ->
+            try {
+                withContext(Dispatchers.IO) { store.prune(now) }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                MfLog.error(
+                    category = LogCategory.RUNTIME,
+                    event = "runtime_snapshot_prune_failed",
+                    throwable = error,
+                    fields = mapOf("store" to store.storeName, "reason" to "exception"),
+                )
+            }
+        }
+    }
+}
+
+private companion object {
+    const val CLEANUP_INTERVAL_MS = 6L * 60 * 60 * 1000
+}
+```
+
+Add a test that verifies prune is called after the cleanup interval:
+
+```kotlin
+@Test
+fun coordinatorRunsPrunePeriodicallyAfterRestore() = runTest {
+    val store = FakeRuntimeStore("search_session", RuntimeRestoreResult.Restored)
+    val coordinator = RuntimeRestoreCoordinator(this, RuntimeStoreRegistry(setOf(store)))
+
+    coordinator.start()
+    advanceTimeBy(6L * 60 * 60 * 1000 + 1)
+    runCurrent()
+
+    assertEquals(1, store.pruneCount)
+}
+```
+
+Each store's `prune(now)` implementation MUST internally call `SnapshotStore.deleteExpired(namespace, now)` and `SnapshotStore.pruneNamespace(namespace, capacity)`. Stores with no capacity limit (Playback, Plugin, Ui) may skip `pruneNamespace`.
+
+- [ ] **Step 7: Run app tests**
 
 Run:
 
@@ -1233,7 +1300,7 @@ Run:
 
 Expected: test passes.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add app/src/main/java/com/hank/musicfree/runtime \
@@ -1689,12 +1756,29 @@ git commit -m "feat(runtime): 接入下载任务运行时索引"
 ## Task 8: Replace One-shot Route Seeds with Recoverable RouteSeedRuntimeStore
 
 **Files:**
-- Create: `feature/home/src/main/java/com/hank/musicfree/home/runtime/RouteSeedRuntimeStore.kt`
-- Modify: `feature/home/src/main/java/com/hank/musicfree/home/pluginsheet/navigation/PluginSheetSeedStore.kt`
-- Modify: `feature/home/src/main/java/com/hank/musicfree/home/musicdetail/navigation/MusicDetailSeedStore.kt`
-- Modify: `feature/home/src/main/java/com/hank/musicfree/home/albumdetail/navigation/AlbumDetailSeedStore.kt`
-- Modify: `feature/home/src/main/java/com/hank/musicfree/home/artistdetail/navigation/ArtistDetailSeedStore.kt`
-- Test: `feature/home/src/test/java/com/hank/musicfree/home/runtime/RouteSeedRuntimeStoreTest.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/runtime/RouteSeedRuntimeStore.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/navigation/PluginSheetSeedStore.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/musicdetail/navigation/MusicDetailSeedStore.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/navigation/AlbumDetailSeedStore.kt`
+- Modify: `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/navigation/ArtistDetailSeedStore.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/runtime/RouteSeedRuntimeStoreTest.kt`
+
+- [ ] **Step 0: Audit existing `take(...)` / `consume(...)` call sites before changing semantics**
+
+Run:
+
+```bash
+rg -n "(PluginSheet|MusicDetail|AlbumDetail|ArtistDetail)SeedStore\.(take|consume)\b" \
+  --type kotlin --no-heading
+rg -n "SeedStore\.take\b|SeedStore\.consume\b" --type kotlin --no-heading
+```
+
+For each call site, decide and record (inline comment or PR description):
+
+- **Must remain destructive** — caller relies on seed disappearing after read to avoid duplicate triggers, dialog re-open, or memory accumulation. Keep the destructive helper, but route prune through `RouteSeedRuntimeStore.prune(key)` instead of `ConcurrentHashMap.remove`.
+- **Idempotent is fine** — detail page may re-resolve the seed during Activity recreate / orientation change. Switch to `resolve(key)`.
+
+If a call site cannot be classified, treat it as destructive (safe default). Do not bulk-rename `take` → `resolve` without per-call review.
 
 - [ ] **Step 1: Write route seed tests**
 
@@ -1734,7 +1818,7 @@ fun restoreSkipsExpiredSeeds() = runTest {
 Run:
 
 ```bash
-./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.home.runtime.RouteSeedRuntimeStoreTest --no-daemon
+./gradlew :feature:home:testDebugUnitTest --tests com.hank.musicfree.feature.home.runtime.RouteSeedRuntimeStoreTest --no-daemon
 ```
 
 Expected: compilation fails because the store does not exist.
@@ -1802,7 +1886,7 @@ If the current object-style seed stores cannot receive Hilt dependencies cleanly
 
 - [ ] **Step 5: Bind RouteSeedRuntimeStore**
 
-Create `feature/home/src/main/java/com/hank/musicfree/home/runtime/HomeRuntimeModule.kt` with Hilt `@IntoSet` binding for `RuntimeStore<*>`.
+Create `feature/home/src/main/java/com/hank/musicfree/feature/home/runtime/HomeRuntimeModule.kt` with Hilt `@IntoSet` binding for `RuntimeStore<*>`.
 
 - [ ] **Step 6: Run home tests**
 
@@ -1817,9 +1901,9 @@ Expected: tests pass.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/hank/musicfree/home/runtime \
-  feature/home/src/main/java/com/hank/musicfree/home/*/navigation/*SeedStore.kt \
-  feature/home/src/test/java/com/hank/musicfree/home/runtime/RouteSeedRuntimeStoreTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/runtime \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/*/navigation/*SeedStore.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/runtime/RouteSeedRuntimeStoreTest.kt
 git commit -m "feat(runtime): 让详情路由 seed 可恢复"
 ```
 
@@ -1828,10 +1912,10 @@ git commit -m "feat(runtime): 让详情路由 seed 可恢复"
 ## Task 9: Add SearchSessionStore and Migrate SearchViewModel
 
 **Files:**
-- Create: `feature/search/src/main/java/com/hank/musicfree/search/runtime/SearchSessionStore.kt`
-- Modify: `feature/search/src/main/java/com/hank/musicfree/search/SearchViewModel.kt`
-- Test: `feature/search/src/test/java/com/hank/musicfree/search/runtime/SearchSessionStoreTest.kt`
-- Test: `feature/search/src/test/java/com/hank/musicfree/search/SearchViewModelRuntimeStoreTest.kt`
+- Create: `feature/search/src/main/java/com/hank/musicfree/feature/search/runtime/SearchSessionStore.kt`
+- Modify: `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt`
+- Test: `feature/search/src/test/java/com/hank/musicfree/feature/search/runtime/SearchSessionStoreTest.kt`
+- Test: `feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelRuntimeStoreTest.kt`
 
 - [ ] **Step 1: Write store tests**
 
@@ -1951,7 +2035,7 @@ fun viewModelUsesStoreStateAfterRecreation() = runTest {
 
 - [ ] **Step 5: Bind SearchSessionStore**
 
-Create a Hilt module in `feature/search/src/main/java/com/hank/musicfree/search/runtime/SearchRuntimeModule.kt` with `@IntoSet` binding for `RuntimeStore<*>`.
+Create a Hilt module in `feature/search/src/main/java/com/hank/musicfree/feature/search/runtime/SearchRuntimeModule.kt` with `@IntoSet` binding for `RuntimeStore<*>`.
 
 - [ ] **Step 6: Run search tests**
 
@@ -1966,10 +2050,10 @@ Expected: tests pass.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add feature/search/src/main/java/com/hank/musicfree/search/runtime \
-  feature/search/src/main/java/com/hank/musicfree/search/SearchViewModel.kt \
-  feature/search/src/test/java/com/hank/musicfree/search/runtime/SearchSessionStoreTest.kt \
-  feature/search/src/test/java/com/hank/musicfree/search/SearchViewModelRuntimeStoreTest.kt
+git add feature/search/src/main/java/com/hank/musicfree/feature/search/runtime \
+  feature/search/src/main/java/com/hank/musicfree/feature/search/SearchViewModel.kt \
+  feature/search/src/test/java/com/hank/musicfree/feature/search/runtime/SearchSessionStoreTest.kt \
+  feature/search/src/test/java/com/hank/musicfree/feature/search/SearchViewModelRuntimeStoreTest.kt
 git commit -m "feat(runtime): 持久化搜索会话"
 ```
 
@@ -1978,13 +2062,13 @@ git commit -m "feat(runtime): 持久化搜索会话"
 ## Task 10: Add DetailSessionStore and Migrate Detail ViewModels
 
 **Files:**
-- Create: `feature/home/src/main/java/com/hank/musicfree/home/runtime/DetailSessionStore.kt`
+- Create: `feature/home/src/main/java/com/hank/musicfree/feature/home/runtime/DetailSessionStore.kt`
 - Modify:
-  - `feature/home/src/main/java/com/hank/musicfree/home/pluginsheet/PluginSheetDetailViewModel.kt`
-  - `feature/home/src/main/java/com/hank/musicfree/home/toplist/TopListDetailViewModel.kt`
-  - `feature/home/src/main/java/com/hank/musicfree/home/albumdetail/AlbumDetailViewModel.kt`
-  - `feature/home/src/main/java/com/hank/musicfree/home/artistdetail/ArtistDetailViewModel.kt`
-- Test: `feature/home/src/test/java/com/hank/musicfree/home/runtime/DetailSessionStoreTest.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt`
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailViewModel.kt`
+- Test: `feature/home/src/test/java/com/hank/musicfree/feature/home/runtime/DetailSessionStoreTest.kt`
 
 - [ ] **Step 1: Write detail session tests**
 
@@ -2099,18 +2183,145 @@ Expected: tests pass.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add feature/home/src/main/java/com/hank/musicfree/home/runtime/DetailSessionStore.kt \
-  feature/home/src/main/java/com/hank/musicfree/home/pluginsheet/PluginSheetDetailViewModel.kt \
-  feature/home/src/main/java/com/hank/musicfree/home/toplist/TopListDetailViewModel.kt \
-  feature/home/src/main/java/com/hank/musicfree/home/albumdetail/AlbumDetailViewModel.kt \
-  feature/home/src/main/java/com/hank/musicfree/home/artistdetail/ArtistDetailViewModel.kt \
-  feature/home/src/test/java/com/hank/musicfree/home/runtime/DetailSessionStoreTest.kt
+git add feature/home/src/main/java/com/hank/musicfree/feature/home/runtime/DetailSessionStore.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/pluginsheet/PluginSheetDetailViewModel.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/toplist/TopListDetailViewModel.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/albumdetail/AlbumDetailViewModel.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/artistdetail/ArtistDetailViewModel.kt \
+  feature/home/src/test/java/com/hank/musicfree/feature/home/runtime/DetailSessionStoreTest.kt
 git commit -m "feat(runtime): 持久化插件详情会话"
 ```
 
 ---
 
-## Task 11: Add Activity Recreate and Cold-start Acceptance Coverage
+## Task 11: Add UiRuntimeStore for Cross-recreate UI Tabs
+
+Covers the rules.md / spec UiRuntimeStore boundary that is otherwise missing from the plan: home tab, search tab, player cover-or-lyric view. Small payload, RuntimeStore + SnapshotStore on the existing `runtime_snapshots` Room table.
+
+**Files:**
+- Create: `core/src/main/java/com/hank/musicfree/core/runtime/UiRuntimeStore.kt`
+- Create: `core/src/main/java/com/hank/musicfree/core/runtime/UiRuntimeSnapshot.kt`
+- Test: `core/src/test/java/com/hank/musicfree/core/runtime/UiRuntimeStoreTest.kt`
+- Modify: `app/src/main/java/com/hank/musicfree/runtime/RuntimeStoreRegistry.kt` to register the UiRuntimeStore.
+- Modify minimal call sites — only the screens whose tab is in scope:
+  - `feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt` (or its tab host)
+  - `feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt` (or its tab host)
+  - `feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt` (cover-or-lyric pager)
+
+Scope guardrail: out of scope for this store are dialog/menu/drag state. Those keep using `remember` or `rememberSaveable` per rules `#rule-compose-state-restore`.
+
+- [ ] **Step 1: Write store test**
+
+Create `UiRuntimeStoreTest`:
+
+```kotlin
+@Test
+fun restoreReturnsSkippedWhenNoSnapshot() = runTest {
+    val store = UiRuntimeStore(InMemorySnapshotStore(), Json, FakeClock(now = 1_000))
+    assertEquals(RuntimeRestoreResult.Skipped("empty_ui_snapshot"), store.restore())
+    assertEquals(UiRuntimeState(), store.state.value)
+}
+
+@Test
+fun persistRoundTripPreservesTabsAndPlayerView() = runTest {
+    val snapshotStore = InMemorySnapshotStore()
+    val first = UiRuntimeStore(snapshotStore, Json, FakeClock(now = 1_000))
+    first.setHomeTab("playlists")
+    first.setSearchTab("music")
+    first.setPlayerView(PlayerView.LYRIC)
+    first.persist()
+
+    val second = UiRuntimeStore(snapshotStore, Json, FakeClock(now = 2_000))
+    assertEquals(RuntimeRestoreResult.Restored, second.restore())
+    assertEquals("playlists", second.state.value.homeTab)
+    assertEquals("music", second.state.value.searchTab)
+    assertEquals(PlayerView.LYRIC, second.state.value.playerView)
+}
+```
+
+- [ ] **Step 2: Run test and confirm it fails**
+
+```bash
+./gradlew :core:testDebugUnitTest --tests '*UiRuntimeStoreTest' --no-daemon
+```
+
+Expected: compilation fails because `UiRuntimeStore` does not exist.
+
+- [ ] **Step 3: Implement UiRuntimeStore**
+
+```kotlin
+@Serializable
+data class UiRuntimeSnapshot(
+    val homeTab: String? = null,
+    val searchTab: String? = null,
+    val playerView: String? = null,
+)
+
+data class UiRuntimeState(
+    val homeTab: String? = null,
+    val searchTab: String? = null,
+    val playerView: PlayerView = PlayerView.COVER,
+)
+```
+
+Behavior:
+
+- Snapshot namespace: `ui_runtime`. Single key: `RuntimeStoreKey.singleton("ui_runtime").value`.
+- No TTL (UI preferences should survive indefinitely).
+- Capacity: 1 row.
+- Persist debounced after each setter, on a background dispatcher.
+- Restore returns `Skipped("empty_ui_snapshot")` when no row exists; `Restored` otherwise.
+- Unknown `playerView` values fall back to `PlayerView.COVER` and emit `ui_runtime_restore_stale` with `reason="unknown_player_view"`.
+
+Logs:
+
+- `ui_runtime_restore_success/skipped/stale/failed`
+- `ui_runtime_persist_success/failed`
+- fields: `homeTab`, `searchTab`, `playerView`, `durationMs`, `result`, `reason`.
+
+- [ ] **Step 4: Wire into RuntimeStoreRegistry**
+
+Add UiRuntimeStore to the Hilt `@IntoSet` set so the coordinator restores it in parallel with other stores. Cold-start order: after Plugin/Playback index restore, before any screen subscribes; the screen reads `state.value` synchronously and sees either the restored or default value.
+
+- [ ] **Step 5: Migrate the three call sites**
+
+For each screen:
+
+1. inject `UiRuntimeStore`;
+2. read `state` via `collectAsStateWithLifecycle()`;
+3. replace `rememberSaveable { mutableStateOf(initialTab) }` with `state.value.homeTab ?: defaultTab` (and analogous for the other two);
+4. on tab/view change, call the corresponding `setHomeTab` / `setSearchTab` / `setPlayerView`.
+
+Out-of-scope checks (do NOT migrate):
+
+- `remember { mutableStateOf(false) }` dialog/menu/drawer flags.
+- Drag-in-progress state.
+- Per-list scroll position (those are `LazyListState` and already saved by `rememberLazyListState` + `rememberSaveable`).
+
+- [ ] **Step 6: Run tests**
+
+```bash
+./gradlew :core:testDebugUnitTest :feature:home:testDebugUnitTest :feature:search:testDebugUnitTest :feature:player-ui:testDebugUnitTest --no-daemon
+```
+
+Expected: tests pass.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add core/src/main/java/com/hank/musicfree/core/runtime/UiRuntimeStore.kt \
+  core/src/main/java/com/hank/musicfree/core/runtime/UiRuntimeSnapshot.kt \
+  core/src/test/java/com/hank/musicfree/core/runtime/UiRuntimeStoreTest.kt \
+  app/src/main/java/com/hank/musicfree/runtime/RuntimeStoreRegistry.kt \
+  feature/home/src/main/java/com/hank/musicfree/feature/home/HomeScreen.kt \
+  feature/search/src/main/java/com/hank/musicfree/feature/search/SearchScreen.kt \
+  feature/player-ui/src/main/java/com/hank/musicfree/feature/playerui/PlayerScreen.kt
+git commit -m "feat(runtime): 持久化首页/搜索/播放器 UI 选项卡"
+```
+
+---
+
+## Task 12: Add Activity Recreate and Cold-start Acceptance Coverage
 
 **Files:**
 - Create: `app/src/androidTest/java/com/hank/musicfree/runtime/RuntimeStateRecreateTest.kt`
@@ -2180,7 +2391,7 @@ git commit -m "test(runtime): 覆盖 Activity 重建恢复"
 
 ---
 
-## Task 12: Final Guard, Docs, and Review
+## Task 13: Final Guard, Docs, and Review
 
 **Files:**
 - Modify only if behavior or commands changed:
@@ -2254,16 +2465,17 @@ Decode with:
 tools/logan/decode-logan.sh <feedback-zip-or-logan-dir>
 ```
 
-Required events in decoded logs:
+Required events in decoded logs (defining tasks in parentheses must emit the listed events; if a task does not emit its event, the acceptance check fails the task, not this list):
 
-- `runtime_restore_start`
-- `runtime_restore_success` or `runtime_restore_skipped`
-- `runtime_snapshot_persist_success`
-- `search_session_restore_success` or `search_session_restore_skipped`
-- `detail_session_restore_success` or `detail_session_restore_skipped`
-- `route_seed_restore_success` or `route_seed_restore_skipped`
-- `playback_runtime_restore_success` or `playback_runtime_restore_skipped`
-- `download_runtime_restore_success` or `download_runtime_restore_skipped`
+- `runtime_restore_start` (Task 4 coordinator)
+- `runtime_restore_success` or `runtime_restore_skipped` (Task 4 coordinator)
+- `runtime_snapshot_persist_success` (any Store via base `RuntimeStore.persist()`)
+- `search_session_restore_success` or `search_session_restore_skipped` (Task 9 — see logs block in Step 3)
+- `detail_session_restore_success` or `detail_session_restore_skipped` (Task 10 — see logs block in Step 3)
+- `route_seed_restore_success` or `route_seed_restore_skipped` (Task 8 — see logs block in Step 3)
+- `playback_runtime_restore_success` or `playback_runtime_restore_skipped` (Task 6)
+- `download_runtime_restore_success` or `download_runtime_restore_skipped` (Task 7)
+- `ui_runtime_restore_success` or `ui_runtime_restore_skipped` (Task 11 UiRuntimeStore — see logs block in Step 3)
 
 Each runtime event must include `store`, `operation`, `key`, `result`, and `durationMs` when it performs IO.
 
@@ -2280,20 +2492,38 @@ git diff --check
 
 Expected: no matches and no whitespace errors.
 
-- [ ] **Step 7: Final code review**
+- [ ] **Step 7: Compose remember audit**
+
+Sweep the codebase for high-value state still trapped in plain `remember { mutableStateOf(...) }`. Run:
+
+```bash
+rg -n "remember\s*\{\s*mutableStateOf" --type kotlin app feature
+```
+
+For each hit, classify per rules `#rule-compose-state-restore`:
+
+- **UI transient (dialog/menu/drag/draft input)** — leave as `remember`. Record in PR description.
+- **Cross-recreate small UI state (tab, mode, toggle)** — migrate to `rememberSaveable` OR `UiRuntimeStore` from Task 11. Do not invent a new store for one toggle.
+- **High-value cross-page state (search results, detail pages, route seed payloads, playback queue)** — must already live in a RuntimeStore; if any such state still uses `remember`, that is a P0 blocker and Task 9/10/8/6 are incomplete.
+
+Each migration is a small follow-up commit, not a new task in this plan. If the sweep finds zero P0 violations, document the audit result in the final review commit message.
+
+- [ ] **Step 8: Final code review**
 
 Review for:
 
 - No persisted QuickJS, Media3, Coroutine, Android UI, Repository, DAO, OkHttp, or Room DB instances.
 - No large snapshot restore in `Application.onCreate()`.
 - Search/detail large payloads restore lazily from page subscription.
-- Route seed `take()` is no longer destructive for recoverable seeds.
+- Route seed destructive `take(...)` removed only at call sites audited in Task 8 Step 0.
 - ViewModels subscribe to stores and forward actions instead of duplicating restore/persist.
 - Logs have start and terminal events with stable fields.
 - `CancellationException` is rethrown, not swallowed as an error.
 - Room migration and `databaseVersion` are aligned at version 13.
+- `RuntimeRestoreCoordinator.schedulePeriodicCleanup()` is wired and tested (Task 4 Step 6).
+- UiRuntimeStore (Task 11) is registered, restored, and consumed by the three Screen call sites.
 
-- [ ] **Step 8: Commit docs adjustments if any**
+- [ ] **Step 9: Commit docs adjustments if any**
 
 ```bash
 git add docs/dev-harness/runtime/rules.md docs/DOCS_STATUS.md AGENTS.md
@@ -2318,10 +2548,11 @@ Recommended order:
 8. Task 8 RouteSeedRuntimeStore
 9. Task 9 SearchSessionStore
 10. Task 10 DetailSessionStore
-11. Task 11 runtime acceptance tests
-12. Task 12 final guard and review
+11. Task 11 UiRuntimeStore
+12. Task 12 runtime acceptance tests
+13. Task 13 final guard and review
 
-This order gives playback and startup the earliest safety net, then moves into higher payload UI stores after the shared persistence and logging contract is proven.
+This order gives playback and startup the earliest safety net, then moves into higher payload UI stores after the shared persistence and logging contract is proven. Task 11 is intentionally placed after the large-payload stores so the small UI store can use the proven SnapshotStore protocol without further churn.
 
 ## Parallelization Notes
 
@@ -2332,6 +2563,7 @@ After Tasks 1-4 land, these task groups can run in parallel with disjoint write 
 - Download: Task 7 (`downloader/`)
 - Route seed and detail: Tasks 8 and 10 (`feature/home/`), but do not run them concurrently unless write ownership is split by files.
 - Search: Task 9 (`feature/search/`)
+- UiRuntimeStore: Task 11 (`core/`, `app/runtime`, three screens). Safe to run in parallel with any other task except Task 4 (registry edit overlap).
 
 Do not run Task 3 in parallel with other Room schema edits. Do not run Tasks 8 and 10 in parallel if both edit the same detail ViewModels.
 
@@ -2340,9 +2572,11 @@ Do not run Task 3 in parallel with other Room schema edits. Do not run Tasks 8 a
 The implementation is complete only when:
 
 - `RuntimeStore` / `SnapshotStore` contracts exist and are used by all mandatory stores.
-- Plugin, playback, download, route seed, search, and detail runtime states have restore/persist tests.
+- Plugin, playback, download, route seed, search, detail, and UI runtime states have restore/persist tests.
 - Cold-start restore is non-blocking and parallel for independent stores.
 - Search/detail large payload restore is lazy.
-- Activity recreate coverage proves key UI state does not return to blank.
+- Activity recreate coverage proves key UI state does not return to blank, including home tab / search tab / player view.
 - Logs provide enough evidence to diagnose restore, persist, stale, skipped, and failed paths from a feedback zip.
+- `RuntimeRestoreCoordinator` periodically calls `SnapshotStore.deleteExpired` / `pruneNamespace` for each namespace (Task 4 / Task 13 verification).
+- Compose `remember` audit passes (Task 13 Step 7) — no high-value state remains in plain `remember`.
 - Debug build passes.

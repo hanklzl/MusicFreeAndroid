@@ -182,14 +182,19 @@ UiRuntimeStore 只保存少量跨重建有价值的 UI 状态，例如：
 
 ## SnapshotStore 协议
 
-每个落盘快照必须定义：
+通用 SnapshotStore 行（共享 entity）必须定义以下字段：
 
 - `snapshotVersion`：结构版本，变更时有迁移或失效策略。
 - `key`：可稳定定位会话，例如 `search:<queryHash>` 或 `detail:<type>:<platform>:<id>`。
 - `createdAt` / `updatedAt`：用于 TTL 和 LRU 清理。
 - `sourceSignature`：插件版本、能力签名、appVersion 或数据版本。
 - `payload`：仅包含可序列化状态。
-- `restorePolicy`：命中、失效、部分恢复、强制刷新时的行为。
+
+每个子 Store 还必须在自己的恢复代码中实现以下行为约定（不强制成为 entity 字段）：
+
+- 命中、失效、部分恢复、强制刷新的处理路径。
+- payload 反序列化失败时视为 stale 并删除该行，记录 `reason`。
+- TTL / 容量上限超出时的丢弃顺序（LRU 或显式优先级）。
 
 默认限制：
 
