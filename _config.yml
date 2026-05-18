@@ -1,0 +1,24 @@
+title: MusicFreeAndroid
+description: MusicFree 的 Android 原生重写版，插件化、无内置音源
+theme: minima
+baseurl: "/MusicFreeAndroid"
+url: "https://hanklzl.github.io"
+lang: zh-CN
+
+plugins:
+  - jekyll-seo-tag
+
+header_pages:
+  - download.md
+  - features.md
+  - plugins.md
+  - changelog.md
+  - contributing.md
+
+minima:
+  skin: auto
+  social_links:
+    - { platform: github, user_url: "https://github.com/hanklzl/MusicFreeAndroid" }
+
+exclude:
+  - README.md
