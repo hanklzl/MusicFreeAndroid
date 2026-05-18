@@ -59,7 +59,7 @@
   - 全部模块，按 `module_total_seconds` 降序
 - 不写 README / 不做可视化、保持脚本单文件、无第三方依赖。
 
-`module` 字段从 XML 文件路径反推：第一段路径直到 `/build/test-results/` 之前，例如 `feature/search/build/test-results/...` → `:feature:search`。
+`module` 字段从 XML 文件路径反推：取 `/build/test-results/` 之前的子路径，前置 `:` 并把 `/` 替换为 `:`。例如 `app/build/test-results/...` → `:app`，`feature/search/build/test-results/...` → `:feature:search`。
 
 ## 成因初诊维度
 
@@ -84,7 +84,7 @@
 
 | 标签 | 判据 | evidence 形式 | 默认建议 |
 |---|---|---|---|
-| 守门型 | 被 `docs/dev-harness/*/rules.md` 反向引用，或位于 `harness/contracts/` 路径，或对应 `docs/dev-harness/incidents/index.md` 中某条 incident 的 `guard test` | 引用 `rules.md#anchor` 或 `INC-YYYY-NNNN` | 保留 + 优化耗时 |
+| 守门型 | 测试文件位于 `**/harness/contracts/**` 路径下；或测试文件被 `docs/dev-harness/<area>/incidents.md` 或 `docs/dev-harness/incidents/INC-*.md` 中的 `target:` 字段引用；或测试覆盖的行为是 `docs/dev-harness/*/rules.md` 中某条 MUST / MUST NOT 规则的直接守门 | 引用 `harness/contracts/<file>` 路径、`INC-YYYY-NNNN`、或 `rules.md#anchor` | 保留 + 优化耗时 |
 | 回归型 | 测试名 / 注释 / git blame 能定位到具体 bugfix（commit / PR / incident） | 引用 commit hash 或 PR / issue 号 | 保留 + 优化耗时 |
 | 高价重复型 | 同断言已被另一个**更快**测试覆盖；或 parameterized 输入无实质差异 | 指向被覆盖的等价测试文件路径 | 合并 / 参数收敛 / 部分删除 |
 | 低价值型 | 仅断言框架返回值 / 纯 mock 互证 / 测试的代码分支已不存在 | 简短说明"删了不亏"的论据 | 删除 |
@@ -93,7 +93,7 @@
 
 每条慢测必须按下列顺序逐级检查，**前一档命中即定档，不再追问其耗时是否合理**：
 
-1. 是否被 harness rules / incidents 引用 → 命中 → 守门型；
+1. 是否位于 `**/harness/contracts/**`，或被 `docs/dev-harness/<area>/incidents.md` / `incidents/INC-*.md` 的 `target:` 引用，或守门 `rules.md` 某条 MUST → 命中 → 守门型；
 2. 否则查测试名 / 注释 / `git log -p <file>` → 命中 bugfix 痕迹 → 回归型；
 3. 否则在同模块 / 同 class 内查等价更快测试 → 命中 → 高价重复型；
 4. 都未命中 → 低价值型。
@@ -127,14 +127,14 @@ scripts/test-perf/
 2. **模块耗时分布表**：`module / case 数 / 模块总耗时 / > 2s 数 / 模块占比`，按总耗时降序；Top 5 模块点名；
 3. **慢测详表**（核心）：按 testcase 耗时降序，每行 `module · class.method · time · 成因初诊 · 必要性分类 · 处置建议 · evidence`；
 4. **快速优化清单**：可机械改造的子集（如 sleep → virtual time、Robolectric → 纯 JVM、`runBlocking` 自旋 → `runTest + advanceUntilIdle`），按"预计可省耗时"降序；
-5. **删除候选清单**：必要性判定为「低价值型 / 高价重复型」的 case，每条带 evidence；
+5. **删除 / 合并候选清单**：必要性判定为「低价值型 / 高价重复型」的 case；低价值型给出"删除"建议，高价重复型给出"合并 / 参数收敛 / 部分删除"建议，每条带 evidence；
 6. **数据局限声明**：单次运行噪声、Gradle worker / class loading 启动不算在 testcase time 内、`--rerun-tasks` 仍可能受 JVM JIT 影响、阈值附近的 case 易抖动。
 
 ## 风险与限制
 
 - **单次运行噪声**：> 2s 阈值附近（`2.0–2.5s`）的 case 可能因 GC / JIT 抖动忽进忽出；报告里这类 case 标注「噪声敏感」，处置建议偏保守，不轻判低价值。
 - **testcase time 不含 fork 启动**：Gradle worker 启动、class loading、Robolectric 首例 ResourceLoader 等成本不计入 `<testcase time="...">`；因此**模块级总耗时是补充信号，不被阈值过滤**，给完整聚合表。
-- **必要性判定为 AI + 启发式**：会有误判；报告里"删除候选清单"**不会被自动执行**，必须人复核后通过后续 plan 落地。
+- **必要性判定为 AI + 启发式**：会有误判；报告里"删除 / 合并候选清单"**不会被自动执行**，必须人复核后通过后续 plan 落地。
 - **本次完全不动测试代码 / build 配置**：spec 落地不影响 CI / release / 已有 harness 检查；无回滚成本。
 
 ## 实施步骤总览（交给 writing-plans 落地）
