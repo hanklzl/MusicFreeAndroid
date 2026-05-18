@@ -1,5 +1,6 @@
 package com.hank.musicfree.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -15,5 +16,8 @@ data class PlayQueueEntity(
     val url: String?,
     val artwork: String?,
     val qualitiesJson: String?,
+    val rawJson: String? = null,
+    val localPath: String? = null,
+    @ColumnInfo(defaultValue = "0") val addedAt: Long = 0L,
     val sortOrder: Int,
 )

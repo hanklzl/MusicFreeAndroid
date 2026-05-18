@@ -3,9 +3,13 @@ package com.hank.musicfree.player.controller
 import android.content.Context
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.RepeatMode
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.MfLogger
 import com.hank.musicfree.player.listening.ListenTracker
 import com.hank.musicfree.player.queue.PlayQueueSnapshot
 import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
+import java.util.concurrent.CopyOnWriteArrayList
 import org.mockito.kotlin.mock
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -24,6 +28,7 @@ class PlayerControllerQueueStateTest {
 
     @After
     fun tearDown() {
+        MfLog.resetForTest()
         PlaybackNotificationCommandHandler.detachAllForTest()
     }
 
@@ -188,6 +193,40 @@ class PlayerControllerQueueStateTest {
     }
 
     @Test
+    fun `skipToNext logs target diagnostics for restored queue item`() {
+        val logger = QueueStateRecordingLogger()
+        MfLog.install(logger)
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        try {
+            val next = item("2").copy(
+                url = null,
+                raw = mapOf(
+                    "songmid" to "003abc",
+                    "pay" to mapOf("play" to 1),
+                ),
+                localPath = null,
+            )
+            controller.restoreQueue(listOf(item("1"), next), startIndex = 0, playWhenRestored = false)
+
+            controller.skipToNext()
+
+            val event = logger.events.single { it.event == "player_skip_next" }
+            assertEquals(LogCategory.PLAYER, event.category)
+            assertEquals(0, event.fields["fromIndex"])
+            assertEquals(1, event.fields["toIndex"])
+            assertEquals("1", event.fields["fromItemId"])
+            assertEquals("2", event.fields["toItemId"])
+            assertEquals("test", event.fields["platform"])
+            assertEquals(2, event.fields["toRawKeyCount"])
+            assertEquals(false, event.fields["toHasQualities"])
+            assertEquals(false, event.fields["toHasUrl"])
+            assertEquals(false, event.fields["toHasLocalPath"])
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
     fun `toggleShuffle emits snapshot whose items differ in order`() {
         val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
         try {
@@ -269,4 +308,35 @@ class PlayerControllerQueueStateTest {
         artwork = null,
         qualities = null,
     )
+}
+
+private data class QueueStateRecordedLogEvent(
+    val level: String,
+    val category: LogCategory,
+    val event: String,
+    val fields: Map<String, Any?>,
+    val throwable: Throwable? = null,
+)
+
+private class QueueStateRecordingLogger : MfLogger {
+    val events = CopyOnWriteArrayList<QueueStateRecordedLogEvent>()
+
+    override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += QueueStateRecordedLogEvent("trace", category, event, fields)
+    }
+
+    override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += QueueStateRecordedLogEvent("detail", category, event, fields)
+    }
+
+    override fun error(
+        category: LogCategory,
+        event: String,
+        throwable: Throwable?,
+        fields: Map<String, Any?>,
+    ) {
+        events += QueueStateRecordedLogEvent("error", category, event, fields, throwable)
+    }
+
+    override fun flush() = Unit
 }

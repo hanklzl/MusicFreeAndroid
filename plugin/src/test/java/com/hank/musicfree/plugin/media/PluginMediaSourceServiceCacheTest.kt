@@ -8,15 +8,20 @@ import com.hank.musicfree.core.model.PlaybackRuntimeSettings
 import com.hank.musicfree.core.model.QualityFallbackOrder
 import com.hank.musicfree.data.repository.CachedSource
 import com.hank.musicfree.data.repository.MediaCacheRepository
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.MfLogger
 import com.hank.musicfree.plugin.api.PluginInfo
 import com.hank.musicfree.plugin.manager.LoadedPlugin
 import com.hank.musicfree.plugin.manager.PluginManager
 import com.hank.musicfree.plugin.meta.PluginMetaStore
 import com.hank.musicfree.plugin.network.PluginNetworkStateProvider
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.After
 import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
@@ -27,10 +32,17 @@ import org.mockito.kotlin.whenever
 
 class PluginMediaSourceServiceCacheTest {
 
+    @After
+    fun tearDown() {
+        MfLog.resetForTest()
+    }
+
     // ---------- A7: cacheControl decision flow ----------
 
     @Test
     fun `cache mode returns cached when available and plugin not called`() = runTest {
+        val logger = CacheRecordingLogger()
+        MfLog.install(logger)
         val plugin = plugin(
             platform = "kuwo",
             supportsMedia = true,
@@ -58,6 +70,12 @@ class PluginMediaSourceServiceCacheTest {
         assertEquals("https://cache.example/cached.mp3", result.source.url)
         assertEquals("kuwo", result.requestedPlatform)
         assertEquals("kuwo", result.resolverPlatform)
+        val hit = logger.events.single { it.event == "plugin_get_media_source_cache_hit" }
+        assertEquals(LogCategory.PLUGIN, hit.category)
+        assertEquals("cache", hit.fields["cacheControl"])
+        assertEquals(false, hit.fields["offline"])
+        assertEquals(true, hit.fields["useCache"])
+        assertEquals("standard", hit.fields["quality"])
         verify(plugin, never()).getMediaSource(any(), any())
     }
 
@@ -87,6 +105,8 @@ class PluginMediaSourceServiceCacheTest {
 
     @Test
     fun `no-store never reads or writes cache`() = runTest {
+        val logger = CacheRecordingLogger()
+        MfLog.install(logger)
         val plugin = plugin(
             platform = "kuwo",
             supportsMedia = true,
@@ -115,10 +135,15 @@ class PluginMediaSourceServiceCacheTest {
         verify(plugin).getMediaSource(any(), eq("standard"))
         verify(cache, never()).get(any(), any())
         verify(cache, never()).put(any(), any(), any())
+        val skipped = logger.events.single { it.event == "plugin_get_media_source_cache_read_skipped" }
+        assertEquals("no-store", skipped.fields["cacheControl"])
+        assertEquals("cache_control_no_store", skipped.fields["reason"])
     }
 
     @Test
     fun `no-cache (default) writes but does not read`() = runTest {
+        val logger = CacheRecordingLogger()
+        MfLog.install(logger)
         // cacheControl null defaults to no-cache via CacheControl.parse(null)
         val plugin = plugin(
             platform = "kuwo",
@@ -148,10 +173,17 @@ class PluginMediaSourceServiceCacheTest {
         verify(plugin).getMediaSource(any(), eq("standard"))
         verify(cache, never()).get(any(), any())
         verify(cache).put(any(), eq(PlayQuality.STANDARD), any())
+        val skipped = logger.events.single { it.event == "plugin_get_media_source_cache_read_skipped" }
+        assertEquals("no-cache", skipped.fields["cacheControl"])
+        assertEquals(false, skipped.fields["offline"])
+        assertEquals(true, skipped.fields["useCache"])
+        assertEquals("policy_no_cache_online", skipped.fields["reason"])
     }
 
     @Test
     fun `no-cache reads cached source while offline`() = runTest {
+        val logger = CacheRecordingLogger()
+        MfLog.install(logger)
         val plugin = plugin(
             platform = "kuwo",
             supportsMedia = true,
@@ -179,6 +211,11 @@ class PluginMediaSourceServiceCacheTest {
         val result = service.resolve(item("kuwo"), quality = "standard")!!
 
         assertEquals("https://cache.example/offline-cached.mp3", result.item.url)
+        val hit = logger.events.single { it.event == "plugin_get_media_source_cache_hit" }
+        assertEquals("no-cache", hit.fields["cacheControl"])
+        assertEquals(true, hit.fields["offline"])
+        assertEquals(true, hit.fields["useCache"])
+        assertEquals("standard", hit.fields["quality"])
         verify(plugin, never()).getMediaSource(any(), any())
     }
 
@@ -394,4 +431,35 @@ class PluginMediaSourceServiceCacheTest {
         artwork = null,
         qualities = null,
     )
+}
+
+private data class CacheRecordedLogEvent(
+    val level: String,
+    val category: LogCategory,
+    val event: String,
+    val fields: Map<String, Any?>,
+    val throwable: Throwable? = null,
+)
+
+private class CacheRecordingLogger : MfLogger {
+    val events = CopyOnWriteArrayList<CacheRecordedLogEvent>()
+
+    override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += CacheRecordedLogEvent("trace", category, event, fields)
+    }
+
+    override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+        events += CacheRecordedLogEvent("detail", category, event, fields)
+    }
+
+    override fun error(
+        category: LogCategory,
+        event: String,
+        throwable: Throwable?,
+        fields: Map<String, Any?>,
+    ) {
+        events += CacheRecordedLogEvent("error", category, event, fields, throwable)
+    }
+
+    override fun flush() = Unit
 }

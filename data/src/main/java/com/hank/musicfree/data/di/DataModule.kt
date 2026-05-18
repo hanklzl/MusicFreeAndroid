@@ -17,6 +17,7 @@ import com.hank.musicfree.data.db.AppDatabase
 import com.hank.musicfree.data.db.SeedFavoriteCallback
 import com.hank.musicfree.data.db.converter.Converters
 import com.hank.musicfree.data.db.migration.MIGRATION_10_11
+import com.hank.musicfree.data.db.migration.MIGRATION_11_12
 import com.hank.musicfree.data.db.migration.MIGRATION_9_10
 import com.hank.musicfree.data.db.dao.LyricCacheDao
 import com.hank.musicfree.data.db.dao.MediaCacheDao
@@ -53,7 +54,7 @@ object DataModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "musicfree.db")
-            .addMigrations(MIGRATION_9_10, MIGRATION_10_11)
+            .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
             .addCallback(SeedFavoriteCallback)
             .build()
 

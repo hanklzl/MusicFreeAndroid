@@ -1,5 +1,6 @@
 package com.hank.musicfree.bootstrap
 
+import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlaybackRuntimeSettings
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.repository.PlayQueueRepository
@@ -36,6 +37,7 @@ class PlaybackStartupCoordinator @Inject constructor(
                     val savedPositionMs = appPreferences.currentMusicPositionMs.first()
                     val savedDurationMs = appPreferences.currentMusicDurationMs.first()
                     val startIndex = savedIndex.coerceIn(0, queue.lastIndex)
+                    val current = queue.getOrNull(startIndex)
                     val autoPlay = playbackRuntimeSettings.autoPlayWhenAppStart()
                     withContext(Dispatchers.Main.immediate) {
                         playerController.restoreQueue(
@@ -52,11 +54,13 @@ class PlaybackStartupCoordinator @Inject constructor(
                         fields = mapOf(
                             "queueSize" to queue.size,
                             "startIndex" to startIndex,
+                            "currentPlatform" to current?.platform,
+                            "currentItemId" to current?.id,
                             "savedPositionMs" to savedPositionMs,
                             "savedDurationMs" to savedDurationMs,
                             "autoPlay" to autoPlay,
                             "durationMs" to elapsedMs(startedAt),
-                        ),
+                        ) + current.diagnosticFields(),
                     )
                 } else {
                     MfLog.detail(
@@ -144,3 +148,10 @@ class PlaybackStartupCoordinator @Inject constructor(
     private fun elapsedMs(startedAt: Long): Long =
         (System.nanoTime() - startedAt) / 1_000_000
 }
+
+private fun MusicItem?.diagnosticFields(): Map<String, Any?> = mapOf(
+    "rawKeyCount" to (this?.raw?.size ?: 0),
+    "hasQualities" to !this?.qualities.isNullOrEmpty(),
+    "hasUrl" to !this?.url.isNullOrBlank(),
+    "hasLocalPath" to !this?.localPath.isNullOrBlank(),
+)

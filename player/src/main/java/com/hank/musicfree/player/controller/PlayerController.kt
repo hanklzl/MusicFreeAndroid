@@ -272,7 +272,19 @@ class PlayerController @Inject constructor(
     fun skipToNext() {
         pendingRestorePosition = null
         val previousIndex = playQueue.currentIndex
+        val previousItem = playQueue.currentItem
         val next = playQueue.next(repeatMode) ?: return
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "player_skip_next",
+            fields = mapOf(
+                "fromIndex" to previousIndex,
+                "toIndex" to playQueue.currentIndex,
+                "fromItemId" to previousItem?.id,
+                "toItemId" to next.id,
+                "platform" to next.platform,
+            ) + next.diagnosticFields(prefix = "to"),
+        )
         setMediaItemAndPlay(
             item = next,
             expectedIndex = playQueue.currentIndex,
@@ -589,7 +601,7 @@ class PlayerController @Inject constructor(
                     "platform" to item.platform,
                     "itemId" to item.id,
                     "expectedIndex" to expectedIndex,
-                ),
+                ) + item.diagnosticFields(),
             )
             currentPlayQuality = playbackRuntimeSettings.defaultPlayQuality()
             val playable = resolvePlayableItem(item)
@@ -677,7 +689,8 @@ class PlayerController @Inject constructor(
                     "status" to "failed",
                     "reason" to "resolver_exception",
                     "durationMs" to elapsedMs(startedAt),
-                ),
+                    "inputHadUrl" to !item.url.isNullOrBlank(),
+                ) + item.diagnosticFields(),
             )
         }.getOrNull()
         val playable = resolution?.item
@@ -716,7 +729,8 @@ class PlayerController @Inject constructor(
                     "redirected" to resolution.redirected,
                     "status" to "success",
                     "durationMs" to elapsedMs(startedAt),
-                ),
+                    "inputHadUrl" to !item.url.isNullOrBlank(),
+                ) + item.diagnosticFields(),
             )
             playable
         } else if (!item.url.isNullOrBlank()) {
@@ -728,7 +742,8 @@ class PlayerController @Inject constructor(
                     "itemId" to item.id,
                     "status" to "fallback",
                     "durationMs" to elapsedMs(startedAt),
-                ),
+                    "inputHadUrl" to true,
+                ) + item.diagnosticFields(),
             )
             item
         } else {
@@ -741,7 +756,8 @@ class PlayerController @Inject constructor(
                     "status" to "failed",
                     "reason" to "no_source",
                     "durationMs" to elapsedMs(startedAt),
-                ),
+                    "inputHadUrl" to false,
+                ) + item.diagnosticFields(),
             )
             _errorEvents.emit("播放失败: 无法解析音源")
             null
@@ -1349,6 +1365,18 @@ class PlayerController @Inject constructor(
 
     private fun elapsedMs(startedAt: Long): Long =
         (System.nanoTime() - startedAt) / 1_000_000
+
+    private fun MusicItem.diagnosticFields(prefix: String = ""): Map<String, Any?> {
+        fun key(name: String): String =
+            if (prefix.isBlank()) name else prefix + name.replaceFirstChar { it.titlecase() }
+
+        return mapOf(
+            key("rawKeyCount") to raw.size,
+            key("hasQualities") to !qualities.isNullOrEmpty(),
+            key("hasUrl") to !url.isNullOrBlank(),
+            key("hasLocalPath") to !localPath.isNullOrBlank(),
+        )
+    }
 
     companion object {
         private const val POSITION_UPDATE_INTERVAL_MS = 200L

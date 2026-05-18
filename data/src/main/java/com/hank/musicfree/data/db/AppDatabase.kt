@@ -42,7 +42,7 @@ import com.hank.musicfree.data.db.entity.ListenEventArtistEntity
         ListenEventEntity::class,
         ListenEventArtistEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

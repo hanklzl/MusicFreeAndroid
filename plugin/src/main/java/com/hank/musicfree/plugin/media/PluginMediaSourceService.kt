@@ -66,6 +66,7 @@ class PluginMediaSourceService @Inject constructor(
     ): MediaSourceResolution? {
         val sourcePlugin = pluginManager.getPlugin(item.platform) ?: return null
         val cacheControl = CacheControl.parse(sourcePlugin.info.cacheControl)
+        val isOffline = networkStateProvider.isOffline()
 
         // 1. Try cache (only when the caller permits it AND policy permits it).
         //
@@ -75,35 +76,42 @@ class PluginMediaSourceService @Inject constructor(
         // stale kuwo URL. Track as a follow-up; fix candidates: invalidate cache on
         // PluginMetaStore alternative-plugins change, or include resolver platform
         // in the cache key.
-        if (useCache) {
-            val isOffline = networkStateProvider.isOffline()
-            if (shouldUseCache(cacheControl, isOffline = isOffline)) {
-                // Important #2/#3 fix: when quality is null, target the user's
-                // default play quality (the same quality the fetch loop will ask
-                // for first) so caches written at HIGH/SUPER actually get re-read.
-                val requestedQuality = if (quality.isNullOrBlank()) {
-                    playbackRuntimeSettings.defaultPlayQuality()
-                } else {
-                    parseQualityOrDefault(quality)
-                }
-                val cached = mediaCacheRepository.get(item, requestedQuality)
-                if (cached != null) {
-                    MfLog.detail(
-                        category = LogCategory.PLUGIN,
-                        event = "plugin_get_media_source_cache_hit",
-                        fields = mapOf(
-                            "platform" to item.platform,
-                            "musicItemId" to item.id,
-                            "quality" to requestedQuality.wireName(),
-                        ),
-                    )
-                    return cached.toResolution(
-                        item = item,
-                        quality = requestedQuality,
-                        resolverPlatform = sourcePlugin.info.platform,
-                    )
-                }
+        if (useCache && shouldUseCache(cacheControl, isOffline = isOffline)) {
+            // Important #2/#3 fix: when quality is null, target the user's
+            // default play quality (the same quality the fetch loop will ask
+            // for first) so caches written at HIGH/SUPER actually get re-read.
+            val requestedQuality = if (quality.isNullOrBlank()) {
+                playbackRuntimeSettings.defaultPlayQuality()
+            } else {
+                parseQualityOrDefault(quality)
             }
+            val cached = mediaCacheRepository.get(item, requestedQuality)
+            if (cached != null) {
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_get_media_source_cache_hit",
+                    fields = mapOf(
+                        "platform" to item.platform,
+                        "musicItemId" to item.id,
+                        "quality" to requestedQuality.wireName(),
+                        "cacheControl" to cacheControl.wire,
+                        "offline" to isOffline,
+                        "useCache" to useCache,
+                    ),
+                )
+                return cached.toResolution(
+                    item = item,
+                    quality = requestedQuality,
+                    resolverPlatform = sourcePlugin.info.platform,
+                )
+            }
+        } else {
+            logCacheReadSkipped(
+                item = item,
+                cacheControl = cacheControl,
+                isOffline = isOffline,
+                useCache = useCache,
+            )
         }
 
         // 2. Walk quality candidates, ask plugin (optionally via alternative).
@@ -124,7 +132,14 @@ class PluginMediaSourceService @Inject constructor(
                 redirected = true,
             )
             if (viaAlternative != null) {
-                maybeWriteCache(cacheControl, item, candidateQuality, viaAlternative.source)
+                maybeWriteCache(
+                    cacheControl = cacheControl,
+                    item = item,
+                    candidateQuality = candidateQuality,
+                    source = viaAlternative.source,
+                    isOffline = isOffline,
+                    useCache = useCache,
+                )
                 return viaAlternative
             }
 
@@ -135,7 +150,14 @@ class PluginMediaSourceService @Inject constructor(
                 redirected = false,
             )
             if (viaSource != null) {
-                maybeWriteCache(cacheControl, item, candidateQuality, viaSource.source)
+                maybeWriteCache(
+                    cacheControl = cacheControl,
+                    item = item,
+                    candidateQuality = candidateQuality,
+                    source = viaSource.source,
+                    isOffline = isOffline,
+                    useCache = useCache,
+                )
                 return viaSource
             }
         }
@@ -148,6 +170,8 @@ class PluginMediaSourceService @Inject constructor(
         item: MusicItem,
         candidateQuality: String,
         source: MediaSourceResult,
+        isOffline: Boolean,
+        useCache: Boolean,
     ) {
         if (!shouldWriteCache(cacheControl)) return
         // Important #4 fix: don't pollute the STANDARD slot with payloads that
@@ -161,6 +185,9 @@ class PluginMediaSourceService @Inject constructor(
                     "platform" to item.platform,
                     "musicItemId" to item.id,
                     "quality" to candidateQuality,
+                    "cacheControl" to cacheControl.wire,
+                    "offline" to isOffline,
+                    "useCache" to useCache,
                 ),
             )
             return
@@ -173,8 +200,46 @@ class PluginMediaSourceService @Inject constructor(
                 "platform" to item.platform,
                 "musicItemId" to item.id,
                 "quality" to pq.wireName(),
+                "cacheControl" to cacheControl.wire,
+                "offline" to isOffline,
+                "useCache" to useCache,
             ),
         )
+    }
+
+    private fun logCacheReadSkipped(
+        item: MusicItem,
+        cacheControl: CacheControl,
+        isOffline: Boolean,
+        useCache: Boolean,
+    ) {
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_get_media_source_cache_read_skipped",
+            fields = mapOf(
+                "platform" to item.platform,
+                "musicItemId" to item.id,
+                "cacheControl" to cacheControl.wire,
+                "offline" to isOffline,
+                "useCache" to useCache,
+                "reason" to cacheReadSkipReason(
+                    cacheControl = cacheControl,
+                    isOffline = isOffline,
+                    useCache = useCache,
+                ),
+            ),
+        )
+    }
+
+    private fun cacheReadSkipReason(
+        cacheControl: CacheControl,
+        isOffline: Boolean,
+        useCache: Boolean,
+    ): String = when {
+        !useCache -> "caller_bypassed_cache"
+        cacheControl == CacheControl.NoStore -> "cache_control_no_store"
+        cacheControl == CacheControl.NoCache && !isOffline -> "policy_no_cache_online"
+        else -> "cache_policy_not_allowed"
     }
 
     private fun CachedSource.toResolution(

@@ -15,6 +15,9 @@ fun MusicItem.toPlayQueueEntity(sortOrder: Int, converters: Converters): PlayQue
         url = url,
         artwork = artwork,
         qualitiesJson = converters.qualitiesToJson(qualities),
+        rawJson = converters.rawMapToJson(raw),
+        localPath = localPath,
+        addedAt = addedAt,
         sortOrder = sortOrder,
     )
 
@@ -28,4 +31,7 @@ fun PlayQueueEntity.toMusicItem(converters: Converters): MusicItem = MusicItem(
     url = url,
     artwork = artwork,
     qualities = converters.jsonToQualities(qualitiesJson),
+    raw = converters.jsonToRawMap(rawJson),
+    addedAt = addedAt,
+    localPath = localPath,
 )
