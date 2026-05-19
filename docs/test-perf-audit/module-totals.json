@@ -1,0 +1,93 @@
+[
+  {
+    "module": ":feature:settings",
+    "testcase_count": 105,
+    "module_total_seconds": 30.352,
+    "slow_count": 4,
+    "slow_total_seconds": 22.24
+  },
+  {
+    "module": ":feature:home",
+    "testcase_count": 153,
+    "module_total_seconds": 23.45,
+    "slow_count": 2,
+    "slow_total_seconds": 15.254
+  },
+  {
+    "module": ":downloader",
+    "testcase_count": 44,
+    "module_total_seconds": 19.372,
+    "slow_count": 2,
+    "slow_total_seconds": 16.152
+  },
+  {
+    "module": ":plugin",
+    "testcase_count": 188,
+    "module_total_seconds": 17.447,
+    "slow_count": 3,
+    "slow_total_seconds": 9.442
+  },
+  {
+    "module": ":updater",
+    "testcase_count": 41,
+    "module_total_seconds": 13.375,
+    "slow_count": 3,
+    "slow_total_seconds": 11.355
+  },
+  {
+    "module": ":data",
+    "testcase_count": 199,
+    "module_total_seconds": 12.717,
+    "slow_count": 1,
+    "slow_total_seconds": 4.074
+  },
+  {
+    "module": ":player",
+    "testcase_count": 136,
+    "module_total_seconds": 12.039,
+    "slow_count": 1,
+    "slow_total_seconds": 6.948
+  },
+  {
+    "module": ":feature:player-ui",
+    "testcase_count": 142,
+    "module_total_seconds": 11.451,
+    "slow_count": 1,
+    "slow_total_seconds": 4.419
+  },
+  {
+    "module": ":feature:listen-stats",
+    "testcase_count": 20,
+    "module_total_seconds": 9.257,
+    "slow_count": 1,
+    "slow_total_seconds": 5.716
+  },
+  {
+    "module": ":app",
+    "testcase_count": 79,
+    "module_total_seconds": 5.951,
+    "slow_count": 1,
+    "slow_total_seconds": 3.371
+  },
+  {
+    "module": ":core",
+    "testcase_count": 112,
+    "module_total_seconds": 4.594,
+    "slow_count": 1,
+    "slow_total_seconds": 2.5
+  },
+  {
+    "module": ":feature:search",
+    "testcase_count": 28,
+    "module_total_seconds": 2.671,
+    "slow_count": 1,
+    "slow_total_seconds": 2.065
+  },
+  {
+    "module": ":logging",
+    "testcase_count": 29,
+    "module_total_seconds": 0.271,
+    "slow_count": 0,
+    "slow_total_seconds": 0.0
+  }
+]

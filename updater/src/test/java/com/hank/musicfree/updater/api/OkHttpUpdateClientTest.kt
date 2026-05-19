@@ -24,8 +24,8 @@ class OkHttpUpdateClientTest {
         primary = MockWebServer().apply { start() }
         fallback = MockWebServer().apply { start() }
         http = OkHttpClient.Builder()
-            .connectTimeout(1, TimeUnit.SECONDS)
-            .readTimeout(2, TimeUnit.SECONDS)
+            .connectTimeout(250, TimeUnit.MILLISECONDS)
+            .readTimeout(500, TimeUnit.MILLISECONDS)
             .build()
     }
 

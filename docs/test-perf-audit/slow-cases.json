@@ -1,0 +1,170 @@
+[
+  {
+    "module": ":downloader",
+    "class": "com.hank.musicfree.downloader.engine.DownloadEngineCancelRetryTest",
+    "method": "retryFailedResetsToPendingAndRunsAgain",
+    "time_seconds": 13.947,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":feature:settings",
+    "class": "com.hank.musicfree.feature.settings.PermissionsHelpersTest",
+    "method": "hasNotificationPermission returns true below API 33",
+    "time_seconds": 11.198,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":feature:home",
+    "class": "com.hank.musicfree.feature.home.scanner.LocalMusicScannerTest",
+    "method": "scan recursively reads configured tree and returns audio files only",
+    "time_seconds": 8.374,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":player",
+    "class": "com.hank.musicfree.player.cache.SimpleCacheHolderTest",
+    "method": "lazy_creates_cache_on_first_access",
+    "time_seconds": 6.948,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":feature:home",
+    "class": "com.hank.musicfree.feature.home.HomeDrawerContentInsetsTest",
+    "method": "drawer title starts below the status bar inset",
+    "time_seconds": 6.88,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":feature:settings",
+    "class": "com.hank.musicfree.feature.settings.BasicSettingsContentTest",
+    "method": "basic settings has no pending marker",
+    "time_seconds": 6.321,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":updater",
+    "class": "com.hank.musicfree.updater.downloader.OkHttpApkDownloaderTest",
+    "method": "successful download writes abi-scoped file and reports progress",
+    "time_seconds": 6.087,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":feature:listen-stats",
+    "class": "com.hank.musicfree.feature.listenstats.ListenDetailScreenTest",
+    "method": "firstSeen_mode_shows_firstSeen_badge_on_row",
+    "time_seconds": 5.716,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":plugin",
+    "class": "com.hank.musicfree.plugin.engine.AxiosShimAuthUrlTest",
+    "method": "url with user pass becomes Authorization Basic",
+    "time_seconds": 5.327,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":feature:player-ui",
+    "class": "com.hank.musicfree.feature.playerui.PlayerControlsTest",
+    "method": "mode button shows single mode semantics",
+    "time_seconds": 4.419,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":data",
+    "class": "com.hank.musicfree.data.backup.BackupRepositoryTest",
+    "method": "export writes archive to uri",
+    "time_seconds": 4.074,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":app",
+    "class": "com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest",
+    "method": "reconcile_continuesAfterSubscriptionFailure",
+    "time_seconds": 3.371,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":updater",
+    "class": "com.hank.musicfree.updater.checker.UpdateCheckerTest",
+    "method": "available when remote newer and not skipped and abi matches",
+    "time_seconds": 3.093,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":core",
+    "class": "com.hank.musicfree.core.network.NetworkTrafficEventListenerTest",
+    "method": "zero_bytes_call_does_not_offer",
+    "time_seconds": 2.5,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":feature:settings",
+    "class": "com.hank.musicfree.feature.settings.pluginlist.PluginListViewModelTest",
+    "method": "importMusicSheet rejects blank url without calling plugin",
+    "time_seconds": 2.5,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":feature:settings",
+    "class": "com.hank.musicfree.feature.settings.SettingsScreenTest",
+    "method": "backup restore confirmation can register pending restore",
+    "time_seconds": 2.221,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":downloader",
+    "class": "com.hank.musicfree.downloader.harness.contracts.DownloaderClientContractTest",
+    "method": "downloader_client_event_listener_factory_matches_base",
+    "time_seconds": 2.205,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":updater",
+    "class": "com.hank.musicfree.updater.harness.contracts.UpdaterClientContractTest",
+    "method": "updater_client_event_listener_factory_matches_base",
+    "time_seconds": 2.175,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":feature:search",
+    "class": "com.hank.musicfree.feature.search.SearchViewModelRuntimeStoreTest",
+    "method": "viewModelUsesStoreStateAfterRecreation",
+    "time_seconds": 2.065,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":plugin",
+    "class": "com.hank.musicfree.plugin.engine.AxiosShimTimeoutTest",
+    "method": "non-positive timeout falls back to default",
+    "time_seconds": 2.06,
+    "status": "passed",
+    "failure_message": null
+  },
+  {
+    "module": ":plugin",
+    "class": "com.hank.musicfree.plugin.engine.AxiosShimTimeoutTest",
+    "method": "default timeout is 2000ms",
+    "time_seconds": 2.055,
+    "status": "passed",
+    "failure_message": null
+  }
+]
