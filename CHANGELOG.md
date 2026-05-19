@@ -6,6 +6,42 @@
 
 <!-- next-release -->
 
+## [v1.2.0] - 2026-05-19
+
+### 变更详情
+
+#### 新功能
+- feat(runtime): 建立运行态恢复架构 (8d09622)
+- feat(network+traffic+cache): 流量统计与音频本地缓存 (7ad4a9c)
+
+#### 修复
+- fix(lint): 清理 lint 并接入发布检查 (0b5b874)
+- fix(player): 修复恢复队列切歌解析诊断 (6768528)
+
+#### 文档
+- docs(test): 单元测试耗时审计 实施计划 (8903758)
+- docs(test): 修正测试耗时审计 spec 守门型判据与候选清单措辞 (aad03bd)
+- docs(test): 单元测试耗时审计 spec (f5d1e60)
+- docs(runtime): 修正 RuntimeStore spec 与 plan 评审问题 (d26a193)
+- docs(runtime): 建立 RuntimeStore 规范与计划 (a5e4703)
+- docs: 重写 README，新增 LICENSE 与 GitHub Pages 站点 (801faa5)
+- docs(plan): 流量统计与音频本地缓存 实施计划 (fd35070)
+- docs(spec): 流量统计与音频本地缓存设计 (819dda1)
+- docs(plan): README/LICENSE/GitHub Pages 站点 实施计划 (d6fdd1b)
+- docs(spec): README/LICENSE/GitHub Pages 站点设计 (b56a905)
+- docs(changelog): release v1.1.0 [skip ci] (55e9471)
+
+#### 杂项
+- chore(release): bump to v1.2.0 (8e0482e)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.0-arm64-v8a.apk` · 7.5MB · sha256 `562051a2dede`
+- x86_64: `MusicFreeAndroid-v1.2.0-x86_64.apk` · 7.5MB · sha256 `c95b2e38ae97`
+- mapping: `mapping-v1.2.0.zip` · sha256 `4f5b3c4d3868` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.1.0] - 2026-05-17
 
 ### 变更详情
