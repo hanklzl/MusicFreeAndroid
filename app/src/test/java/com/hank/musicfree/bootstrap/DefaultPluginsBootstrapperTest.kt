@@ -1,5 +1,9 @@
 package com.hank.musicfree.bootstrap
 
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.LogFields
+import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.MfLogger
 import com.hank.musicfree.plugin.api.PluginInfo
 import com.hank.musicfree.plugin.manager.PluginEntry
 import com.hank.musicfree.plugin.manager.PluginInstallSource
@@ -12,9 +16,14 @@ import com.hank.musicfree.plugin.meta.PluginMetaStore
 import com.hank.musicfree.plugin.meta.SubscriptionItem
 import com.hank.musicfree.plugin.runtime.PluginErrorReason
 import com.hank.musicfree.plugin.runtime.PluginState
+import com.hank.musicfree.startup.StartupTelemetry
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
@@ -23,6 +32,12 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 
 class DefaultPluginsBootstrapperTest {
+
+    @After
+    fun tearDown() {
+        StartupTelemetry.resetForTest()
+        MfLog.resetForTest()
+    }
 
     private fun bootstrapper(
         pluginManager: PluginManager,
@@ -46,6 +61,38 @@ class DefaultPluginsBootstrapperTest {
         verify(pluginManager, never()).installFromSubscriptionUrl(any())
         verify(pluginManager, never()).installFromNetworkUrl(any())
         verify(pluginMetaStore, never()).subscriptions
+    }
+
+    @Test
+    fun reconcile_logsStartupFlowComplete() = runTest {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        StartupTelemetry.resetForTest(idProvider = { "startup-id" })
+        StartupTelemetry.attachBaseContextStart()
+        StartupTelemetry.applicationOnCreateStart()
+        StartupTelemetry.markLoggingReady()
+        val pluginManager = mock<PluginManager> {
+            on { allEntries } doReturn MutableStateFlow(emptyList())
+            on { installFromSubscriptionUrl(any()) } doReturn SubscriptionInstallResult(
+                totalEntries = 1,
+                successfulInstalls = 1,
+                failedInstalls = 0,
+            )
+        }
+        val pluginMetaStore = mock<PluginMetaStore> {
+            on { subscriptions } doReturn flowOf(emptyList())
+        }
+
+        bootstrapper(pluginManager, pluginMetaStore).reconcile(
+            subscriptionUrls = listOf("https://example.com/sub.json"),
+            pluginUrls = emptyList(),
+        )
+
+        val complete = logger.events.single { it.event == "startup_flow_complete" }
+        assertEquals(LogCategory.APP, complete.category)
+        assertEquals("default_plugin_bootstrap", complete.fields["flowName"])
+        assertEquals(LogFields.Result.SUCCESS, complete.fields["result"])
+        assertNotNull(complete.fields["durationMs"])
     }
 
     @Test
@@ -334,4 +381,33 @@ class DefaultPluginsBootstrapperTest {
         srcUrl = sourceUrl,
         supportedSearchType = emptyList(),
     )
+
+    private data class RecordedLogEvent(
+        val category: LogCategory,
+        val event: String,
+        val fields: Map<String, Any?>,
+    )
+
+    private class RecordingLogger : MfLogger {
+        val events = CopyOnWriteArrayList<RecordedLogEvent>()
+
+        override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+            events += RecordedLogEvent(category, event, fields)
+        }
+
+        override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+            events += RecordedLogEvent(category, event, fields)
+        }
+
+        override fun error(
+            category: LogCategory,
+            event: String,
+            throwable: Throwable?,
+            fields: Map<String, Any?>,
+        ) {
+            events += RecordedLogEvent(category, event, fields)
+        }
+
+        override fun flush() = Unit
+    }
 }

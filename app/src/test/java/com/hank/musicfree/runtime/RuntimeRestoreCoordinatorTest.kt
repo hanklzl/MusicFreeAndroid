@@ -6,6 +6,7 @@ import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.MfLogger
+import com.hank.musicfree.startup.StartupTelemetry
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,7 +26,42 @@ import org.junit.Test
 class RuntimeRestoreCoordinatorTest {
     @After
     fun tearDown() {
+        StartupTelemetry.resetForTest()
         MfLog.resetForTest()
+    }
+
+    @Test
+    fun runtimeRestoreLogsAggregateStartupFlow() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        StartupTelemetry.resetForTest(
+            nanoTimeProvider = { testScheduler.currentTime * 1_000_000L },
+            idProvider = { "startup-id" },
+        )
+        StartupTelemetry.attachBaseContextStart()
+        StartupTelemetry.applicationOnCreateStart()
+        StartupTelemetry.markLoggingReady()
+        val playback = FakeRuntimeStore("playback", RuntimeRestoreResult.Restored)
+        val plugin = FakeRuntimeStore("plugin", RuntimeRestoreResult.Skipped("empty"))
+        val coordinator = RuntimeRestoreCoordinator(
+            applicationScope = backgroundScope,
+            registry = RuntimeStoreRegistry(setOf(playback, plugin)),
+            workerDispatcher = dispatcher,
+        )
+
+        coordinator.start()
+        runCurrent()
+
+        val start = logger.events.single { it.event == "startup_flow_start" }
+        val complete = logger.events.single { it.event == "startup_flow_complete" }
+        assertEquals(LogCategory.APP, start.category)
+        assertEquals(LogCategory.APP, complete.category)
+        assertEquals("runtime_restore", start.fields["flowName"])
+        assertEquals("runtime_restore", complete.fields["flowName"])
+        assertEquals(LogFields.Result.SUCCESS, complete.fields["result"])
+        assertEquals(2, complete.fields["targetCount"])
+        assertNotNull(complete.fields["durationMs"])
     }
 
     @Test

@@ -42,12 +42,14 @@
 | [docs/superpowers/specs/2026-05-11-nav-transition-rn-android-design.md](./superpowers/specs/2026-05-11-nav-transition-rn-android-design.md) | 当前规范（页面切换动画 RN Android 对齐） | 是（作为实现计划输入） | 普通页面切换动画对齐 RN Android 实际 medium animation 口径，并禁用 predictive back 的设计 |
 | [docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md](./superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md) | 当前规范（UI Harness 设计） | 是（作为实现计划输入） | Screen 切换动画、普通 AppBar、沉浸式状态栏和 AI Coding 规则入口设计 |
 | [docs/superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md](./superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md) | 当前规范（启动视觉专项） | 是（仅 SplashScreen 与 launcher icon 专项） | AndroidX SplashScreen 接入与 RN 启动图标资源对齐设计 |
-| [docs/dev-harness/INDEX.md](./dev-harness/INDEX.md) | 当前规范（Dev Harness 总入口） | 是 | UI / 插件 / 播放器 / 测试 四域规则、错误库、AI skills 关联入口 |
+| [docs/dev-harness/INDEX.md](./dev-harness/INDEX.md) | 当前规范（Dev Harness 总入口） | 是 | UI / 插件 / 播放器 / 测试 / Runtime State / 网络 / 启动七域规则、错误库、AI skills 关联入口 |
 | [docs/dev-harness/ui/rules.md](./dev-harness/ui/rules.md) | 当前规范（Dev Harness — UI） | 是 | Screen 切换动画、普通 AppBar、沉浸式状态栏、UI 设计原则 |
 | [docs/dev-harness/plugin/rules.md](./dev-harness/plugin/rules.md) | 当前规范（Dev Harness — Plugin） | 是 | QuickJS 线程模型、网络通道门控、PluginManager 编排 |
 | [docs/dev-harness/player/rules.md](./dev-harness/player/rules.md) | 当前规范（Dev Harness — Player） | 是 | PlayerController 连接、沉浸式 chrome、歌词跟随防抖 |
 | [docs/dev-harness/test/rules.md](./dev-harness/test/rules.md) | 当前规范（Dev Harness — Test） | 是 | runTest 范式、instrumentation 主线程模型、DataStore 隔离、runner 基线、JVM 内存基线 |
 | [docs/dev-harness/runtime/rules.md](./dev-harness/runtime/rules.md) | 当前规范（Dev Harness — Runtime State） | 是 | RuntimeStore、SnapshotStore、Activity 重建恢复、进程冷启动恢复、Route seed、冷启动非阻塞恢复规则 |
+| [docs/dev-harness/startup/rules.md](./dev-harness/startup/rules.md) | 当前规范（Dev Harness — Startup） | 是 | 启动类型分类、启动关键顺序、主线程启动预算、后台流程非阻塞与启动结构化日志 |
+| [docs/dev-harness/startup/incidents.md](./dev-harness/startup/incidents.md) | 当前规范（Dev Harness — Startup Incidents） | 是 | 启动域历史事故入口；当前以主动规则守门为主 |
 | [docs/dev-harness/incidents/index.md](./dev-harness/incidents/index.md) | 当前规范（Dev Harness — Incidents 索引） | 是 | INC-YYYY-NNNN 全仓索引；guard 类型反查 |
 | [docs/plugin-parity/rn-plugin-oracle.md](./plugin-parity/rn-plugin-oracle.md) | 当前规范（RN 插件能力 Oracle） | 是 | RN 插件协议 oracle 生成、Android contract test 与默认订阅源守门 |
 | [docs/superpowers/specs/2026-05-09-dev-harness-foundation-design.md](./superpowers/specs/2026-05-09-dev-harness-foundation-design.md) | 当前规范（Dev Harness 基础设施专项） | 是（作为实现计划输入） | 总入口 + 错误库 + 5 skills + 测试守门 + 3 PR 编排设计 |
@@ -72,6 +74,7 @@
 | [docs/superpowers/specs/2026-05-11-wy-recommend-toplist-detail-fix.md](./superpowers/specs/2026-05-11-wy-recommend-toplist-detail-fix.md) | 当前规范（网易推荐歌单与榜单详情修复） | 是（作为实现计划输入） | 插件返回数值型整数 ID 时规范化为无 `.0` 字符串，避免网易歌单/榜单详情调用失败 |
 | [docs/superpowers/specs/2026-05-15-enable-horizontal-swipe-design.md](./superpowers/specs/2026-05-15-enable-horizontal-swipe-design.md) | 当前规范（搜索结果与榜单横向手势） | 是（作为实现计划输入） | 搜索结果、推荐歌单和榜单 Tab 内容区支持左右滑动切换，保持现有页面 chrome、加载与分页语义 |
 | [docs/superpowers/specs/2026-05-19-runtime-store-architecture-design.md](./superpowers/specs/2026-05-19-runtime-store-architecture-design.md) | 当前规范（RuntimeStore 运行时架构） | 是（作为实现计划输入） | RuntimeStore + SnapshotStore 分层、插件/播放/下载/搜索/详情/Route seed 持久化恢复设计 |
+| [docs/superpowers/specs/2026-05-19-startup-telemetry-design.md](./superpowers/specs/2026-05-19-startup-telemetry-design.md) | 当前规范（启动耗时分段与日志） | 是（作为实现计划输入） | 启动分段耗时、冷启动 / Activity 重建启动分类、首屏与后台流程结构化日志设计 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/parity-audit/README.md](./parity-audit/README.md) | 当前规范（Parity Audit 专项） | 是 | parity-audit-skill 管理的状态、scenario catalog 与运行产物目录索引 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |

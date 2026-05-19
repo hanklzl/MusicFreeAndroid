@@ -54,6 +54,28 @@ class SplashScreenResourceContractTest {
     }
 
     @Test
+    fun `main activity startup telemetry keeps splash before super and content timing after edge to edge`() {
+        val source = Files.readString(
+            projectRoot.resolve("app/src/main/java/com/hank/musicfree/MainActivity.kt"),
+        )
+        val onCreateBody = extractFunctionBody(source, "onCreate")
+        val telemetryIndex = onCreateBody.indexOf("StartupTelemetry.beginActivityCreate()")
+        val installIndex = onCreateBody.indexOf("installSplashScreen()")
+        val superIndex = onCreateBody.indexOf("super.onCreate")
+        val edgeIndex = onCreateBody.indexOf("enableEdgeToEdge()")
+        val setContentIndex = onCreateBody.indexOf("setContent")
+        val contentSetIndex = onCreateBody.indexOf("StartupTelemetry.markContentSet(")
+        val firstFrameIndex = onCreateBody.indexOf("reportFirstFrame")
+
+        assertTrue("startup telemetry should start before splash install", telemetryIndex >= 0)
+        assertTrue("startup telemetry should start before splash install", telemetryIndex < installIndex)
+        assertTrue("installSplashScreen() must remain before super.onCreate", installIndex < superIndex)
+        assertTrue("edge-to-edge should remain before setContent", edgeIndex < setContentIndex)
+        assertTrue("content set telemetry should be after setContent call", contentSetIndex > setContentIndex)
+        assertTrue("first frame reporting should be registered after content timing", firstFrameIndex > contentSetIndex)
+    }
+
+    @Test
     fun `manifest points launcher activity at splash theme`() {
         val manifest = parseXml(appMain.resolve("AndroidManifest.xml"))
         val application = manifest.firstElement("application")

@@ -7,6 +7,7 @@ import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.startup.StartupTelemetry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +32,7 @@ class PluginAutoUpdateCoordinator @Inject constructor(
     @VisibleForTesting
     internal suspend fun runIfDue(nowMs: Long) = withContext(Dispatchers.IO) {
         val startedAt = System.currentTimeMillis()
+        val startupFlow = StartupTelemetry.startFlow("plugin_auto_update")
         try {
             val enabled = appPreferences.autoUpdatePlugins.first()
             if (!enabled) {
@@ -39,6 +41,11 @@ class PluginAutoUpdateCoordinator @Inject constructor(
                     lastAtMs = appPreferences.pluginAutoUpdateLastAtEpochMs.first(),
                     nowMs = nowMs,
                     startedAt = startedAt,
+                )
+                StartupTelemetry.completeFlow(
+                    token = startupFlow,
+                    result = LogFields.Result.SKIPPED,
+                    reason = "disabled",
                 )
                 return@withContext
             }
@@ -51,6 +58,11 @@ class PluginAutoUpdateCoordinator @Inject constructor(
                     lastAtMs = lastAtMs,
                     nowMs = nowMs,
                     startedAt = startedAt,
+                )
+                StartupTelemetry.completeFlow(
+                    token = startupFlow,
+                    result = LogFields.Result.SKIPPED,
+                    reason = "interval_not_elapsed",
                 )
                 return@withContext
             }
@@ -85,6 +97,21 @@ class PluginAutoUpdateCoordinator @Inject constructor(
                     },
                 ),
             )
+            val startupResult = if (result.failureCount == 0) {
+                LogFields.Result.SUCCESS
+            } else {
+                LogFields.Result.FAILURE
+            }
+            StartupTelemetry.completeFlow(
+                token = startupFlow,
+                result = startupResult,
+                reason = if (startupResult == LogFields.Result.SUCCESS) null else "partial_failure",
+                extraFields = mapOf(
+                    "targetCount" to result.targetPlugins.size,
+                    "successCount" to result.successCount,
+                    "failureCount" to result.failureCount,
+                ),
+            )
         } catch (error: CancellationException) {
             MfLog.detail(
                 category = LogCategory.PLUGIN,
@@ -96,9 +123,19 @@ class PluginAutoUpdateCoordinator @Inject constructor(
                     "reason" to LogFields.Reason.CANCELLED,
                 ),
             )
+            StartupTelemetry.completeFlow(
+                token = startupFlow,
+                result = LogFields.Result.CANCELLED,
+                reason = LogFields.Reason.CANCELLED,
+            )
             throw error
         } catch (error: Throwable) {
             runCatching { appPreferences.setPluginAutoUpdateLastAtEpochMs(nowMs) }
+            StartupTelemetry.completeFlow(
+                token = startupFlow,
+                result = LogFields.Result.FAILURE,
+                reason = "exception",
+            )
             MfLog.error(
                 category = LogCategory.PLUGIN,
                 event = "plugin_auto_update_failed",

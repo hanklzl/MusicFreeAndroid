@@ -12,11 +12,13 @@ import com.hank.musicfree.core.di.ApplicationScope
 import com.hank.musicfree.core.network.BaseOkHttp
 import com.hank.musicfree.data.backup.StartupBackupRestore
 import com.hank.musicfree.data.datastore.AppPreferences
+import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.LoggingConfig
 import com.hank.musicfree.logging.LoggingInitializer
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.plugin.engine.AxiosShim
 import com.hank.musicfree.runtime.RuntimeRestoreCoordinator
+import com.hank.musicfree.startup.StartupTelemetry
 import com.hank.musicfree.updater.bootstrap.UpdateCheckCoordinator
 import dagger.hilt.android.HiltAndroidApp
 import java.io.File
@@ -54,11 +56,20 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
     @Inject lateinit var imageLoader: ImageLoader
 
     override fun attachBaseContext(base: Context) {
+        StartupTelemetry.attachBaseContextStart()
         super.attachBaseContext(base)
+        val pendingRestore = StartupTelemetry.startApplicationPhase("pending_restore")
         StartupBackupRestore.applyIfPending(this)
+        StartupTelemetry.completeApplicationPhase(
+            event = "app_startup_pending_restore_complete",
+            phase = "pending_restore",
+            span = pendingRestore,
+            result = LogFields.Result.SUCCESS,
+        )
     }
 
     override fun onCreate() {
+        val applicationStartup = StartupTelemetry.applicationOnCreateStart()
         super.onCreate()
 
         // AxiosShim is a Kotlin `object`; field-injecting `@BaseOkHttp` into a
@@ -68,6 +79,7 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
         // NetworkTrafficEventListener.Factory and feed into `traffic_daily`.
         AxiosShim.setBaseClient(baseOkHttpClient)
 
+        val loggingStartup = StartupTelemetry.startApplicationPhase("logging_initialized")
         LoggingInitializer.initialize(
             LoggingConfig(
                 cacheDir = File(filesDir, "logan-cache"),
@@ -82,6 +94,13 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
                 buildType = BuildConfig.BUILD_TYPE,
             ),
         )
+        StartupTelemetry.markLoggingReady()
+        StartupTelemetry.completeApplicationPhase(
+            event = "app_startup_logging_initialized",
+            phase = "logging_initialized",
+            span = loggingStartup,
+            result = LogFields.Result.SUCCESS,
+        )
 
         // Parity-audit agent 抓取通道,仅 Debug 构建且显式打开时启用。
         // 启用方式(adb): `adb shell setprop debug.parity_audit 1` 后冷启动应用,
@@ -92,11 +111,32 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
         }
 
         startLoggingPreferenceBridge()
+        val preferenceBridgeFlow = StartupTelemetry.startFlow("logging_preference_bridge")
+        StartupTelemetry.completeFlow(
+            token = preferenceBridgeFlow,
+            result = LogFields.Result.SUCCESS,
+            reason = "scheduled",
+        )
         runtimeRestoreCoordinator.start()
         defaultPluginsBootstrapper.start()
         pluginAutoUpdateCoordinator.start()
         playbackStartupCoordinator.start()
-        updateCheckCoordinator.start()
+        val playbackObserversFlow = StartupTelemetry.startFlow("playback_startup_observers")
+        StartupTelemetry.completeFlow(
+            token = playbackObserversFlow,
+            result = LogFields.Result.SUCCESS,
+            reason = "scheduled",
+        )
+        updateCheckCoordinator.start(
+            startupFields = StartupTelemetry.startupContextFields(flowName = "update_check_on_launch"),
+        )
+        StartupTelemetry.completeApplicationStartup(
+            result = LogFields.Result.SUCCESS,
+            extraFields = mapOf(
+                "applicationOnCreateDurationMs" to
+                    ((System.nanoTime() - applicationStartup.startedAtNano) / 1_000_000L).coerceAtLeast(0L),
+            ),
+        )
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader

@@ -2,6 +2,8 @@ package com.hank.musicfree
 
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.View
+import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -49,9 +51,12 @@ import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.downloader.Downloader
 import com.hank.musicfree.downloader.engine.DownloadEvent
 import com.hank.musicfree.feature.playerui.component.MiniPlayer
-import com.hank.musicfree.navigation.AppNavHost
 import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.navigation.AppNavHost
+import com.hank.musicfree.startup.StartupTelemetry
+import com.hank.musicfree.startup.StartupTelemetry.StartupActivitySession
 import com.hank.musicfree.updater.checker.UpdateChecker
 import com.hank.musicfree.updater.downloader.ApkDownloader
 import com.hank.musicfree.updater.installer.ApkInstaller
@@ -81,8 +86,24 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var themeRepository: ThemeRepository
 
+    private var startupSession: StartupActivitySession? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        val startup = StartupTelemetry.beginActivityCreate()
+        startupSession = startup
+        startup.logInstant(
+            event = "app_startup_activity_create_start",
+            phase = "activity_create_start",
+            result = LogFields.Result.SUCCESS,
+        )
+        val splashPhase = startup.startPhase("splash_installed")
         installSplashScreen()
+        startup.completePhase(
+            event = "app_startup_splash_installed",
+            phase = "splash_installed",
+            span = splashPhase,
+            result = LogFields.Result.SUCCESS,
+        )
         MfLog.trace(LogCategory.APP, "main_activity_create_start")
         super.onCreate(savedInstanceState)
         lifecycleScope.launch {
@@ -101,8 +122,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        val edgeToEdgePhase = startup.startPhase("edge_to_edge_enabled")
         enableEdgeToEdge()
+        startup.completePhase(
+            event = "app_startup_edge_to_edge_enabled",
+            phase = "edge_to_edge_enabled",
+            span = edgeToEdgePhase,
+            result = LogFields.Result.SUCCESS,
+        )
         MfLog.trace(LogCategory.APP, "edge_to_edge_enabled")
+        val contentSetPhase = startup.startPhase("activity_content_set")
         setContent {
             val systemDark = isSystemInDarkTheme()
             val themeState by themeRepository.state.collectAsStateWithLifecycle(
@@ -207,7 +236,40 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        StartupTelemetry.markContentSet(
+            session = startup,
+            span = contentSetPhase,
+            result = LogFields.Result.SUCCESS,
+        )
+        reportFirstFrame(window.decorView, startup)
     }
+
+    override fun onResume() {
+        super.onResume()
+        startupSession?.let(StartupTelemetry::recordActivityResume)
+    }
+}
+
+private fun reportFirstFrame(rootView: View, startup: StartupActivitySession) {
+    val firstFramePhase = startup.startPhase("first_frame")
+    val observer = rootView.viewTreeObserver
+    val listener = object : ViewTreeObserver.OnPreDrawListener {
+        override fun onPreDraw(): Boolean {
+            val currentObserver = rootView.viewTreeObserver
+            if (currentObserver.isAlive) {
+                currentObserver.removeOnPreDrawListener(this)
+            } else if (observer.isAlive) {
+                observer.removeOnPreDrawListener(this)
+            }
+            StartupTelemetry.markFirstFrame(
+                session = startup,
+                span = firstFramePhase,
+                result = LogFields.Result.SUCCESS,
+            )
+            return true
+        }
+    }
+    observer.addOnPreDrawListener(listener)
 }
 
 @androidx.compose.runtime.Composable

@@ -31,38 +31,63 @@ class UpdateChecker(
 
     private val mutex = Mutex()
 
-    fun checkOnLaunch() {
-        check(respectSkip = true)
+    fun checkOnLaunch(startupFields: Map<String, Any?> = emptyMap()) {
+        check(respectSkip = true, startupFields = startupFields)
     }
 
     fun checkManually() {
-        check(respectSkip = false)
+        check(respectSkip = false, startupFields = emptyMap())
     }
 
-    private fun check(respectSkip: Boolean) {
+    private fun check(respectSkip: Boolean, startupFields: Map<String, Any?>) {
         scope.launch {
+            val startedAtNano = System.nanoTime()
+            val baseFields = startupFields + ("respectSkip" to respectSkip)
             mutex.withLock {
                 MfLog.trace(
                     category = LogCategory.UPDATE,
                     event = "update_check_start",
-                    fields = mapOf("respectSkip" to respectSkip),
+                    fields = baseFields,
                 )
                 _state.value = UpdateState.Checking
-                val info: UpdateInfo = client.fetchLatest()
+                val info: UpdateInfo = runCatching { client.fetchLatest() }.getOrElse {
+                    MfLog.error(
+                        category = LogCategory.UPDATE,
+                        event = "update_check_failed",
+                        throwable = it,
+                        fields = baseFields + ("cause" to UpdateError.Network.name),
+                    )
+                    _state.value = UpdateState.Failed(update = null, cause = UpdateError.Network)
+                    logStartupFlowTerminal(
+                        startupFields = startupFields,
+                        startedAtNano = startedAtNano,
+                        event = "startup_flow_failed",
+                        result = LogFields.Result.FAILURE,
+                        reason = UpdateError.Network.name,
+                    )
+                    return@withLock
+                }
                     ?: run {
                         MfLog.error(
                             category = LogCategory.UPDATE,
                             event = "update_check_failed",
-                            fields = mapOf("cause" to UpdateError.Network.name),
+                            fields = baseFields + ("cause" to UpdateError.Network.name),
                         )
                         _state.value = UpdateState.Failed(update = null, cause = UpdateError.Network)
+                        logStartupFlowTerminal(
+                            startupFields = startupFields,
+                            startedAtNano = startedAtNano,
+                            event = "startup_flow_failed",
+                            result = LogFields.Result.FAILURE,
+                            reason = UpdateError.Network.name,
+                        )
                         return@withLock
                     }
                 if (info.schemaVersion > UpdateInfo.SUPPORTED_SCHEMA_VERSION || info.variants.isEmpty()) {
                     MfLog.error(
                         category = LogCategory.UPDATE,
                         event = "update_check_failed",
-                        fields = mapOf(
+                        fields = baseFields + mapOf(
                             "cause" to UpdateError.SchemaUnsupported.name,
                             "remoteSchema" to info.schemaVersion,
                             "supportedSchema" to UpdateInfo.SUPPORTED_SCHEMA_VERSION,
@@ -70,6 +95,18 @@ class UpdateChecker(
                         ),
                     )
                     _state.value = UpdateState.Failed(update = null, cause = UpdateError.SchemaUnsupported)
+                    logStartupFlowTerminal(
+                        startupFields = startupFields,
+                        startedAtNano = startedAtNano,
+                        event = "startup_flow_failed",
+                        result = LogFields.Result.FAILURE,
+                        reason = UpdateError.SchemaUnsupported.name,
+                        extraFields = mapOf(
+                            "remoteSchema" to info.schemaVersion,
+                            "supportedSchema" to UpdateInfo.SUPPORTED_SCHEMA_VERSION,
+                            "variantsCount" to info.variants.size,
+                        ),
+                    )
                     return@withLock
                 }
                 val outcome = VersionCompare.compare(
@@ -86,20 +123,34 @@ class UpdateChecker(
                         MfLog.trace(
                             category = LogCategory.UPDATE,
                             event = "update_check_complete",
-                            fields = mapOf(
+                            fields = baseFields + mapOf(
                                 "outcome" to "up_to_date",
                                 "versionCode" to localCode,
-                                "respectSkip" to respectSkip,
                             ),
+                        )
+                        logStartupFlowTerminal(
+                            startupFields = startupFields,
+                            startedAtNano = startedAtNano,
+                            event = "startup_flow_complete",
+                            result = LogFields.Result.SUCCESS,
+                            reason = "up_to_date",
+                            extraFields = mapOf("versionCode" to localCode),
                         )
                     }
                     VersionCompare.Outcome.Unsupported -> {
                         MfLog.error(
                             category = LogCategory.UPDATE,
                             event = "update_check_failed",
-                            fields = mapOf("cause" to UpdateError.SchemaUnsupported.name),
+                            fields = baseFields + ("cause" to UpdateError.SchemaUnsupported.name),
                         )
                         _state.value = UpdateState.Failed(update = null, cause = UpdateError.SchemaUnsupported)
+                        logStartupFlowTerminal(
+                            startupFields = startupFields,
+                            startedAtNano = startedAtNano,
+                            event = "startup_flow_failed",
+                            result = LogFields.Result.FAILURE,
+                            reason = UpdateError.SchemaUnsupported.name,
+                        )
                     }
                     VersionCompare.Outcome.NewerAvailable -> {
                         val resolved = abiResolver.resolve(info)
@@ -107,12 +158,20 @@ class UpdateChecker(
                                 MfLog.error(
                                     category = LogCategory.UPDATE,
                                     event = "update_check_failed",
-                                    fields = mapOf(
+                                    fields = baseFields + mapOf(
                                         "cause" to UpdateError.UnsupportedAbi.name,
                                         "variants" to info.variants.keys.joinToString(","),
                                     ),
                                 )
                                 _state.value = UpdateState.Failed(update = null, cause = UpdateError.UnsupportedAbi)
+                                logStartupFlowTerminal(
+                                    startupFields = startupFields,
+                                    startedAtNano = startedAtNano,
+                                    event = "startup_flow_failed",
+                                    result = LogFields.Result.FAILURE,
+                                    reason = UpdateError.UnsupportedAbi.name,
+                                    extraFields = mapOf("variants" to info.variants.keys.joinToString(",")),
+                                )
                                 return@withLock
                             }
                         prefs.setLastCheckedAt(now())
@@ -123,18 +182,48 @@ class UpdateChecker(
                         MfLog.trace(
                             category = LogCategory.UPDATE,
                             event = "update_check_complete",
-                            fields = mapOf(
+                            fields = baseFields + mapOf(
                                 "outcome" to "newer_available",
                                 "versionCode" to info.versionCode,
                                 "abi" to resolved.abi,
-                                "respectSkip" to respectSkip,
                                 "result" to if (isSkipped) LogFields.Result.SKIPPED else LogFields.Result.SUCCESS,
+                            ),
+                        )
+                        logStartupFlowTerminal(
+                            startupFields = startupFields,
+                            startedAtNano = startedAtNano,
+                            event = if (isSkipped) "startup_flow_skipped" else "startup_flow_complete",
+                            result = if (isSkipped) LogFields.Result.SKIPPED else LogFields.Result.SUCCESS,
+                            reason = if (isSkipped) "version_skipped" else "newer_available",
+                            extraFields = mapOf(
+                                "versionCode" to info.versionCode,
+                                "abi" to resolved.abi,
                             ),
                         )
                     }
                 }
             }
         }
+    }
+
+    private fun logStartupFlowTerminal(
+        startupFields: Map<String, Any?>,
+        startedAtNano: Long,
+        event: String,
+        result: String,
+        reason: String,
+        extraFields: Map<String, Any?> = emptyMap(),
+    ) {
+        if (startupFields.isEmpty()) return
+        MfLog.detail(
+            category = LogCategory.UPDATE,
+            event = event,
+            fields = startupFields + extraFields + mapOf(
+                "durationMs" to ((System.nanoTime() - startedAtNano) / 1_000_000L).coerceAtLeast(0L),
+                "result" to result,
+                "reason" to reason,
+            ),
+        )
     }
 
     suspend fun markSkipped(update: ResolvedUpdate) {

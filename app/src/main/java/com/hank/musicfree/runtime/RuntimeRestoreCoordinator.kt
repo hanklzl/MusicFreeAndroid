@@ -8,6 +8,7 @@ import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.LogFields.Result
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.RuntimeLogFields
+import com.hank.musicfree.startup.StartupTelemetry
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,7 +39,35 @@ class RuntimeRestoreCoordinator internal constructor(
         if (!started.compareAndSet(false, true)) return
         applicationScope.launch {
             launch {
-                restoreAll()
+                val targetCount = registry.stores.count { it.restoreOnStartup }
+                val startupFlow = StartupTelemetry.startFlow(
+                    flowName = "runtime_restore",
+                    extraFields = mapOf("targetCount" to targetCount),
+                )
+                try {
+                    restoreAll()
+                    StartupTelemetry.completeFlow(
+                        token = startupFlow,
+                        result = LogFields.Result.SUCCESS,
+                        extraFields = mapOf("targetCount" to targetCount),
+                    )
+                } catch (error: CancellationException) {
+                    StartupTelemetry.completeFlow(
+                        token = startupFlow,
+                        result = LogFields.Result.CANCELLED,
+                        reason = LogFields.Reason.CANCELLED,
+                        extraFields = mapOf("targetCount" to targetCount),
+                    )
+                    throw error
+                } catch (error: Throwable) {
+                    StartupTelemetry.completeFlow(
+                        token = startupFlow,
+                        result = LogFields.Result.FAILURE,
+                        reason = "exception",
+                        extraFields = mapOf("targetCount" to targetCount),
+                    )
+                    throw error
+                }
             }
             launch {
                 schedulePeriodicCleanup()
