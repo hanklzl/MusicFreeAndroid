@@ -37,9 +37,43 @@ class CacheControlPolicyTest {
     }
 
     @Test
-    fun `shouldWriteCache returns true except for NoStore`() {
+    fun `shouldWriteCache(cc) deprecated overload returns true except for NoStore`() {
+        @Suppress("DEPRECATION")
         assertTrue(shouldWriteCache(CacheControl.Cache))
+        @Suppress("DEPRECATION")
         assertTrue(shouldWriteCache(CacheControl.NoCache))
+        @Suppress("DEPRECATION")
         assertFalse(shouldWriteCache(CacheControl.NoStore))
+    }
+
+    @Test
+    fun `shouldWriteCache Cache always writes regardless of connectivity`() {
+        assertTrue(shouldWriteCache(CacheControl.Cache, isOffline = false))
+        assertTrue(shouldWriteCache(CacheControl.Cache, isOffline = true))
+    }
+
+    @Test
+    fun `shouldWriteCache NoStore never writes regardless of connectivity`() {
+        assertFalse(shouldWriteCache(CacheControl.NoStore, isOffline = false))
+        assertFalse(shouldWriteCache(CacheControl.NoStore, isOffline = true))
+    }
+
+    @Test
+    fun `shouldWriteCache NoCache writes only when offline`() {
+        assertFalse(shouldWriteCache(CacheControl.NoCache, isOffline = false))
+        assertTrue(shouldWriteCache(CacheControl.NoCache, isOffline = true))
+    }
+
+    @Test
+    fun `shouldUseCache unchanged contract`() {
+        // Cache: always reads
+        assertTrue(shouldUseCache(CacheControl.Cache, isOffline = false))
+        assertTrue(shouldUseCache(CacheControl.Cache, isOffline = true))
+        // NoCache: only offline
+        assertFalse(shouldUseCache(CacheControl.NoCache, isOffline = false))
+        assertTrue(shouldUseCache(CacheControl.NoCache, isOffline = true))
+        // NoStore: never reads
+        assertFalse(shouldUseCache(CacheControl.NoStore, isOffline = false))
+        assertFalse(shouldUseCache(CacheControl.NoStore, isOffline = true))
     }
 }

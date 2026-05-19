@@ -651,6 +651,16 @@ class AppPreferences @Inject constructor(
         }
     }
 
+    // ── Media Cache Schema ──
+
+    val mediaCacheSchemaVersion: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[MEDIA_CACHE_SCHEMA_VERSION] ?: 0
+    }
+
+    suspend fun setMediaCacheSchemaVersion(version: Int) {
+        dataStore.edit { it[MEDIA_CACHE_SCHEMA_VERSION] = version }
+    }
+
     private suspend fun writeRuntimeSetting(
         key: Preferences.Key<*>,
         value: Any?,
@@ -762,6 +772,7 @@ class AppPreferences @Inject constructor(
         val KEY_THEME_BACKGROUND_BLUR = floatPreferencesKey("theme_background_blur")
         val KEY_THEME_BACKGROUND_OPACITY = floatPreferencesKey("theme_background_opacity")
         val KEY_THEME_FOLLOW_SYSTEM = booleanPreferencesKey("theme_follow_system")
+        val MEDIA_CACHE_SCHEMA_VERSION = intPreferencesKey("media_cache_schema_version")
         const val DEFAULT_THEME_BACKGROUND_BLUR = 20f
         const val MIN_THEME_BACKGROUND_BLUR = 0f
         const val MAX_THEME_BACKGROUND_BLUR = 30f

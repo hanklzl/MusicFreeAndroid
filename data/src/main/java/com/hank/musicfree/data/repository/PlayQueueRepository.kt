@@ -25,6 +25,17 @@ class PlayQueueRepository @Inject constructor(
             entities.map { it.toMusicItem(converters) }
         }
 
+    /**
+     * Most-recent queue items as "${platform}:${id}" keys, capped at [limit].
+     * Used as a pinning signal so recently played songs survive cache eviction.
+     */
+    fun observeRecentKeys(limit: Int = 50): Flow<Set<String>> =
+        observeQueue().map { items ->
+            items.take(limit).mapTo(HashSet(items.size.coerceAtMost(limit))) {
+                "${it.platform}:${it.id}"
+            }
+        }
+
     suspend fun getQueue(): List<MusicItem> =
         playQueueDao.getAll().map { it.toMusicItem(converters) }
 

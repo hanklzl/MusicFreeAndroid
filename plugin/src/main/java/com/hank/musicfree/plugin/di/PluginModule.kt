@@ -3,6 +3,8 @@ package com.hank.musicfree.plugin.di
 import android.content.Context
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.core.media.StaleUrlRefresher
+import com.hank.musicfree.plugin.media.AndroidLocalFileProbe
+import com.hank.musicfree.plugin.media.LocalFileProbe
 import com.hank.musicfree.plugin.media.PluginMediaSourceService
 import com.hank.musicfree.plugin.network.AndroidPluginNetworkStateProvider
 import com.hank.musicfree.plugin.network.PluginNetworkStateProvider
@@ -35,6 +37,12 @@ abstract class PluginModule {
     abstract fun bindPluginNetworkStateProvider(
         impl: AndroidPluginNetworkStateProvider,
     ): PluginNetworkStateProvider
+
+    @Binds
+    @Singleton
+    abstract fun bindLocalFileProbe(
+        impl: AndroidLocalFileProbe,
+    ): LocalFileProbe
 
     companion object {
         /**

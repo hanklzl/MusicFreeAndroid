@@ -23,6 +23,15 @@ class StarredSheetRepository @Inject constructor(
     fun observeAll(): Flow<List<StarredSheet>> =
         starredSheetDao.observeAll().map { entities -> entities.map { it.toModel(converters) } }
 
+    /**
+     * Stream of "${platform}:${id}" keys for all currently-starred sheets.
+     * Consumed by SimpleCacheHolder pinning to protect favorites from cache eviction.
+     */
+    fun observeStarredKeys(): Flow<Set<String>> =
+        observeAll().map { sheets ->
+            sheets.mapTo(HashSet(sheets.size)) { "${it.platform}:${it.id}" }
+        }
+
     fun observeIsStarred(id: String, platform: String): Flow<Boolean> =
         starredSheetDao.observeExists(id = id, platform = platform)
 

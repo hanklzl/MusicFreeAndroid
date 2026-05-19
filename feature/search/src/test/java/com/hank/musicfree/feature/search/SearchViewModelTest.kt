@@ -548,7 +548,7 @@ class SearchViewModelTest {
 
         val item = musicItem(id = "1", title = "Song 1").copy(platform = "source", url = null)
         val resolver = object : MediaSourceResolver {
-            override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution {
+            override suspend fun resolve(item: MusicItem, quality: String?, sid: String?): MediaSourceResolution {
                 val source = MediaSourceResult(
                     url = "https://resolver.example/1.mp3",
                     headers = null,
@@ -612,7 +612,7 @@ class SearchViewModelTest {
         val item = musicItem(id = "1", title = "Song 1").copy(platform = "source", url = null)
         val second = musicItem(id = "2", title = "Song 2").copy(platform = "source", url = null)
         val resolver = object : MediaSourceResolver {
-            override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution {
+            override suspend fun resolve(item: MusicItem, quality: String?, sid: String?): MediaSourceResolution {
                 val source = MediaSourceResult(
                     url = "https://resolver.example/1.mp3",
                     headers = null,

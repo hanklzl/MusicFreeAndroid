@@ -1,6 +1,7 @@
 package com.hank.musicfree.player.source
 
 import android.content.Context
+import android.net.Uri
 import androidx.annotation.OptIn as AndroidXOptIn
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
@@ -12,6 +13,9 @@ import androidx.media3.datasource.cache.CacheDataSink
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import com.hank.musicfree.core.network.BaseOkHttp
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.player.cache.CacheDataSourceEventBridge
 import com.hank.musicfree.player.cache.SimpleCacheHolder
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.OkHttpClient
@@ -33,6 +37,7 @@ class HeaderInjectingDataSourceFactory @Inject constructor(
     @BaseOkHttp private val okHttpClient: OkHttpClient,
     private val registry: TrackHeaderRegistry,
     private val simpleCacheHolder: SimpleCacheHolder,
+    private val eventBridge: CacheDataSourceEventBridge,
 ) : DataSource.Factory {
 
     /**
@@ -58,8 +63,36 @@ class HeaderInjectingDataSourceFactory @Inject constructor(
                 ?.let { put("User-Agent", it) }
         }
         val builder = dataSpec.buildUpon().setHttpRequestHeaders(merged)
-        entry.cacheKey?.let { builder.setKey(it) }
         return builder.build()
+    }
+
+    /**
+     * Returns the stable cache key for the given [uri].
+     *
+     * Key format:
+     * - Registry hit with cacheKey + quality  → `"<cacheKey>:<quality.name.lowercase>"`
+     * - Registry hit with cacheKey, no quality → `"<cacheKey>:unknown"`
+     * - Registry miss                           → `uri.toString()`
+     *
+     * Exposed as `internal` so tests can exercise the key-generation logic
+     * without standing up a full Media3 pipeline.
+     */
+    internal fun cacheKeyFor(uri: Uri): String {
+        val entry = registry.get(uri.toString())
+        val cacheKey = entry?.cacheKey
+        val quality = entry?.quality
+        return when {
+            cacheKey != null && quality != null -> "$cacheKey:${quality.name.lowercase()}"
+            cacheKey != null -> "$cacheKey:unknown"
+            else -> {
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "media_cache_key_registry_miss",
+                    fields = mapOf("host" to (uri.host ?: ""), "scheme" to (uri.scheme ?: "")),
+                )
+                uri.toString()
+            }
+        }
     }
 
     override fun createDataSource(): DataSource {
@@ -69,6 +102,10 @@ class HeaderInjectingDataSourceFactory @Inject constructor(
             resolveDataSpec(dataSpec)
         }
         val cache = simpleCacheHolder.current ?: return resolving.createDataSource()
+        // Known limitation: cacheKey here is a placeholder because createDataSource() is called
+        // once per ExoPlayer slot, not once per DataSpec. Actual per-DataSpec cache key is only
+        // available inside the cacheKeyFactory lambda. Per-DataSpec byte tallies require a more
+        // invasive CacheDataSource wrapping (tracked for Task 9+).
         return CacheDataSource.Factory()
             .setCache(cache)
             .setUpstreamDataSourceFactory(resolving)
@@ -77,6 +114,8 @@ class HeaderInjectingDataSourceFactory @Inject constructor(
                     .setCache(cache)
                     .setFragmentSize(C.LENGTH_UNSET.toLong())
             )
+            .setCacheKeyFactory { spec -> cacheKeyFor(spec.uri) }
+            .setEventListener(eventBridge.newListener("(per-open)"))
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
             .createDataSource()
     }

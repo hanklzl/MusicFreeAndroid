@@ -12,6 +12,7 @@ import com.hank.musicfree.core.model.PlaybackRuntimeSettings
 import com.hank.musicfree.core.model.QualityFallbackOrder
 import com.hank.musicfree.player.listening.ListenTracker
 import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
+import com.hank.musicfree.player.source.TrackHeaderRegistry
 import org.mockito.kotlin.mock
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -105,14 +106,49 @@ class PlayerControllerPlaybackFailurePolicyTest {
         }
     }
 
+    @Test
+    fun `registry entry after source-change-on-failure carries quality`() {
+        val registry = TrackHeaderRegistry()
+        val resolver = ResolverWithHeaders("https://cdn.example.test/changed.mp3")
+        val controller = controller(
+            resolver = resolver,
+            settings = FakeRuntimeSettings(tryChangeSourceWhenPlayFail = true),
+            registry = registry,
+        )
+        try {
+            controller.playQueue.setQueue(
+                listOf(item("1", "https://cdn.example.test/original.mp3")),
+                startIndex = 0,
+            )
+
+            controller.handlePlaybackErrorForTest(decoderError())
+
+            waitUntil("source changed") {
+                controller.playQueue.currentItem?.url == "https://cdn.example.test/changed.mp3"
+            }
+            val entry = registry.get("https://cdn.example.test/changed.mp3")
+            assertEquals(
+                "registry entry after source-change-on-failure must carry quality (not null/unknown)",
+                PlayQuality.STANDARD,
+                entry?.quality,
+            )
+        } finally {
+            controller.release()
+        }
+    }
+
     private fun controller(
         resolver: MediaSourceResolver,
         settings: PlaybackRuntimeSettings,
+        registry: TrackHeaderRegistry = TrackHeaderRegistry(),
     ) = PlayerController(
         context = context,
         mediaSourceResolver = resolver,
         playbackRuntimeSettings = settings,
+        trackHeaderRegistry = registry,
         listenTracker = mock<ListenTracker>(),
+        currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(),
+        playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
     )
 
     private fun decoderError(): PlaybackException = PlaybackException(
@@ -151,7 +187,7 @@ class PlayerControllerPlaybackFailurePolicyTest {
     ) : MediaSourceResolver {
         val requestedIds = mutableListOf<String>()
 
-        override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution? {
+        override suspend fun resolve(item: MusicItem, quality: String?, sid: String?): MediaSourceResolution? {
             requestedIds += item.id
             val url = resolvedUrl ?: return null
             return MediaSourceResolution(
@@ -160,6 +196,26 @@ class PlayerControllerPlaybackFailurePolicyTest {
                     url = url,
                     headers = null,
                     userAgent = null,
+                    quality = null,
+                ),
+                requestedPlatform = item.platform,
+                resolverPlatform = item.platform,
+                redirected = false,
+            )
+        }
+    }
+
+    /** Resolver that returns headers so trackHeaderRegistry.put is triggered. */
+    private class ResolverWithHeaders(
+        private val resolvedUrl: String,
+    ) : MediaSourceResolver {
+        override suspend fun resolve(item: MusicItem, quality: String?, sid: String?): MediaSourceResolution? {
+            return MediaSourceResolution(
+                item = item.copy(url = resolvedUrl),
+                source = MediaSourceResult(
+                    url = resolvedUrl,
+                    headers = mapOf("Referer" to "https://music.example.test"),
+                    userAgent = "MusicFreeAndroidTest/1.0",
                     quality = null,
                 ),
                 requestedPlatform = item.platform,

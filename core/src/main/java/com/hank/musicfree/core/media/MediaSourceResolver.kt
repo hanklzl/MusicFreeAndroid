@@ -7,6 +7,7 @@ interface MediaSourceResolver {
     suspend fun resolve(
         item: MusicItem,
         quality: String? = null,
+        sid: String? = null,
     ): MediaSourceResolution?
 }
 
@@ -22,5 +23,6 @@ object EmptyMediaSourceResolver : MediaSourceResolver {
     override suspend fun resolve(
         item: MusicItem,
         quality: String?,
+        sid: String?,
     ): MediaSourceResolution? = null
 }

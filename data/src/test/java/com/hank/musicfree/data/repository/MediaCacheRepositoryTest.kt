@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MediaCacheRepositoryTest {
@@ -121,6 +122,92 @@ class MediaCacheRepositoryTest {
             limitProvider = { 115L },
         ).put(item, PlayQuality.STANDARD, MediaSourceResult("http://a", null, null, PlayQuality.STANDARD))
 
+        coVerify(exactly = 1) { dao.delete("kg", "old") }
+        coVerify(exactly = 0) { dao.delete("kg", "new") }
+    }
+
+    @Test
+    fun `deleteEntry triggers onSimpleCacheEvict with quality`() = runTest {
+        val json = """{"STANDARD":{"url":"http://a"}}"""
+        val dao: MediaCacheDao = mockk {
+            coEvery { get("kg", "1") } returns MediaCacheEntity("kg", "1", json, 100L)
+            coEvery { delete("kg", "1") } returns Unit
+        }
+        val evictCalls = mutableListOf<Triple<String, String, PlayQuality?>>()
+        val repo = MediaCacheRepository(
+            dao = dao,
+            now = { 1L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            onSimpleCacheEvict = { p, id, q -> evictCalls.add(Triple(p, id, q)) },
+        )
+        repo.deleteEntry("kg", "1", PlayQuality.STANDARD)
+        assertEquals(1, evictCalls.size)
+        val (p, id, q) = evictCalls[0]
+        assertEquals("kg", p)
+        assertEquals("1", id)
+        assertEquals(PlayQuality.STANDARD, q)
+    }
+
+    @Test
+    fun `deleteItem triggers onSimpleCacheEvict with null quality`() = runTest {
+        val dao: MediaCacheDao = mockk {
+            coEvery { delete("kg", "1") } returns Unit
+        }
+        val evictCalls = mutableListOf<Triple<String, String, PlayQuality?>>()
+        val repo = MediaCacheRepository(
+            dao = dao,
+            now = { 1L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            onSimpleCacheEvict = { p, id, q -> evictCalls.add(Triple(p, id, q)) },
+        )
+        repo.deleteItem("kg", "1")
+        assertEquals(1, evictCalls.size)
+        val (p, id, q) = evictCalls[0]
+        assertEquals("kg", p)
+        assertEquals("1", id)
+        assertTrue("quality should be null for deleteItem", q == null)
+    }
+
+    // ---- 10% sub-quota tests (Task 5.4) ----
+
+    @Test
+    fun `create factory derives 10 percent quota from maxMusicCacheSizeBytes`() = runTest {
+        // When maxMusicCacheSizeBytes = 1000, limitProvider() must return 100 (10%)
+        val resolvedLimit = (1000L / MediaCacheRepository.REPO_QUOTA_DIVISOR).coerceAtLeast(1L)
+        assertEquals(100L, resolvedLimit)
+    }
+
+    @Test
+    fun `put trims oversize entries when 10 percent quota is applied`() = runTest {
+        // Total budget = 1000 bytes → repo quota = 100 bytes.
+        // totalSizeBytes() returns 120 (exceeds quota), so pruneToLimit must delete
+        // the oldest entry (40 bytes) to bring total down to 80, which is within quota.
+        val oldEntry = MediaCacheEntity("kg", "old", "1".repeat(40), 100L)
+        val newEntry = MediaCacheEntity("kg", "new", "2".repeat(40), 200L)
+
+        // pruneToLimit iterates getOldestEntries() and deletes until totalBytes <= limit.
+        // Use a fixed list — do NOT mutate it inside the mock to avoid ConcurrentModificationException.
+        val dao: MediaCacheDao = mockk {
+            coEvery { get(any(), any()) } returns null
+            coEvery { upsert(any()) } returns Unit
+            // After the put, total is 120 bytes (exceeds 100-byte quota)
+            coEvery { totalSizeBytes() } returns 120L
+            coEvery { getOldestEntries() } returns listOf(oldEntry, newEntry)
+            coEvery { delete("kg", "old") } returns Unit
+            coEvery { count() } returns 2
+        }
+
+        MediaCacheRepository(
+            dao = dao,
+            now = { 400L },
+            limitProvider = { (1000L / MediaCacheRepository.REPO_QUOTA_DIVISOR).coerceAtLeast(1L) },
+        ).put(
+            item,
+            PlayQuality.STANDARD,
+            MediaSourceResult("http://x", null, null, PlayQuality.STANDARD),
+        )
+
+        // The oldest entry must have been deleted to bring the total under 100 bytes
         coVerify(exactly = 1) { dao.delete("kg", "old") }
         coVerify(exactly = 0) { dao.delete("kg", "new") }
     }

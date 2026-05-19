@@ -1,6 +1,7 @@
 package com.hank.musicfree.data.repository
 
 import androidx.collection.LruCache
+import com.hank.musicfree.core.cache.SimpleCacheEvictor
 import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
@@ -28,8 +29,12 @@ data class CachedSource(
 class MediaCacheRepository private constructor(
     private val dao: MediaCacheDao,
     private val limitProvider: suspend () -> Long,
+    private val onSimpleCacheEvict: (platform: String, id: String, quality: PlayQuality?) -> Unit = { _, _, _ -> },
 ) {
-    @Inject
+    // NOTE: @Inject is intentionally absent here.
+    // MediaCacheRepository is provided via MediaCacheBindingModule in :app,
+    // which wires the SimpleCacheEvictor callback (SimpleCacheHolder lives in :player,
+    // which :data cannot depend on). See app/.../di/MediaCacheBindingModule.kt.
     constructor(
         dao: MediaCacheDao,
         appPreferences: AppPreferences,
@@ -47,6 +52,16 @@ class MediaCacheRepository private constructor(
         now: () -> Long,
         limitProvider: suspend () -> Long,
     ) : this(dao, limitProvider) {
+        this.nowFn = now
+    }
+
+    // Internal constructor for tests that need to verify the evict callback
+    internal constructor(
+        dao: MediaCacheDao,
+        now: () -> Long,
+        limitProvider: suspend () -> Long,
+        onSimpleCacheEvict: (platform: String, id: String, quality: PlayQuality?) -> Unit,
+    ) : this(dao, limitProvider, onSimpleCacheEvict) {
         this.nowFn = now
     }
 
@@ -125,7 +140,12 @@ class MediaCacheRepository private constructor(
         }
     }
 
-    /** Delete all cached qualities for one song from DB and memory. */
+    /**
+     * Delete all cached qualities for one song from DB and memory.
+     *
+     * Also calls [onSimpleCacheEvict] (with null quality = all) to remove the
+     * corresponding Media3 SimpleCache spans, keeping the two cache layers in sync.
+     */
     suspend fun deleteItem(platform: String, id: String) = mutex.withLock {
         val startedAt = System.nanoTime()
         try {
@@ -141,6 +161,7 @@ class MediaCacheRepository private constructor(
                     "result" to LogFields.Result.SUCCESS,
                 ),
             )
+            onSimpleCacheEvict(platform, id, null)
         } catch (error: CancellationException) {
             MfLog.detail(
                 category = LogCategory.DATA,
@@ -174,6 +195,9 @@ class MediaCacheRepository private constructor(
     /**
      * Remove a single quality key from one row. If no quality keys remain the row is
      * deleted entirely. Memory layer is synced to match.
+     *
+     * Also calls [onSimpleCacheEvict] to remove the corresponding Media3 SimpleCache
+     * spans, keeping the two cache layers in sync.
      */
     suspend fun deleteEntry(platform: String, id: String, quality: PlayQuality) = mutex.withLock {
         val existing = dao.get(platform, id) ?: run {
@@ -194,6 +218,7 @@ class MediaCacheRepository private constructor(
             dao.upsert(MediaCacheEntity(platform, id, obj.toString(), now()))
             memory.put(memoryKey(platform, id), obj)
         }
+        onSimpleCacheEvict(platform, id, quality)
     }
 
     /** Delete all rows for the platform from DB and from memory. */
@@ -208,6 +233,13 @@ class MediaCacheRepository private constructor(
             keysToDrop.forEach { memory.remove(it) }
         }
     }
+
+    /**
+     * Returns the total byte footprint of all stored URL/header metadata entries.
+     * Intended for use by [com.hank.musicfree.feature.settings.SettingsCacheCleaner]
+     * to report freed bytes when clearing this layer.
+     */
+    suspend fun estimatedBytes(): Long = mutex.withLock { dao.totalSizeBytes() }
 
     /** Delete all media cache rows from DB and memory. */
     suspend fun clearAll() = mutex.withLock {
@@ -391,7 +423,36 @@ class MediaCacheRepository private constructor(
         const val LIMIT = 800
         const val MEMORY_LIMIT = 200
         const val DEFAULT_MAX_CACHE_SIZE_BYTES = 512L * 1024L * 1024L
-        private val DEFAULT_LIMIT_PROVIDER: suspend () -> Long = { DEFAULT_MAX_CACHE_SIZE_BYTES }
+
+        /**
+         * Divisor used to derive the repository's byte quota from the user-configured
+         * total cache budget. The repository stores URL/header metadata only; 10% of the
+         * full audio-file budget is more than adequate for thousands of entries.
+         */
+        const val REPO_QUOTA_DIVISOR = 10L
+
+        private val DEFAULT_LIMIT_PROVIDER: suspend () -> Long = { DEFAULT_MAX_CACHE_SIZE_BYTES / REPO_QUOTA_DIVISOR }
+
+        /**
+         * Factory that wires the SimpleCache eviction callback.
+         *
+         * Called from the `:app` Hilt module (which can see both `:data` and `:player`),
+         * keeping the `:data → :player` dependency edge out of the graph.
+         *
+         * The repository holds URL/header metadata only; it uses a 10% sub-quota
+         * ([REPO_QUOTA_DIVISOR]) of the user-configured total cache budget.
+         */
+        fun create(
+            dao: MediaCacheDao,
+            appPreferences: AppPreferences,
+            evictor: SimpleCacheEvictor,
+        ): MediaCacheRepository = MediaCacheRepository(
+            dao = dao,
+            limitProvider = {
+                (appPreferences.maxMusicCacheSizeBytes.first() / REPO_QUOTA_DIVISOR).coerceAtLeast(1L)
+            },
+            onSimpleCacheEvict = { p, i, q -> evictor.evictForKey(p, i, q) },
+        )
     }
 
     private fun readQuality(obj: JSONObject, quality: PlayQuality): CachedSource? {

@@ -34,6 +34,8 @@ import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
 import com.hank.musicfree.player.service.PlaybackNotificationQueueControls
 import com.hank.musicfree.player.service.PlaybackService
 import com.hank.musicfree.player.listening.ListenTracker
+import com.hank.musicfree.core.telemetry.CurrentSidProvider
+import com.hank.musicfree.core.telemetry.PlayCacheTelemetry
 import com.hank.musicfree.player.source.TrackHeaderRegistry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -49,6 +51,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.mapNotNull
+import com.hank.musicfree.player.prefetch.ProgressTick
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -71,6 +76,8 @@ class PlayerController @Inject constructor(
     private val trackHeaderRegistry: TrackHeaderRegistry = TrackHeaderRegistry(),
     private val staleUrlRefresher: StaleUrlRefresher = EmptyStaleUrlRefresher,
     private val listenTracker: ListenTracker,
+    private val currentSidProvider: CurrentSidProvider,
+    private val playCacheTelemetry: PlayCacheTelemetry,
 ) : PlaybackNotificationQueueControls {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val connectionMutex = Mutex()
@@ -114,6 +121,26 @@ class PlayerController @Inject constructor(
     val queueState: StateFlow<PlayQueueSnapshot> = _queueState.asStateFlow()
     private val _errorEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val errorEvents: SharedFlow<String> = _errorEvents.asSharedFlow()
+
+    /**
+     * Emits a [ProgressTick] whenever [playerState] updates with a non-null current item.
+     * Used by [com.hank.musicfree.player.prefetch.PrefetchCoordinator] to decide when to
+     * prefetch the next queue item.
+     */
+    val progressTickFlow = _playerState
+        .filterNotNull()
+        .mapNotNull { state ->
+            val item = state.currentItem ?: return@mapNotNull null
+            ProgressTick(item, state.position, state.duration.coerceAtLeast(0L))
+        }
+
+    private val _nextItemFlow = MutableStateFlow<MusicItem?>(null)
+
+    /**
+     * The item that would play after the current track, updated whenever the queue changes.
+     * Null when the queue is empty or playback would stop at the current track.
+     */
+    val nextItemFlow: StateFlow<MusicItem?> = _nextItemFlow.asStateFlow()
 
     private var repeatMode: RepeatMode = RepeatMode.OFF
     private var shuffleEnabled: Boolean = false
@@ -492,7 +519,9 @@ class PlayerController @Inject constructor(
                 return@launch
             }
             val resolution = try {
-                mediaSourceResolver.resolve(item, qualityValue)
+                // Quality-change is a mid-session operation; no distinct play sid here.
+                // TODO(later-task): thread the active sid through quality-change path.
+                mediaSourceResolver.resolve(item, qualityValue, sid = null)
             } catch (error: CancellationException) {
                 MfLog.detail(
                     category = LogCategory.PLAYER,
@@ -592,6 +621,11 @@ class PlayerController @Inject constructor(
         // first failure on the fresh URL is allowed to trigger one refresh.
         staleUrlRetryState.remove(item.platform to item.id)
         playFailureSourceRetryState.remove(item.platform to item.id)
+        // Mint the sid synchronously (before the coroutine starts) so rapid
+        // successive calls to setMediaItemAndPlay each capture their own sid.
+        // A coroutine that suspends at resolve() must never read the global
+        // currentSid that a later call may have already overwritten.
+        val sid = currentSidProvider.newSession()
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             MfLog.detail(
                 category = LogCategory.PLAYER,
@@ -604,7 +638,15 @@ class PlayerController @Inject constructor(
                 ) + item.diagnosticFields(),
             )
             currentPlayQuality = playbackRuntimeSettings.defaultPlayQuality()
-            val playable = resolvePlayableItem(item)
+            playCacheTelemetry.playSessionStart(
+                sid = sid,
+                platform = item.platform,
+                id = item.id,
+                requestedQuality = playbackRuntimeSettings.defaultPlayQuality().name.lowercase(),
+                networkType = "unknown", // wired up in a later Task with NetworkMonitor
+                isOnline = true,
+            )
+            val playable = resolvePlayableItem(item, sid = sid)
             if (playable == null) {
                 rollbackPlaybackSelection(expectedIndex, item, rollbackIndex)
                 return@launch
@@ -657,7 +699,7 @@ class PlayerController @Inject constructor(
         }
     }
 
-    private suspend fun resolvePlayableItem(item: MusicItem): MusicItem? {
+    private suspend fun resolvePlayableItem(item: MusicItem, sid: String? = null): MusicItem? {
         if (!canPlayOverCurrentNetwork(item)) {
             MfLog.error(
                 category = LogCategory.PLAYER,
@@ -677,7 +719,7 @@ class PlayerController @Inject constructor(
 
         val startedAt = System.nanoTime()
         val resolution = runCatching {
-            mediaSourceResolver.resolve(item)
+            mediaSourceResolver.resolve(item, sid = sid)
         }.onFailure { error ->
             MfLog.error(
                 category = LogCategory.PLAYER,
@@ -718,6 +760,7 @@ class PlayerController @Inject constructor(
                     source.headers.orEmpty(),
                     source.userAgent,
                     cacheKey = "${item.platform}:${item.id}",
+                    quality = currentPlayQuality,
                 )
             }
             MfLog.detail(
@@ -1063,6 +1106,7 @@ class PlayerController @Inject constructor(
                 source.headers.orEmpty(),
                 source.userAgent,
                 cacheKey = "${item.platform}:${item.id}",
+                quality = quality,
             )
         }
         playQueue.replaceCurrent(expectedIndex, item, refreshedItem)
@@ -1118,7 +1162,9 @@ class PlayerController @Inject constructor(
         val startedAt = System.nanoTime()
         val quality = currentPlayQuality.name.lowercase()
         val resolution = runCatching {
-            mediaSourceResolver.resolve(item, quality)
+            // Failure-recovery resolve; no new play sid minted — pass null.
+            // TODO(later-task): thread the active sid through failure-recovery path.
+            mediaSourceResolver.resolve(item, quality, sid = null)
         }.onFailure { resolveError ->
             MfLog.error(
                 category = LogCategory.PLAYER,
@@ -1169,6 +1215,7 @@ class PlayerController @Inject constructor(
                 source.headers.orEmpty(),
                 source.userAgent,
                 cacheKey = "${item.platform}:${item.id}",
+                quality = currentPlayQuality,
             )
         }
         playQueue.replaceCurrent(expectedIndex, item, changedItem)
@@ -1354,6 +1401,7 @@ class PlayerController @Inject constructor(
             items = playQueue.items,
             currentIndex = playQueue.currentIndex,
         )
+        _nextItemFlow.value = playQueue.peekNextItem(repeatMode)
     }
 
     /**

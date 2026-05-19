@@ -1,5 +1,6 @@
 package com.hank.musicfree.player.source
 
+import com.hank.musicfree.core.model.PlayQuality
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,6 +20,7 @@ class TrackHeaderRegistry @Inject constructor() {
         val headers: Map<String, String>,
         val userAgent: String?,
         val cacheKey: String? = null,
+        val quality: PlayQuality? = null,
     )
 
     // accessOrder=true: get() bumps recency
@@ -33,8 +35,9 @@ class TrackHeaderRegistry @Inject constructor() {
         headers: Map<String, String>,
         userAgent: String?,
         cacheKey: String? = null,
+        quality: PlayQuality? = null,
     ) {
-        map[url] = HeaderEntry(headers, userAgent, cacheKey)
+        map[url] = HeaderEntry(headers, userAgent, cacheKey, quality)
     }
 
     @Synchronized

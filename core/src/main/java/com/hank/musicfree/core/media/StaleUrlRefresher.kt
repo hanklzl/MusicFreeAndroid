@@ -35,11 +35,11 @@ interface StaleUrlRefresher {
      * still happen subject to the plugin's declared `cacheControl`). Returns
      * `null` when no plugin / network path can produce a fresh URL.
      */
-    suspend fun resolveFresh(item: MusicItem, quality: String? = null): MediaSourceResolution?
+    suspend fun resolveFresh(item: MusicItem, quality: String? = null, sid: String? = null): MediaSourceResolution?
 }
 
 /** Inert default usable as a constructor default in `PlayerController` test setups. */
 object EmptyStaleUrlRefresher : StaleUrlRefresher {
     override suspend fun evictCacheEntry(platform: String, id: String, quality: PlayQuality) = Unit
-    override suspend fun resolveFresh(item: MusicItem, quality: String?): MediaSourceResolution? = null
+    override suspend fun resolveFresh(item: MusicItem, quality: String?, sid: String?): MediaSourceResolution? = null
 }

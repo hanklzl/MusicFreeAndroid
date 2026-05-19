@@ -8,8 +8,12 @@ import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.PlaybackRuntimeSettings
 import com.hank.musicfree.core.model.fallbackSequence
+import com.hank.musicfree.core.telemetry.CacheHitSource
+import com.hank.musicfree.core.telemetry.CacheMissReason
+import com.hank.musicfree.core.telemetry.PlayCacheTelemetry
 import com.hank.musicfree.data.repository.CachedSource
 import com.hank.musicfree.data.repository.MediaCacheRepository
+import com.hank.musicfree.data.repository.MusicRepository
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.plugin.manager.LoadedPlugin
@@ -26,8 +30,11 @@ import kotlinx.coroutines.flow.first
 class PluginMediaSourceService @Inject constructor(
     private val pluginManager: PluginManager,
     private val mediaCacheRepository: MediaCacheRepository,
+    private val musicRepository: MusicRepository,
+    private val localFileProbe: LocalFileProbe,
     private val playbackRuntimeSettings: PlaybackRuntimeSettings = PlaybackRuntimeSettings.Defaults,
     private val networkStateProvider: PluginNetworkStateProvider = PluginNetworkStateProvider.AlwaysOnline,
+    private val playCacheTelemetry: PlayCacheTelemetry,
 ) : MediaSourceResolver, StaleUrlRefresher {
 
     /**
@@ -39,7 +46,8 @@ class PluginMediaSourceService @Inject constructor(
     override suspend fun resolve(
         item: MusicItem,
         quality: String?,
-    ): MediaSourceResolution? = doResolve(item, quality, useCache = true)
+        sid: String?,
+    ): MediaSourceResolution? = doResolve(item, quality, useCache = true, sid = sid)
 
     /**
      * Bypass-cache entry used by the playback failure recovery path (spec §5.7).
@@ -49,7 +57,8 @@ class PluginMediaSourceService @Inject constructor(
     override suspend fun resolveFresh(
         item: MusicItem,
         quality: String?,
-    ): MediaSourceResolution? = doResolve(item, quality, useCache = false)
+        sid: String?,
+    ): MediaSourceResolution? = doResolve(item, quality, useCache = false, sid = sid)
 
     /**
      * Single-quality cache eviction; called from `PlayerController` when ExoPlayer
@@ -63,7 +72,11 @@ class PluginMediaSourceService @Inject constructor(
         item: MusicItem,
         quality: String?,
         useCache: Boolean,
+        sid: String? = null,
     ): MediaSourceResolution? {
+        // 0. Local short-circuit: if the item has a downloaded local copy, serve it directly.
+        resolveLocal(item, sid)?.let { return it }
+
         val sourcePlugin = pluginManager.getPlugin(item.platform) ?: return null
         val cacheControl = CacheControl.parse(sourcePlugin.info.cacheControl)
         val isOffline = networkStateProvider.isOffline()
@@ -115,6 +128,20 @@ class PluginMediaSourceService @Inject constructor(
         }
 
         // 2. Walk quality candidates, ask plugin (optionally via alternative).
+        val missReason = when {
+            !useCache -> CacheMissReason.DISABLED
+            cacheControl == CacheControl.NoStore -> CacheMissReason.DISABLED
+            cacheControl == CacheControl.NoCache && !isOffline -> CacheMissReason.NO_CACHE_POLICY
+            else -> CacheMissReason.COLD
+        }
+        playCacheTelemetry.cacheMiss(
+            sid = sid,
+            reason = missReason,
+            platform = item.platform,
+            id = item.id,
+            quality = quality ?: playbackRuntimeSettings.defaultPlayQuality().name.lowercase(),
+        )
+
         val disabled = pluginManager.pluginMetaStore.disabledPlugins.first()
         val alternatives = pluginManager.pluginMetaStore.alternativePlugins.first()
         val alternativePlatform = alternatives[item.platform]
@@ -165,6 +192,68 @@ class PluginMediaSourceService @Inject constructor(
         return null
     }
 
+    /**
+     * 在调用 plugin / 缓存之前尝试用 [MusicItem.localPath] 直接构造 [MediaSourceResolution]。
+     *
+     * - localPath 为空：返回 null，回到正常解析链路。
+     * - localPath 可读：直接短路，emit `media_cache_hit{source=local}`。
+     * - localPath 不可读：**destructive cleanup** — 调用 [MusicRepository.removeFromLocalLibrary] 永久
+     *   清掉 DownloadedTrack 行与 MusicItem.localPath，然后回退到 plugin 路径。
+     *
+     * 已知 trade-off：transient I/O 失败（SD 卡临时拔出、ContentResolver 权限暂时被吊销）会被当作
+     * "用户删除"对待，下载记录无法恢复，需要用户重新下载。这是为了避免"已下载"列表里存在永远播不出
+     * 来的死记录。如果未来观测到 transient 误触发明显，可以考虑：
+     *   1) 收紧触发条件（仅 file:// 且父目录存在但文件缺失时清理）；
+     *   2) 把清理移到后台 sweep，避免阻塞解析路径；
+     *   3) 使用计数器，连续 N 次失败才清。
+     */
+    private suspend fun resolveLocal(item: MusicItem, sid: String?): MediaSourceResolution? {
+        val path = item.localPath
+        if (path.isNullOrBlank()) {
+            playCacheTelemetry.resolveLocalCheck(sid ?: "", hasLocalPath = false, localPathReadable = null)
+            return null
+        }
+
+        return if (localFileProbe.isReadable(path)) {
+            playCacheTelemetry.resolveLocalCheck(sid ?: "", hasLocalPath = true, localPathReadable = true)
+            val quality = playbackRuntimeSettings.defaultPlayQuality()
+            playCacheTelemetry.cacheHit(
+                sid = sid,
+                source = CacheHitSource.LOCAL,
+                platform = item.platform,
+                id = item.id,
+                quality = quality.name.lowercase(),
+                sizeBytes = null,
+            )
+            MediaSourceResolution(
+                item = item.copy(url = path),
+                source = MediaSourceResult(
+                    url = path,
+                    headers = null,
+                    userAgent = null,
+                    quality = quality,
+                ),
+                requestedPlatform = item.platform,
+                resolverPlatform = item.platform,
+                redirected = false,
+            )
+        } else {
+            playCacheTelemetry.resolveLocalCheck(sid ?: "", hasLocalPath = true, localPathReadable = false)
+            MfLog.detail(
+                category = LogCategory.PLUGIN,
+                event = "local_short_circuit_fallback",
+                fields = mapOf(
+                    "sid" to sid,
+                    "platform" to item.platform,
+                    "id" to item.id,
+                    "reason" to "unreadable",
+                ),
+            )
+            musicRepository.removeFromLocalLibrary(item)
+            null
+        }
+    }
+
     private suspend fun maybeWriteCache(
         cacheControl: CacheControl,
         item: MusicItem,
@@ -173,7 +262,7 @@ class PluginMediaSourceService @Inject constructor(
         isOffline: Boolean,
         useCache: Boolean,
     ) {
-        if (!shouldWriteCache(cacheControl)) return
+        if (!shouldWriteCache(cacheControl, isOffline)) return
         // Important #4 fix: don't pollute the STANDARD slot with payloads that
         // came back for an unknown wire quality. parseStrictQuality returns null
         // when the wire string does not map to a known PlayQuality.

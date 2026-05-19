@@ -67,6 +67,33 @@ class PlayerControllerStaleUrlRefreshTest {
     }
 
     @Test
+    fun `registry entry after stale-URL refresh carries quality`() {
+        val refresher = RecordingStaleUrlRefresher(
+            freshUrl = "https://cdn.example.test/fresh2.mp3",
+        )
+        val registry = TrackHeaderRegistry()
+        val controller = controller(refresher = refresher, registry = registry)
+        try {
+            val stale = remoteItem("2", url = "https://cdn.example.test/stale2.mp3")
+            controller.playQueue.setQueue(listOf(stale), startIndex = 0)
+
+            controller.handleStaleUrlErrorForTest(httpError())
+
+            waitUntil("current item is refreshed") {
+                controller.playQueue.currentItem?.url == "https://cdn.example.test/fresh2.mp3"
+            }
+            val entry = registry.get("https://cdn.example.test/fresh2.mp3")
+            assertEquals(
+                "registry entry after stale-URL refresh must carry quality (not null/unknown)",
+                PlayQuality.STANDARD,
+                entry?.quality,
+            )
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
     fun `same item second HTTP 4xx does not trigger a second refresh`() {
         val refresher = RecordingStaleUrlRefresher(
             freshUrl = "https://cdn.example.test/fresh.mp3",
@@ -233,6 +260,8 @@ class PlayerControllerStaleUrlRefreshTest {
         trackHeaderRegistry = registry,
         staleUrlRefresher = refresher,
         listenTracker = mock<ListenTracker>(),
+        currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(),
+        playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
     )
 
     private fun httpError(): PlaybackException = PlaybackException(
@@ -279,6 +308,7 @@ class PlayerControllerStaleUrlRefreshTest {
         override suspend fun resolveFresh(
             item: MusicItem,
             quality: String?,
+            sid: String?,
         ): MediaSourceResolution? {
             resolveFreshIds += item.id
             val url = freshUrl ?: return null
@@ -300,7 +330,7 @@ class PlayerControllerStaleUrlRefreshTest {
     private class RecordingResolver(
         private val resolvedUrl: String? = null,
     ) : MediaSourceResolver {
-        override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution? {
+        override suspend fun resolve(item: MusicItem, quality: String?, sid: String?): MediaSourceResolution? {
             val url = resolvedUrl ?: return null
             return MediaSourceResolution(
                 item = item.copy(url = url),

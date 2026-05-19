@@ -27,7 +27,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `play after lazy restoreQueue keeps pendingRestorePosition set`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1"), item("2")),
@@ -47,7 +47,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `user-initiated skipToNext clears pendingRestorePosition`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1"), item("2")),
@@ -65,7 +65,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `consumePendingRestoreForTest seeks to pending and clears it`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1")),
@@ -87,7 +87,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `consumePendingRestoreForTest coerces pending into 0 to duration`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1")),
@@ -108,7 +108,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `seekTo before activation updates pendingRestorePosition and playerState position`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1")),
@@ -127,7 +127,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `consumePendingRestoreForTest second call after consumption is no-op`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1")),
@@ -147,7 +147,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `skipToPrevious clears pendingRestorePosition`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1"), item("2")),
@@ -165,7 +165,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `skipTo clears pendingRestorePosition`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1"), item("2"), item("3")),
@@ -183,7 +183,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `playItem clears pendingRestorePosition`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1")),
@@ -201,7 +201,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `playQueue clears pendingRestorePosition`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1")),
@@ -219,7 +219,7 @@ class PlayerControllerLazyRestoreTest {
 
     @Test
     fun `reset clears pendingRestorePosition`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.restoreQueue(
                 items = listOf(item("1")),

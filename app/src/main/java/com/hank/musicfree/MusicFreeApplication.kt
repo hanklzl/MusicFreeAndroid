@@ -12,8 +12,11 @@ import com.hank.musicfree.core.di.ApplicationScope
 import com.hank.musicfree.core.network.BaseOkHttp
 import com.hank.musicfree.data.backup.StartupBackupRestore
 import com.hank.musicfree.data.datastore.AppPreferences
+import com.hank.musicfree.data.repository.PinnedKeysProvider
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.LoggingConfig
+import com.hank.musicfree.player.cache.SimpleCacheHolder
+import com.hank.musicfree.player.prefetch.PrefetchCoordinator
 import com.hank.musicfree.logging.LoggingInitializer
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.plugin.engine.AxiosShim
@@ -47,6 +50,10 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
      * injection point that runs after Hilt finishes wiring.
      */
     @Inject @BaseOkHttp lateinit var baseOkHttpClient: OkHttpClient
+
+    @Inject lateinit var simpleCacheHolder: SimpleCacheHolder
+    @Inject lateinit var pinnedKeysProvider: PinnedKeysProvider
+    @Inject lateinit var prefetchCoordinator: PrefetchCoordinator
 
     /**
      * 通过 [SingletonImageLoader.Factory.newImageLoader] 提供给 Coil 的全局
@@ -110,6 +117,9 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
             MfLog.enableParitySink()
         }
 
+        simpleCacheHolder.migrateOnceIfNeeded()
+        startCacheCapacityBridge()
+        startPinnedKeysBridge()
         startLoggingPreferenceBridge()
         val preferenceBridgeFlow = StartupTelemetry.startFlow("logging_preference_bridge")
         StartupTelemetry.completeFlow(
@@ -117,6 +127,7 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
             result = LogFields.Result.SUCCESS,
             reason = "scheduled",
         )
+        prefetchCoordinator.start()
         runtimeRestoreCoordinator.start()
         defaultPluginsBootstrapper.start()
         pluginAutoUpdateCoordinator.start()
@@ -140,6 +151,32 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader
+
+    /**
+     * Watches [AppPreferences.maxMusicCacheSizeBytes] and forwards changes to
+     * [SimpleCacheHolder.updateMaxBytes] so the SimpleCache LRU budget stays in sync
+     * with the user-configured limit without requiring an app restart.
+     */
+    private fun startCacheCapacityBridge() {
+        applicationScope.launch {
+            appPreferences.maxMusicCacheSizeBytes.collect { newBytes ->
+                simpleCacheHolder.updateMaxBytes(newBytes)
+            }
+        }
+    }
+
+    /**
+     * Watches [PinnedKeysProvider.observe] and forwards key sets to
+     * [SimpleCacheHolder.updatePinned] so starred sheets and recently-queued
+     * tracks are protected from LRU cache eviction.
+     */
+    private fun startPinnedKeysBridge() {
+        applicationScope.launch {
+            pinnedKeysProvider.observe().collect { keys ->
+                simpleCacheHolder.updatePinned(keys)
+            }
+        }
+    }
 
     private fun startLoggingPreferenceBridge() {
         applicationScope.launch {

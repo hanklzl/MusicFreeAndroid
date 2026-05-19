@@ -29,7 +29,7 @@ class PlayerControllerPlaybackModeTest {
 
     @Test
     fun `cyclePlaybackMode enters shuffle from queue mode`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
 
         try {
             controller.playQueue.setQueue(testItems(), startIndex = 1)
@@ -48,7 +48,7 @@ class PlayerControllerPlaybackModeTest {
 
     @Test
     fun `cyclePlaybackMode treats repeat off as queue mode`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
 
         try {
             controller.playQueue.setQueue(testItems(), startIndex = 1)
@@ -66,7 +66,7 @@ class PlayerControllerPlaybackModeTest {
 
     @Test
     fun `cyclePlaybackMode exits shuffle and enters single mode`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         val originalItems = testItems()
 
         try {
@@ -90,7 +90,7 @@ class PlayerControllerPlaybackModeTest {
 
     @Test
     fun `cyclePlaybackMode enters queue mode from single mode`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
 
         try {
             controller.playQueue.setQueue(testItems(), startIndex = 0)

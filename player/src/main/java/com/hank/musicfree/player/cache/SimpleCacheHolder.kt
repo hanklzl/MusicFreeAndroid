@@ -4,8 +4,11 @@ import android.content.Context
 import androidx.annotation.OptIn as AndroidXOptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
+import com.hank.musicfree.core.cache.SimpleCacheEvictor
+import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.telemetry.PlayCacheTelemetry
+import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -14,6 +17,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 /**
  * SimpleCache 单例 holder，支持 `current` 懒加载和 `resetForClear` 重置。
@@ -27,9 +32,12 @@ import javax.inject.Singleton
 @AndroidXOptIn(markerClass = [UnstableApi::class])
 class SimpleCacheHolder @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+    private val appPreferences: AppPreferences,
+    private val playCacheTelemetry: PlayCacheTelemetry,
+) : SimpleCacheEvictor {
     private val ref = AtomicReference<SimpleCache?>(null)
     private val initFailed = AtomicBoolean(false)
+    private var pinningEvictor: PinningCacheEvictor? = null
 
     val current: SimpleCache?
         get() = ref.get() ?: synchronized(this) {
@@ -47,10 +55,203 @@ class SimpleCacheHolder @Inject constructor(
     fun cacheDirPath(): String = cacheDir().absolutePath
     fun usedBytes(): Long = current?.cacheSpace ?: 0L
 
+    /**
+     * Clears the audio-file cache and recreates the underlying [SimpleCache].
+     * Unlike [resetForClear], this variant returns [Unit] so callers that cannot
+     * reference the Media3 [SimpleCache] type (e.g. `:feature:settings`) can still
+     * trigger a cache clear without requiring a direct Media3 dependency.
+     */
+    fun clearCache() {
+        resetForClear()
+    }
+
+    /**
+     * Remove all cached spans for a specific song (optionally filtered by quality) from
+     * the underlying SimpleCache. Called by [MediaCacheRepository] whenever a DB-level
+     * eviction happens, so the two cache layers stay in sync.
+     *
+     * @param platform  plugin platform identifier (e.g. "kg")
+     * @param id        song ID within that platform
+     * @param quality   specific quality to evict, or null to evict ALL qualities
+     */
+    override fun evictForKey(platform: String, id: String, quality: PlayQuality?) {
+        runCatching {
+            val cache = current ?: return
+            val qualities = if (quality != null) listOf(quality) else PlayQuality.values().toList()
+            var totalRemoved = 0
+            var totalBytes = 0L
+            for (q in qualities) {
+                val key = "$platform:$id:${q.name.lowercase()}"
+                val spans = cache.getCachedSpans(key)
+                if (spans.isNotEmpty()) {
+                    totalBytes += spans.sumOf { it.length }
+                    cache.removeResource(key)
+                    totalRemoved += 1
+                }
+            }
+            // Also clean the "unknown" suffix (entries cached when quality was not yet established)
+            val unknownKey = "$platform:$id:unknown"
+            val unknownSpans = cache.getCachedSpans(unknownKey)
+            if (unknownSpans.isNotEmpty()) {
+                totalBytes += unknownSpans.sumOf { it.length }
+                cache.removeResource(unknownKey)
+                totalRemoved += 1
+            }
+            if (totalRemoved > 0) {
+                playCacheTelemetry.cacheEvict(
+                    scope = "stale_url",
+                    count = totalRemoved,
+                    freedBytes = totalBytes,
+                )
+            }
+        }.onFailure { throwable ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "media_cache_evict_for_key_failed",
+                throwable = throwable,
+                fields = mapOf(
+                    "platform" to platform,
+                    "id" to id,
+                    "quality" to quality?.name?.lowercase(),
+                    "reason" to (throwable.javaClass.simpleName ?: "exception"),
+                ),
+            )
+        }
+    }
+
+    /**
+     * One-time migration from legacy cache keys (no quality suffix) to the new
+     * quality-qualified scheme. Called once on application startup; subsequent
+     * launches check the persisted schema version and are no-ops.
+     *
+     * Runs on the calling thread (Application.onCreate) — intentionally
+     * synchronous so the first [current] access after onCreate already sees the
+     * clean cache. Migration touches only metadata (removes spans), not downloads.
+     */
+    fun migrateOnceIfNeeded() {
+        // TODO(perf): consider running this on Dispatchers.IO to avoid blocking onCreate
+        runCatching {
+            val cache = current ?: return
+            val version = runBlocking { appPreferences.mediaCacheSchemaVersion.first() }
+            if (version >= 1) return
+            val startedAt = System.currentTimeMillis()
+            val result = CacheSchemaMigrator.migrate(cache)
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "media_cache_schema_migration",
+                fields = mapOf(
+                    "removedCount" to result.removedCount,
+                    "freedBytes" to result.freedBytes,
+                    "durationMs" to (System.currentTimeMillis() - startedAt),
+                ),
+            )
+            playCacheTelemetry.cacheEvict(
+                scope = "migration",
+                count = result.removedCount,
+                freedBytes = result.freedBytes,
+            )
+            runBlocking { appPreferences.setMediaCacheSchemaVersion(1) }
+        }.onFailure { throwable ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "media_cache_migration_failed",
+                throwable = throwable,
+                fields = mapOf("reason" to (throwable.javaClass.simpleName ?: "exception")),
+            )
+        }
+    }
+
+    /**
+     * Respond to a user-initiated change to the cache byte budget.
+     *
+     * If the new budget is *larger* than the current used space nothing needs to happen —
+     * LRU will naturally respect the new, larger limit on the next write.
+     *
+     * If the new budget is *smaller* than what is already used, SimpleCache has no public
+     * "shrink" API, so we release and null-out the ref; [tryCreate] will re-read the latest
+     * prefs (including the new, smaller limit) on the next [current] access.
+     *
+     * known-limitation: cache recreate drops all files; spec accepts this trade-off.
+     */
+    fun updateMaxBytes(newBytes: Long) {
+        runCatching {
+            val cache = current ?: return
+            val used = cache.cacheSpace
+            if (used <= newBytes) return
+            val previousUsed = used
+            synchronized(this) {
+                ref.get()?.release()
+                ref.set(null)
+            }
+            playCacheTelemetry.cacheEvict(
+                scope = "byte_cap",
+                count = 1,
+                freedBytes = (previousUsed - newBytes).coerceAtLeast(0L),
+            )
+        }.onFailure { error ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "media_cache_update_max_bytes_failed",
+                throwable = error,
+                fields = mapOf("cacheDirPath" to cacheDirPath()),
+            )
+        }
+    }
+
+    /**
+     * Updates the set of pinned keys so recently-played and starred tracks survive LRU eviction.
+     *
+     * Each base key ("<platform>:<id>") is expanded to all five quality-suffixed cache key
+     * variants plus the `:unknown` fallback suffix. Pinned-size estimation follows to trigger
+     * the 70% overflow guard in [PinningCacheEvictor.shouldSkip].
+     */
+    fun updatePinned(keys: Set<String>) {
+        runCatching {
+            val evictor = pinningEvictor ?: return
+            val expanded = HashSet<String>(keys.size * 6)
+            for (base in keys) {
+                for (q in PlayQuality.values()) {
+                    expanded += "$base:${q.name.lowercase()}"
+                }
+                expanded += "$base:unknown"
+            }
+            evictor.updatePinned(expanded)
+            val cache = current
+            if (cache != null) {
+                val totalBytes = expanded.sumOf { k ->
+                    cache.getCachedSpans(k).sumOf { it.length }
+                }
+                evictor.notePinnedSize(totalBytes)
+            }
+        }.onFailure { error ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "media_cache_update_pinned_failed",
+                throwable = error,
+                fields = mapOf("count" to keys.size),
+            )
+        }
+    }
+
     private fun tryCreate(): SimpleCache? = runCatching {
+        val configured = runBlocking {
+            appPreferences.maxMusicCacheSizeBytes.first()
+        }
+        val cacheDir = cacheDir().apply { mkdirs() }
+        val available = cacheDir.parentFile?.usableSpace ?: Long.MAX_VALUE
+        val effective = if (available < LOWSPACE_THRESHOLD) {
+            playCacheTelemetry.cacheLowspace(
+                availableBytes = available,
+                configuredBytes = configured,
+                fallbackBytes = LOWSPACE_FALLBACK,
+            )
+            minOf(configured, LOWSPACE_FALLBACK)
+        } else {
+            configured
+        }
         SimpleCache(
-            cacheDir().apply { mkdirs() },
-            LeastRecentlyUsedCacheEvictor(DEFAULT_BYTES),
+            cacheDir,
+            PinningCacheEvictor(effective).also { pinningEvictor = it },
             StandaloneDatabaseProvider(context),
         )
     }.onFailure { error ->
@@ -68,6 +269,13 @@ class SimpleCacheHolder @Inject constructor(
             ?: context.cacheDir.resolve("media-cache")
 
     companion object {
+        /** Minimum free disk space (2 GB) below which the cache is capped at [LOWSPACE_FALLBACK]. */
+        const val LOWSPACE_THRESHOLD = 2L * 1024 * 1024 * 1024
+
+        /** Fallback cache cap (256 MB) used when free disk space is below [LOWSPACE_THRESHOLD]. */
+        const val LOWSPACE_FALLBACK = 256L * 1024 * 1024
+
+        @Deprecated("Use AppPreferences.maxMusicCacheSizeBytes")
         const val DEFAULT_BYTES = 512L * 1024 * 1024
     }
 }

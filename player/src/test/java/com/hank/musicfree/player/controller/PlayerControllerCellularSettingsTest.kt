@@ -97,6 +97,8 @@ class PlayerControllerCellularSettingsTest {
         playbackRuntimeSettings = settings,
         networkStateProvider = network,
         listenTracker = mock<ListenTracker>(),
+        currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(),
+        playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
     )
 
     private fun remoteItem() = MusicItem(
@@ -114,7 +116,7 @@ class PlayerControllerCellularSettingsTest {
     private class RecordingResolver : MediaSourceResolver {
         val requestedIds = mutableListOf<String>()
 
-        override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution? {
+        override suspend fun resolve(item: MusicItem, quality: String?, sid: String?): MediaSourceResolution? {
             requestedIds += item.id
             return null
         }

@@ -45,7 +45,7 @@ class PlayerControllerSpeedTest {
 
     @Test
     fun `default playbackSpeed is 1_0`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             assertEquals(PlaybackSpeeds.DEFAULT, controller.playerState.value.playbackSpeed)
         } finally {
@@ -55,7 +55,7 @@ class PlayerControllerSpeedTest {
 
     @Test
     fun `setPlaybackSpeed updates state without connected controller`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.setPlaybackSpeed(1.5f)
             assertEquals(1.5f, controller.playerState.value.playbackSpeed)
@@ -66,7 +66,7 @@ class PlayerControllerSpeedTest {
 
     @Test
     fun `setPlaybackSpeed accepts edge values`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             controller.setPlaybackSpeed(0.5f)
             assertEquals(0.5f, controller.playerState.value.playbackSpeed)
@@ -79,7 +79,7 @@ class PlayerControllerSpeedTest {
 
     @Test
     fun `changeQuality is no-op when no current item`() {
-        val controller = PlayerController(context, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             // No queue items — currentItem is null
             controller.changeQuality(PlayQuality.HIGH)
@@ -93,9 +93,9 @@ class PlayerControllerSpeedTest {
     @Test
     fun `changeQuality emits error event when resolver returns null`() {
         val nullResolver = object : MediaSourceResolver {
-            override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution? = null
+            override suspend fun resolve(item: MusicItem, quality: String?, sid: String?): MediaSourceResolution? = null
         }
-        val controller = PlayerController(context, nullResolver, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, nullResolver, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             val item = MusicItem(
                 id = "x",
@@ -147,9 +147,9 @@ class PlayerControllerSpeedTest {
         val logger = RecordingLogger()
         MfLog.install(logger)
         val nullResolver = object : MediaSourceResolver {
-            override suspend fun resolve(item: MusicItem, quality: String?): MediaSourceResolution? = null
+            override suspend fun resolve(item: MusicItem, quality: String?, sid: String?): MediaSourceResolution? = null
         }
-        val controller = PlayerController(context, nullResolver, listenTracker = mock<ListenTracker>())
+        val controller = PlayerController(context, nullResolver, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {
             val item = MusicItem(
                 id = "quality-log",

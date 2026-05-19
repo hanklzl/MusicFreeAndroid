@@ -7,6 +7,7 @@ import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.PlaybackRuntimeSettings
 import com.hank.musicfree.core.model.QualityFallbackOrder
 import com.hank.musicfree.data.repository.MediaCacheRepository
+import com.hank.musicfree.data.repository.MusicRepository
 import com.hank.musicfree.plugin.api.PluginInfo
 import com.hank.musicfree.plugin.manager.LoadedPlugin
 import com.hank.musicfree.plugin.manager.PluginManager
@@ -147,8 +148,11 @@ class PluginMediaSourceServiceTest {
         return PluginMediaSourceService(
             pluginManager = manager,
             mediaCacheRepository = cache,
+            musicRepository = mock<MusicRepository>(),
+            localFileProbe = LocalFileProbe { false },
             playbackRuntimeSettings = settings,
             networkStateProvider = PluginNetworkStateProvider.AlwaysOnline,
+            playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
         )
     }
 

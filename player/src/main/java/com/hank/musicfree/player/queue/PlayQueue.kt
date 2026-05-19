@@ -92,6 +92,25 @@ class PlayQueue {
         return true
     }
 
+    /**
+     * Returns the item that would play after [currentItem] without advancing the queue.
+     * Returns null when there is no following item (e.g. queue is empty or [RepeatMode.OFF]
+     * at the last track). Does not handle [RepeatMode.ONE] — callers needing that case
+     * should read [currentItem] directly.
+     */
+    fun peekNextItem(repeatMode: RepeatMode): MusicItem? {
+        if (isEmpty) return null
+        val nextIndex = when (repeatMode) {
+            RepeatMode.ONE -> currentIndex
+            RepeatMode.ALL -> (currentIndex + 1) % _items.size
+            RepeatMode.OFF -> {
+                val idx = currentIndex + 1
+                if (idx > _items.lastIndex) return null else idx
+            }
+        }
+        return _items.getOrNull(nextIndex)
+    }
+
     fun next(repeatMode: RepeatMode): MusicItem? {
         if (isEmpty) return null
         val nextIndex = when (repeatMode) {

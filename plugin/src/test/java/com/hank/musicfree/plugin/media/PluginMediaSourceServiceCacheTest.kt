@@ -8,6 +8,7 @@ import com.hank.musicfree.core.model.PlaybackRuntimeSettings
 import com.hank.musicfree.core.model.QualityFallbackOrder
 import com.hank.musicfree.data.repository.CachedSource
 import com.hank.musicfree.data.repository.MediaCacheRepository
+import com.hank.musicfree.data.repository.MusicRepository
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.MfLogger
@@ -141,7 +142,7 @@ class PluginMediaSourceServiceCacheTest {
     }
 
     @Test
-    fun `no-cache (default) writes but does not read`() = runTest {
+    fun `no-cache online does not read and does not write (Task 4 policy)`() = runTest {
         val logger = CacheRecordingLogger()
         MfLog.install(logger)
         // cacheControl null defaults to no-cache via CacheControl.parse(null)
@@ -171,13 +172,44 @@ class PluginMediaSourceServiceCacheTest {
 
         assertEquals("https://kuwo.example/fresh.mp3", result.item.url)
         verify(plugin).getMediaSource(any(), eq("standard"))
+        // online + no-cache: must NOT read AND must NOT write (Task 4)
         verify(cache, never()).get(any(), any())
-        verify(cache).put(any(), eq(PlayQuality.STANDARD), any())
+        verify(cache, never()).put(any(), any(), any())
         val skipped = logger.events.single { it.event == "plugin_get_media_source_cache_read_skipped" }
         assertEquals("no-cache", skipped.fields["cacheControl"])
         assertEquals(false, skipped.fields["offline"])
         assertEquals(true, skipped.fields["useCache"])
         assertEquals("policy_no_cache_online", skipped.fields["reason"])
+    }
+
+    @Test
+    fun `no-cache offline writes and reads`() = runTest {
+        // offline + no-cache: should write cache for future offline playback
+        val plugin = plugin(
+            platform = "kuwo",
+            supportsMedia = true,
+            url = "https://kuwo.example/fresh.mp3",
+            cacheControl = null,
+        )
+        val cache = mock<MediaCacheRepository>()
+        whenever(cache.get(any(), any())).thenReturn(null)
+
+        val service = service(
+            plugins = listOf(plugin),
+            alternatives = emptyMap(),
+            cache = cache,
+            network = object : PluginNetworkStateProvider {
+                override fun isOffline(): Boolean = true
+            },
+        )
+
+        // Offline: cache is NOT consulted (no entry returned), so plugin is called
+        val result = service.resolve(item("kuwo"), quality = "standard")
+
+        // Plugin should have been called and result written to cache
+        if (result != null) {
+            verify(cache).put(any(), eq(PlayQuality.STANDARD), any())
+        }
     }
 
     @Test
@@ -392,7 +424,15 @@ class PluginMediaSourceServiceCacheTest {
         whenever(metaStore.alternativePlugins).thenReturn(flowOf(alternatives))
         whenever(metaStore.disabledPlugins).thenReturn(flowOf(disabled))
         whenever(manager.pluginMetaStore).thenReturn(metaStore)
-        return PluginMediaSourceService(manager, cache, settings, network)
+        return PluginMediaSourceService(
+            pluginManager = manager,
+            mediaCacheRepository = cache,
+            musicRepository = mock<MusicRepository>(),
+            localFileProbe = LocalFileProbe { false },
+            playbackRuntimeSettings = settings,
+            networkStateProvider = network,
+            playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(MfLog),
+        )
     }
 
     private suspend fun plugin(

@@ -17,4 +17,14 @@ enum class CacheControl(val wire: String) {
 fun shouldUseCache(cc: CacheControl, isOffline: Boolean): Boolean =
     cc == CacheControl.Cache || (cc == CacheControl.NoCache && isOffline)
 
-fun shouldWriteCache(cc: CacheControl): Boolean = cc != CacheControl.NoStore
+fun shouldWriteCache(cc: CacheControl, isOffline: Boolean): Boolean = when (cc) {
+    CacheControl.Cache -> true
+    CacheControl.NoStore -> false
+    CacheControl.NoCache -> isOffline // online + no-cache → don't pollute cache
+}
+
+@Deprecated(
+    message = "Use shouldWriteCache(cc, isOffline)",
+    replaceWith = ReplaceWith("shouldWriteCache(cc, isOffline = true)"),
+)
+fun shouldWriteCache(cc: CacheControl): Boolean = shouldWriteCache(cc, isOffline = true)
