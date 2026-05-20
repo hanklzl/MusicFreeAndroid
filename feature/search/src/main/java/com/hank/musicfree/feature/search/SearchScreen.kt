@@ -60,6 +60,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -202,6 +204,8 @@ fun SearchScreen(
                         .testTag(FidelityAnchors.Search.Input)
                         .background(colors.pageBackground, RoundedCornerShape(rpx(64))),
                     singleLine = true,
+                    textStyle = TextStyle(color = colors.text, fontSize = FontSizes.content),
+                    cursorBrush = SolidColor(colors.primary),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(
                         onSearch = {
