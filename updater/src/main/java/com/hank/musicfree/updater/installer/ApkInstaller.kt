@@ -41,6 +41,7 @@ class ApkInstaller(
                 fields = mapOf(
                     "fileName" to apkFile.name,
                     "authority" to authority,
+                    "intentAction" to intent.action,
                     "grantTargetCount" to grantTargetCount,
                     "hasClipData" to (intent.clipData != null),
                 ),
