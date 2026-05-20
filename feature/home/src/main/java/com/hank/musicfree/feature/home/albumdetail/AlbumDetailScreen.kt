@@ -40,6 +40,7 @@ import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 import com.hank.musicfree.core.ui.MusicItemOptionsSheet
 import com.hank.musicfree.core.ui.MusicSheetPageHeader
 import com.hank.musicfree.core.ui.PlayAllBar
+import com.hank.musicfree.core.ui.favoriteIconTint
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -67,7 +68,10 @@ fun AlbumDetailScreen(
                         id = if (isStarred) R.drawable.ic_heart else R.drawable.ic_heart_outline,
                     ),
                     contentDescription = if (isStarred) "取消收藏专辑" else "收藏专辑",
-                    tint = if (isStarred) MusicFreeTheme.colors.primary else MusicFreeTheme.colors.appBarText,
+                    tint = favoriteIconTint(
+                        starred = isStarred,
+                        inactiveTint = MusicFreeTheme.colors.appBarText,
+                    ),
                 )
             }
         },

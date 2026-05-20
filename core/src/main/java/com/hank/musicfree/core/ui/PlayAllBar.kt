@@ -15,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -24,8 +23,6 @@ import com.hank.musicfree.core.theme.FontSizes
 import com.hank.musicfree.core.theme.IconSizes
 import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
-
-private val StarredRed = Color(0xFFE31639)
 
 @Composable
 fun PlayAllBar(
@@ -75,7 +72,7 @@ fun PlayAllBar(
                         id = if (starred) R.drawable.ic_heart else R.drawable.ic_heart_outline,
                     ),
                     contentDescription = if (starred) "已收藏" else "收藏",
-                    tint = if (starred) StarredRed else colors.text,
+                    tint = favoriteIconTint(starred, inactiveTint = colors.text),
                     modifier = Modifier.size(IconSizes.normal),
                 )
             }
