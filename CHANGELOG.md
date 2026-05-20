@@ -6,6 +6,34 @@
 
 <!-- next-release -->
 
+## [v1.2.1] - 2026-05-20
+
+### 变更详情
+
+#### 新功能
+- feat(cache): 歌曲缓存命中率与可观测性整体优化 (b0eaa62)
+- feat(startup): 增加启动耗时分段遥测 (50b759e)
+
+#### 修复
+- fix(updater): 修复 APK 安装 URI 授权 (96a7973)
+
+#### 文档
+- docs(cache): 歌曲缓存优化实现计划 (20bbfe8)
+- docs(cache): 歌曲缓存命中率与可观测性整体优化设计 (6803d4c)
+- docs(test): JVM 单元测试耗时审计 + 落地修复 (ef112eb)
+- docs(changelog): release v1.2.0 [skip ci] (9dc8788)
+
+#### 杂项
+- chore(release): 发布 v1.2.1 (ff070f2)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.1-arm64-v8a.apk` · 7.5MB · sha256 `14f99587e895`
+- x86_64: `MusicFreeAndroid-v1.2.1-x86_64.apk` · 7.5MB · sha256 `ad852b83352f`
+- mapping: `mapping-v1.2.1.zip` · sha256 `12552556668e` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.0] - 2026-05-19
 
 ### 变更详情
