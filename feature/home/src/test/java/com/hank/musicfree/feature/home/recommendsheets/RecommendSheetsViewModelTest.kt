@@ -2,6 +2,7 @@ package com.hank.musicfree.feature.home.recommendsheets
 
 import com.hank.musicfree.plugin.api.MusicSheetItemBase
 import com.hank.musicfree.plugin.api.PaginationResult
+import com.hank.musicfree.plugin.api.MusicSheetGroupItem
 import com.hank.musicfree.plugin.api.PluginInfo
 import com.hank.musicfree.plugin.api.RecommendSheetTagsResult
 import com.hank.musicfree.plugin.manager.LoadedPlugin
@@ -28,6 +29,7 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.util.concurrent.atomic.AtomicInteger
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecommendSheetsViewModelTest {
@@ -255,10 +257,318 @@ class RecommendSheetsViewModelTest {
         assertFalse(viewModel.uiState.value.loadingMore)
     }
 
+    @Test
+    fun `switching plugin keeps each recommend scene independent`() = runTest {
+        val pluginA = plugin(
+            platform = "plugin-a",
+            methods = setOf("getRecommendSheetsByTag", "getRecommendSheetTags"),
+            tags = RecommendSheetTagsResult(
+                pinned = listOf(musicSheet(id = "a-default", title = "A 默认")),
+                data = emptyList(),
+            ),
+            sheets = listOf(musicSheet(id = "a-1", title = "A-1")),
+        )
+        val pluginB = plugin(
+            platform = "plugin-b",
+            methods = setOf("getRecommendSheetsByTag", "getRecommendSheetTags"),
+            tags = RecommendSheetTagsResult(
+                pinned = listOf(
+                    musicSheet(id = "b-default", title = "B 默认"),
+                ),
+                data = listOf(
+                    MusicSheetGroupItem(
+                        title = "B 分组",
+                        data = listOf(
+                            musicSheet(id = "b-other", title = "B 其他"),
+                        ),
+                    ),
+                ),
+            ),
+            sheets = listOf(musicSheet(id = "b-1", title = "B-1")),
+        )
+        enabledPlugins.value = listOf(pluginA, pluginB)
+
+        val viewModel = RecommendSheetsViewModel(pluginManager)
+        advanceUntilIdle()
+
+        viewModel.ensureSceneLoaded("plugin-a")
+        viewModel.ensureSceneLoaded("plugin-b")
+        advanceUntilIdle()
+
+        val sceneBefore = viewModel.pagerUiState.value.scenes["plugin-a"] ?: RecommendSheetsSceneState()
+        viewModel.selectPlugin("plugin-b")
+        advanceUntilIdle()
+        viewModel.selectTag("plugin-b", "b-other")
+        advanceUntilIdle()
+
+        val sceneAfter = viewModel.pagerUiState.value.scenes["plugin-a"] ?: RecommendSheetsSceneState()
+        assertEquals(sceneBefore.sheets, sceneAfter.sheets)
+        assertEquals(sceneBefore.selectedTagId, sceneAfter.selectedTagId)
+        assertEquals("b-other", viewModel.pagerUiState.value.scenes["plugin-b"]?.selectedTagId)
+    }
+
+    @Test
+    fun `ensureSceneLoaded does not duplicate first page request`() = runTest {
+        val tagsGate = CompletableDeferred<RecommendSheetTagsResult?>()
+        val sheetsGate = CompletableDeferred<PaginationResult<MusicSheetItemBase>>()
+        val sheetRequestCount = AtomicInteger(0)
+        val capable = mock<LoadedPlugin>()
+        runBlocking {
+            whenever(capable.info).thenReturn(
+                PluginInfo(
+                    platform = "capable",
+                    version = "1.0.0",
+                    author = null,
+                    description = null,
+                    srcUrl = null,
+                    supportedSearchType = listOf("music"),
+                    supportedMethods = setOf("getRecommendSheetsByTag", "getRecommendSheetTags"),
+                ),
+            )
+            whenever(capable.getRecommendSheetTags()).doSuspendableAnswer { tagsGate.await() }
+            whenever(capable.getRecommendSheetsByTag(any(), any())).doSuspendableAnswer {
+                sheetRequestCount.incrementAndGet()
+                sheetsGate.await()
+            }
+        }
+        enabledPlugins.value = listOf(capable)
+
+        val viewModel = RecommendSheetsViewModel(pluginManager)
+        advanceUntilIdle()
+
+        viewModel.ensureSceneLoaded("capable")
+        viewModel.ensureSceneLoaded("capable")
+        viewModel.ensureSceneLoaded("capable")
+        advanceUntilIdle()
+        assertEquals(0, sheetRequestCount.get())
+
+        tagsGate.complete(
+            RecommendSheetTagsResult(
+                pinned = listOf(musicSheet(id = "tag", title = "tag")),
+                data = emptyList(),
+            ),
+        )
+        sheetsGate.complete(
+            PaginationResult(
+                isEnd = true,
+                data = listOf(musicSheet(id = "s", title = "S")),
+            ),
+        )
+        advanceUntilIdle()
+        assertEquals(1, sheetRequestCount.get())
+    }
+
+    @Test
+    fun `same platform plugin instance replacement with old request in flight does not overwrite replacement result`() = runTest {
+        val oldTagGate = CompletableDeferred<RecommendSheetTagsResult?>()
+        val oldSheetGate = CompletableDeferred<PaginationResult<MusicSheetItemBase>>()
+        val oldTagRequestCount = AtomicInteger(0)
+        val oldSheetRequestCount = AtomicInteger(0)
+        val replacementSheetRequestCount = AtomicInteger(0)
+        val oldPlugin = mock<LoadedPlugin>()
+        val replacementPlugin = mock<LoadedPlugin>()
+
+        runBlocking {
+            whenever(oldPlugin.info).thenReturn(
+                PluginInfo(
+                    platform = "same-platform",
+                    version = "1.0.0",
+                    author = null,
+                    description = null,
+                    srcUrl = null,
+                    supportedSearchType = listOf("music"),
+                    supportedMethods = setOf("getRecommendSheetsByTag", "getRecommendSheetTags"),
+                ),
+            )
+            whenever(replacementPlugin.info).thenReturn(
+                PluginInfo(
+                    platform = "same-platform",
+                    version = "1.0.1",
+                    author = null,
+                    description = null,
+                    srcUrl = null,
+                    supportedSearchType = listOf("music"),
+                    supportedMethods = setOf("getRecommendSheetsByTag", "getRecommendSheetTags"),
+                ),
+            )
+            whenever(oldPlugin.getRecommendSheetTags()).doSuspendableAnswer {
+                oldTagRequestCount.incrementAndGet()
+                oldTagGate.await()
+            }
+            whenever(oldPlugin.getRecommendSheetsByTag(any(), any())).doSuspendableAnswer {
+                oldSheetRequestCount.incrementAndGet()
+                oldSheetGate.await()
+            }
+            whenever(replacementPlugin.getRecommendSheetTags()).thenReturn(
+                RecommendSheetTagsResult(
+                    pinned = listOf(musicSheet(id = "new-tag", title = "新标签")),
+                    data = emptyList(),
+                ),
+            )
+            whenever(replacementPlugin.getRecommendSheetsByTag(any(), any())).doSuspendableAnswer {
+                replacementSheetRequestCount.incrementAndGet()
+                PaginationResult(
+                    isEnd = true,
+                    data = listOf(musicSheet(id = "new-sheet", title = "新歌单")),
+                )
+            }
+        }
+
+        enabledPlugins.value = listOf(oldPlugin)
+        val viewModel = RecommendSheetsViewModel(pluginManager)
+        advanceUntilIdle()
+        assertEquals(1, oldTagRequestCount.get())
+        assertTrue(viewModel.uiState.value.loading)
+
+        enabledPlugins.value = listOf(replacementPlugin)
+        advanceUntilIdle()
+
+        oldTagGate.complete(
+            RecommendSheetTagsResult(
+                pinned = listOf(musicSheet(id = "old-tag", title = "旧标签")),
+                data = emptyList(),
+            ),
+        )
+            oldSheetGate.complete(
+                PaginationResult(
+                    isEnd = true,
+                    data = listOf(musicSheet(id = "old-sheet", title = "旧歌单")),
+            ),
+        )
+        advanceUntilIdle()
+
+        val scene = viewModel.pagerUiState.value.scenes["same-platform"] ?: RecommendSheetsSceneState()
+        assertEquals(listOf("new-sheet"), scene.sheets.map { it.id })
+        assertEquals("__default__", scene.selectedTagId)
+        assertTrue(
+            "new tag should be present in refreshed tag list",
+            scene.tags.any { it.id == "new-tag" },
+        )
+        assertFalse(
+            "old tag should not overwrite current scene",
+            scene.tags.any { it.id == "old-tag" },
+        )
+        assertEquals(0, oldSheetRequestCount.get())
+        assertEquals(1, replacementSheetRequestCount.get())
+    }
+
+    @Test
+    fun `already-loaded scene reloads when same platform plugin instance changes`() = runTest {
+        val oldPlugin = plugin(
+            platform = "same-platform",
+            methods = setOf("getRecommendSheetsByTag", "getRecommendSheetTags"),
+            tags = RecommendSheetTagsResult(
+                pinned = listOf(musicSheet(id = "old-tag", title = "旧标签")),
+                data = emptyList(),
+            ),
+            sheets = listOf(musicSheet(id = "old-sheet", title = "旧歌单")),
+        )
+        val newTagGate = CompletableDeferred<RecommendSheetTagsResult?>()
+        val replacementPlugin = mock<LoadedPlugin>()
+        runBlocking {
+            whenever(replacementPlugin.info).thenReturn(
+                PluginInfo(
+                    platform = "same-platform",
+                    version = "1.0.1",
+                    author = null,
+                    description = null,
+                    srcUrl = null,
+                    supportedSearchType = listOf("music"),
+                    supportedMethods = setOf("getRecommendSheetsByTag", "getRecommendSheetTags"),
+                ),
+            )
+            whenever(replacementPlugin.getRecommendSheetTags()).doSuspendableAnswer { newTagGate.await() }
+            whenever(replacementPlugin.getRecommendSheetsByTag(any(), any())).thenReturn(
+                PaginationResult(
+                    isEnd = true,
+                    data = listOf(musicSheet(id = "new-sheet", title = "新歌单")),
+                ),
+            )
+        }
+
+        enabledPlugins.value = listOf(oldPlugin)
+        val viewModel = RecommendSheetsViewModel(pluginManager)
+        advanceUntilIdle()
+
+        val before = viewModel.pagerUiState.value.scenes["same-platform"] ?: RecommendSheetsSceneState()
+        assertEquals(listOf("old-sheet"), before.sheets.map { it.id })
+
+        enabledPlugins.value = listOf(replacementPlugin)
+        advanceUntilIdle()
+
+        val resetScene = viewModel.pagerUiState.value.scenes["same-platform"] ?: RecommendSheetsSceneState()
+        assertTrue(resetScene.sheets.isEmpty())
+        assertEquals(false, resetScene.loaded)
+        assertEquals(null, resetScene.selectedTagId)
+
+        newTagGate.complete(
+            RecommendSheetTagsResult(
+                pinned = listOf(musicSheet(id = "new-tag", title = "新标签")),
+                data = emptyList(),
+            ),
+        )
+        advanceUntilIdle()
+
+        val afterReload = viewModel.pagerUiState.value.scenes["same-platform"] ?: RecommendSheetsSceneState()
+        assertEquals(listOf("new-sheet"), afterReload.sheets.map { it.id })
+        assertEquals("__default__", afterReload.selectedTagId)
+        assertTrue(afterReload.tags.any { it.id == "new-tag" })
+    }
+
+    @Test
+    fun `tag switch only resets selected recommend scene`() = runTest {
+        val pluginA = plugin(
+            platform = "plugin-a",
+            methods = setOf("getRecommendSheetsByTag", "getRecommendSheetTags"),
+            tags = RecommendSheetTagsResult(
+                pinned = listOf(musicSheet(id = "a-default", title = "A 默认")),
+                data = emptyList(),
+            ),
+            sheets = listOf(musicSheet(id = "a-1", title = "A-1")),
+        )
+        val pluginB = plugin(
+            platform = "plugin-b",
+            methods = setOf("getRecommendSheetsByTag", "getRecommendSheetTags"),
+            tags = RecommendSheetTagsResult(
+                pinned = listOf(
+                    musicSheet(id = "b-default", title = "B 默认"),
+                    musicSheet(id = "b-other", title = "B 其他"),
+                ),
+                data = listOf(
+                    MusicSheetGroupItem(
+                        title = "B 分组",
+                        data = listOf(
+                            musicSheet(id = "b-other-group", title = "B 其他（分组）"),
+                        ),
+                    ),
+                ),
+            ),
+            sheets = listOf(musicSheet(id = "b-1", title = "B-1")),
+        )
+        enabledPlugins.value = listOf(pluginA, pluginB)
+
+        val viewModel = RecommendSheetsViewModel(pluginManager)
+        advanceUntilIdle()
+
+        viewModel.ensureSceneLoaded("plugin-a")
+        viewModel.ensureSceneLoaded("plugin-b")
+        advanceUntilIdle()
+
+        val beforeA = viewModel.pagerUiState.value.scenes["plugin-a"] ?: RecommendSheetsSceneState()
+        viewModel.selectTag("plugin-b", "b-other")
+        advanceUntilIdle()
+
+        val afterA = viewModel.pagerUiState.value.scenes["plugin-a"] ?: RecommendSheetsSceneState()
+        assertEquals(beforeA.sheets, afterA.sheets)
+        assertEquals(beforeA.selectedTagId, afterA.selectedTagId)
+        assertEquals("b-other", viewModel.pagerUiState.value.scenes["plugin-b"]?.selectedTagId)
+    }
+
     private fun plugin(
         platform: String,
         methods: Set<String>,
         tags: RecommendSheetTagsResult? = null,
+        sheets: List<MusicSheetItemBase> = emptyList(),
         getRecommendSheetsByTag: ((Map<String, Any?>) -> Unit)? = null,
     ): LoadedPlugin {
         val plugin = mock<LoadedPlugin>()
@@ -279,7 +589,7 @@ class RecommendSheetsViewModelTest {
                 @Suppress("UNCHECKED_CAST")
                 val payload = invocation.getArgument<Map<String, Any?>>(0)
                 getRecommendSheetsByTag?.invoke(payload)
-                PaginationResult<MusicSheetItemBase>(isEnd = true, data = emptyList())
+                PaginationResult<MusicSheetItemBase>(isEnd = true, data = sheets)
             }
         }
         return plugin

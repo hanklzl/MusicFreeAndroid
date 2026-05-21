@@ -16,12 +16,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hank.musicfree.core.theme.FontSizes
@@ -29,9 +31,9 @@ import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.CoverImage
 import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.MusicFreeScenePagerTabs
+import com.hank.musicfree.core.ui.ScenePagerPage
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
-import com.hank.musicfree.core.ui.horizontalTabSwipe
-import com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityTabs
 import com.hank.musicfree.plugin.api.MusicSheetGroupItem
 import com.hank.musicfree.plugin.api.MusicSheetItemBase
 
@@ -43,10 +45,10 @@ fun TopListScreen(
     modifier: Modifier = Modifier,
     viewModel: TopListViewModel = hiltViewModel(),
 ) {
-    val plugins by viewModel.availablePlugins.collectAsStateWithLifecycle()
-    val selectedPlugin by viewModel.selectedPlugin.collectAsStateWithLifecycle()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val selectedPluginIndex = plugins.indexOfFirst { it.platform == selectedPlugin }
+    val pagerUiState by viewModel.pagerUiState.collectAsStateWithLifecycle()
+    val pages = pagerUiState.plugins.map { plugin ->
+        ScenePagerPage(key = plugin.platform, label = plugin.label)
+    }
 
     MusicFreeScreenScaffold(
         title = "榜单",
@@ -61,69 +63,79 @@ fun TopListScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            if (plugins.isEmpty()) {
+            if (pages.isEmpty()) {
                 EmptyState("暂无已安装插件，请先在设置中安装插件")
             } else {
-                PluginCapabilityTabs(
-                    plugins = plugins,
-                    selectedPlatform = selectedPlugin,
-                    onSelectPlugin = viewModel::selectPlugin,
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .horizontalTabSwipe(
-                            selectedIndex = selectedPluginIndex,
-                            pageCount = plugins.size,
-                            enabled = selectedPluginIndex >= 0,
-                            onSelectIndex = { index -> viewModel.selectPlugin(plugins[index].platform) },
-                        ),
+                MusicFreeScenePagerTabs(
+                    pages = pages,
+                    selectedKey = pagerUiState.selectedPlatform,
+                    onSelectedKeyChange = viewModel::selectPlugin,
+                    modifier = Modifier.fillMaxSize(),
+                    edgePadding = 12.dp,
+                    beyondViewportPageCount = 1,
                 ) {
-                    when (val state = uiState) {
-                        is TopListUiState.Idle,
-                        is TopListUiState.Loading,
-                        -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
-                            }
-                        }
-
-                        is TopListUiState.Error -> {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = rpx(24)),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                            ) {
-                                Text(
-                                    text = state.message,
-                                    color = MusicFreeTheme.colors.danger,
-                                    fontSize = FontSizes.content,
-                                )
-                                TextButton(onClick = { viewModel.refresh() }) {
-                                    Text("重试", color = MusicFreeTheme.colors.primary)
-                                }
-                            }
-                        }
-
-                        is TopListUiState.Success -> {
-                            if (state.groups.isEmpty()) {
-                                EmptyState("当前插件不支持榜单")
-                            } else {
-                                TopListGroups(
-                                    pluginPlatform = selectedPlugin,
-                                    groups = state.groups,
-                                    onOpenTopListDetail = onOpenTopListDetail,
-                                )
-                            }
-                        }
+                    LaunchedEffect(it.key) {
+                        viewModel.ensureSceneLoaded(it.key)
                     }
+                    TopListScene(
+                        pluginPlatform = it.key,
+                        state = pagerUiState.scenes[it.key] ?: TopListUiState.Idle,
+                        onRefresh = { viewModel.refresh(it.key) },
+                        onOpenTopListDetail = onOpenTopListDetail,
+                    )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopListScene(
+    pluginPlatform: String,
+    state: TopListUiState,
+    onRefresh: () -> Unit,
+    onOpenTopListDetail: (pluginPlatform: String, topList: MusicSheetItemBase) -> Unit,
+) {
+    when (state) {
+        is TopListUiState.Idle,
+        is TopListUiState.Loading,
+        -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
+            }
+        }
+
+        is TopListUiState.Error -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = rpx(24)),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = state.message,
+                    color = MusicFreeTheme.colors.danger,
+                    fontSize = FontSizes.content,
+                )
+                TextButton(onClick = onRefresh) {
+                    Text("重试", color = MusicFreeTheme.colors.primary)
+                }
+            }
+        }
+
+        is TopListUiState.Success -> {
+            if (state.groups.isEmpty()) {
+                EmptyState("当前插件不支持榜单")
+            } else {
+                TopListGroups(
+                    pluginPlatform = pluginPlatform,
+                    groups = state.groups,
+                    onOpenTopListDetail = onOpenTopListDetail,
+                )
             }
         }
     }

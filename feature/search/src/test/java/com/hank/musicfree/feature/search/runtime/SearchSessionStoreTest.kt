@@ -159,6 +159,40 @@ class SearchSessionStoreTest {
     }
 
     @Test
+    fun staleSearchFailureDoesNotOverwriteNewGeneration() = runTest {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val gateway = ControllableSearchGateway()
+        val store = searchSessionStore(gateway = gateway)
+        store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("demo")))
+
+        val oldSearch = launch { store.search("old") }
+        advanceUntilIdle()
+        val newSearch = launch { store.search("new") }
+        advanceUntilIdle()
+
+        gateway.complete(
+            query = "new",
+            result = SearchResult(isEnd = true, data = listOf(PluginSearchItem.Music(music("new-result")))),
+        )
+        advanceUntilIdle()
+        gateway.fail(query = "old", error = IllegalStateException("old failed"))
+        oldSearch.join()
+        newSearch.join()
+
+        assertEquals("new", store.state.value.query)
+        val success = store.state.value.results.getValue(SearchMediaType.MUSIC).getValue("demo")
+            as PluginSearchState.Success
+        assertEquals("new-result", (success.items.single() as PluginSearchItem.Music).item.id)
+        assertEquals(SearchPageStatus.RESULT, store.state.value.pageStatus)
+
+        val stale = logger.events.single { it.event == "search_session_result_stale" }
+        assertEquals(LogFields.Result.STALE, stale.fields["result"])
+        assertEquals(LogFields.Reason.STALE_GENERATION, stale.fields["reason"])
+        assertEquals("old", stale.fields["query"])
+    }
+
+    @Test
     fun terminalSearchSuccessPersistsSnapshotAndStructuredLog() = runTest {
         val logger = RecordingLogger()
         MfLog.install(logger)
@@ -186,6 +220,147 @@ class SearchSessionStoreTest {
         assertEquals(1, event.fields["count"])
         assertEquals(LogFields.Result.SUCCESS, event.fields["result"])
         assertTrue(event.fields.containsKey("durationMs"))
+    }
+
+    @Test
+    fun selectedPlatformIsIndependentPerMediaType() = runTest {
+        val store = searchSessionStore()
+        store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("music-a"), plugin("music-b")))
+        store.setSearchablePlugins(SearchMediaType.ALBUM, listOf(plugin("album-a", listOf(SearchMediaType.ALBUM.key))))
+
+        store.selectPlatform(SearchMediaType.MUSIC, "music-b")
+        store.selectMediaType(SearchMediaType.ALBUM)
+        store.selectPlatform(SearchMediaType.ALBUM, "album-a")
+
+        assertEquals("music-b", store.state.value.selectedPlatforms[SearchMediaType.MUSIC])
+        assertEquals("album-a", store.state.value.selectedPlatforms[SearchMediaType.ALBUM])
+        assertEquals("album-a", store.state.value.selectedPlatform)
+    }
+
+    @Test
+    fun ensureMediaSearchedKeepsMediaResultsIndependent() = runTest {
+        val gateway = MultiMediaGateway(
+            musicResult = SearchResult(
+                isEnd = true,
+                data = listOf(PluginSearchItem.Music(music("music-result"))),
+            ),
+            albumResult = SearchResult(
+                isEnd = true,
+                data = listOf(
+                    PluginSearchItem.Album(
+                        com.hank.musicfree.plugin.api.AlbumItemBase(
+                            id = "album-1",
+                            platform = "album-plugin",
+                            title = "Album 1",
+                            date = null,
+                            artist = null,
+                            description = null,
+                            artwork = null,
+                            worksNum = null,
+                            raw = emptyMap(),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val store = searchSessionStore(gateway = gateway)
+        store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("music-plugin")))
+        store.setSearchablePlugins(SearchMediaType.ALBUM, listOf(plugin("album-plugin", listOf(SearchMediaType.ALBUM.key))))
+
+        store.search("hello")
+        val musicResult = store.state.value.results[SearchMediaType.MUSIC]?.get("music-plugin")
+        assertTrue(musicResult is PluginSearchState.Success)
+        assertEquals(
+            "music-result",
+            (musicResult as PluginSearchState.Success).items.first().let { (it as PluginSearchItem.Music).item.id },
+        )
+
+        store.selectMediaType(SearchMediaType.ALBUM)
+        store.ensureMediaSearched(SearchMediaType.ALBUM)
+        val albumResult = store.state.value.results[SearchMediaType.ALBUM]?.get("album-plugin")
+        assertTrue(albumResult is PluginSearchState.Success)
+        assertEquals(1, (albumResult as PluginSearchState.Success).items.size)
+    }
+
+    @Test
+    fun loadMoreOnlyUpdatesRequestedMediaAndPlatformScene() = runTest {
+        val gateway = MultiMediaLoadMoreGateway(
+            musicFirst = listOf(PluginSearchItem.Music(music("music-1"))),
+            musicSecond = listOf(PluginSearchItem.Music(music("music-2"))),
+            albumFirst = listOf(
+                PluginSearchItem.Album(
+                    com.hank.musicfree.plugin.api.AlbumItemBase(
+                        id = "album-1",
+                        platform = "album-plugin",
+                        title = "Album 1",
+                        date = null,
+                        artist = null,
+                        description = null,
+                        artwork = null,
+                        worksNum = null,
+                        raw = emptyMap(),
+                    ),
+                ),
+            ),
+            albumSecond = listOf(
+                PluginSearchItem.Album(
+                    com.hank.musicfree.plugin.api.AlbumItemBase(
+                        id = "album-2",
+                        platform = "album-plugin",
+                        title = "Album 2",
+                        date = null,
+                        artist = null,
+                        description = null,
+                        artwork = null,
+                        worksNum = null,
+                        raw = emptyMap(),
+                    ),
+                ),
+            ),
+        )
+        val store = searchSessionStore(gateway = gateway)
+        store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("music-plugin")))
+        store.setSearchablePlugins(SearchMediaType.ALBUM, listOf(plugin("album-plugin", listOf(SearchMediaType.ALBUM.key))))
+
+        store.search("hello")
+        val musicBefore = store.state.value.results[SearchMediaType.MUSIC]?.get("music-plugin")
+        assertTrue(musicBefore is PluginSearchState.Success)
+        assertEquals(1, (musicBefore as PluginSearchState.Success).items.size)
+
+        store.ensureMediaSearched(SearchMediaType.ALBUM)
+        val albumBefore = store.state.value.results[SearchMediaType.ALBUM]?.get("album-plugin")
+        assertTrue(albumBefore is PluginSearchState.Success)
+        assertEquals(1, (albumBefore as PluginSearchState.Success).items.size)
+
+        store.loadMore(SearchMediaType.ALBUM, "album-plugin")
+        val albumAfter = store.state.value.results[SearchMediaType.ALBUM]?.get("album-plugin")
+        val musicAfter = store.state.value.results[SearchMediaType.MUSIC]?.get("music-plugin")
+        assertTrue(albumAfter is PluginSearchState.Success)
+        assertEquals(2, (albumAfter as PluginSearchState.Success).items.size)
+        assertTrue(musicAfter is PluginSearchState.Success)
+        assertEquals(1, (musicAfter as PluginSearchState.Success).items.size)
+    }
+
+    @Test
+    fun selectingCompletedMediaWhileOtherMediaSearchesRestoresResultStatus() = runTest {
+        val gateway = DelayedAlbumSearchGateway()
+        val store = searchSessionStore(gateway = gateway)
+        store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("music-plugin")))
+        store.setSearchablePlugins(SearchMediaType.ALBUM, listOf(plugin("album-plugin", listOf(SearchMediaType.ALBUM.key))))
+
+        store.search("hello")
+        assertEquals(SearchPageStatus.RESULT, store.state.value.pageStatus)
+
+        store.selectMediaType(SearchMediaType.ALBUM)
+        val albumSearch = launch { store.ensureMediaSearched(SearchMediaType.ALBUM) }
+        advanceUntilIdle()
+        assertEquals(SearchPageStatus.SEARCHING, store.state.value.pageStatus)
+
+        store.selectMediaType(SearchMediaType.MUSIC)
+
+        assertEquals(SearchPageStatus.RESULT, store.state.value.pageStatus)
+        gateway.completeAlbum()
+        albumSearch.join()
     }
 
     private fun searchSessionStore(
@@ -277,6 +452,10 @@ class SearchSessionStoreTest {
 
         fun complete(query: String, result: SearchResult) {
             requests.single { it.query == query }.deferred.complete(result)
+        }
+
+        fun fail(query: String, error: Throwable) {
+            requests.single { it.query == query }.deferred.completeExceptionally(error)
         }
     }
 
@@ -374,6 +553,96 @@ private fun plugin(platform: String): PluginInfo = PluginInfo(
     supportedMethods = setOf("search"),
     hash = "hash-$platform",
 )
+
+private fun plugin(platform: String, supportedSearchType: List<String>): PluginInfo = PluginInfo(
+    platform = platform,
+    version = "1",
+    author = null,
+    description = null,
+    srcUrl = null,
+    supportedSearchType = supportedSearchType,
+    supportedMethods = setOf("search"),
+    hash = "hash-$platform",
+)
+
+private class MultiMediaGateway(
+    private val musicResult: SearchResult,
+    private val albumResult: SearchResult,
+) : SearchSessionGateway {
+    override suspend fun search(
+        platform: String,
+        query: String,
+        page: Int,
+        mediaType: SearchMediaType,
+    ): SearchResult = when (mediaType) {
+        SearchMediaType.MUSIC -> musicResult
+        SearchMediaType.ALBUM -> albumResult
+        else -> SearchResult(isEnd = true, data = emptyList())
+    }
+}
+
+private class MultiMediaLoadMoreGateway(
+    private val musicFirst: List<PluginSearchItem>,
+    private val musicSecond: List<PluginSearchItem>,
+    private val albumFirst: List<PluginSearchItem>,
+    private val albumSecond: List<PluginSearchItem>,
+) : SearchSessionGateway {
+    override suspend fun search(
+        platform: String,
+        query: String,
+        page: Int,
+        mediaType: SearchMediaType,
+    ): SearchResult = when (mediaType) {
+        SearchMediaType.MUSIC -> {
+            if (page == 1) SearchResult(isEnd = false, data = musicFirst) else SearchResult(isEnd = true, data = musicSecond)
+        }
+        SearchMediaType.ALBUM -> {
+            if (page == 1) SearchResult(isEnd = false, data = albumFirst) else SearchResult(isEnd = true, data = albumSecond)
+        }
+        else -> SearchResult(isEnd = true, data = emptyList())
+    }
+}
+
+private class DelayedAlbumSearchGateway : SearchSessionGateway {
+    private val albumResult = CompletableDeferred<SearchResult>()
+
+    override suspend fun search(
+        platform: String,
+        query: String,
+        page: Int,
+        mediaType: SearchMediaType,
+    ): SearchResult = when (mediaType) {
+        SearchMediaType.MUSIC -> SearchResult(
+            isEnd = true,
+            data = listOf(PluginSearchItem.Music(music("music-1"))),
+        )
+        SearchMediaType.ALBUM -> albumResult.await()
+        else -> SearchResult(isEnd = true, data = emptyList())
+    }
+
+    fun completeAlbum() {
+        albumResult.complete(
+            SearchResult(
+                isEnd = true,
+                data = listOf(
+                    PluginSearchItem.Album(
+                        com.hank.musicfree.plugin.api.AlbumItemBase(
+                            id = "album-1",
+                            platform = "album-plugin",
+                            title = "Album 1",
+                            date = null,
+                            artist = null,
+                            description = null,
+                            artwork = null,
+                            worksNum = null,
+                            raw = emptyMap(),
+                        ),
+                    ),
+                ),
+            ),
+        )
+    }
+}
 
 private fun music(id: String): MusicItem = MusicItem(
     id = id,

@@ -37,8 +37,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -80,14 +78,13 @@ import com.hank.musicfree.core.ui.AddToPlaylistBottomSheetContent
 import com.hank.musicfree.core.ui.CoverImage
 import com.hank.musicfree.core.ui.DownloadQualityDialog
 import com.hank.musicfree.core.ui.FidelityAnchors
-import com.hank.musicfree.core.ui.HorizontalSwipeDirection
 import com.hank.musicfree.core.ui.MusicFreeStatusBarChrome
 import com.hank.musicfree.core.ui.MusicItemOptionsSheet
-import com.hank.musicfree.core.ui.horizontalSwipeNavigation
+import com.hank.musicfree.core.ui.MusicFreeScenePagerTabs
+import com.hank.musicfree.core.ui.ScenePagerPage
 import com.hank.musicfree.plugin.api.AlbumItemBase
 import com.hank.musicfree.plugin.api.ArtistItemBase
 import com.hank.musicfree.plugin.api.MusicSheetItemBase
-import com.hank.musicfree.plugin.api.PluginInfo
 import com.hank.musicfree.plugin.api.PluginSearchItem
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -103,12 +100,10 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val colors = MusicFreeTheme.colors
-    val searchablePlugins by viewModel.searchablePlugins.collectAsStateWithLifecycle()
-    val selectedPlatform by viewModel.selectedPlatform.collectAsStateWithLifecycle()
     val selectedMediaType by viewModel.selectedMediaType.collectAsStateWithLifecycle()
     val pageStatus by viewModel.pageStatus.collectAsStateWithLifecycle()
-    val currentPluginState by viewModel.currentPluginState.collectAsStateWithLifecycle()
     val history by viewModel.searchHistory.collectAsStateWithLifecycle()
+    val resultsPagerUiState by viewModel.resultsPagerUiState.collectAsStateWithLifecycle()
 
     val sheetState by viewModel.sheetState.collectAsState()
     val allPlaylists by viewModel.allPlaylists.collectAsState()
@@ -285,16 +280,17 @@ fun SearchScreen(
 
             SearchPageStatus.RESULT -> {
                 SearchResultPanel(
-                    searchablePlugins = searchablePlugins,
-                    selectedMediaType = selectedMediaType,
-                    selectedPlatform = selectedPlatform,
-                    currentPluginState = currentPluginState,
+                    pagerUiState = resultsPagerUiState,
                     onSelectMediaType = {
                         uiRuntimeStore.setSearchTab(it.key)
                         viewModel.selectMediaType(it)
                     },
-                    onSelectPlatform = { viewModel.selectPlatform(it) },
-                    onLoadMore = { viewModel.loadMore() },
+                    onSelectPlatform = { mediaType, platform ->
+                        viewModel.selectPlatform(mediaType, platform)
+                    },
+                    onLoadMore = { mediaType, platform ->
+                        viewModel.loadMore(mediaType, platform)
+                    },
                     onMusicClick = { music, items ->
                         viewModel.resolveAndPlay(music, items)
                     },
@@ -436,13 +432,10 @@ private fun SearchHistoryPanel(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SearchResultPanel(
-    searchablePlugins: List<PluginInfo>,
-    selectedMediaType: SearchMediaType,
-    selectedPlatform: String?,
-    currentPluginState: PluginSearchState,
+    pagerUiState: SearchResultsPagerUiState,
     onSelectMediaType: (SearchMediaType) -> Unit,
-    onSelectPlatform: (String) -> Unit,
-    onLoadMore: () -> Unit,
+    onSelectPlatform: (SearchMediaType, String) -> Unit,
+    onLoadMore: (SearchMediaType, String) -> Unit,
     onMusicClick: (MusicItem, List<MusicItem>) -> Unit,
     onAlbumClick: (AlbumItemBase) -> Unit,
     onArtistClick: (ArtistItemBase) -> Unit,
@@ -453,191 +446,282 @@ private fun SearchResultPanel(
     isFavoriteFlow: (MusicItem) -> kotlinx.coroutines.flow.Flow<Boolean>,
     onLongClick: (MusicItem) -> Unit = {},
 ) {
-    val colors = MusicFreeTheme.colors
-    val mediaTypes = SearchMediaType.entries
-    val selectedMediaIndex = mediaTypes.indexOf(selectedMediaType).coerceAtLeast(0)
-    val selectedPluginIndex = searchablePlugins.indexOfFirst { it.platform == selectedPlatform }
-
     Column(modifier = Modifier.fillMaxSize()) {
-        // 媒体类型 Tab
-        ScrollableTabRow(
-            selectedTabIndex = selectedMediaIndex,
+        MusicFreeScenePagerTabs(
+            pages = SearchMediaType.entries.map { mediaType ->
+                ScenePagerPage(key = mediaType, label = mediaType.label)
+            },
+            selectedKey = pagerUiState.selectedMediaType,
+            onSelectedKeyChange = onSelectMediaType,
+            modifier = Modifier.fillMaxSize(),
             edgePadding = 0.dp,
-            containerColor = colors.pageBackground,
-            contentColor = colors.primary,
-        ) {
-            mediaTypes.forEach { type ->
-                Tab(
-                    selected = type == selectedMediaType,
-                    onClick = { onSelectMediaType(type) },
-                    text = { Text(type.label, fontSize = FontSizes.subTitle) },
-                    modifier = Modifier.width(rpx(160)),
+            beyondViewportPageCount = 1,
+            tabLabel = { page, _ -> Text(page.label, fontSize = FontSizes.subTitle) },
+        ) { mediaPage ->
+            val mediaScene = pagerUiState.mediaScenes[mediaPage.key]
+                ?: SearchMediaSceneState(
+                    selectedPlatform = null,
+                    plugins = emptyList(),
+                    pluginScenes = emptyMap(),
+                )
+            SearchPluginPagerScene(
+                mediaType = mediaPage.key,
+                scene = mediaScene,
+                onSelectPlatform = onSelectPlatform,
+                onLoadMore = onLoadMore,
+                onMusicClick = onMusicClick,
+                onAlbumClick = onAlbumClick,
+                onArtistClick = onArtistClick,
+                onSheetClick = onSheetClick,
+                onPlayNext = onPlayNext,
+                onAddToPlaylist = onAddToPlaylist,
+                onToggleFavorite = onToggleFavorite,
+                isFavoriteFlow = isFavoriteFlow,
+                onLongClick = onLongClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchPluginPagerScene(
+    mediaType: SearchMediaType,
+    scene: SearchMediaSceneState,
+    onSelectPlatform: (SearchMediaType, String) -> Unit,
+    onLoadMore: (SearchMediaType, String) -> Unit,
+    onMusicClick: (MusicItem, List<MusicItem>) -> Unit,
+    onAlbumClick: (AlbumItemBase) -> Unit,
+    onArtistClick: (ArtistItemBase) -> Unit,
+    onSheetClick: (MusicSheetItemBase) -> Unit,
+    onPlayNext: (MusicItem) -> Unit,
+    onAddToPlaylist: (MusicItem) -> Unit,
+    onToggleFavorite: (MusicItem) -> Unit,
+    isFavoriteFlow: (MusicItem) -> kotlinx.coroutines.flow.Flow<Boolean>,
+    onLongClick: (MusicItem) -> Unit,
+) {
+    val colors = MusicFreeTheme.colors
+
+    if (scene.plugins.isEmpty()) {
+        SearchPluginResultScene(
+            mediaType = mediaType,
+            state = PluginSearchState.Success(emptyList(), true, 0),
+            onLoadMore = {},
+            onMusicClick = onMusicClick,
+            onAlbumClick = onAlbumClick,
+            onArtistClick = onArtistClick,
+            onSheetClick = onSheetClick,
+            onPlayNext = onPlayNext,
+            onAddToPlaylist = onAddToPlaylist,
+            onToggleFavorite = onToggleFavorite,
+            isFavoriteFlow = isFavoriteFlow,
+            onLongClick = onLongClick,
+        )
+        return
+    }
+
+    MusicFreeScenePagerTabs(
+        pages = scene.plugins.map { plugin -> ScenePagerPage(key = plugin.platform, label = plugin.platform) },
+        selectedKey = scene.selectedPlatform,
+        onSelectedKeyChange = { platform -> onSelectPlatform(mediaType, platform) },
+        modifier = Modifier.fillMaxSize(),
+        edgePadding = 0.dp,
+        beyondViewportPageCount = 1,
+        tabLabel = { page, selected ->
+            Text(
+                text = page.label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = FontSizes.subTitle,
+                color = if (selected) colors.primary else colors.textSecondary,
+            )
+        },
+    ) { pluginPage ->
+        SearchPluginResultScene(
+            mediaType = mediaType,
+            state = scene.pluginScenes[pluginPage.key] ?: PluginSearchState.Idle,
+            onLoadMore = { onLoadMore(mediaType, pluginPage.key) },
+            onMusicClick = onMusicClick,
+            onAlbumClick = onAlbumClick,
+            onArtistClick = onArtistClick,
+            onSheetClick = onSheetClick,
+            onPlayNext = onPlayNext,
+            onAddToPlaylist = onAddToPlaylist,
+            onToggleFavorite = onToggleFavorite,
+            isFavoriteFlow = isFavoriteFlow,
+            onLongClick = onLongClick,
+        )
+    }
+}
+
+@Composable
+private fun SearchPluginResultScene(
+    mediaType: SearchMediaType,
+    state: PluginSearchState,
+    onLoadMore: () -> Unit,
+    onMusicClick: (MusicItem, List<MusicItem>) -> Unit,
+    onAlbumClick: (AlbumItemBase) -> Unit,
+    onArtistClick: (ArtistItemBase) -> Unit,
+    onSheetClick: (MusicSheetItemBase) -> Unit,
+    onPlayNext: (MusicItem) -> Unit,
+    onAddToPlaylist: (MusicItem) -> Unit,
+    onToggleFavorite: (MusicItem) -> Unit,
+    isFavoriteFlow: (MusicItem) -> kotlinx.coroutines.flow.Flow<Boolean>,
+    onLongClick: (MusicItem) -> Unit,
+) {
+    val colors = MusicFreeTheme.colors
+
+    when (state) {
+        is PluginSearchState.Idle -> { /* 空 */ }
+
+        is PluginSearchState.Loading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = colors.primary)
+            }
+        }
+
+        is PluginSearchState.Error -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = state.message,
+                    color = colors.textSecondary,
+                    fontSize = FontSizes.subTitle,
                 )
             }
         }
 
-        // 插件 Tab
-        if (searchablePlugins.isNotEmpty()) {
-            ScrollableTabRow(
-                selectedTabIndex = selectedPluginIndex.coerceAtLeast(0),
-                edgePadding = 0.dp,
-                indicator = {},
-                containerColor = colors.pageBackground,
-            ) {
-                searchablePlugins.forEach { plugin ->
-                    Tab(
-                        selected = plugin.platform == selectedPlatform,
-                        onClick = { onSelectPlatform(plugin.platform) },
-                        text = {
-                            Text(
-                                text = plugin.platform,
-                                fontSize = FontSizes.subTitle,
-                                color = if (plugin.platform == selectedPlatform) colors.primary else colors.textSecondary,
-                            )
-                        },
-                        modifier = Modifier.width(rpx(140)),
-                    )
+        is PluginSearchState.Success -> {
+            SearchSuccessResultList(
+                mediaType = mediaType,
+                items = state.items,
+                isEnd = state.isEnd,
+                page = state.page,
+                onLoadMore = onLoadMore,
+                onMusicClick = onMusicClick,
+                onAlbumClick = onAlbumClick,
+                onArtistClick = onArtistClick,
+                onSheetClick = onSheetClick,
+                onPlayNext = onPlayNext,
+                onAddToPlaylist = onAddToPlaylist,
+                onToggleFavorite = onToggleFavorite,
+                isFavoriteFlow = isFavoriteFlow,
+                onLongClick = onLongClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchSuccessResultList(
+    mediaType: SearchMediaType,
+    items: List<PluginSearchItem>,
+    isEnd: Boolean,
+    page: Int,
+    onLoadMore: () -> Unit,
+    onMusicClick: (MusicItem, List<MusicItem>) -> Unit,
+    onAlbumClick: (AlbumItemBase) -> Unit,
+    onArtistClick: (ArtistItemBase) -> Unit,
+    onSheetClick: (MusicSheetItemBase) -> Unit,
+    onPlayNext: (MusicItem) -> Unit,
+    onAddToPlaylist: (MusicItem) -> Unit,
+    onToggleFavorite: (MusicItem) -> Unit,
+    isFavoriteFlow: (MusicItem) -> kotlinx.coroutines.flow.Flow<Boolean>,
+    onLongClick: (MusicItem) -> Unit,
+) {
+    val colors = MusicFreeTheme.colors
+
+    if (items.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "暂无搜索结果",
+                color = colors.textSecondary,
+                fontSize = FontSizes.content,
+            )
+        }
+        return
+    }
+
+    if (mediaType == SearchMediaType.SHEET) {
+        val sheets = items.filterIsInstance<PluginSearchItem.Sheet>()
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(rpx(24)),
+            horizontalArrangement = Arrangement.spacedBy(rpx(16)),
+            verticalArrangement = Arrangement.spacedBy(rpx(24)),
+        ) {
+            gridItems(
+                items = sheets,
+                key = { item -> searchResultKey(item) },
+            ) { sheet ->
+                SheetResultItem(
+                    item = sheet.item,
+                    onClick = { onSheetClick(sheet.item) },
+                )
+            }
+
+            if (!isEnd) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    SearchLoadingFooter(page, onLoadMore)
                 }
             }
         }
+        return
+    }
 
-        // 结果区域
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .horizontalSwipeNavigation { direction ->
-                    val pluginTargetIndex = when (direction) {
-                        HorizontalSwipeDirection.Next -> selectedPluginIndex + 1
-                        HorizontalSwipeDirection.Previous -> selectedPluginIndex - 1
-                    }
-                    if (selectedPluginIndex >= 0 && pluginTargetIndex in searchablePlugins.indices) {
-                        onSelectPlatform(searchablePlugins[pluginTargetIndex].platform)
-                        return@horizontalSwipeNavigation
-                    }
-
-                    val mediaTargetIndex = when (direction) {
-                        HorizontalSwipeDirection.Next -> selectedMediaIndex + 1
-                        HorizontalSwipeDirection.Previous -> selectedMediaIndex - 1
-                    }
-                    if (mediaTargetIndex in mediaTypes.indices) {
-                        onSelectMediaType(mediaTypes[mediaTargetIndex])
-                    }
-                },
-        ) {
-            when (val state = currentPluginState) {
-                is PluginSearchState.Idle -> { /* 空 */ }
-
-                is PluginSearchState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator(color = colors.primary)
-                    }
+    val musicQueue = items.filterIsInstance<PluginSearchItem.Music>().map { it.item }
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(
+            items = items,
+            key = { item -> searchResultKey(item) },
+        ) { result ->
+            when (result) {
+                is PluginSearchItem.Music -> {
+                    val music = result.item
+                    MusicResultItem(
+                        item = music,
+                        onClick = { onMusicClick(music, musicQueue) },
+                        onLongClick = { onLongClick(music) },
+                        onPlayNext = { onPlayNext(music) },
+                        onAddToPlaylist = { onAddToPlaylist(music) },
+                        onToggleFavorite = { onToggleFavorite(music) },
+                        isFavoriteFlow = isFavoriteFlow,
+                    )
                 }
-
-                is PluginSearchState.Error -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = state.message,
-                            color = colors.textSecondary,
-                            fontSize = FontSizes.subTitle,
-                        )
-                    }
-                }
-
-                is PluginSearchState.Success -> {
-                    val items = state.items
-                    if (items.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = "暂无搜索结果",
-                                color = colors.textSecondary,
-                                fontSize = FontSizes.content,
-                            )
-                        }
-                    } else if (selectedMediaType == SearchMediaType.SHEET) {
-                        val sheets = items.filterIsInstance<PluginSearchItem.Sheet>()
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(rpx(24)),
-                            horizontalArrangement = Arrangement.spacedBy(rpx(16)),
-                            verticalArrangement = Arrangement.spacedBy(rpx(24)),
-                        ) {
-                            gridItems(
-                                items = sheets,
-                                key = { item -> searchResultKey(item) },
-                            ) { sheet ->
-                                SheetResultItem(
-                                    item = sheet.item,
-                                    onClick = { onSheetClick(sheet.item) },
-                                )
-                            }
-
-                            if (!state.isEnd) {
-                                item(span = { GridItemSpan(maxLineSpan) }) {
-                                    SearchLoadingFooter(state.page, onLoadMore)
-                                }
-                            }
-                        }
-                    } else {
-                        val musicQueue = items.filterIsInstance<PluginSearchItem.Music>().map { it.item }
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(
-                                items = items,
-                                key = { item -> searchResultKey(item) },
-                            ) { result ->
-                                when (result) {
-                                    is PluginSearchItem.Music -> {
-                                        val music = result.item
-                                        MusicResultItem(
-                                            item = music,
-                                            onClick = { onMusicClick(music, musicQueue) },
-                                            onLongClick = { onLongClick(music) },
-                                            onPlayNext = { onPlayNext(music) },
-                                            onAddToPlaylist = { onAddToPlaylist(music) },
-                                            onToggleFavorite = { onToggleFavorite(music) },
-                                            isFavoriteFlow = isFavoriteFlow,
-                                        )
-                                    }
-                                    is PluginSearchItem.Album -> MediaResultItem(
-                                        coverUri = result.item.artwork,
-                                        title = result.item.title.orEmpty().ifBlank { "未命名专辑" },
-                                        tag = result.item.platform,
-                                        description = albumDescription(result.item),
-                                        onClick = { onAlbumClick(result.item) },
-                                    )
-                                    is PluginSearchItem.Artist -> MediaResultItem(
-                                        coverUri = result.item.avatar,
-                                        title = result.item.name.orEmpty().ifBlank { "未知歌手" },
-                                        tag = result.item.platform,
-                                        description = artistDescription(result.item),
-                                        onClick = { onArtistClick(result.item) },
-                                    )
-                                    is PluginSearchItem.Sheet -> MediaResultItem(
-                                        coverUri = result.item.artwork ?: result.item.coverImg,
-                                        title = result.item.title.orEmpty().ifBlank { "未命名歌单" },
-                                        tag = result.item.platform,
-                                        description = result.item.description.orEmpty(),
-                                        onClick = { onSheetClick(result.item) },
-                                    )
-                                }
-                            }
-
-                            if (!state.isEnd) {
-                                item { SearchLoadingFooter(state.page, onLoadMore) }
-                            }
-                        }
-                    }
-                }
+                is PluginSearchItem.Album -> MediaResultItem(
+                    coverUri = result.item.artwork,
+                    title = result.item.title.orEmpty().ifBlank { "未命名专辑" },
+                    tag = result.item.platform,
+                    description = albumDescription(result.item),
+                    onClick = { onAlbumClick(result.item) },
+                )
+                is PluginSearchItem.Artist -> MediaResultItem(
+                    coverUri = result.item.avatar,
+                    title = result.item.name.orEmpty().ifBlank { "未知歌手" },
+                    tag = result.item.platform,
+                    description = artistDescription(result.item),
+                    onClick = { onArtistClick(result.item) },
+                )
+                is PluginSearchItem.Sheet -> MediaResultItem(
+                    coverUri = result.item.artwork ?: result.item.coverImg,
+                    title = result.item.title.orEmpty().ifBlank { "未命名歌单" },
+                    tag = result.item.platform,
+                    description = result.item.description.orEmpty(),
+                    onClick = { onSheetClick(result.item) },
+                )
             }
+        }
+
+        if (!isEnd) {
+            item { SearchLoadingFooter(page, onLoadMore) }
         }
     }
 }

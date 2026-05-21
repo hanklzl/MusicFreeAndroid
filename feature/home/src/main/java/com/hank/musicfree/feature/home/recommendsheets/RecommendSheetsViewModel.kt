@@ -3,12 +3,12 @@ package com.hank.musicfree.feature.home.recommendsheets
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityUiModel
-import com.hank.musicfree.feature.home.pluginfeature.pluginsSupporting
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.timedSuspend
 import com.hank.musicfree.plugin.api.MusicSheetItemBase
+import com.hank.musicfree.plugin.manager.LoadedPlugin
 import com.hank.musicfree.plugin.manager.PluginManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,148 +29,249 @@ class RecommendSheetsViewModel @Inject constructor(
 
     companion object {
         private const val DEFAULT_TAG_ID = "__default__"
+        private const val EMPTY_PLUGIN_MESSAGE = "当前没有支持推荐歌单的插件"
     }
 
-    val availablePlugins: StateFlow<List<PluginCapabilityUiModel>> = pluginManager.getSortedEnabledPlugins()
-        .map { plugins -> plugins.pluginsSupporting("getRecommendSheetsByTag") }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val capableLoadedPlugins = pluginManager.getSortedEnabledPlugins()
+        .map { plugins ->
+            plugins.filter { it.info.supportedMethods.contains("getRecommendSheetsByTag") && it.info.platform.isNotBlank() }
+                .map { plugin -> plugin.info.platform.trim() to plugin }
+                .toMap(LinkedHashMap())
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-    private val _selectedPlugin = MutableStateFlow<String?>(null)
-    val selectedPlugin: StateFlow<String?> = _selectedPlugin.asStateFlow()
+    val availablePlugins: StateFlow<List<PluginCapabilityUiModel>> = capableLoadedPlugins
+        .map { plugins ->
+            plugins.values.map { plugin ->
+                PluginCapabilityUiModel(
+                    platform = plugin.info.platform.trim(),
+                    label = plugin.info.platform.trim(),
+                )
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    private val _uiState = MutableStateFlow(RecommendSheetsUiState(loading = true))
-    val uiState: StateFlow<RecommendSheetsUiState> = _uiState.asStateFlow()
+    private val _pagerUiState = MutableStateFlow(RecommendSheetsPagerUiState())
+    val pagerUiState: StateFlow<RecommendSheetsPagerUiState> = _pagerUiState.asStateFlow()
 
-    private var page: Int = 0
-    private var loadGeneration: Long = 0
+    val selectedPlugin: StateFlow<String?> = pagerUiState
+        .map { state -> state.selectedPlatform }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val uiState: StateFlow<RecommendSheetsUiState> = pagerUiState
+        .map { state -> state.selectedScene() }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            RecommendSheetsSceneState(
+                loading = false,
+                isEnd = true,
+                emptyMessage = EMPTY_PLUGIN_MESSAGE,
+            ),
+        )
+
+    private val loadGenerationByPlatform = mutableMapOf<String, Long>()
+    private val pluginInstanceByPlatform = mutableMapOf<String, LoadedPlugin>()
 
     init {
         viewModelScope.launch {
             pluginManager.ensurePluginsLoaded()
         }
         viewModelScope.launch {
-            availablePlugins.collect { plugins ->
-                when {
-                    plugins.isEmpty() -> {
-                        invalidateLoads()
-                        page = 0
-                        _selectedPlugin.value = null
-                        _uiState.value = RecommendSheetsUiState(
-                            loading = false,
-                            isEnd = true,
-                            emptyMessage = "当前没有支持推荐歌单的插件",
-                        )
-                    }
-                    _selectedPlugin.value == null ||
-                        plugins.none { it.platform == _selectedPlugin.value } -> {
-                        selectPlugin(plugins.first().platform)
-                    }
+            capableLoadedPlugins.collect { plugins ->
+                val platforms = plugins.keys
+                loadGenerationByPlatform.keys.removeIf { it !in platforms }
+                pluginInstanceByPlatform.keys.removeIf { it !in platforms }
+
+                if (plugins.isEmpty()) {
+                    _pagerUiState.value = RecommendSheetsPagerUiState()
+                    return@collect
                 }
+
+                _pagerUiState.update { state ->
+                    val nextScenes = plugins.mapValues { (platform, pluginInstance) ->
+                        val previousInstance = pluginInstanceByPlatform[platform]
+                        if (previousInstance !== pluginInstance) {
+                            pluginInstanceByPlatform[platform] = pluginInstance
+                            if (previousInstance != null) {
+                                nextLoadGeneration(platform)
+                            }
+                            RecommendSheetsSceneState()
+                        } else {
+                            state.scenes[platform] ?: RecommendSheetsSceneState()
+                        }
+                    }
+                    val selectedPlatform = state.selectedPlatform
+                        ?.takeIf { it in platforms }
+                        ?: plugins.keys.first()
+                    state.copy(
+                        plugins = plugins.values.map { plugin ->
+                            PluginCapabilityUiModel(
+                                platform = plugin.info.platform.trim(),
+                                label = plugin.info.platform.trim(),
+                            )
+                        },
+                        scenes = nextScenes,
+                        selectedPlatform = selectedPlatform,
+                    )
+                }
+
+                _pagerUiState.value.selectedPlatform?.let { ensureSceneLoaded(it) }
             }
         }
     }
 
     fun selectPlugin(platform: String) {
-        _selectedPlugin.value = platform
-        val generation = nextLoadGeneration()
+        val target = platform.trim()
+        if (!_pagerUiState.value.plugins.any { it.platform == target }) {
+            return
+        }
+
+        _pagerUiState.update { state ->
+            if (state.selectedPlatform == target) state else state.copy(selectedPlatform = target)
+        }
+        ensureSceneLoaded(target)
+    }
+
+    fun ensureSceneLoaded(platform: String) {
+        val scene = pagerUiState.value.scenes[platform] ?: return
+        if (scene.loaded || scene.firstPageInFlight) {
+            return
+        }
+        if (!hasPlugin(platform)) {
+            return
+        }
+
+        val generation = nextLoadGeneration(platform)
+        updateScene(platform) { existing ->
+            existing.copy(
+                loading = true,
+                firstPageInFlight = true,
+                loadingMore = false,
+                loadingMorePage = null,
+                errorMessage = null,
+                emptyMessage = null,
+            )
+        }
+
         viewModelScope.launch {
-            loadTagsAndFirstPage(platform, generation)
+            val plugin = pluginInstanceByPlatform[platform] ?: return@launch
+            if (!isCurrentLoad(platform, generation, plugin)) {
+                return@launch
+            }
+            loadTagsAndFirstPage(platform = platform, generation = generation, plugin = plugin)
         }
     }
 
     fun selectTag(tagId: String) {
-        val platform = _selectedPlugin.value ?: return
-        val tag = _uiState.value.tags.firstOrNull { it.id == tagId } ?: return
-        if (_uiState.value.selectedTagId == tag.id && _uiState.value.sheets.isNotEmpty()) {
+        val platform = selectedPlugin.value ?: return
+        selectTag(platform = platform, tagId = tagId)
+    }
+
+    fun selectTag(platform: String, tagId: String) {
+        val scene = pagerUiState.value.scenes[platform] ?: return
+        val tag = scene.tag(tagId) ?: return
+        if (scene.selectedTagId == tag.id && scene.loaded && scene.sheets.isNotEmpty()) {
             return
         }
-        val generation = nextLoadGeneration()
-        viewModelScope.launch {
-            if (!isCurrentLoad(platform, generation)) return@launch
-            page = 0
-            _uiState.value = _uiState.value.copy(
+
+        val generation = nextLoadGeneration(platform)
+        updateScene(platform) { existing ->
+            existing.copy(
                 selectedTagId = tag.id,
                 sheets = emptyList(),
+                page = 0,
                 loading = true,
                 loadingMore = false,
+                loadingMorePage = null,
                 isEnd = false,
+                loaded = false,
+                firstPageInFlight = true,
                 errorMessage = null,
                 emptyMessage = null,
             )
-            loadSheets(platform = platform, tag = tag, reset = true, generation = generation)
+        }
+        viewModelScope.launch {
+            val plugin = pluginInstanceByPlatform[platform] ?: return@launch
+            if (!isCurrentLoad(platform, generation, plugin)) {
+                return@launch
+            }
+            loadSheets(platform = platform, tag = tag, reset = true, generation = generation, plugin = plugin)
         }
     }
 
     fun refresh() {
-        val platform = _selectedPlugin.value ?: return
-        val tag = currentTag() ?: defaultTag()
-        val generation = nextLoadGeneration()
-        viewModelScope.launch {
-            if (!isCurrentLoad(platform, generation)) return@launch
-            page = 0
-            _uiState.value = _uiState.value.copy(
+        val platform = selectedPlugin.value ?: return
+        refresh(platform)
+    }
+
+    fun refresh(platform: String) {
+        val scene = pagerUiState.value.scenes[platform] ?: return
+        val tag = scene.currentTag() ?: defaultTag()
+        val generation = nextLoadGeneration(platform)
+        updateScene(platform) { existing ->
+            existing.copy(
                 selectedTagId = tag.id,
                 sheets = emptyList(),
+                page = 0,
                 loading = true,
                 loadingMore = false,
+                loadingMorePage = null,
                 isEnd = false,
+                loaded = false,
+                firstPageInFlight = true,
                 errorMessage = null,
                 emptyMessage = null,
             )
-            loadSheets(platform = platform, tag = tag, reset = true, generation = generation)
+        }
+        viewModelScope.launch {
+            val plugin = pluginInstanceByPlatform[platform] ?: return@launch
+            if (!isCurrentLoad(platform, generation, plugin)) {
+                return@launch
+            }
+            loadSheets(platform = platform, tag = tag, reset = true, generation = generation, plugin = plugin)
         }
     }
 
     fun loadMore() {
-        val platform = _selectedPlugin.value ?: return
-        val state = _uiState.value
-        val tag = currentTag() ?: defaultTag()
-        if (state.loading || state.loadingMore || state.isEnd) {
+        val platform = selectedPlugin.value ?: return
+        loadMore(platform)
+    }
+
+    fun loadMore(platform: String) {
+        val scene = pagerUiState.value.scenes[platform] ?: return
+        if (scene.loading || scene.loadingMore || scene.isEnd || scene.firstPageInFlight || !scene.loaded) {
             return
         }
-        val generation = nextLoadGeneration()
+        val tag = scene.currentTag() ?: defaultTag()
+
+        val generation = nextLoadGeneration(platform)
+        updateScene(platform) { existing ->
+            existing.copy(
+                loadingMore = true,
+                loadingMorePage = existing.page + 1,
+                loading = false,
+                errorMessage = null,
+            )
+        }
         viewModelScope.launch {
-            loadSheets(platform = platform, tag = tag, reset = false, generation = generation)
+            val plugin = pluginInstanceByPlatform[platform] ?: return@launch
+            if (!isCurrentLoad(platform, generation, plugin)) {
+                return@launch
+            }
+            loadSheets(platform = platform, tag = tag, reset = false, generation = generation, plugin = plugin)
         }
     }
 
-    private suspend fun loadTagsAndFirstPage(platform: String, generation: Long) {
+    private suspend fun loadTagsAndFirstPage(platform: String, generation: Long, plugin: LoadedPlugin) {
         val operation = "load_tags"
         val flowId = newFlowId(operation, generation)
         val startedAt = System.nanoTime()
-        if (!isCurrentLoad(platform, generation)) {
+        if (!isCurrentLoad(platform, generation, plugin)) {
             logStale(operation, flowId, generation, platform, startedAt)
-            return
-        }
-        val plugin = pluginManager.getPlugin(platform)
-        if (plugin == null) {
-            if (!isCurrentLoad(platform, generation)) {
-                logStale(operation, flowId, generation, platform, startedAt)
-                return
-            }
-            logFailure(
-                event = "recommend_sheets_tags_failed",
-                throwable = null,
-                operation = operation,
-                flowId = flowId,
-                generation = generation,
-                platform = platform,
-                startedAt = startedAt,
-                fields = mapOf("reason" to "plugin_missing"),
-            )
-            _uiState.value = RecommendSheetsUiState(
-                loading = false,
-                isEnd = true,
-                errorMessage = "插件不存在：$platform",
-            )
             return
         }
 
-        if (!isCurrentLoad(platform, generation)) {
-            logStale(operation, flowId, generation, platform, startedAt)
-            return
-        }
-        _uiState.value = RecommendSheetsUiState(loading = true)
         logStart(
             event = "recommend_sheets_tags_start",
             operation = operation,
@@ -201,6 +303,10 @@ class RecommendSheetsViewModel @Inject constructor(
                 )
                 throw error
             }
+            if (!isCurrentLoad(platform, generation, plugin)) {
+                logStale(operation, flowId, generation, platform, startedAt)
+                return@onFailure
+            }
             logFailure(
                 event = "recommend_sheets_tags_failed",
                 throwable = error,
@@ -209,23 +315,43 @@ class RecommendSheetsViewModel @Inject constructor(
                 generation = generation,
                 platform = platform,
                 startedAt = startedAt,
+                fields = mapOf("reason" to LogFields.Reason.UNKNOWN),
             )
+            updateScene(platform) { existing ->
+                existing.copy(
+                    loading = false,
+                    firstPageInFlight = false,
+                    loadingMore = false,
+                    loadingMorePage = null,
+                    isEnd = true,
+                    loaded = false,
+                    errorMessage = "加载推荐歌单失败",
+                )
+            }
         }.getOrNull()?.first
-        if (!isCurrentLoad(platform, generation)) {
+
+        if (!isCurrentLoad(platform, generation, plugin)) {
             logStale(operation, flowId, generation, platform, startedAt)
             return
         }
 
         val tags = buildTags(tagsResult?.pinned.orEmpty(), tagsResult?.data.orEmpty())
         val selected = tags.firstOrNull() ?: defaultTag()
-
-        page = 0
-        _uiState.value = RecommendSheetsUiState(
-            tags = tags,
-            selectedTagId = selected.id,
-            loading = true,
-        )
-        loadSheets(platform = platform, tag = selected, reset = true, generation = generation)
+        updateScene(platform) { state ->
+            state.copy(
+                tags = tags,
+                selectedTagId = selected.id,
+                loading = true,
+                loadingMore = false,
+                loadingMorePage = null,
+                isEnd = false,
+                firstPageInFlight = true,
+                loaded = false,
+                errorMessage = null,
+                emptyMessage = null,
+            )
+        }
+        loadSheets(platform = platform, tag = selected, reset = true, generation = generation, plugin = plugin)
     }
 
     private suspend fun loadSheets(
@@ -233,53 +359,33 @@ class RecommendSheetsViewModel @Inject constructor(
         tag: RecommendTag,
         reset: Boolean,
         generation: Long,
+        plugin: LoadedPlugin,
     ) {
         val operation = if (reset) "load_initial" else "load_more"
         val flowId = newFlowId(operation, generation)
         val startedAt = System.nanoTime()
-        if (!isCurrentLoad(platform, generation)) {
-            logStale(operation, flowId, generation, platform, startedAt)
-            return
-        }
-        val plugin = pluginManager.getPlugin(platform)
-        if (plugin == null) {
-            if (!isCurrentLoad(platform, generation)) {
-                logStale(operation, flowId, generation, platform, startedAt)
-                return
-            }
-            logFailure(
-                event = "recommend_sheets_load_failed",
-                throwable = null,
-                operation = operation,
-                flowId = flowId,
-                generation = generation,
-                platform = platform,
-                startedAt = startedAt,
-                fields = mapOf(
-                    "page" to if (reset) 1 else page + 1,
-                    "itemId" to tag.id,
-                    "reason" to "plugin_missing",
-                ),
-            )
-            _uiState.value = _uiState.value.copy(
-                loading = false,
-                loadingMore = false,
-                errorMessage = "插件不存在：$platform",
+        if (!isCurrentLoad(platform, generation, plugin)) {
+            logStale(
+                operation,
+                flowId,
+                generation,
+                platform,
+                startedAt,
+                mapOf("page" to nextPage(platform, reset)),
             )
             return
         }
 
-        val nextPage = if (reset) 1 else page + 1
-        if (!isCurrentLoad(platform, generation)) {
-            logStale(operation, flowId, generation, platform, startedAt, mapOf("page" to nextPage))
-            return
+        val nextPage = nextPage(platform, reset)
+        updateScene(platform) { existing ->
+            existing.copy(
+                loading = reset,
+                loadingMore = !reset,
+                loadingMorePage = if (reset) null else nextPage,
+                firstPageInFlight = true,
+                errorMessage = null,
+            )
         }
-        _uiState.value = _uiState.value.copy(
-            loading = reset,
-            loadingMore = !reset,
-            errorMessage = null,
-            emptyMessage = null,
-        )
 
         logStart(
             event = "recommend_sheets_load_start",
@@ -292,7 +398,8 @@ class RecommendSheetsViewModel @Inject constructor(
         val result = runCatching {
             timedSuspend { plugin.getRecommendSheetsByTag(tag.payload, nextPage) }
         }
-        if (!isCurrentLoad(platform, generation)) {
+
+        if (!isCurrentLoad(platform, generation, plugin)) {
             logStale(operation, flowId, generation, platform, startedAt, mapOf("page" to nextPage))
             return
         }
@@ -313,18 +420,28 @@ class RecommendSheetsViewModel @Inject constructor(
                         "reason" to LogFields.Reason.UNKNOWN,
                     ),
                 )
-                _uiState.value = _uiState.value.copy(
-                    loading = false,
-                    loadingMore = false,
-                    errorMessage = "加载推荐歌单失败",
-                )
+                updateScene(platform) { existing ->
+                    existing.copy(
+                        loading = false,
+                        loadingMore = false,
+                        loadingMorePage = null,
+                        firstPageInFlight = false,
+                        loaded = if (reset) false else existing.loaded,
+                        errorMessage = "加载推荐歌单失败",
+                    )
+                }
                 return@onSuccess
             }
-            page = nextPage
+
             val incoming = sheetsResult.data.map { item ->
                 if (item.platform.isBlank()) item.copy(platform = platform) else item
             }
-            val merged = if (reset) incoming else _uiState.value.sheets + incoming
+            val merged = if (reset) {
+                incoming
+            } else {
+                (pagerUiState.value.scenes[platform]?.sheets ?: emptyList()) + incoming
+            }
+
             MfLog.detail(
                 LogCategory.HOME,
                 "recommend_sheets_load_success",
@@ -337,13 +454,19 @@ class RecommendSheetsViewModel @Inject constructor(
                     "result" to LogFields.Result.SUCCESS,
                 ),
             )
-            _uiState.value = _uiState.value.copy(
-                sheets = merged,
-                loading = false,
-                loadingMore = false,
-                isEnd = sheetsResult.isEnd,
-                errorMessage = null,
-            )
+            updateScene(platform) { existing ->
+                existing.copy(
+                    sheets = merged,
+                    page = nextPage,
+                    loading = false,
+                    loadingMore = false,
+                    loadingMorePage = null,
+                    firstPageInFlight = false,
+                    loaded = true,
+                    isEnd = sheetsResult.isEnd,
+                    errorMessage = null,
+                )
+            }
         }.onFailure { e ->
             if (e is CancellationException) {
                 logCancelled(
@@ -357,6 +480,10 @@ class RecommendSheetsViewModel @Inject constructor(
                 )
                 throw e
             }
+            if (!isCurrentLoad(platform, generation, plugin)) {
+                logStale(operation, flowId, generation, platform, startedAt, mapOf("page" to nextPage))
+                return@onFailure
+            }
             logFailure(
                 event = "recommend_sheets_load_failed",
                 throwable = e,
@@ -367,25 +494,49 @@ class RecommendSheetsViewModel @Inject constructor(
                 startedAt = startedAt,
                 fields = mapOf("page" to nextPage, "itemId" to tag.id),
             )
-            _uiState.value = _uiState.value.copy(
-                loading = false,
-                loadingMore = false,
-                errorMessage = e.message ?: "加载推荐歌单失败",
-            )
+            updateScene(platform) { existing ->
+                existing.copy(
+                    loading = false,
+                    loadingMore = false,
+                    loadingMorePage = null,
+                    firstPageInFlight = false,
+                    loaded = existing.loaded,
+                    errorMessage = e.message ?: "加载推荐歌单失败",
+                )
+            }
         }
     }
 
+    private fun nextLoadGeneration(platform: String): Long {
+        val next = (loadGenerationByPlatform[platform] ?: 0L) + 1
+        loadGenerationByPlatform[platform] = next
+        return next
+    }
+
     private fun nextLoadGeneration(): Long {
-        loadGeneration += 1
-        return loadGeneration
+        val platform = pagerUiState.value.selectedPlatform ?: return 0
+        return nextLoadGeneration(platform)
     }
 
-    private fun invalidateLoads() {
-        loadGeneration += 1
+    private fun nextPage(platform: String, reset: Boolean): Int {
+        val currentPage = pagerUiState.value.scenes[platform]?.page ?: 0
+        return if (reset) 1 else currentPage + 1
     }
 
-    private fun isCurrentLoad(platform: String, generation: Long): Boolean =
-        loadGeneration == generation && _selectedPlugin.value == platform
+    private fun isCurrentLoad(platform: String, generation: Long, plugin: LoadedPlugin): Boolean =
+        hasPlugin(platform) &&
+            pluginInstanceByPlatform[platform] === plugin &&
+            loadGenerationByPlatform[platform] == generation
+
+    private fun hasPlugin(platform: String): Boolean =
+        pagerUiState.value.plugins.any { it.platform == platform }
+
+    private fun updateScene(platform: String, transform: (RecommendSheetsSceneState) -> RecommendSheetsSceneState) {
+        _pagerUiState.update { state ->
+            val currentScene = state.scenes[platform] ?: RecommendSheetsSceneState()
+            state.copy(scenes = state.scenes + (platform to transform(currentScene)))
+        }
+    }
 
     private fun logStart(
         event: String,
@@ -503,9 +654,12 @@ class RecommendSheetsViewModel @Inject constructor(
         return map.values.toList()
     }
 
-    private fun currentTag(): RecommendTag? {
-        val state = _uiState.value
-        return state.tags.firstOrNull { it.id == state.selectedTagId }
+    private fun RecommendSheetsSceneState.tag(tagId: String): RecommendTag? {
+        return tags.firstOrNull { it.id == tagId }
+    }
+
+    private fun RecommendSheetsSceneState.currentTag(): RecommendTag? {
+        return tags.firstOrNull { it.id == selectedTagId }
     }
 
     private fun defaultTag(): RecommendTag = RecommendTag(
@@ -513,4 +667,14 @@ class RecommendSheetsViewModel @Inject constructor(
         title = "默认",
         payload = mapOf("id" to ""),
     )
+
+    private fun RecommendSheetsPagerUiState.selectedScene(): RecommendSheetsUiState {
+        return selectedPlatform?.let { platform ->
+            scenes[platform] ?: RecommendSheetsSceneState()
+        } ?: RecommendSheetsSceneState(
+            loading = false,
+            isEnd = true,
+            emptyMessage = EMPTY_PLUGIN_MESSAGE,
+        )
+    }
 }

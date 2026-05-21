@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -34,14 +35,23 @@ class TopListViewModel @Inject constructor(
         .map { plugins -> plugins.pluginsSupporting("getTopLists") }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    private val _selectedPlugin = MutableStateFlow<String?>(null)
-    val selectedPlugin: StateFlow<String?> = _selectedPlugin.asStateFlow()
+    private val _pagerUiState = MutableStateFlow(TopListPagerUiState())
+    val pagerUiState: StateFlow<TopListPagerUiState> = _pagerUiState.asStateFlow()
 
-    private val _uiState = MutableStateFlow<TopListUiState>(TopListUiState.Idle)
-    val uiState: StateFlow<TopListUiState> = _uiState.asStateFlow()
+    val selectedPlugin: StateFlow<String?> = pagerUiState
+        .map { state -> state.selectedPlatform }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    private var loadGeneration: Long = 0
-    private var selectedPluginInstance: LoadedPlugin? = null
+    val uiState: StateFlow<TopListUiState> = pagerUiState
+        .map { state -> state.selectedScene() }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            TopListUiState.Error("当前没有支持榜单的插件"),
+        )
+
+    private val loadGenerationByPlatform = mutableMapOf<String, Long>()
+    private val pluginInstanceByPlatform = mutableMapOf<String, LoadedPlugin>()
 
     init {
         viewModelScope.launch {
@@ -49,132 +59,185 @@ class TopListViewModel @Inject constructor(
         }
         viewModelScope.launch {
             capablePlugins.collect { plugins ->
-                when {
-                    plugins.isEmpty() -> {
-                        invalidateLoads()
-                        selectedPluginInstance = null
-                        _selectedPlugin.value = null
-                        _uiState.value = TopListUiState.Error("当前没有支持榜单的插件")
-                    }
-                    selectedPluginInstance == null -> {
-                        selectPlugin(plugins.first())
-                    }
-                    plugins.none { it === selectedPluginInstance } -> {
-                        val replacement = _selectedPlugin.value?.let { platform ->
-                            plugins.firstOrNull { it.info.platform.trim() == platform }
-                        }
-                        selectPlugin(replacement ?: plugins.first())
+                val scenePlugins = plugins.pluginsSupporting("getTopLists")
+                val platformToPlugin = plugins
+                    .filter { it.supportsTopLists() }
+                    .associateBy { it.info.platform.trim() }
+                val validPlatforms = scenePlugins.map { it.platform }.toSet()
+
+                loadGenerationByPlatform.keys.removeIf { it !in validPlatforms }
+                pluginInstanceByPlatform.keys.removeIf { it !in validPlatforms }
+
+                val preservedScenes = _pagerUiState.value.scenes
+                val nextScenes = scenePlugins.associateBy(
+                    { pluginModel -> pluginModel.platform },
+                ) { pluginModel ->
+                    val platform = pluginModel.platform
+                    val currentPlugin = platformToPlugin[platform] ?: return@associateBy TopListUiState.Idle
+                    val previousPlugin = pluginInstanceByPlatform[platform]
+                    if (previousPlugin !== currentPlugin) {
+                        invalidateLoadState(platform)
+                        pluginInstanceByPlatform[platform] = currentPlugin
+                        TopListUiState.Idle
+                    } else {
+                        pluginInstanceByPlatform[platform] = currentPlugin
+                        preservedScenes[platform] ?: TopListUiState.Idle
                     }
                 }
+
+                val nextSelected = _pagerUiState.value.selectedPlatform
+                    ?.takeIf { it in validPlatforms }
+                    ?: scenePlugins.firstOrNull()?.platform
+
+                _pagerUiState.update { state ->
+                    state.copy(
+                        plugins = scenePlugins,
+                        scenes = nextScenes,
+                        selectedPlatform = nextSelected,
+                    )
+                }
+
+                _pagerUiState.value.selectedPlatform?.let { ensureSceneLoaded(it) }
             }
         }
     }
 
     fun selectPlugin(platform: String) {
-        val plugin = capablePlugins.value.firstOrNull { it.info.platform.trim() == platform }
-            ?: pluginManager.getPlugin(platform)?.takeIf { it.supportsTopLists() }
-        if (plugin == null) {
-            invalidateLoads()
-            selectedPluginInstance = null
-            _selectedPlugin.value = null
-            _uiState.value = TopListUiState.Error(
-                if (capablePlugins.value.isEmpty()) {
-                    "当前没有支持榜单的插件"
-                } else {
-                    "插件不存在：$platform"
-                },
-            )
+        val targetPlatform = platform.trim()
+        if (!_pagerUiState.value.plugins.any { it.platform == targetPlatform }) {
             return
         }
-        selectPlugin(plugin)
+        _pagerUiState.update { state ->
+            if (state.selectedPlatform == targetPlatform) {
+                state
+            } else {
+                state.copy(selectedPlatform = targetPlatform)
+            }
+        }
+        ensureSceneLoaded(targetPlatform)
+    }
+
+    fun ensureSceneLoaded(platform: String) {
+        val normalizedPlatform = platform.trim()
+        val scene = pagerUiState.value.scenes[normalizedPlatform] ?: return
+        if (scene is TopListUiState.Loading || scene is TopListUiState.Success) {
+            return
+        }
+        val plugin = pluginInstanceByPlatform[normalizedPlatform] ?: return
+
+        val generation = nextLoadGeneration(normalizedPlatform)
+        setScene(normalizedPlatform, TopListUiState.Loading)
+        viewModelScope.launch {
+            loadTopLists(normalizedPlatform, plugin, generation)
+        }
     }
 
     fun refresh() {
-        val plugin = currentSelectedPlugin() ?: return
-        selectedPluginInstance = plugin
-        _selectedPlugin.value = plugin.info.platform.trim()
-        loadTopLists(plugin, nextLoadGeneration())
+        val platform = selectedPlugin.value ?: return
+        refresh(platform)
     }
 
-    private fun selectPlugin(plugin: LoadedPlugin) {
-        if (selectedPluginInstance === plugin && _uiState.value is TopListUiState.Success) {
-            return
+    fun refresh(platform: String) {
+        val normalizedPlatform = platform.trim()
+        val plugin = pluginInstanceByPlatform[normalizedPlatform] ?: return
+
+        val generation = nextLoadGeneration(normalizedPlatform)
+        setScene(normalizedPlatform, TopListUiState.Loading)
+        viewModelScope.launch {
+            if (!isCurrentLoad(normalizedPlatform, plugin, generation)) {
+                clearLoading(normalizedPlatform)
+                logStale(
+                    plugin = plugin,
+                    operation = "load_top_lists",
+                    flowId = newFlowId("load_top_lists", generation),
+                    generation = generation,
+                    startedAt = System.nanoTime(),
+                )
+                return@launch
+            }
+            loadTopLists(normalizedPlatform, plugin, generation)
         }
-        selectedPluginInstance = plugin
-        _selectedPlugin.value = plugin.info.platform.trim()
-        loadTopLists(plugin, nextLoadGeneration())
     }
 
-    private fun loadTopLists(plugin: LoadedPlugin, generation: Long) {
+    private suspend fun loadTopLists(platform: String, plugin: LoadedPlugin, generation: Long) {
         val operation = "load_top_lists"
         val flowId = newFlowId(operation, generation)
-        if (!isCurrentLoad(plugin, generation)) {
-            logStale(plugin, operation, flowId, generation, System.nanoTime())
+        val startedAt = System.nanoTime()
+        if (!isCurrentLoad(platform, plugin, generation)) {
+            clearLoading(platform)
+            logStale(plugin, operation, flowId, generation, startedAt)
             return
         }
-        viewModelScope.launch {
-            val startedAt = System.nanoTime()
-            if (!isCurrentLoad(plugin, generation)) {
+
+        MfLog.detail(
+            LogCategory.HOME,
+            "top_list_load_start",
+            baseFields(plugin, operation, flowId, generation),
+        )
+        val result = runCatching { timedSuspend { plugin.getTopLists() } }
+        if (!isCurrentLoad(platform, plugin, generation)) {
+            clearLoading(platform)
+            logStale(plugin, operation, flowId, generation, startedAt)
+            return
+        }
+
+        result.onSuccess { (groups, durationMs) ->
+            if (!isCurrentLoad(platform, plugin, generation)) {
+                clearLoading(platform)
                 logStale(plugin, operation, flowId, generation, startedAt)
-                return@launch
+                return@onSuccess
             }
-            _uiState.value = TopListUiState.Loading
             MfLog.detail(
                 LogCategory.HOME,
-                "top_list_load_start",
-                baseFields(plugin, operation, flowId, generation),
+                "top_list_load_success",
+                baseFields(plugin, operation, flowId, generation) + mapOf(
+                    "count" to groups.sumOf { it.data.size },
+                    "durationMs" to durationMs,
+                    "result" to LogFields.Result.SUCCESS,
+                ),
             )
-            val result = runCatching {
-                timedSuspend { plugin.getTopLists() }
+            setScene(platform, TopListUiState.Success(groups))
+        }.onFailure { e ->
+            if (e is CancellationException) {
+                logCancelled(plugin, operation, flowId, generation, startedAt)
+                clearLoading(platform)
+                throw e
             }
-            if (!isCurrentLoad(plugin, generation)) {
+            if (!isCurrentLoad(platform, plugin, generation)) {
+                clearLoading(platform)
                 logStale(plugin, operation, flowId, generation, startedAt)
-                return@launch
+                return@onFailure
             }
-
-            result.onSuccess { (groups, durationMs) ->
-                MfLog.detail(
-                    LogCategory.HOME,
-                    "top_list_load_success",
-                    baseFields(plugin, operation, flowId, generation) + mapOf(
-                        "count" to groups.sumOf { it.data.size },
-                        "durationMs" to durationMs,
-                        "result" to LogFields.Result.SUCCESS,
-                    ),
-                )
-                _uiState.value = TopListUiState.Success(groups)
-            }.onFailure { e ->
-                if (e is CancellationException) {
-                    logCancelled(plugin, operation, flowId, generation, startedAt)
-                    throw e
-                }
-                MfLog.error(
-                    LogCategory.HOME,
-                    "top_list_load_failed",
-                    e,
-                    baseFields(plugin, operation, flowId, generation) + mapOf(
-                        "durationMs" to elapsedMs(startedAt),
-                        "result" to LogFields.Result.FAILURE,
-                    ),
-                )
-                _uiState.value = TopListUiState.Error(e.message ?: "加载榜单失败")
-            }
+            MfLog.error(
+                LogCategory.HOME,
+                "top_list_load_failed",
+                e,
+                baseFields(plugin, operation, flowId, generation) + mapOf(
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.FAILURE,
+                ),
+            )
+            setScene(platform, TopListUiState.Error(e.message ?: "加载榜单失败"))
         }
     }
 
-    private fun nextLoadGeneration(): Long {
-        loadGeneration += 1
-        return loadGeneration
+    private fun nextLoadGeneration(platform: String): Long {
+        val nextGeneration = (loadGenerationByPlatform[platform] ?: 0L) + 1L
+        loadGenerationByPlatform[platform] = nextGeneration
+        return nextGeneration
     }
 
-    private fun invalidateLoads() {
-        loadGeneration += 1
+    private fun invalidateLoadState(platform: String) {
+        loadGenerationByPlatform[platform] = (loadGenerationByPlatform[platform] ?: 0L) + 1L
     }
 
-    private fun isCurrentLoad(plugin: LoadedPlugin, generation: Long): Boolean =
-        loadGeneration == generation &&
-            selectedPluginInstance === plugin &&
-            _selectedPlugin.value == plugin.info.platform.trim()
+    private fun isCurrentLoad(platform: String, plugin: LoadedPlugin, generation: Long): Boolean =
+        isPlatformAlive(platform) &&
+            pluginInstanceByPlatform[platform] === plugin &&
+            loadGenerationByPlatform[platform] == generation
+
+    private fun isPlatformAlive(platform: String): Boolean =
+        _pagerUiState.value.plugins.any { it.platform == platform }
 
     private fun logStale(
         plugin: LoadedPlugin,
@@ -230,14 +293,32 @@ class TopListViewModel @Inject constructor(
 
     private fun elapsedMs(startedAt: Long): Long = (System.nanoTime() - startedAt) / 1_000_000
 
-    private fun currentSelectedPlugin(): LoadedPlugin? {
-        val current = selectedPluginInstance
-        if (current != null && _selectedPlugin.value == current.info.platform.trim()) {
-            return current
+    private fun updateScene(
+        platform: String,
+        transform: (TopListUiState) -> TopListUiState,
+    ) {
+        if (!isPlatformAlive(platform)) {
+            return
         }
-        val platform = _selectedPlugin.value ?: return null
-        return capablePlugins.value.firstOrNull { it.info.platform.trim() == platform }
-            ?: pluginManager.getPlugin(platform)
+        _pagerUiState.update { state ->
+            val nextScenes = state.scenes.toMutableMap()
+            nextScenes[platform] = transform(state.scenes[platform] ?: TopListUiState.Idle)
+            state.copy(scenes = nextScenes)
+        }
+    }
+
+    private fun setScene(platform: String, state: TopListUiState) {
+        updateScene(platform) { state }
+    }
+
+    private fun clearLoading(platform: String) {
+        updateScene(platform) { current ->
+            if (current is TopListUiState.Loading) {
+                TopListUiState.Idle
+            } else {
+                current
+            }
+        }
     }
 
     private fun LoadedPlugin.supportsTopLists(): Boolean =

@@ -1,12 +1,13 @@
 # 搜索结果与榜单横向手势设计
 
-> 文档状态：当前规范
-> 适用范围：主搜索页结果区、推荐歌单页、榜单页的 Tab 横向滑动切换手势。
-> 直接执行：是（作为实现计划输入）
+> 文档状态：历史记录
+> 适用范围：主搜索页结果区、推荐歌单页、榜单页的轻量 Tab 横向滑动切换手势历史方案。
+> 直接执行：否
 > 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md)、[AGENTS](../../../AGENTS.md)
 > RN 参考：`../../../../MusicFree/src/pages/searchPage/components/resultPanel/`、`../../../../MusicFree/src/pages/recommendSheets/components/body/index.tsx`、`../../../../MusicFree/src/pages/topList/components/topListBody.tsx`
 > UI Harness 规则：[UI rules](../../dev-harness/ui/rules.md)
 > 测试规则：[Test rules](../../dev-harness/test/rules.md)
+> 取代文档：[2026-05-20 Scene Pager 设计](./2026-05-20-scene-pager-tabs-design.md)
 > 最后校验：2026-05-15
 
 ## 背景

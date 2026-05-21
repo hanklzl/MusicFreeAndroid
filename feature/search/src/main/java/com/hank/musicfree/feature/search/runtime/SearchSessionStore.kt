@@ -8,6 +8,8 @@ import com.hank.musicfree.core.runtime.RuntimeStoreKey
 import com.hank.musicfree.core.runtime.SnapshotStore
 import com.hank.musicfree.feature.search.PluginSearchState
 import com.hank.musicfree.feature.search.SearchMediaType
+import com.hank.musicfree.feature.search.SearchMediaSceneState
+import com.hank.musicfree.feature.search.SearchResultsPagerUiState
 import com.hank.musicfree.feature.search.SearchPageStatus
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
@@ -70,12 +72,27 @@ data class SearchPlatformSnapshot(
 data class SearchSessionState(
     val query: String = "",
     val selectedMediaType: SearchMediaType = SearchMediaType.MUSIC,
-    val selectedPlatform: String? = null,
+    val selectedPlatforms: Map<SearchMediaType, String?> = emptyMap(),
     val generation: Long = 0L,
+    val searchablePlugins: Map<SearchMediaType, List<PluginInfo>> = emptyMap(),
     val results: Map<SearchMediaType, Map<String, PluginSearchState>> = emptyMap(),
     val pageStatus: SearchPageStatus = SearchPageStatus.EDITING,
     val restoreReason: String? = null,
-)
+) {
+    val selectedPlatform: String? get() = selectedPlatforms[selectedMediaType]
+}
+
+val SearchSessionState.resultsPagerUiState: SearchResultsPagerUiState
+    get() = SearchResultsPagerUiState(
+        selectedMediaType = selectedMediaType,
+        mediaScenes = SearchMediaType.entries.associateWith { mediaType ->
+            SearchMediaSceneState(
+                selectedPlatform = selectedPlatforms[mediaType],
+                plugins = searchablePlugins[mediaType].orEmpty(),
+                pluginScenes = results[mediaType].orEmpty(),
+            )
+        },
+    )
 
 fun interface SearchSessionClock {
     fun nowEpochMs(): Long
@@ -126,8 +143,6 @@ class SearchSessionStore internal constructor(
     private val _state = MutableStateFlow(SearchSessionState())
     override val state: StateFlow<SearchSessionState> = _state.asStateFlow()
 
-    private val searchablePlugins = mutableMapOf<SearchMediaType, List<PluginInfo>>()
-    private var searchablePluginsMediaType: SearchMediaType? = null
     private var pluginsReady = false
     private var pendingSearch: PendingSearch? = null
     private var restoredSourceSignature: String? = null
@@ -167,7 +182,7 @@ class SearchSessionStore internal constructor(
                 _state.value = SearchSessionState(
                     query = payload.query,
                     selectedMediaType = mediaType,
-                    selectedPlatform = payload.selectedPlatform,
+                    selectedPlatforms = mapOf(mediaType to payload.selectedPlatform),
                     generation = payload.generation,
                     restoreReason = "plugin_signature_changed",
                 )
@@ -195,7 +210,7 @@ class SearchSessionStore internal constructor(
             _state.value = SearchSessionState(
                 query = payload.query,
                 selectedMediaType = mediaType,
-                selectedPlatform = payload.selectedPlatform,
+                selectedPlatforms = mapOf(mediaType to payload.selectedPlatform),
                 generation = payload.generation,
                 results = if (platformResults.isEmpty()) emptyMap() else mapOf(mediaType to platformResults),
                 pageStatus = if (platformResults.isEmpty()) SearchPageStatus.EDITING else SearchPageStatus.RESULT,
@@ -304,18 +319,22 @@ class SearchSessionStore internal constructor(
     }
 
     suspend fun setSearchablePlugins(mediaType: SearchMediaType, plugins: List<PluginInfo>) {
-        searchablePlugins[mediaType] = plugins
-        searchablePluginsMediaType = mediaType
-        if (mediaType == _state.value.selectedMediaType) {
-            _state.update { current ->
-                val selected = current.selectedPlatform
-                val nextSelected = when {
-                    selected == null && plugins.isNotEmpty() -> plugins.first().platform
-                    selected != null && plugins.none { it.platform == selected } -> plugins.firstOrNull()?.platform
-                    else -> selected
-                }
-                current.copy(selectedPlatform = nextSelected)
+        _state.update { current ->
+            val oldSelected = current.selectedPlatforms[mediaType]
+            val nextSelected = when {
+                oldSelected == null && plugins.isNotEmpty() -> plugins.first().platform
+                oldSelected != null && plugins.none { it.platform == oldSelected } -> plugins.firstOrNull()?.platform
+                oldSelected == null && plugins.isEmpty() -> null
+                else -> oldSelected
             }
+            current.copy(
+                searchablePlugins = current.searchablePlugins.toMutableMap().apply {
+                    put(mediaType, plugins)
+                },
+                selectedPlatforms = current.selectedPlatforms.toMutableMap().apply {
+                    put(mediaType, nextSelected)
+                },
+            )
         }
         updatePageStatusForPluginAvailability()
         runPendingSearchIfPossible()
@@ -330,39 +349,78 @@ class SearchSessionStore internal constructor(
             it.copy(
                 query = query,
                 generation = generation,
+                results = emptyMap(),
                 pageStatus = SearchPageStatus.SEARCHING,
                 restoreReason = null,
             )
         }
-        searchForMediaType(query, mediaType, generation)
+        ensureMediaSearched(mediaType)
+    }
+
+    suspend fun ensureMediaSearched(mediaType: SearchMediaType) {
+        val current = _state.value
+        if (current.query.isBlank()) return
+        if (current.results[mediaType]?.isNotEmpty() == true) {
+            syncSelectedPageStatus(mediaType)
+            return
+        }
+
+        val plugins = searchablePluginsFor(mediaType)
+        if (plugins.isNullOrEmpty()) {
+            if (current.selectedMediaType == mediaType && current.pageStatus != SearchPageStatus.SEARCHING) {
+                _state.update { it.copy(pageStatus = SearchPageStatus.SEARCHING) }
+            }
+            pendingSearch = PendingSearch(current.query, mediaType)
+            return
+        }
+
+        pendingSearch = null
+        searchForMediaType(current.query, mediaType, current.generation)
     }
 
     fun selectMediaType(type: SearchMediaType) {
         val current = _state.value
         if (current.selectedMediaType == type) return
-        pendingSearch = if (current.query.isNotBlank() && current.results[type] == null) {
-            PendingSearch(current.query, type)
+        val needSearch = current.query.isNotBlank() && current.results[type] == null
+        if (needSearch) {
+            pendingSearch = PendingSearch(current.query, type)
         } else {
-            null
+            pendingSearch = null
         }
-        searchablePluginsMediaType = null
         _state.update {
-            it.copy(
+            val next = it.copy(
                 selectedMediaType = type,
-                selectedPlatform = null,
-                pageStatus = if (pendingSearch != null) SearchPageStatus.SEARCHING else it.pageStatus,
             )
+            next.copy(pageStatus = pageStatusForSelectedMedia(next))
         }
+
+        updatePageStatusForPluginAvailability()
     }
 
     fun selectPlatform(platform: String) {
-        _state.update { it.copy(selectedPlatform = platform) }
+        val mediaType = _state.value.selectedMediaType
+        selectPlatform(mediaType, platform)
+    }
+
+    fun selectPlatform(mediaType: SearchMediaType, platform: String) {
+        _state.update {
+            it.copy(
+                selectedPlatforms = it.selectedPlatforms.toMutableMap().apply {
+                    put(mediaType, platform)
+                },
+            )
+        }
     }
 
     suspend fun loadMore() {
         val currentState = _state.value
         val mediaType = currentState.selectedMediaType
         val platform = currentState.selectedPlatform ?: return
+        loadMore(mediaType, platform)
+    }
+
+    suspend fun loadMore(mediaType: SearchMediaType, platform: String) {
+        val currentState = _state.value
         val current = currentState.results[mediaType]?.get(platform)
         if (current !is PluginSearchState.Success || current.isEnd) return
 
@@ -491,14 +549,14 @@ class SearchSessionStore internal constructor(
         generation: Long,
         pluginInfo: PluginInfo,
     ) {
+        val request = SearchRequest(generation, query, mediaType, pluginInfo.platform, 1)
         val startedAt = System.nanoTime()
         try {
             val (result, durationMs) = timedSuspend {
-                gateway.search(pluginInfo.platform, query, 1, mediaType)
+                gateway.search(pluginInfo.platform, request.query, request.page, mediaType)
             }
-            val latest = _state.value
-            if (latest.generation != generation || latest.query != query) {
-                logStaleResult(SearchRequest(generation, query, mediaType, pluginInfo.platform, 1), elapsedMs(startedAt))
+            if (isStaleSearchRequest(request)) {
+                logStaleResult(request, elapsedMs(startedAt))
                 return
             }
             MfLog.detail(
@@ -527,6 +585,10 @@ class SearchSessionStore internal constructor(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
+            if (isStaleSearchRequest(request)) {
+                logStaleResult(request, elapsedMs(startedAt))
+                return
+            }
             MfLog.error(
                 category = LogCategory.SEARCH,
                 event = "search_plugin_failed",
@@ -560,11 +622,12 @@ class SearchSessionStore internal constructor(
     }
 
     private fun searchablePluginsFor(mediaType: SearchMediaType): List<PluginInfo>? =
-        if (searchablePluginsMediaType == mediaType) searchablePlugins[mediaType] else null
+        _state.value.searchablePlugins[mediaType]?.takeIf { it.isNotEmpty() }
 
     private fun updatePageStatusForPluginAvailability() {
         val current = _state.value
-        val searchable = searchablePluginsFor(current.selectedMediaType) ?: return
+        val searchable = current.searchablePlugins[current.selectedMediaType].orEmpty()
+        if (current.pageStatus == SearchPageStatus.SEARCHING) return
         if (searchable.isNotEmpty()) {
             if (current.pageStatus == SearchPageStatus.NO_PLUGIN) {
                 _state.update { it.copy(pageStatus = SearchPageStatus.EDITING) }
@@ -577,6 +640,31 @@ class SearchSessionStore internal constructor(
         }
     }
 
+    private fun syncSelectedPageStatus(mediaType: SearchMediaType) {
+        _state.update { current ->
+            if (current.selectedMediaType != mediaType) return@update current
+            current.copy(pageStatus = pageStatusForSelectedMedia(current))
+        }
+    }
+
+    private fun pageStatusForSelectedMedia(state: SearchSessionState): SearchPageStatus {
+        val selectedResults = state.results[state.selectedMediaType]
+        if (selectedResults != null) {
+            return if (selectedResults.values.any { it is PluginSearchState.Loading }) {
+                SearchPageStatus.SEARCHING
+            } else {
+                SearchPageStatus.RESULT
+            }
+        }
+
+        val searchable = state.searchablePlugins[state.selectedMediaType].orEmpty()
+        return when {
+            state.query.isNotBlank() -> SearchPageStatus.SEARCHING
+            searchable.isEmpty() && pluginsReady -> SearchPageStatus.NO_PLUGIN
+            else -> SearchPageStatus.EDITING
+        }
+    }
+
     private fun updatePluginState(mediaType: SearchMediaType, platform: String, searchState: PluginSearchState) {
         _state.update { current ->
             val typeMap = (current.results[mediaType] ?: emptyMap()).toMutableMap()
@@ -585,12 +673,17 @@ class SearchSessionStore internal constructor(
         }
     }
 
+    private fun isStaleSearchRequest(request: SearchRequest): Boolean {
+        val latest = _state.value
+        return latest.generation != request.generation || latest.query != request.query
+    }
+
     private fun checkSearchCompletion(mediaType: SearchMediaType) {
         val current = _state.value
         if (mediaType != current.selectedMediaType) return
         val typeResults = current.results[mediaType] ?: return
         if (typeResults.values.none { it is PluginSearchState.Loading }) {
-            _state.update { it.copy(pageStatus = SearchPageStatus.RESULT) }
+            _state.update { it.copy(pageStatus = pageStatusForSelectedMedia(it)) }
         }
     }
 
@@ -627,7 +720,9 @@ class SearchSessionStore internal constructor(
         val requestState = _state.value.copy(
             query = request.query,
             selectedMediaType = request.mediaType,
-            selectedPlatform = request.platform,
+            selectedPlatforms = _state.value.selectedPlatforms.toMutableMap().apply {
+                put(request.mediaType, request.platform)
+            },
             generation = request.generation,
         )
         MfLog.detail(

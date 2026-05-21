@@ -1,6 +1,7 @@
 package com.hank.musicfree.feature.search
 
 import com.hank.musicfree.plugin.api.PluginSearchItem
+import com.hank.musicfree.plugin.api.PluginInfo
 
 /** 搜索页整体页面状态 */
 enum class SearchPageStatus {
@@ -33,3 +34,14 @@ enum class SearchMediaType(val key: String, val label: String) {
     ARTIST("artist", "歌手"),
     SHEET("sheet", "歌单"),
 }
+
+data class SearchResultsPagerUiState(
+    val selectedMediaType: SearchMediaType,
+    val mediaScenes: Map<SearchMediaType, SearchMediaSceneState>,
+)
+
+data class SearchMediaSceneState(
+    val selectedPlatform: String?,
+    val plugins: List<PluginInfo>,
+    val pluginScenes: Map<String, PluginSearchState>,
+)

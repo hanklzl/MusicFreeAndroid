@@ -13,6 +13,7 @@ import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.repository.PlaylistRepository
 import com.hank.musicfree.downloader.Downloader
 import com.hank.musicfree.feature.search.runtime.SearchSessionStore
+import com.hank.musicfree.feature.search.runtime.resultsPagerUiState
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.timedSuspend
@@ -30,7 +31,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -50,9 +50,14 @@ class SearchViewModel @Inject constructor(
     private val searchSessionStore: SearchSessionStore,
 ) : ViewModel() {
 
-    // ── 插件状态 ──
-    private val _searchablePlugins = MutableStateFlow<List<PluginInfo>>(emptyList())
-    val searchablePlugins: StateFlow<List<PluginInfo>> = _searchablePlugins.asStateFlow()
+    // ── 搜索结果分页状态 ──
+    val resultsPagerUiState = searchSessionStore.state
+        .map { it.resultsPagerUiState }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, searchSessionStore.state.value.resultsPagerUiState)
+
+    val searchablePlugins: StateFlow<List<PluginInfo>> = resultsPagerUiState
+        .map { it.mediaScenes[it.selectedMediaType]?.plugins.orEmpty() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val pageStatus: StateFlow<SearchPageStatus> = searchSessionStore.state
         .map { it.pageStatus }
@@ -72,9 +77,15 @@ class SearchViewModel @Inject constructor(
         .map { it.selectedMediaType }
         .stateIn(viewModelScope, SharingStarted.Eagerly, searchSessionStore.state.value.selectedMediaType)
 
-    val selectedPlatform: StateFlow<String?> = searchSessionStore.state
-        .map { it.selectedPlatform }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, searchSessionStore.state.value.selectedPlatform)
+    val selectedPlatform: StateFlow<String?> = resultsPagerUiState
+        .map { it.mediaScenes[it.selectedMediaType]?.selectedPlatform }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            searchSessionStore.state.value.resultsPagerUiState.mediaScenes[
+                searchSessionStore.state.value.resultsPagerUiState.selectedMediaType
+            ]?.selectedPlatform,
+        )
 
     // ── 歌单 / 收藏 ──
     private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())
@@ -144,14 +155,15 @@ class SearchViewModel @Inject constructor(
             searchSessionStore.restore()
         }
         viewModelScope.launch {
-            selectedMediaType
-                .flatMapLatest { mediaType ->
+            SearchMediaType.entries.forEach { mediaType ->
+                viewModelScope.launch {
                     pluginManager.getSearchablePlugins(mediaType.key)
-                        .map { plugins -> mediaType to plugins }
+                        .map { plugins -> mediaType to plugins.map { it.info } }
+                        .collect { (type, pluginInfos) ->
+                            handleSearchablePluginsChanged(type, pluginInfos)
+                        }
                 }
-                .collect { (mediaType, plugins) ->
-                    handleSearchablePluginsChanged(mediaType, plugins.map { it.info })
-                }
+            }
         }
         viewModelScope.launch {
             runCatching {
@@ -169,7 +181,6 @@ class SearchViewModel @Inject constructor(
     }
 
     private suspend fun handleSearchablePluginsChanged(mediaType: SearchMediaType, searchable: List<PluginInfo>) {
-        _searchablePlugins.value = searchable
         searchSessionStore.setSearchablePlugins(mediaType, searchable)
     }
 
@@ -186,12 +197,18 @@ class SearchViewModel @Inject constructor(
     // ── Tab 切换 ──
 
     fun selectMediaType(type: SearchMediaType) {
-        _searchablePlugins.value = emptyList()
         searchSessionStore.selectMediaType(type)
+        viewModelScope.launch {
+            searchSessionStore.ensureMediaSearched(type)
+        }
     }
 
     fun selectPlatform(platform: String) {
         searchSessionStore.selectPlatform(platform)
+    }
+
+    fun selectPlatform(mediaType: SearchMediaType, platform: String) {
+        searchSessionStore.selectPlatform(mediaType, platform)
     }
 
     // ── 分页 ──
@@ -199,6 +216,12 @@ class SearchViewModel @Inject constructor(
     fun loadMore() {
         viewModelScope.launch {
             searchSessionStore.loadMore()
+        }
+    }
+
+    fun loadMore(mediaType: SearchMediaType, platform: String) {
+        viewModelScope.launch {
+            searchSessionStore.loadMore(mediaType, platform)
         }
     }
 

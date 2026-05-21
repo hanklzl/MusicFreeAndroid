@@ -20,6 +20,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,9 +36,9 @@ import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.CoverImage
 import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.MusicFreeScenePagerTabs
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
-import com.hank.musicfree.core.ui.horizontalTabSwipe
-import com.hank.musicfree.feature.home.pluginfeature.PluginCapabilityTabs
+import com.hank.musicfree.core.ui.ScenePagerPage
 import com.hank.musicfree.plugin.api.MusicSheetItemBase
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,9 +50,8 @@ fun RecommendSheetsScreen(
     viewModel: RecommendSheetsViewModel = hiltViewModel(),
 ) {
     val plugins by viewModel.availablePlugins.collectAsStateWithLifecycle()
-    val selectedPlugin by viewModel.selectedPlugin.collectAsStateWithLifecycle()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val selectedPluginIndex = plugins.indexOfFirst { it.platform == selectedPlugin }
+    val pagerUiState by viewModel.pagerUiState.collectAsStateWithLifecycle()
+    val pages = plugins.map { plugin -> ScenePagerPage(key = plugin.platform, label = plugin.label) }
 
     MusicFreeScreenScaffold(
         title = "推荐歌单",
@@ -69,120 +69,145 @@ fun RecommendSheetsScreen(
             if (plugins.isEmpty()) {
                 EmptyState("暂无已安装插件，请先在设置中安装插件")
             } else {
-                PluginCapabilityTabs(
-                    plugins = plugins,
-                    selectedPlatform = selectedPlugin,
-                    onSelectPlugin = viewModel::selectPlugin,
-                )
-
-                if (uiState.tags.isNotEmpty()) {
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(uiState.tags, key = { it.id }) { tag ->
-                            FilterChip(
-                                selected = tag.id == uiState.selectedTagId,
-                                onClick = { viewModel.selectTag(tag.id) },
-                                label = {
-                                    Text(
-                                        text = tag.title,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                },
-                            )
-                        }
+                MusicFreeScenePagerTabs(
+                    pages = pages,
+                    selectedKey = pagerUiState.selectedPlatform,
+                    onSelectedKeyChange = viewModel::selectPlugin,
+                    edgePadding = 12.dp,
+                    beyondViewportPageCount = 1,
+                ) { page ->
+                    val pageState = pagerUiState.scenes[page.key] ?: RecommendSheetsSceneState()
+                    LaunchedEffect(page.key) {
+                        viewModel.ensureSceneLoaded(page.key)
                     }
-                }
 
+                    RecommendSheetsScene(
+                        state = pageState,
+                        onSelectTag = { tagId ->
+                            viewModel.selectTag(platform = page.key, tagId = tagId)
+                        },
+                        onRetry = { viewModel.refresh(platform = page.key) },
+                        onLoadMore = { viewModel.loadMore(page.key) },
+                        onOpenSheetDetail = { item ->
+                            onOpenSheetDetail(page.key, item)
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecommendSheetsScene(
+    state: RecommendSheetsSceneState,
+    onSelectTag: (String) -> Unit,
+    onRetry: () -> Unit,
+    onLoadMore: () -> Unit,
+    onOpenSheetDetail: (MusicSheetItemBase) -> Unit,
+) {
+    if (state.tags.isNotEmpty()) {
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(state.tags, key = { it.id }) { tag ->
+                FilterChip(
+                    selected = tag.id == state.selectedTagId,
+                    onClick = { onSelectTag(tag.id) },
+                    label = {
+                        Text(
+                            text = tag.title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                )
+            }
+        }
+    }
+
+    when {
+        state.loading && state.sheets.isEmpty() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
+            }
+        }
+
+        !state.errorMessage.isNullOrBlank() && state.sheets.isEmpty() -> {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = state.errorMessage ?: "加载推荐歌单失败",
+                    color = MusicFreeTheme.colors.danger,
+                    fontSize = FontSizes.content,
+                )
+                TextButton(onClick = onRetry) {
+                    Text("重试", color = MusicFreeTheme.colors.primary)
+                }
+            }
+        }
+
+        state.sheets.isEmpty() && !state.emptyMessage.isNullOrBlank() -> {
+            EmptyState(state.emptyMessage ?: "当前没有推荐歌单")
+        }
+
+        else -> {
+            RecommendSheetsGrid(
+                state = state,
+                onLoadMore = onLoadMore,
+                onOpenSheetDetail = onOpenSheetDetail,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecommendSheetsGrid(
+    state: RecommendSheetsSceneState,
+    onLoadMore: () -> Unit,
+    onOpenSheetDetail: (MusicSheetItemBase) -> Unit,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        modifier = Modifier.fillMaxSize(),
+        horizontalArrangement = Arrangement.spacedBy(rpx(16)),
+        verticalArrangement = Arrangement.spacedBy(rpx(18)),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = rpx(24),
+            vertical = rpx(18),
+        ),
+    ) {
+        lazyGridItems(
+            items = state.sheets,
+            key = { item -> "${item.platform}:${item.id}" },
+        ) { item ->
+            RecommendSheetGridItem(
+                item = item,
+                onClick = { onOpenSheetDetail(item) },
+            )
+        }
+
+        if (!state.isEnd) {
+            item(
+                span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) },
+            ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .horizontalTabSwipe(
-                            selectedIndex = selectedPluginIndex,
-                            pageCount = plugins.size,
-                            enabled = selectedPluginIndex >= 0,
-                            onSelectIndex = { index -> viewModel.selectPlugin(plugins[index].platform) },
-                        ),
+                        .fillMaxWidth()
+                        .padding(vertical = rpx(20)),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    when {
-                        uiState.loading && uiState.sheets.isEmpty() -> {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
-                            }
-                        }
-
-                        !uiState.errorMessage.isNullOrBlank() && uiState.sheets.isEmpty() -> {
-                            Column(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                            ) {
-                                Text(
-                                    text = uiState.errorMessage ?: "加载推荐歌单失败",
-                                    color = MusicFreeTheme.colors.danger,
-                                    fontSize = FontSizes.content,
-                                )
-                                TextButton(onClick = { viewModel.refresh() }) {
-                                    Text("重试", color = MusicFreeTheme.colors.primary)
-                                }
-                            }
-                        }
-
-                        uiState.sheets.isEmpty() && !uiState.emptyMessage.isNullOrBlank() -> {
-                            EmptyState(uiState.emptyMessage ?: "当前没有支持推荐歌单的插件")
-                        }
-
-                        else -> {
-                            LazyVerticalGrid(
-                                columns = GridCells.Fixed(3),
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.spacedBy(rpx(16)),
-                                verticalArrangement = Arrangement.spacedBy(rpx(18)),
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                    horizontal = rpx(24),
-                                    vertical = rpx(18),
-                                ),
-                            ) {
-                                lazyGridItems(
-                                    items = uiState.sheets,
-                                    key = { item -> "${item.platform}:${item.id}" },
-                                ) { item ->
-                                    RecommendSheetGridItem(
-                                        item = item,
-                                        onClick = {
-                                            val platform = selectedPlugin
-                                            if (!platform.isNullOrBlank()) {
-                                                onOpenSheetDetail(platform, item)
-                                            }
-                                        },
-                                    )
-                                }
-
-                                if (!uiState.isEnd) {
-                                    item(
-                                        span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) },
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = rpx(20)),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            if (uiState.loadingMore) {
-                                                CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
-                                            } else {
-                                                TextButton(onClick = { viewModel.loadMore() }) {
-                                                    Text("加载更多", color = MusicFreeTheme.colors.primary)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                    if (state.loadingMore) {
+                        CircularProgressIndicator(color = MusicFreeTheme.colors.primary)
+                    } else {
+                        TextButton(onClick = onLoadMore) {
+                            Text("加载更多", color = MusicFreeTheme.colors.primary)
                         }
                     }
                 }

@@ -23,6 +23,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
@@ -65,6 +66,48 @@ class TopListViewModelTest {
         assertEquals(
             listOf("capable-second", "capable-first"),
             viewModel.availablePlugins.value.map { it.platform },
+        )
+    }
+
+    @Test
+    fun `removed plugin while loading does not resurrect scene state`() = runTest {
+        val topListsGate = CompletableDeferred<List<MusicSheetGroupItem>>()
+        val capable = plugin("capable", setOf("getTopLists"))
+        runBlocking {
+            whenever(capable.getTopLists()).doSuspendableAnswer {
+                topListsGate.await()
+            }
+        }
+        enabledPlugins.value = listOf(capable)
+
+        val viewModel = TopListViewModel(pluginManager)
+        advanceUntilIdle()
+
+        assertEquals("capable", viewModel.selectedPlugin.value)
+        assertEquals(TopListUiState.Loading, viewModel.uiState.value)
+        assertEquals(listOf("capable"), viewModel.pagerUiState.value.plugins.map { it.platform })
+        assertEquals(TopListUiState.Loading, viewModel.pagerUiState.value.scenes["capable"])
+
+        enabledPlugins.value = emptyList()
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.selectedPlugin.value)
+        assertEquals(emptyList<String>(), viewModel.pagerUiState.value.plugins.map { it.platform })
+        assertEquals(emptyList<String>(), viewModel.pagerUiState.value.scenes.keys.toList())
+        assertEquals(
+            "当前没有支持榜单的插件",
+            (viewModel.uiState.value as TopListUiState.Error).message,
+        )
+
+        topListsGate.complete(listOf(musicGroup("stale")))
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.selectedPlugin.value)
+        assertEquals(emptyList<String>(), viewModel.pagerUiState.value.plugins.map { it.platform })
+        assertEquals(emptyList<String>(), viewModel.pagerUiState.value.scenes.keys.toList())
+        assertEquals(
+            "当前没有支持榜单的插件",
+            (viewModel.uiState.value as TopListUiState.Error).message,
         )
     }
 
@@ -130,6 +173,78 @@ class TopListViewModelTest {
             "当前没有支持榜单的插件",
             (viewModel.uiState.value as TopListUiState.Error).message,
         )
+    }
+
+    @Test
+    fun `switching top list plugins keeps loaded scenes independent`() = runTest {
+        val firstGate = CompletableDeferred<List<MusicSheetGroupItem>>()
+        val firstCapable = plugin("capable-first", setOf("getTopLists"))
+        runBlocking {
+            whenever(firstCapable.getTopLists()).doSuspendableAnswer {
+                firstGate.await()
+            }
+        }
+        val secondCapable = plugin("capable-second", setOf("getTopLists"), topLists = listOf(musicGroup("second")))
+        enabledPlugins.value = listOf(firstCapable, secondCapable)
+
+        val viewModel = TopListViewModel(pluginManager)
+        advanceUntilIdle()
+        assertEquals("capable-first", viewModel.selectedPlugin.value)
+
+        viewModel.selectPlugin("capable-second")
+        advanceUntilIdle()
+        assertEquals(
+            listOf("second"),
+            (viewModel.uiState.value as TopListUiState.Success).groups.map { it.title },
+        )
+
+        firstGate.complete(listOf(musicGroup("first")))
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("second"),
+            (viewModel.uiState.value as TopListUiState.Success).groups.map { it.title },
+        )
+        assertEquals(
+            listOf("first"),
+            (viewModel.pagerUiState.value.scenes["capable-first"] as TopListUiState.Success).groups.map { it.title },
+        )
+
+        viewModel.selectPlugin("capable-first")
+        advanceUntilIdle()
+        assertEquals(
+            listOf("first"),
+            (viewModel.uiState.value as TopListUiState.Success).groups.map { it.title },
+        )
+
+        assertEquals(
+            listOf("second"),
+            (viewModel.pagerUiState.value.scenes["capable-second"] as TopListUiState.Success).groups.map { it.title },
+        )
+    }
+
+    @Test
+    fun `selecting already loaded top list scene does not reload plugin`() = runTest {
+        val firstCapable = plugin("capable-first", setOf("getTopLists"), topLists = listOf(musicGroup("first")))
+        val secondCapable = plugin("capable-second", setOf("getTopLists"), topLists = listOf(musicGroup("second")))
+        enabledPlugins.value = listOf(firstCapable, secondCapable)
+
+        val viewModel = TopListViewModel(pluginManager)
+        advanceUntilIdle()
+
+        assertEquals("capable-first", viewModel.selectedPlugin.value)
+        verify(firstCapable, times(1)).getTopLists()
+        verify(secondCapable, never()).getTopLists()
+
+        viewModel.selectPlugin("capable-second")
+        advanceUntilIdle()
+        verify(firstCapable, times(1)).getTopLists()
+        verify(secondCapable, times(1)).getTopLists()
+
+        viewModel.selectPlugin("capable-first")
+        advanceUntilIdle()
+        verify(firstCapable, times(1)).getTopLists()
+        verify(secondCapable, times(1)).getTopLists()
     }
 
     @Test
@@ -201,7 +316,7 @@ class TopListViewModelTest {
     }
 
     @Test
-    fun `same platform plugin replacement reloads and ignores old plugin result`() = runTest {
+    fun `same platform plugin replacement does not let old instance overwrite new one result`() = runTest {
         val oldGate = CompletableDeferred<List<MusicSheetGroupItem>>()
         val oldPlugin = plugin("capable", setOf("getTopLists"))
         runBlocking {
