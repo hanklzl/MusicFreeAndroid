@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.hank.musicfree.core.theme.MusicFreeTheme
@@ -130,6 +131,18 @@ class HomeDrawerBehaviorTest {
         composeRule.onRoot().performTouchInput {
             click(centerRight)
         }
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            !state.isDrawerOpen
+        }
+        assertFalse(state.isDrawerOpen)
+    }
+
+    @Test
+    fun back_closes_drawer() {
+        openDrawer()
+
+        pressBack()
 
         composeRule.waitUntil(timeoutMillis = 5_000) {
             !state.isDrawerOpen

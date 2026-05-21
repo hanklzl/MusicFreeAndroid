@@ -10,6 +10,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -28,6 +29,7 @@ import com.hank.musicfree.feature.home.sheets.homeSheetsSection
 import com.hank.musicfree.updater.checker.UpdateChecker
 import com.hank.musicfree.updater.downloader.ApkDownloader
 import com.hank.musicfree.updater.installer.ApkInstaller
+import kotlinx.coroutines.launch
 
 internal fun handleDrawerEntryClick(
     state: HomeScreenState,
@@ -45,6 +47,25 @@ internal fun handleDrawerEntryClick(
         else -> onDrawerEntryClick(action)
     }
 }
+
+internal fun shouldSynchronizeDrawerState(
+    isDrawerOpen: Boolean,
+    currentValue: DrawerValue,
+    targetValue: DrawerValue,
+): Boolean {
+    val expectedValue = if (isDrawerOpen) DrawerValue.Open else DrawerValue.Closed
+    return currentValue != expectedValue || targetValue != expectedValue
+}
+
+internal fun shouldHandleDrawerBack(
+    isDrawerOpen: Boolean,
+    currentValue: DrawerValue,
+    targetValue: DrawerValue,
+    isAnimationRunning: Boolean,
+): Boolean = isDrawerOpen ||
+    currentValue == DrawerValue.Open ||
+    targetValue == DrawerValue.Open ||
+    isAnimationRunning
 
 @Composable
 fun HomeScreenContent(
@@ -70,6 +91,7 @@ fun HomeScreenContent(
     onOpenStarredAlbum: (HomeSheetUiModel) -> Unit,
     onTrashClick: (HomeSheetUiModel) -> Unit,
 ) {
+    val drawerScope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(
         initialValue = DrawerValue.Closed,
         confirmStateChange = { value ->
@@ -82,18 +104,42 @@ fun HomeScreenContent(
     )
 
     LaunchedEffect(state.isDrawerOpen) {
+        if (
+            !shouldSynchronizeDrawerState(
+                isDrawerOpen = state.isDrawerOpen,
+                currentValue = drawerState.currentValue,
+                targetValue = drawerState.targetValue,
+            )
+        ) {
+            return@LaunchedEffect
+        }
         when {
-            state.isDrawerOpen && drawerState.currentValue != DrawerValue.Open -> drawerState.open()
-            !state.isDrawerOpen && drawerState.currentValue != DrawerValue.Closed -> drawerState.close()
+            state.isDrawerOpen -> drawerState.open()
+            else -> drawerState.close()
         }
     }
 
+    val handleDrawerBack = shouldHandleDrawerBack(
+        isDrawerOpen = state.isDrawerOpen,
+        currentValue = drawerState.currentValue,
+        targetValue = drawerState.targetValue,
+        isAnimationRunning = drawerState.isAnimationRunning,
+    )
+
     BackHandler(
-        enabled = state.isDrawerOpen ||
+        enabled = handleDrawerBack ||
             state.isTimingCloseVisible ||
             state.isUpdateCheckVisible,
     ) {
-        state.onBackPressedConsumed()
+        if (handleDrawerBack) {
+            if (state.isDrawerOpen) {
+                state.closeDrawer()
+            } else {
+                drawerScope.launch { drawerState.close() }
+            }
+        } else {
+            state.onBackPressedConsumed()
+        }
     }
 
     ModalNavigationDrawer(
