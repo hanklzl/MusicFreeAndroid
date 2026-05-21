@@ -44,6 +44,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,8 +61,10 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -84,6 +87,8 @@ class PlayerController @Inject constructor(
     private var mediaController: MediaController? = null
     private var positionUpdateJob: kotlinx.coroutines.Job? = null
     private var connectJob: Job? = null
+    private var playbackRequestJob: Job? = null
+    private val playbackRequestGeneration = AtomicLong(0L)
     private val defaultArtworkUri = context.defaultAlbumArtworkUri()
 
     /**
@@ -208,9 +213,8 @@ class PlayerController @Inject constructor(
 
     fun play() {
         withConnectedController { controller ->
-            val pending = pendingRestorePosition
-            if (pending != null && controller.currentMediaItem == null) {
-                playQueue.currentItem?.let { setMediaItemAndPlay(it) }
+            if (controller.currentMediaItem == null) {
+                activateCurrentQueueItem(operation = "play")
             } else {
                 controller.play()
             }
@@ -239,24 +243,22 @@ class PlayerController @Inject constructor(
 
     fun playItem(item: MusicItem) {
         pendingRestorePosition = null
-        val previousIndex = playQueue.currentIndex
         val index = playQueue.items.indexOfFirst {
             it.id == item.id && it.platform == item.platform
         }
-        val queuedItem = if (index >= 0) {
-            playQueue.skipTo(index)
+        val targetIndex = if (index >= 0) {
+            index
         } else {
             playQueue.add(item)
-            playQueue.skipTo(playQueue.size - 1)
+            emitQueueState()
+            playQueue.size - 1
         }
-        queuedItem?.let {
-            setMediaItemAndPlay(
-                item = it,
-                expectedIndex = playQueue.currentIndex,
-                rollbackIndex = previousIndex.takeIf { previousIndex >= 0 },
-            )
-        }
-        emitQueueState()
+        val queuedItem = playQueue.items.getOrNull(targetIndex) ?: return
+        startQueuePlaybackTransition(
+            targetIndex = targetIndex,
+            targetItem = queuedItem,
+            operation = "play_item",
+        )
     }
 
     fun playQueue(items: List<MusicItem>, startIndex: Int = 0) {
@@ -300,24 +302,24 @@ class PlayerController @Inject constructor(
         pendingRestorePosition = null
         val previousIndex = playQueue.currentIndex
         val previousItem = playQueue.currentItem
-        val next = playQueue.next(repeatMode) ?: return
+        val nextIndex = playQueue.peekNextIndex(repeatMode) ?: return
+        val next = playQueue.items.getOrNull(nextIndex) ?: return
         MfLog.detail(
             category = LogCategory.PLAYER,
             event = "player_skip_next",
             fields = mapOf(
                 "fromIndex" to previousIndex,
-                "toIndex" to playQueue.currentIndex,
+                "toIndex" to nextIndex,
                 "fromItemId" to previousItem?.id,
                 "toItemId" to next.id,
                 "platform" to next.platform,
             ) + next.diagnosticFields(prefix = "to"),
         )
-        setMediaItemAndPlay(
-            item = next,
-            expectedIndex = playQueue.currentIndex,
-            rollbackIndex = previousIndex,
+        startQueuePlaybackTransition(
+            targetIndex = nextIndex,
+            targetItem = next,
+            operation = "skip_next",
         )
-        emitQueueState()
     }
 
     fun skipToPrevious() {
@@ -328,14 +330,13 @@ class PlayerController @Inject constructor(
                 controller.seekTo(0L)
                 return@withConnectedController
             }
-            val previousIndex = playQueue.currentIndex
-            val prev = playQueue.previous(repeatMode) ?: return@withConnectedController
-            setMediaItemAndPlay(
-                item = prev,
-                expectedIndex = playQueue.currentIndex,
-                rollbackIndex = previousIndex,
+            val previousIndex = playQueue.peekPreviousIndex(repeatMode) ?: return@withConnectedController
+            val prev = playQueue.items.getOrNull(previousIndex) ?: return@withConnectedController
+            startQueuePlaybackTransition(
+                targetIndex = previousIndex,
+                targetItem = prev,
+                operation = "skip_previous",
             )
-            emitQueueState()
         }
     }
 
@@ -345,6 +346,26 @@ class PlayerController @Inject constructor(
 
     override fun skipToNextFromNotification() {
         skipToNext()
+    }
+
+    override fun playFromNotification() {
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "playback_notification_play",
+            fields = mapOf(
+                "status" to "start",
+                "operation" to "notification_play",
+                "hasPreparedMediaItem" to (mediaController?.currentMediaItem != null),
+                "queueIndex" to playQueue.currentIndex,
+                "queueSize" to playQueue.size,
+            ),
+        )
+        val controller = mediaController
+        if (controller != null && controller.currentMediaItem != null) {
+            play()
+            return
+        }
+        activateCurrentQueueItem(operation = "notification_play")
     }
 
     override fun closeFromNotification() {
@@ -361,14 +382,12 @@ class PlayerController @Inject constructor(
 
     fun skipTo(index: Int) {
         pendingRestorePosition = null
-        val previousIndex = playQueue.currentIndex
-        val item = playQueue.skipTo(index) ?: return
-        setMediaItemAndPlay(
-            item = item,
-            expectedIndex = playQueue.currentIndex,
-            rollbackIndex = previousIndex.takeIf { previousIndex >= 0 },
+        val item = playQueue.items.getOrNull(index) ?: return
+        startQueuePlaybackTransition(
+            targetIndex = index,
+            targetItem = item,
+            operation = "skip_to",
         )
-        emitQueueState()
     }
 
     fun setRepeatMode(mode: RepeatMode) {
@@ -446,6 +465,7 @@ class PlayerController @Inject constructor(
 
     fun reset() {
         pendingRestorePosition = null
+        cancelPlaybackRequest()
         runOnControllerThread {
             positionUpdateJob?.cancel()
             positionUpdateJob = null
@@ -599,6 +619,7 @@ class PlayerController @Inject constructor(
 
     fun release() {
         connectJob?.cancel()
+        cancelPlaybackRequest()
         runOnControllerThread {
             connectJob = null
             positionUpdateJob?.cancel()
@@ -617,6 +638,7 @@ class PlayerController @Inject constructor(
         rollbackIndex: Int? = null,
     ) {
         attachNotificationControls()
+        val generation = beginPlaybackRequest()
         // New playback for this item — drop any prior stale-url retry flag so the
         // first failure on the fresh URL is allowed to trigger one refresh.
         staleUrlRetryState.remove(item.platform to item.id)
@@ -626,7 +648,7 @@ class PlayerController @Inject constructor(
         // A coroutine that suspends at resolve() must never read the global
         // currentSid that a later call may have already overwritten.
         val sid = currentSidProvider.newSession()
-        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+        playbackRequestJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
             MfLog.detail(
                 category = LogCategory.PLAYER,
                 event = "playback_start",
@@ -635,6 +657,7 @@ class PlayerController @Inject constructor(
                     "platform" to item.platform,
                     "itemId" to item.id,
                     "expectedIndex" to expectedIndex,
+                    "operation" to "direct_play",
                 ) + item.diagnosticFields(),
             )
             currentPlayQuality = playbackRuntimeSettings.defaultPlayQuality()
@@ -646,37 +669,179 @@ class PlayerController @Inject constructor(
                 networkType = "unknown", // wired up in a later Task with NetworkMonitor
                 isOnline = true,
             )
-            val playable = resolvePlayableItem(item, sid = sid)
+            val playable = resolvePlayableItemForPlayback(item, sid = sid, operation = "direct_play")
             if (playable == null) {
                 rollbackPlaybackSelection(expectedIndex, item, rollbackIndex)
                 return@launch
             }
+            if (!isActivePlaybackRequest(generation)) return@launch
             if (!playQueue.isCurrentItem(expectedIndex, item)) return@launch
             if (playable != item) {
                 playQueue.replaceCurrent(expectedIndex, item, playable)
                 emitQueueState()
             }
-            withConnectedController { controller ->
-                try {
-                    recordHistory(playable)
-                    val mediaItem = playable.toMediaItem(defaultArtworkUri)
-                    controller.setMediaItem(mediaItem)
-                    controller.prepare()
-                    controller.play()
-                } catch (error: RuntimeException) {
-                    MfLog.error(
-                        category = LogCategory.PLAYER,
-                        event = "playback_failed",
-                        throwable = error,
-                        fields = mapOf(
-                            "platform" to playable.platform,
-                            "itemId" to playable.id,
-                            "status" to "failed",
-                        ),
-                    )
-                    _errorEvents.tryEmit("播放失败: ${error.message}")
-                }
+            playResolvedItem(playable, generation)
+        }
+    }
+
+    private fun startQueuePlaybackTransition(
+        targetIndex: Int,
+        targetItem: MusicItem,
+        operation: String,
+    ) {
+        attachNotificationControls()
+        val generation = beginPlaybackRequest()
+        staleUrlRetryState.remove(targetItem.platform to targetItem.id)
+        playFailureSourceRetryState.remove(targetItem.platform to targetItem.id)
+        val sid = currentSidProvider.newSession()
+        playbackRequestJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "playback_transition_start",
+                fields = mapOf(
+                    "status" to "start",
+                    "operation" to operation,
+                    "fromIndex" to playQueue.currentIndex,
+                    "toIndex" to targetIndex,
+                    "platform" to targetItem.platform,
+                    "itemId" to targetItem.id,
+                ) + targetItem.diagnosticFields(),
+            )
+            currentPlayQuality = playbackRuntimeSettings.defaultPlayQuality()
+            playCacheTelemetry.playSessionStart(
+                sid = sid,
+                platform = targetItem.platform,
+                id = targetItem.id,
+                requestedQuality = playbackRuntimeSettings.defaultPlayQuality().name.lowercase(),
+                networkType = "unknown",
+                isOnline = true,
+            )
+            val playable = resolvePlayableItemForPlayback(targetItem, sid = sid, operation = operation)
+            if (playable == null) {
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "playback_transition_failed",
+                    fields = mapOf(
+                        "status" to "failed",
+                        "operation" to operation,
+                        "reason" to "resolve_failed",
+                        "targetIndex" to targetIndex,
+                        "platform" to targetItem.platform,
+                        "itemId" to targetItem.id,
+                    ) + targetItem.diagnosticFields(),
+                )
+                return@launch
             }
+            if (!isActivePlaybackRequest(generation)) return@launch
+            if (playQueue.items.getOrNull(targetIndex) != targetItem) {
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "playback_transition_cancelled",
+                    fields = mapOf(
+                        "status" to LogFields.Result.CANCELLED,
+                        "operation" to operation,
+                        "reason" to "queue_changed",
+                        "targetIndex" to targetIndex,
+                        "platform" to targetItem.platform,
+                        "itemId" to targetItem.id,
+                    ),
+                )
+                return@launch
+            }
+            playQueue.skipTo(targetIndex) ?: return@launch
+            if (playable != targetItem) {
+                playQueue.replaceCurrent(targetIndex, targetItem, playable)
+            }
+            emitQueueState()
+            playResolvedItem(playable, generation)
+        }
+    }
+
+    private fun activateCurrentQueueItem(operation: String) {
+        val item = playQueue.currentItem ?: return
+        setMediaItemAndPlay(
+            item = item,
+            expectedIndex = playQueue.currentIndex,
+            rollbackIndex = null,
+        )
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "playback_queue_item_activated",
+            fields = mapOf(
+                "status" to "start",
+                "operation" to operation,
+                "platform" to item.platform,
+                "itemId" to item.id,
+                "expectedIndex" to playQueue.currentIndex,
+            ),
+        )
+    }
+
+    private fun playResolvedItem(playable: MusicItem, generation: Long) {
+        withConnectedController { controller ->
+            if (!isActivePlaybackRequest(generation)) return@withConnectedController
+            try {
+                recordHistory(playable)
+                val mediaItem = playable.toMediaItem(defaultArtworkUri)
+                controller.setMediaItem(mediaItem)
+                controller.prepare()
+                controller.play()
+            } catch (error: RuntimeException) {
+                MfLog.error(
+                    category = LogCategory.PLAYER,
+                    event = "playback_failed",
+                    throwable = error,
+                    fields = mapOf(
+                        "platform" to playable.platform,
+                        "itemId" to playable.id,
+                        "status" to "failed",
+                    ),
+                )
+                _errorEvents.tryEmit("播放失败: ${error.message}")
+            }
+        }
+    }
+
+    private fun beginPlaybackRequest(): Long {
+        playbackRequestJob?.cancel()
+        return playbackRequestGeneration.incrementAndGet()
+    }
+
+    private fun cancelPlaybackRequest() {
+        playbackRequestJob?.cancel()
+        playbackRequestJob = null
+        playbackRequestGeneration.incrementAndGet()
+    }
+
+    private fun isActivePlaybackRequest(generation: Long): Boolean =
+        playbackRequestGeneration.get() == generation
+
+    private suspend fun resolvePlayableItemForPlayback(
+        item: MusicItem,
+        sid: String?,
+        operation: String,
+    ): MusicItem? {
+        val startedAt = System.nanoTime()
+        return try {
+            withTimeout(PLAYBACK_RESOLVE_TIMEOUT_MS) {
+                resolvePlayableItem(item, sid = sid)
+            }
+        } catch (error: TimeoutCancellationException) {
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "playback_transition_failed",
+                throwable = error,
+                fields = mapOf(
+                    "status" to "failed",
+                    "operation" to operation,
+                    "reason" to "resolve_timeout",
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "durationMs" to elapsedMs(startedAt),
+                ) + item.diagnosticFields(),
+            )
+            _errorEvents.emit("播放失败: 音源解析超时")
+            null
         }
     }
 
@@ -718,9 +883,11 @@ class PlayerController @Inject constructor(
         if (item.isLocalPlaybackSource()) return item
 
         val startedAt = System.nanoTime()
-        val resolution = runCatching {
+        val resolution = try {
             mediaSourceResolver.resolve(item, sid = sid)
-        }.onFailure { error ->
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
             MfLog.error(
                 category = LogCategory.PLAYER,
                 event = "playback_resolve_failed",
@@ -734,7 +901,8 @@ class PlayerController @Inject constructor(
                     "inputHadUrl" to !item.url.isNullOrBlank(),
                 ) + item.diagnosticFields(),
             )
-        }.getOrNull()
+            null
+        }
         val playable = resolution?.item
         if (playable != null && !playable.url.isNullOrBlank() && !canPlayOverCurrentNetwork(playable)) {
             MfLog.error(
@@ -1279,9 +1447,9 @@ class PlayerController @Inject constructor(
             return
         }
 
-        val previousIndex = playQueue.currentIndex
-        val next = nextItemAfterPlaybackFailure()
-        if (next == null) {
+        val nextIndex = nextIndexAfterPlaybackFailure()
+        val next = nextIndex?.let { playQueue.items.getOrNull(it) }
+        if (nextIndex == null || next == null) {
             pause()
             MfLog.error(
                 category = LogCategory.PLAYER,
@@ -1306,24 +1474,22 @@ class PlayerController @Inject constructor(
                 reason = "auto_stop_disabled",
             ),
         )
-        setMediaItemAndPlay(
-            item = next,
-            expectedIndex = playQueue.currentIndex,
-            rollbackIndex = previousIndex,
+        startQueuePlaybackTransition(
+            targetIndex = nextIndex,
+            targetItem = next,
+            operation = "playback_failure_skip_next",
         )
-        emitQueueState()
     }
 
-    private fun nextItemAfterPlaybackFailure(): MusicItem? {
+    private fun nextIndexAfterPlaybackFailure(): Int? {
         if (playQueue.size <= 1) return null
         val currentIndex = playQueue.currentIndex
-        val nextIndex = when {
+        return when {
             currentIndex < 0 -> return null
             currentIndex < playQueue.size - 1 -> currentIndex + 1
             repeatMode == RepeatMode.ALL -> 0
             else -> return null
         }
-        return playQueue.skipTo(nextIndex)
     }
 
     private fun playbackFailureFields(
@@ -1349,15 +1515,14 @@ class PlayerController @Inject constructor(
             }
             RepeatMode.ALL -> skipToNext()
             RepeatMode.OFF -> {
-                val previousIndex = playQueue.currentIndex
-                val next = playQueue.next(repeatMode)
-                if (next != null) {
-                    setMediaItemAndPlay(
-                        item = next,
-                        expectedIndex = playQueue.currentIndex,
-                        rollbackIndex = previousIndex,
+                val nextIndex = playQueue.peekNextIndex(repeatMode)
+                val next = nextIndex?.let { playQueue.items.getOrNull(it) }
+                if (nextIndex != null && next != null) {
+                    startQueuePlaybackTransition(
+                        targetIndex = nextIndex,
+                        targetItem = next,
+                        operation = "track_ended",
                     )
-                    emitQueueState()
                 }
             }
         }
@@ -1432,6 +1597,7 @@ class PlayerController @Inject constructor(
     companion object {
         private const val POSITION_UPDATE_INTERVAL_MS = 200L
         private const val HISTORY_MAX_SIZE = 200
+        private const val PLAYBACK_RESOLVE_TIMEOUT_MS = 45_000L
     }
 }
 

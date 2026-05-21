@@ -3,6 +3,7 @@ package com.hank.musicfree.player.service
 interface PlaybackNotificationQueueControls {
     fun skipToPreviousFromNotification()
     fun skipToNextFromNotification()
+    fun playFromNotification()
     fun closeFromNotification()
 }
 
@@ -26,6 +27,10 @@ object PlaybackNotificationCommandHandler {
 
     fun skipToNext() {
         controls?.skipToNextFromNotification()
+    }
+
+    fun play() {
+        controls?.playFromNotification()
     }
 
     fun close() {

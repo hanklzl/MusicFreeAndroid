@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.annotation.OptIn as AndroidXOptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -110,6 +111,28 @@ class PlaybackService : MediaSessionService() {
                 else -> return super.onCustomCommand(session, controller, customCommand, args)
             }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+        }
+
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+        override fun onPlayerCommandRequest(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            playerCommand: Int,
+        ): Int {
+            if (playerCommand == Player.COMMAND_PLAY_PAUSE && session.player.mediaItemCount == 0) {
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "playback_notification_player_command",
+                    fields = mapOf(
+                        "status" to "start",
+                        "command" to "play_pause",
+                        "reason" to "empty_session_player",
+                        "controllerPackage" to controller.packageName,
+                    ),
+                )
+                PlaybackNotificationCommandHandler.play()
+            }
+            return SessionResult.RESULT_SUCCESS
         }
     }
 

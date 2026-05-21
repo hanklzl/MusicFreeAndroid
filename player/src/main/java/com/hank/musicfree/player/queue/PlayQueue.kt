@@ -99,8 +99,13 @@ class PlayQueue {
      * should read [currentItem] directly.
      */
     fun peekNextItem(repeatMode: RepeatMode): MusicItem? {
+        val nextIndex = peekNextIndex(repeatMode) ?: return null
+        return _items.getOrNull(nextIndex)
+    }
+
+    fun peekNextIndex(repeatMode: RepeatMode): Int? {
         if (isEmpty) return null
-        val nextIndex = when (repeatMode) {
+        return when (repeatMode) {
             RepeatMode.ONE -> currentIndex
             RepeatMode.ALL -> (currentIndex + 1) % _items.size
             RepeatMode.OFF -> {
@@ -108,7 +113,18 @@ class PlayQueue {
                 if (idx > _items.lastIndex) return null else idx
             }
         }
-        return _items.getOrNull(nextIndex)
+    }
+
+    fun peekPreviousIndex(repeatMode: RepeatMode): Int? {
+        if (isEmpty) return null
+        return when (repeatMode) {
+            RepeatMode.ONE -> currentIndex
+            RepeatMode.ALL -> (currentIndex - 1 + _items.size) % _items.size
+            RepeatMode.OFF -> {
+                val idx = currentIndex - 1
+                if (idx < 0) return null else idx
+            }
+        }
     }
 
     fun next(repeatMode: RepeatMode): MusicItem? {

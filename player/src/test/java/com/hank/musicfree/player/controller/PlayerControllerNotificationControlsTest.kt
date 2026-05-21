@@ -8,6 +8,7 @@ import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.player.listening.ListenTracker
 import com.hank.musicfree.player.source.TrackHeaderRegistry
 import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
+import kotlinx.coroutines.CompletableDeferred
 import org.mockito.kotlin.mock
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -75,6 +76,35 @@ class PlayerControllerNotificationControlsTest {
     }
 
     @Test
+    fun `notification next keeps committed current item while target source is resolving`() {
+        val resolver = BlockingResolver()
+        val controller = PlayerController(context, resolver, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
+
+        try {
+            controller.restoreQueue(
+                items = listOf(
+                    testItem("1"),
+                    testItem("2").copy(url = null),
+                ),
+                startIndex = 0,
+                playWhenRestored = false,
+            )
+
+            PlaybackNotificationCommandHandler.skipToNext()
+
+            waitUntil("next item resolution starts") {
+                resolver.requestedIds == listOf("2")
+            }
+            assertEquals("1", controller.playQueue.currentItem?.id)
+            assertEquals(0, controller.queueState.value.currentIndex)
+            assertEquals("1", controller.playerState.value.currentItem?.id)
+        } finally {
+            resolver.complete(null)
+            controller.release()
+        }
+    }
+
+    @Test
     fun `notification next rolls queue back when media source cannot resolve`() {
         val resolver = UnresolvedResolver()
         val controller = PlayerController(context, resolver, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
@@ -94,6 +124,31 @@ class PlayerControllerNotificationControlsTest {
                 controller.playQueue.currentItem?.id == "1"
             }
             assertEquals(listOf("2"), resolver.requestedIds)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `notification play resolves restored current item when no media item is prepared`() {
+        val resolver = RecordingResolver(
+            resolvedUrl = "https://cdn.example.test/1.mp3",
+        )
+        val controller = PlayerController(context, resolver, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
+
+        try {
+            controller.restoreQueue(
+                items = listOf(testItem("1").copy(url = null)),
+                startIndex = 0,
+                playWhenRestored = false,
+            )
+
+            PlaybackNotificationCommandHandler.play()
+
+            waitUntil("restored item is resolved from notification play") {
+                resolver.requestedIds == listOf("1") &&
+                    controller.playQueue.currentItem?.url == "https://cdn.example.test/1.mp3"
+            }
         } finally {
             controller.release()
         }
@@ -235,6 +290,24 @@ class PlayerControllerNotificationControlsTest {
         ): MediaSourceResolution? {
             requestedIds += item.id
             return null
+        }
+    }
+
+    private class BlockingResolver : MediaSourceResolver {
+        private val result = CompletableDeferred<MediaSourceResolution?>()
+        val requestedIds = mutableListOf<String>()
+
+        override suspend fun resolve(
+            item: MusicItem,
+            quality: String?,
+            sid: String?,
+        ): MediaSourceResolution? {
+            requestedIds += item.id
+            return result.await()
+        }
+
+        fun complete(resolution: MediaSourceResolution?) {
+            result.complete(resolution)
         }
     }
 }
