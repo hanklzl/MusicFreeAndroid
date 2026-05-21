@@ -6,6 +6,35 @@
 
 <!-- next-release -->
 
+## [v1.2.2] - 2026-05-21
+
+### 变更详情
+
+#### 新功能
+- feat(pager): 实现 Scene Pager 标签切换 (175c006)
+
+#### 修复
+- fix(updater): 修复 APK 更新安装入口 (1b5f5c0)
+- fix(home): 修复收藏红心颜色 (b3a0bd0)
+- fix(search): 修正夜间模式下搜索框文本颜色 (7f8aa6d)
+
+#### 文档
+- docs(changelog): release v1.2.1 [skip ci] (a40f723)
+
+#### 杂项
+- chore(release): 发布 v1.2.2 (b5e62b7)
+
+#### 其它
+- Merge pull request #6 from hanklzl/claude/fix-dark-mode-search-text-rYE4i (8b2c035)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.2-arm64-v8a.apk` · 7.6MB · sha256 `6ef72f22c504`
+- x86_64: `MusicFreeAndroid-v1.2.2-x86_64.apk` · 7.6MB · sha256 `9ec81f1340fc`
+- mapping: `mapping-v1.2.2.zip` · sha256 `f3e6fd45cbba` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.1] - 2026-05-20
 
 ### 变更详情
