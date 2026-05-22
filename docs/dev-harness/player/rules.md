@@ -41,6 +41,14 @@ implemented_by: INC-2026-0012
 - `PlaybackService` MUST 在 `onTaskRemoved`、`onDestroy` 中按 RN 行为停止当前播放或保留媒体通知（依现有实现，详见 `2026-05-04-playback-notification-design.md`）。
 - 不在本 rule 强制具体策略；只要求改动 PR 对照该 spec。
 
+## 通知播放命令不得递归回调 {#rule-notification-play-no-recursion}
+
+implemented_by: INC-2026-0022
+
+- `PlaybackService.onPlayerCommandRequest` MUST NOT 在 `session.player.mediaItemCount == 0` 路径里同步触发任何最终会经 `MediaController` IPC 回到 `onPlayerCommandRequest` 自身的 `controller.play()` 调用；否则会形成同步无限递归直到 `StackOverflowError`。
+- `PlayerController.playFromNotification`（即 `PlaybackNotificationCommandHandler.play()` 的回调）MUST 总是经 `activateCurrentQueueItem` / `setMediaItemAndPlay` 等先 `setMediaItem` 再 `play` 的路径加载队列项，禁止根据 `mediaController.currentMediaItem` 走 `play() → controller.play()` 的捷径——controller 缓存与 session player 可能短暂不一致。
+- 任何改 `onPlayerCommandRequest` 或 `playFromNotification` 的 PR MUST 跑 `:player:testDebugUnitTest --tests *PlayerControllerNotificationControlsTest*`。
+
 ## 歌词解析时间戳格式 {#rule-lyric-parser-supports-second-only-timestamp}
 
 implemented_by: INC-2026-0017

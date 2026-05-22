@@ -116,6 +116,11 @@ class PlayerController @Inject constructor(
     internal val pendingRestorePositionForTest: Long?
         get() = pendingRestorePosition
 
+    @VisibleForTesting
+    internal fun setMediaControllerForTest(controller: MediaController?) {
+        mediaController = controller
+    }
+
     val playQueue = PlayQueue()
 
     private val _playerState = MutableStateFlow(PlayerState.EMPTY)
@@ -349,6 +354,13 @@ class PlayerController @Inject constructor(
     }
 
     override fun playFromNotification() {
+        // This is only invoked from `PlaybackService.onPlayerCommandRequest` when
+        // `session.player.mediaItemCount == 0`, i.e. the session has no loaded item.
+        // We must always reload the queue's current item via `activateCurrentQueueItem`
+        // — never shortcut to `play()`, because `play()` would call `controller.play()`
+        // which re-enters `onPlayerCommandRequest` and recurses until StackOverflow
+        // when the controller's cached `currentMediaItem` is stale relative to the
+        // empty session player.
         MfLog.detail(
             category = LogCategory.PLAYER,
             event = "playback_notification_play",
@@ -360,11 +372,6 @@ class PlayerController @Inject constructor(
                 "queueSize" to playQueue.size,
             ),
         )
-        val controller = mediaController
-        if (controller != null && controller.currentMediaItem != null) {
-            play()
-            return
-        }
         activateCurrentQueueItem(operation = "notification_play")
     }
 

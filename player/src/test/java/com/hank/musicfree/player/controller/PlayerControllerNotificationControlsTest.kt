@@ -1,6 +1,8 @@
 package com.hank.musicfree.player.controller
 
 import android.content.Context
+import androidx.media3.common.MediaItem
+import androidx.media3.session.MediaController
 import com.hank.musicfree.core.media.MediaSourceResolution
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.core.model.MediaSourceResult
@@ -9,6 +11,9 @@ import com.hank.musicfree.player.listening.ListenTracker
 import com.hank.musicfree.player.source.TrackHeaderRegistry
 import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
 import kotlinx.coroutines.CompletableDeferred
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -125,6 +130,62 @@ class PlayerControllerNotificationControlsTest {
             }
             assertEquals(listOf("2"), resolver.requestedIds)
         } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `notification play reloads queue when controller cache is stale and session is empty`() {
+        // Regression for v1.2.3 StackOverflowError: when MediaController.currentMediaItem
+        // was non-null (stale cache) but PlaybackService.session.player was empty,
+        // playFromNotification used to take the play() shortcut, which called
+        // MediaController.play() and re-entered onPlayerCommandRequest → infinite
+        // recursion. Verify we now always go through activateCurrentQueueItem.
+        val resolver = RecordingResolver(
+            resolvedUrl = "https://cdn.example.test/1.mp3",
+        )
+        val controller = PlayerController(
+            context,
+            resolver,
+            listenTracker = mock<ListenTracker>(),
+            currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(),
+            playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
+        )
+
+        val staleMediaItem = MediaItem.Builder().setMediaId("stale-cached").build()
+        val mockMediaController = mock<MediaController> {
+            on { currentMediaItem } doReturn staleMediaItem
+        }
+        controller.setMediaControllerForTest(mockMediaController)
+
+        try {
+            controller.playQueue.setQueue(
+                listOf(testItem("1").copy(url = null)),
+                startIndex = 0,
+            )
+
+            PlaybackNotificationCommandHandler.play()
+
+            waitUntil("notification play resolves queue item instead of recursing") {
+                resolver.requestedIds == listOf("1")
+            }
+            // Old buggy path would call controller.play() directly without invoking
+            // the resolver. Asserting resolver activity proves we went through
+            // activateCurrentQueueItem.
+            assertEquals(listOf("1"), resolver.requestedIds)
+            // The recursion came from calling controller.play() BEFORE any setMediaItem,
+            // so when the session-side onPlayerCommandRequest re-fired it still saw an
+            // empty player. Asserting that setMediaItem fires before play proves the
+            // fix: session.player will have the item by the time play arrives.
+            waitUntil("controller is driven via setMediaItem before play") {
+                runCatching {
+                    val ordered = inOrder(mockMediaController)
+                    ordered.verify(mockMediaController).setMediaItem(any())
+                    ordered.verify(mockMediaController).play()
+                }.isSuccess
+            }
+        } finally {
+            controller.setMediaControllerForTest(null)
             controller.release()
         }
     }

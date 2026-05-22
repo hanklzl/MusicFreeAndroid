@@ -39,6 +39,10 @@
 - 发布流程详见根目录 `RELEASE.md` 与 `docs/superpowers/specs/2026-05-13-android-release-pipeline-design.md`。
 - 分 ABI 发布与更新链路（双 APK + mapping 归档 + 侧栏检查更新）：详见 [docs/superpowers/specs/2026-05-16-per-abi-release-and-update-design.md](../superpowers/specs/2026-05-16-per-abi-release-and-update-design.md)。
 
+## 线上崩溃还原
+
+- Release 构建经 R8 minify，线上堆栈类名是 `wh2.f` 这种混淆名；排查任何线上崩溃前先按 [release-mapping.md](./release-mapping.md) 还原。
+
 ## 项目记忆边界
 
 - 错误库 / 强约束 / AI skills 都进 git，跨 AI 工具与跨开发者生效。
