@@ -74,12 +74,21 @@ fun UpdateDialogHost(
             )
         }
         is UpdateState.ReadyToInstall -> {
+            var installing by remember { mutableStateOf(false) }
             ReadyToInstallDialog(
                 update = s.update,
                 onInstall = {
-                    val result = installer.install(s.apkFile)
-                    if (result is ApkInstaller.InstallResult.Blocked) {
-                        checker.transitionFailed(s.update, result.cause)
+                    if (installing) return@ReadyToInstallDialog
+                    installing = true
+                    scope.launch {
+                        try {
+                            val result = installer.install(s.apkFile)
+                            if (result is ApkInstaller.InstallResult.Blocked) {
+                                checker.transitionFailed(s.update, result.cause)
+                            }
+                        } finally {
+                            installing = false
+                        }
                     }
                 },
                 onCancel = { checker.transitionAvailable(s.update, skipped = false) },
@@ -92,6 +101,16 @@ fun UpdateDialogHost(
                     InstallBlockedDialog(
                         onGoSettings = {
                             context.startActivity(InstallIntents.manageUnknownAppSources(context.packageName))
+                        },
+                        onDismiss = {
+                            if (update != null) checker.transitionAvailable(update, skipped = false)
+                        },
+                    )
+                }
+                UpdateError.InstallFailed -> {
+                    InstallFailedDialog(
+                        onRetry = {
+                            if (update != null) checker.transitionAvailable(update, skipped = false)
                         },
                         onDismiss = {
                             if (update != null) checker.transitionAvailable(update, skipped = false)

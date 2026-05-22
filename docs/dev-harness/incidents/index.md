@@ -44,3 +44,4 @@
 | INC-2026-0020 | network | Media3 使用 DefaultHttpDataSource 绕过 base client | [network/rules.md#rule-media3-okhttp-data-source](../network/rules.md#rule-media3-okhttp-data-source) | grep |
 | INC-2026-0021 | network | Coil ImageLoader 走默认 fetcher 绕过 base client | [network/rules.md#rule-coil-uses-base-okhttp](../network/rules.md#rule-coil-uses-base-okhttp) | grep |
 | INC-2026-0022 | player | 通知播放空 session 自递归 StackOverflowError | [player/rules.md#rule-notification-play-no-recursion](../player/rules.md#rule-notification-play-no-recursion) | contract-test |
+| INC-2026-0023 | updater | APK 安装入口长期依赖 FileProvider+Intent 跨进程授权，2 次修复未收敛 → 迁移到 PackageInstaller.Session | — | manual |

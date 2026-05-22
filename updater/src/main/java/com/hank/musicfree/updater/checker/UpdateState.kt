@@ -42,5 +42,6 @@ enum class UpdateError {
     SizeMismatch,
     Sha256Mismatch,
     Canceled,
-    InstallBlocked,
+    InstallBlocked,     // 未知来源未授权（pre-flight 闸门失败）
+    InstallFailed,      // 系统/Session 报告的运行时安装失败（含坏包 / 包冲突 / IO / 系统拒绝）
 }

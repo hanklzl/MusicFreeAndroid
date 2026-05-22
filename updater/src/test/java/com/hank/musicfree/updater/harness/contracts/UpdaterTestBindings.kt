@@ -4,6 +4,7 @@ import com.hank.musicfree.core.network.TrafficSample
 import com.hank.musicfree.core.network.TrafficSampleSink
 import com.hank.musicfree.core.runtime.RuntimeSnapshot
 import com.hank.musicfree.core.runtime.SnapshotStore
+import com.hank.musicfree.updater.bootstrap.LocalAppVersion
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,5 +39,13 @@ object UpdaterTestBindings {
         override suspend fun deleteExpired(namespace: String, nowEpochMs: Long): Int = 0
         override suspend fun pruneNamespace(namespace: String, keepLatest: Int): Int = 0
         override suspend fun keys(namespace: String, limit: Int): List<String> = emptyList()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLocalAppVersion(): LocalAppVersion = object : LocalAppVersion {
+        override val versionCode: Long = 1L
+        override val versionName: String = "test"
+        override val isDebugBuild: Boolean = true
     }
 }

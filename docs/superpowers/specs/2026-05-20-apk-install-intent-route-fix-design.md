@@ -1,6 +1,6 @@
 # APK 安装 Intent 路由修复设计
 
-> 文档状态：当前规范（本轮修复）
+> 文档状态：已被取代（2026-05-22 PackageInstaller 迁移），保留作历史快照（见 [`2026-05-22-apk-install-package-installer-migration-design.md`](2026-05-22-apk-install-package-installer-migration-design.md)）
 > 适用范围：更新功能下载完成后的 APK 安装 Intent、FileProvider URI 授权与安装失败诊断。
 > 直接执行：是
 > 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md)、[AGENTS](../../../AGENTS.md)

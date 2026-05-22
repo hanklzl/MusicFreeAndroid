@@ -7,7 +7,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import com.hank.musicfree.updater.checker.UpdateChecker
@@ -83,12 +86,21 @@ fun ManualUpdateDialog(
             )
         }
         is UpdateState.ReadyToInstall -> {
+            var installing by remember { mutableStateOf(false) }
             ReadyToInstallDialog(
                 update = s.update,
                 onInstall = {
-                    val result = installer.install(s.apkFile)
-                    if (result is ApkInstaller.InstallResult.Blocked) {
-                        checker.transitionFailed(s.update, result.cause)
+                    if (installing) return@ReadyToInstallDialog
+                    installing = true
+                    scope.launch {
+                        try {
+                            val result = installer.install(s.apkFile)
+                            if (result is ApkInstaller.InstallResult.Blocked) {
+                                checker.transitionFailed(s.update, result.cause)
+                            }
+                        } finally {
+                            installing = false
+                        }
                     }
                 },
                 onCancel = { checker.transitionAvailable(s.update, skipped = false) },
@@ -130,6 +142,17 @@ fun ManualUpdateDialog(
                     InstallBlockedDialog(
                         onGoSettings = {
                             context.startActivity(InstallIntents.manageUnknownAppSources(context.packageName))
+                        },
+                        onDismiss = {
+                            if (update != null) checker.transitionAvailable(update, skipped = false)
+                            onDismiss()
+                        },
+                    )
+                }
+                UpdateError.InstallFailed -> {
+                    InstallFailedDialog(
+                        onRetry = {
+                            if (update != null) checker.transitionAvailable(update, skipped = false)
                         },
                         onDismiss = {
                             if (update != null) checker.transitionAvailable(update, skipped = false)

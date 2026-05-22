@@ -107,6 +107,20 @@ fun InstallBlockedDialog(
 }
 
 @Composable
+fun InstallFailedDialog(
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("安装失败") },
+        text = { Text("系统未能完成安装，可能是网络中断、安装包损坏或与已安装版本签名不一致。") },
+        confirmButton = { TextButton(onClick = onRetry) { Text("重试") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("关闭") } },
+    )
+}
+
+@Composable
 fun SchemaUnsupportedDialog(
     version: String?,
     releaseNotesUrl: String,
