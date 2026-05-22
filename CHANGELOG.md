@@ -6,6 +6,28 @@
 
 <!-- next-release -->
 
+## [v1.2.4] - 2026-05-23
+
+### 变更详情
+
+#### 修复
+- fix(updater): 安装入口迁移到 PackageInstaller.Session (1711758)
+- fix(player): 修复通知播放空 session 自递归 StackOverflowError (eb0347c)
+
+#### 文档
+- docs(changelog): release v1.2.3 [skip ci] (600c675)
+
+#### 杂项
+- chore(release): 发布 v1.2.4 (fadcb86)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.4-arm64-v8a.apk` · 7.6MB · sha256 `ecfb4f802428`
+- x86_64: `MusicFreeAndroid-v1.2.4-x86_64.apk` · 7.6MB · sha256 `aa425728acfc`
+- mapping: `mapping-v1.2.4.zip` · sha256 `a6b2adeb2c3d` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.3] - 2026-05-21
 
 ### 变更详情
