@@ -106,7 +106,7 @@ fun HomeScreen(
         currentVersion = currentVersion,
         scheduleCloseSummary = scheduleCloseSummary,
         checker = updateBadgeViewModel.checker,
-        downloader = updateBadgeViewModel.downloader,
+        downloadManager = updateBadgeViewModel.downloadManager,
         installer = updateBadgeViewModel.installer,
         onDrawerEntryClick = { action ->
             when (action) {

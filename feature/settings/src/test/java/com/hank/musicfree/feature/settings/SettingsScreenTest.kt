@@ -21,6 +21,7 @@ import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.logging.FeedbackLogExporterContract
 import com.hank.musicfree.logging.FeedbackPackage
 import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.updater.store.UpdatePreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -98,6 +99,7 @@ class SettingsScreenTest {
     ): SettingsViewModel {
         val viewModel = SettingsViewModel(
             appPreferences = createAppPreferences(),
+            updatePreferences = createUpdatePreferences(),
             feedbackLogExporter = FakeFeedbackLogExporter(),
             pluginManager = mock<PluginManager>(),
             cacheCleaner = mock<SettingsCacheCleaner>(),
@@ -126,6 +128,16 @@ class SettingsScreenTest {
             produceFile = { tmpFolder.newFile("settings-screen-test.preferences_pb") },
         )
         return AppPreferences(dataStore)
+    }
+
+    private fun createUpdatePreferences(): UpdatePreferences {
+        val scope = CoroutineScope(SupervisorJob() + mainDispatcherRule.dispatcher)
+        dataStoreScopes += scope
+        val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = scope,
+            produceFile = { tmpFolder.newFile("updater-settings-screen-${System.nanoTime()}.preferences_pb") },
+        )
+        return UpdatePreferences(dataStore)
     }
 
     private inner class FakeFeedbackLogExporter : FeedbackLogExporterContract {

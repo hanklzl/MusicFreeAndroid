@@ -12,6 +12,7 @@ sealed interface UpdateState {
     data class Available(
         val update: ResolvedUpdate,
         val skipped: Boolean,
+        val source: UpdateCheckSource = UpdateCheckSource.Manual,
     ) : UpdateState
 
     data class Downloading(
@@ -33,6 +34,11 @@ sealed interface UpdateState {
 
     val hasUnreadAvailableUpdate: Boolean
         get() = this is Available && !skipped
+}
+
+enum class UpdateCheckSource {
+    Launch,
+    Manual,
 }
 
 enum class UpdateError {

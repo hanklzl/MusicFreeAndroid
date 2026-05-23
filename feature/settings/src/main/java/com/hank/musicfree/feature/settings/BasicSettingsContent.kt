@@ -90,6 +90,7 @@ fun BasicSettingsContent(
     onDownloadQualityOrderChange: (QualityFallbackOrder) -> Unit,
     onUseCellularPlayChange: (Boolean) -> Unit,
     onUseCellularDownloadChange: (Boolean) -> Unit,
+    onSilentUpdateDownloadEnabledChange: (Boolean) -> Unit,
     onLyricAutoSearchEnabledChange: (Boolean) -> Unit,
     onDesktopLyricEnabledChange: (Boolean) -> Unit,
     onDesktopLyricAlignmentChange: (DesktopLyricAlignment) -> Unit,
@@ -313,6 +314,13 @@ fun BasicSettingsContent(
                     enabled = true,
                     testTag = FidelityAnchors.Settings.BasicUseCellularDownload,
                     onCheckedChange = onUseCellularDownloadChange,
+                )
+                SettingSwitchRow(
+                    title = "Wi-Fi 下静默下载软件更新",
+                    checked = state.silentUpdateDownloadEnabled,
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicSilentUpdateDownload,
+                    onCheckedChange = onSilentUpdateDownloadEnabledChange,
                 )
             }
         }

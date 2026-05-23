@@ -114,6 +114,7 @@ object FidelityAnchors {
         const val BasicDownloadQualityOrder = "settings.basic.downloadQualityOrder"
         const val BasicUseCellularPlay = "settings.basic.useCellularPlay"
         const val BasicUseCellularDownload = "settings.basic.useCellularDownload"
+        const val BasicSilentUpdateDownload = "settings.basic.silentUpdateDownload"
         const val BasicLyricAutoSearch = "settings.basic.lyricAutoSearch"
         const val ThemeRoot = "settings.theme.root"
         const val ThemeSectionMode = "settings.theme.section.mode"

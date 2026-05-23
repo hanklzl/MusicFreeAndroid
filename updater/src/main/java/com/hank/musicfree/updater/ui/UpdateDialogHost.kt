@@ -13,9 +13,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import com.hank.musicfree.updater.checker.UpdateChecker
+import com.hank.musicfree.updater.checker.UpdateCheckSource
 import com.hank.musicfree.updater.checker.UpdateError
 import com.hank.musicfree.updater.checker.UpdateState
-import com.hank.musicfree.updater.downloader.ApkDownloader
+import com.hank.musicfree.updater.downloader.UpdateDownloadManager
 import com.hank.musicfree.updater.installer.ApkInstaller
 import com.hank.musicfree.updater.installer.InstallIntents
 import kotlinx.coroutines.launch
@@ -23,7 +24,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun UpdateDialogHost(
     checker: UpdateChecker,
-    downloader: ApkDownloader,
+    downloadManager: UpdateDownloadManager,
     installer: ApkInstaller,
 ) {
     val context = LocalContext.current
@@ -34,27 +35,18 @@ fun UpdateDialogHost(
 
     when (val s = state) {
         is UpdateState.Available -> {
-            if (!s.skipped && !dismissedAvailable) {
+            if (s.source == UpdateCheckSource.Launch) {
+                LaunchedEffect(s.update.info.versionCode, s.skipped, s.source) {
+                    if (!s.skipped) {
+                        downloadManager.startSilentIfAllowed(s.update)
+                    }
+                }
+            } else if (!s.skipped && !dismissedAvailable) {
                 AvailableUpdateDialog(
                     update = s.update,
                     onDownload = {
                         dismissedAvailable = true
-                        scope.launch {
-                            checker.transitionDownloading(s.update, 0f, 0L, s.update.variant.size)
-                            val result = downloader.download(s.update) { bytes, total, fraction ->
-                                checker.transitionDownloading(s.update, fraction, bytes, total)
-                            }
-                            when (result) {
-                                is ApkDownloader.Result.Success -> checker.transitionReady(s.update, result.apkFile)
-                                is ApkDownloader.Result.Failure -> {
-                                    if (result.cause == UpdateError.Canceled) {
-                                        checker.transitionAvailable(s.update, skipped = false)
-                                    } else {
-                                        checker.transitionFailed(s.update, result.cause)
-                                    }
-                                }
-                            }
-                        }
+                        downloadManager.downloadNow(s.update)
                     },
                     onSkip = {
                         dismissedAvailable = true
@@ -70,7 +62,7 @@ fun UpdateDialogHost(
                 bytes = s.bytes,
                 total = s.total,
                 fraction = s.progress,
-                onCancel = { downloader.cancel() },
+                onCancel = { downloadManager.cancelActiveDownload("update_dialog_cancel") },
             )
         }
         is UpdateState.ReadyToInstall -> {

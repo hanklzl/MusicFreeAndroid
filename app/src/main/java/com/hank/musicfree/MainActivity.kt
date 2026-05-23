@@ -58,7 +58,7 @@ import com.hank.musicfree.navigation.AppNavHost
 import com.hank.musicfree.startup.StartupTelemetry
 import com.hank.musicfree.startup.StartupTelemetry.StartupActivitySession
 import com.hank.musicfree.updater.checker.UpdateChecker
-import com.hank.musicfree.updater.downloader.ApkDownloader
+import com.hank.musicfree.updater.downloader.UpdateDownloadManager
 import com.hank.musicfree.updater.installer.ApkInstaller
 import com.hank.musicfree.updater.ui.UpdateDialogHost
 import dagger.hilt.android.AndroidEntryPoint
@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
     lateinit var updateChecker: UpdateChecker
 
     @Inject
-    lateinit var apkDownloader: ApkDownloader
+    lateinit var updateDownloadManager: UpdateDownloadManager
 
     @Inject
     lateinit var apkInstaller: ApkInstaller
@@ -154,7 +154,7 @@ class MainActivity : ComponentActivity() {
             MusicFreeTheme(themeState = themeState) {
                 UpdateDialogHost(
                     checker = updateChecker,
-                    downloader = apkDownloader,
+                    downloadManager = updateDownloadManager,
                     installer = apkInstaller,
                 )
                 val notificationPermission = requiredNotificationPermission()

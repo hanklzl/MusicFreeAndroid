@@ -22,6 +22,7 @@ import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.ReadableLogStore
 import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.updater.store.UpdatePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,6 +61,7 @@ data class BasicSettingsUiState(
     val downloadQualityOrder: QualityFallbackOrder = QualityFallbackOrder.Asc,
     val useCellularPlay: Boolean = false,
     val useCellularDownload: Boolean = false,
+    val silentUpdateDownloadEnabled: Boolean = true,
     val lyricAutoSearchEnabled: Boolean = true,
     val desktopLyricEnabled: Boolean = false,
     val desktopLyricAlignment: DesktopLyricAlignment = DesktopLyricAlignment.Center,
@@ -174,6 +176,7 @@ private data class DownloadBasicSettingsState(
 private data class NetworkBasicSettingsState(
     val useCellularPlay: Boolean,
     val useCellularDownload: Boolean,
+    val silentUpdateDownloadEnabled: Boolean,
 )
 
 private data class LyricBasicSettingsState(
@@ -215,6 +218,7 @@ private data class RuntimeCoreBasicSettingsState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
+    private val updatePreferences: UpdatePreferences,
     private val feedbackLogExporter: FeedbackLogExporterContract,
     private val pluginManager: PluginManager,
     private val cacheCleaner: SettingsCacheCleaner,
@@ -303,6 +307,9 @@ class SettingsViewModel @Inject constructor(
 
     val useCellularPlay: StateFlow<Boolean> = appPreferences.useCellularPlay
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val silentUpdateDownloadEnabled: StateFlow<Boolean> = updatePreferences.silentUpdateDownloadEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val defaultDownloadQuality: StateFlow<PlayQuality> = appPreferences.defaultDownloadQuality
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayQuality.STANDARD)
@@ -517,10 +524,12 @@ class SettingsViewModel @Inject constructor(
     private val networkBasicSettingsState = combine(
         useCellularPlay,
         useCellularDownload,
-    ) { useCellularPlay, useCellularDownload ->
+        silentUpdateDownloadEnabled,
+    ) { useCellularPlay, useCellularDownload, silentUpdateDownloadEnabled ->
         NetworkBasicSettingsState(
             useCellularPlay = useCellularPlay,
             useCellularDownload = useCellularDownload,
+            silentUpdateDownloadEnabled = silentUpdateDownloadEnabled,
         )
     }
 
@@ -585,6 +594,7 @@ class SettingsViewModel @Inject constructor(
             downloadQualityOrder = runtime.download.downloadQualityOrder,
             useCellularPlay = runtime.network.useCellularPlay,
             useCellularDownload = runtime.network.useCellularDownload,
+            silentUpdateDownloadEnabled = runtime.network.silentUpdateDownloadEnabled,
             lyricAutoSearchEnabled = lyric.autoSearchEnabled,
             desktopLyricEnabled = lyric.desktopEnabled,
             desktopLyricAlignment = lyric.desktopAlignment,
@@ -706,6 +716,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setUseCellularPlay(value: Boolean) = viewModelScope.launch {
         appPreferences.setUseCellularPlay(value)
+    }
+
+    fun setSilentUpdateDownloadEnabled(value: Boolean) = viewModelScope.launch {
+        updatePreferences.setSilentUpdateDownloadEnabled(value)
     }
 
     fun setLyricAutoSearchEnabled(value: Boolean) = viewModelScope.launch {

@@ -26,6 +26,7 @@ import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.MfLogger
 import com.hank.musicfree.logging.ReadableLogStore
 import com.hank.musicfree.plugin.manager.PluginManager
+import com.hank.musicfree.updater.store.UpdatePreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -124,6 +125,7 @@ class SettingsViewModelTest {
         assertEquals(QualityFallbackOrder.Asc, state.downloadQualityOrder)
         assertEquals(false, state.useCellularPlay)
         assertEquals(false, state.useCellularDownload)
+        assertEquals(true, state.silentUpdateDownloadEnabled)
         assertEquals(true, state.lyricAutoSearchEnabled)
         assertEquals(false, state.desktopLyricEnabled)
         assertEquals(DesktopLyricAlignment.Center, state.desktopLyricAlignment)
@@ -147,8 +149,13 @@ class SettingsViewModelTest {
     fun `basic settings setters update collected runtime-backed state and preferences`() =
         runTest(mainDispatcherRule.dispatcher) {
             val appPreferences = createAppPreferences()
+            val updatePreferences = createUpdatePreferences()
             val pluginManager = mock<PluginManager>()
-            val viewModel = createViewModel(appPreferences, pluginManager = pluginManager)
+            val viewModel = createViewModel(
+                appPreferences = appPreferences,
+                updatePreferences = updatePreferences,
+                pluginManager = pluginManager,
+            )
             val job = backgroundScope.launch { viewModel.basicSettingsUiState.collect {} }
             advanceUntilIdle()
 
@@ -177,6 +184,7 @@ class SettingsViewModelTest {
             viewModel.setDownloadQualityOrder(QualityFallbackOrder.Desc)
             viewModel.setUseCellularPlay(true)
             viewModel.setUseCellularDownload(true)
+            viewModel.setSilentUpdateDownloadEnabled(false)
             viewModel.setLyricAutoSearchEnabled(false)
             viewModel.setDesktopLyricEnabled(true)
             viewModel.setDesktopLyricAlignment(DesktopLyricAlignment.Right)
@@ -213,6 +221,7 @@ class SettingsViewModelTest {
             assertEquals(QualityFallbackOrder.Desc, state.downloadQualityOrder)
             assertEquals(true, state.useCellularPlay)
             assertEquals(true, state.useCellularDownload)
+            assertEquals(false, state.silentUpdateDownloadEnabled)
             assertEquals(false, state.lyricAutoSearchEnabled)
             assertEquals(true, state.desktopLyricEnabled)
             assertEquals(DesktopLyricAlignment.Right, state.desktopLyricAlignment)
@@ -246,6 +255,7 @@ class SettingsViewModelTest {
             assertEquals(true, appPreferences.autoStopWhenError.first())
             assertEquals(AudioInterruptionAction.LowerVolume, appPreferences.audioInterruptionAction.first())
             assertEquals(0.8f, appPreferences.audioInterruptionDuckVolume.first())
+            assertEquals(false, updatePreferences.silentUpdateDownloadEnabled.first())
             assertEquals(true, appPreferences.autoUpdatePlugins.first())
             assertEquals(true, appPreferences.skipPluginVersionCheck.first())
             assertEquals(true, appPreferences.lazyLoadPlugins.first())
@@ -604,15 +614,27 @@ class SettingsViewModelTest {
         return AppPreferences(dataStore)
     }
 
+    private fun createUpdatePreferences(): UpdatePreferences {
+        val scope = CoroutineScope(SupervisorJob() + mainDispatcherRule.dispatcher)
+        dataStoreScopes += scope
+        val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = scope,
+            produceFile = { tmpFolder.newFile("updater-settings-test-${System.nanoTime()}.preferences_pb") },
+        )
+        return UpdatePreferences(dataStore)
+    }
+
     private fun createViewModel(
         appPreferences: AppPreferences,
         exporter: FeedbackLogExporterContract = createFakeExporter(),
         pluginManager: PluginManager = mock(),
         cacheCleaner: SettingsCacheCleaner = mock(),
         backupRepository: BackupRepository = createFakeBackupRepository(),
+        updatePreferences: UpdatePreferences = createUpdatePreferences(),
     ): SettingsViewModel {
         return SettingsViewModel(
             appPreferences = appPreferences,
+            updatePreferences = updatePreferences,
             feedbackLogExporter = exporter,
             pluginManager = pluginManager,
             cacheCleaner = cacheCleaner,

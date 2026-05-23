@@ -5,9 +5,9 @@
 > 直接执行：是
 > 当前入口：[AGENTS](../AGENTS.md)
 > 备注：执行任务前先看本文件，再进入具体文档。
-> 最后校验：2026-05-09
+> 最后校验：2026-05-23
 >
-> 最后校验日期：2026-05-09
+> 最后校验日期：2026-05-23
 > 
 > 该文档是本仓库文档治理的单一入口。执行任务前，先看这里再看具体文档。
 
@@ -30,6 +30,7 @@
 |---|---|---|---|
 | [AGENTS.md](../AGENTS.md) | 当前规范 | 是 | 仓库工作总规则 |
 | [docs/DOCS_STATUS.md](./DOCS_STATUS.md) | 当前规范 | 是 | 文档状态与治理入口 |
+| [docs/updater/download-update-module.md](./updater/download-update-module.md) | 当前规范（下载更新模块） | 是 | `:updater` 更新检查、APK 缓存、断点续传、前台服务、静默下载与安装入口 |
 | [docs/ui-harness/screen-chrome-rules.md](./ui-harness/screen-chrome-rules.md) | 已迁移 | 否 | 已并入 [docs/dev-harness/ui/rules.md](./dev-harness/ui/rules.md)；本路径仅保留 redirect stub |
 | [docs/superpowers/specs/2026-05-04-playlist-import-design.md](./superpowers/specs/2026-05-04-playlist-import-design.md) | 当前规范（歌单导入功能） | 是（作为实现计划输入） | 首页导入歌单入口、插件 importMusicSheet 能力识别与批量导入到用户歌单的设计 |
 | [docs/superpowers/specs/2026-05-04-playlist-feature-design.md](./superpowers/specs/2026-05-04-playlist-feature-design.md) | 当前规范（歌单功能） | 是（作为实现计划输入） | 用户歌单 CRUD + 默认 我喜欢 + 排序 + 封面 + ⭐ surface roll-out 的设计 |

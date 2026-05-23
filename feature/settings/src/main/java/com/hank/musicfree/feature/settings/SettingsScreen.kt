@@ -158,6 +158,7 @@ fun SettingsScreen(
                 onDownloadQualityOrderChange = viewModel::setDownloadQualityOrder,
                 onUseCellularPlayChange = viewModel::setUseCellularPlay,
                 onUseCellularDownloadChange = viewModel::setUseCellularDownload,
+                onSilentUpdateDownloadEnabledChange = viewModel::setSilentUpdateDownloadEnabled,
                 onLyricAutoSearchEnabledChange = viewModel::setLyricAutoSearchEnabled,
                 onDesktopLyricEnabledChange = { enabled ->
                     if (!enabled) {

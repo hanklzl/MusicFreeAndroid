@@ -32,14 +32,26 @@ class UpdateChecker(
     private val mutex = Mutex()
 
     fun checkOnLaunch(startupFields: Map<String, Any?> = emptyMap()) {
-        check(respectSkip = true, startupFields = startupFields)
+        check(
+            respectSkip = true,
+            startupFields = startupFields,
+            source = UpdateCheckSource.Launch,
+        )
     }
 
     fun checkManually() {
-        check(respectSkip = false, startupFields = emptyMap())
+        check(
+            respectSkip = false,
+            startupFields = emptyMap(),
+            source = UpdateCheckSource.Manual,
+        )
     }
 
-    private fun check(respectSkip: Boolean, startupFields: Map<String, Any?>) {
+    private fun check(
+        respectSkip: Boolean,
+        startupFields: Map<String, Any?>,
+        source: UpdateCheckSource,
+    ) {
         scope.launch {
             val startedAtNano = System.nanoTime()
             val baseFields = startupFields + ("respectSkip" to respectSkip)
@@ -178,7 +190,11 @@ class UpdateChecker(
                         prefs.setLastSeenVersion(info.version)
                         val skip = if (respectSkip) prefs.getSkipVersion() else null
                         val isSkipped = skip != null && skip == info.version
-                        _state.value = UpdateState.Available(update = resolved, skipped = isSkipped)
+                        _state.value = UpdateState.Available(
+                            update = resolved,
+                            skipped = isSkipped,
+                            source = source,
+                        )
                         MfLog.trace(
                             category = LogCategory.UPDATE,
                             event = "update_check_complete",
@@ -243,7 +259,11 @@ class UpdateChecker(
         _state.value = UpdateState.Failed(update, cause)
     }
 
-    fun transitionAvailable(update: ResolvedUpdate, skipped: Boolean) {
-        _state.value = UpdateState.Available(update, skipped)
+    fun transitionAvailable(
+        update: ResolvedUpdate,
+        skipped: Boolean,
+        source: UpdateCheckSource = UpdateCheckSource.Manual,
+    ) {
+        _state.value = UpdateState.Available(update, skipped, source)
     }
 }

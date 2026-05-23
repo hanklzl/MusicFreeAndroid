@@ -7,7 +7,11 @@ import java.io.File
 interface ApkDownloader {
 
     sealed interface Result {
-        data class Success(val apkFile: File) : Result
+        data class Success(
+            val apkFile: File,
+            val fromCache: Boolean = false,
+            val resumedFromBytes: Long = 0L,
+        ) : Result
         data class Failure(val cause: UpdateError) : Result
     }
 

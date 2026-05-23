@@ -5,7 +5,7 @@
 > 直接执行：是
 > 当前入口：[AGENTS](../../AGENTS.md) ｜ [DOCS_STATUS](../DOCS_STATUS.md)
 > 设计来源：[Dev Harness 基础设施设计](../superpowers/specs/2026-05-09-dev-harness-foundation-design.md)
-> 最后校验：2026-05-09
+> 最后校验：2026-05-23
 
 ## 域规则（rules）
 
@@ -38,6 +38,7 @@
 
 - 发布流程详见根目录 `RELEASE.md` 与 `docs/superpowers/specs/2026-05-13-android-release-pipeline-design.md`。
 - 分 ABI 发布与更新链路（双 APK + mapping 归档 + 侧栏检查更新）：详见 [docs/superpowers/specs/2026-05-16-per-abi-release-and-update-design.md](../superpowers/specs/2026-05-16-per-abi-release-and-update-design.md)。
+- 客户端下载更新模块（缓存、断点续传、前台服务、静默下载、PackageInstaller 安装）：详见 [docs/updater/download-update-module.md](../updater/download-update-module.md)。
 
 ## 线上崩溃还原
 

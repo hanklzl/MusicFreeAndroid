@@ -295,6 +295,7 @@ Room Entity 不直接暴露给上层；通过 mapper 转换为 domain model。Re
 ## 文档维护
 
 - 定期复审 `AGENTS.md` 与 `docs/`，及时标记历史文档
+- 功能需求完成开发后，必须按需求本身的新模块、状态流、配置项、验收方式与后续维护风险，同步新建或更新当前规范文档；不能只改代码不沉淀文档
 - 新增文档时必须写明文档状态与适用范围
 - 更新文档引用时必须使用相对路径，避免环境迁移后失效
 - 发布流程详见根目录 `RELEASE.md`；设计 spec 见 `docs/superpowers/specs/2026-05-13-android-release-pipeline-design.md`。

@@ -24,7 +24,7 @@ import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.FidelityAnchors
 import com.hank.musicfree.updater.checker.UpdateChecker
-import com.hank.musicfree.updater.downloader.ApkDownloader
+import com.hank.musicfree.updater.downloader.UpdateDownloadManager
 import com.hank.musicfree.updater.installer.ApkInstaller
 import com.hank.musicfree.updater.ui.ManualUpdateDialog
 
@@ -35,7 +35,7 @@ fun HomeDrawerDialogs(
     currentVersion: String,
     scheduleCloseSummary: String,
     checker: UpdateChecker,
-    downloader: ApkDownloader,
+    downloadManager: UpdateDownloadManager,
     installer: ApkInstaller,
     onDismissTimingClose: () -> Unit,
     onDismissUpdateCheck: () -> Unit,
@@ -55,7 +55,7 @@ fun HomeDrawerDialogs(
         ) {
             ManualUpdateDialog(
                 checker = checker,
-                downloader = downloader,
+                downloadManager = downloadManager,
                 installer = installer,
                 localVersionName = currentVersion,
                 onDismiss = onDismissUpdateCheck,

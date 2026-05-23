@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -61,5 +62,24 @@ class UpdatePreferencesTest {
     fun `last seen version round trip`() = runTest {
         prefs.setLastSeenVersion("1.2.3")
         assertEquals("1.2.3", prefs.getLastSeenVersion())
+    }
+
+    @Test
+    fun `silent update download is enabled by default and can be toggled`() = runTest {
+        assertEquals(true, prefs.silentUpdateDownloadEnabled.first())
+
+        prefs.setSilentUpdateDownloadEnabled(false)
+        assertEquals(false, prefs.silentUpdateDownloadEnabled.first())
+    }
+
+    @Test
+    fun `silent download canceled version can be cleared`() = runTest {
+        assertNull(prefs.getSilentDownloadCanceledVersion())
+
+        prefs.setSilentDownloadCanceledVersion("1.2.3")
+        assertEquals("1.2.3", prefs.getSilentDownloadCanceledVersion())
+
+        prefs.clearSilentDownloadCanceledVersion()
+        assertNull(prefs.getSilentDownloadCanceledVersion())
     }
 }

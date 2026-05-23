@@ -27,7 +27,7 @@ import com.hank.musicfree.feature.home.sheets.HomeSheetTab
 import com.hank.musicfree.feature.home.sheets.HomeSheetUiModel
 import com.hank.musicfree.feature.home.sheets.homeSheetsSection
 import com.hank.musicfree.updater.checker.UpdateChecker
-import com.hank.musicfree.updater.downloader.ApkDownloader
+import com.hank.musicfree.updater.downloader.UpdateDownloadManager
 import com.hank.musicfree.updater.installer.ApkInstaller
 import kotlinx.coroutines.launch
 
@@ -75,7 +75,7 @@ fun HomeScreenContent(
     currentVersion: String,
     scheduleCloseSummary: String,
     checker: UpdateChecker,
-    downloader: ApkDownloader,
+    downloadManager: UpdateDownloadManager,
     installer: ApkInstaller,
     onDrawerEntryClick: (HomeDrawerAction) -> Unit,
     onNavigateToSearch: () -> Unit,
@@ -205,7 +205,7 @@ fun HomeScreenContent(
         currentVersion = currentVersion,
         scheduleCloseSummary = scheduleCloseSummary,
         checker = checker,
-        downloader = downloader,
+        downloadManager = downloadManager,
         installer = installer,
         onDismissTimingClose = state::dismissTimingCloseDialog,
         onDismissUpdateCheck = state::dismissUpdateCheck,

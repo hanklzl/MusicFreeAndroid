@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.hank.musicfree.core.network.NetworkTypeDetector
 import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.ui.FidelityAnchors
 import com.hank.musicfree.feature.home.HomeScreenContent
@@ -22,6 +23,7 @@ import com.hank.musicfree.updater.api.UpdateClient
 import com.hank.musicfree.updater.checker.AbiResolver
 import com.hank.musicfree.updater.checker.UpdateChecker
 import com.hank.musicfree.updater.downloader.ApkDownloader
+import com.hank.musicfree.updater.downloader.UpdateDownloadManager
 import com.hank.musicfree.updater.installer.ApkInstaller
 import com.hank.musicfree.updater.store.UpdatePreferences
 import kotlinx.coroutines.CoroutineScope
@@ -42,7 +44,7 @@ class HomeDrawerBehaviorTest {
 
     private lateinit var state: HomeScreenState
     private lateinit var stubChecker: UpdateChecker
-    private lateinit var stubDownloader: ApkDownloader
+    private lateinit var stubDownloadManager: UpdateDownloadManager
     private lateinit var stubInstaller: ApkInstaller
 
     @Before
@@ -65,7 +67,7 @@ class HomeDrawerBehaviorTest {
             localName = "test",
             scope = scope,
         )
-        stubDownloader = object : ApkDownloader {
+        val stubDownloader = object : ApkDownloader {
             override suspend fun download(
                 update: com.hank.musicfree.updater.checker.ResolvedUpdate,
                 onProgress: (Long, Long, Float) -> Unit,
@@ -74,6 +76,14 @@ class HomeDrawerBehaviorTest {
             )
             override fun cancel() = Unit
         }
+        stubDownloadManager = UpdateDownloadManager(
+            context = context,
+            checker = stubChecker,
+            downloader = stubDownloader,
+            prefs = stubPrefs,
+            networkTypeDetector = NetworkTypeDetector(context),
+            scope = scope,
+        )
         stubInstaller = ApkInstaller(context)
 
         composeRule.setContent {
@@ -88,7 +98,7 @@ class HomeDrawerBehaviorTest {
                     currentVersion = "1.0.0-test",
                     scheduleCloseSummary = "30 分钟后关闭",
                     checker = stubChecker,
-                    downloader = stubDownloader,
+                    downloadManager = stubDownloadManager,
                     installer = stubInstaller,
                     onDrawerEntryClick = {},
                     onNavigateToSearch = {},

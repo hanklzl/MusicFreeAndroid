@@ -12,7 +12,7 @@ import com.hank.musicfree.feature.home.sheets.HomeSheetTab
 import com.hank.musicfree.feature.home.sheets.HomeSheetUiModel
 import com.hank.musicfree.updater.checker.UpdateChecker
 import com.hank.musicfree.updater.checker.UpdateState
-import com.hank.musicfree.updater.downloader.ApkDownloader
+import com.hank.musicfree.updater.downloader.UpdateDownloadManager
 import com.hank.musicfree.updater.installer.ApkInstaller
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
@@ -34,7 +34,7 @@ class HomeScreenMockContentTest {
     private val fakeChecker: UpdateChecker = mock<UpdateChecker>().also {
         whenever(it.state).thenReturn(MutableStateFlow(UpdateState.Idle))
     }
-    private val fakeDownloader: ApkDownloader = mock()
+    private val fakeDownloadManager: UpdateDownloadManager = mock()
     private val fakeInstaller: ApkInstaller = mock()
 
     private val fakeMineRows = listOf(
@@ -73,7 +73,7 @@ class HomeScreenMockContentTest {
                     currentVersion = "1.0.0",
                     scheduleCloseSummary = "",
                     checker = fakeChecker,
-                    downloader = fakeDownloader,
+                    downloadManager = fakeDownloadManager,
                     installer = fakeInstaller,
                     onDrawerEntryClick = {},
                     onNavigateToSearch = {},

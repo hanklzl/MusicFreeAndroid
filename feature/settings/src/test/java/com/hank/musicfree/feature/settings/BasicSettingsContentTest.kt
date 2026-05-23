@@ -219,6 +219,7 @@ class BasicSettingsContentTest {
         var autoStopWhenError: Boolean? = null
         var useCellularPlay: Boolean? = null
         var useCellularDownload: Boolean? = null
+        var silentUpdateDownload: Boolean? = null
         var lyricAutoSearch: Boolean? = null
         var showExitOnNotification: Boolean? = null
         var desktopLyricEnabled: Boolean? = null
@@ -237,6 +238,7 @@ class BasicSettingsContentTest {
             onAutoStopWhenErrorChange = { autoStopWhenError = it },
             onUseCellularPlayChange = { useCellularPlay = it },
             onUseCellularDownloadChange = { useCellularDownload = it },
+            onSilentUpdateDownloadEnabledChange = { silentUpdateDownload = it },
             onLyricAutoSearchEnabledChange = { lyricAutoSearch = it },
             onDesktopLyricEnabledChange = { desktopLyricEnabled = it },
             onDebugErrorLogEnabledChange = { debugErrorLogEnabled = it },
@@ -261,6 +263,8 @@ class BasicSettingsContentTest {
         composeRule.onNodeWithTag(FidelityAnchors.Settings.BasicUseCellularPlay).performClick()
         scrollToTag(FidelityAnchors.Settings.BasicUseCellularDownload)
         composeRule.onNodeWithTag(FidelityAnchors.Settings.BasicUseCellularDownload).performClick()
+        scrollToTag(FidelityAnchors.Settings.BasicSilentUpdateDownload)
+        composeRule.onNodeWithTag(FidelityAnchors.Settings.BasicSilentUpdateDownload).performClick()
         scrollToTag(FidelityAnchors.Settings.BasicLyricAutoSearch)
         composeRule.onNodeWithTag(FidelityAnchors.Settings.BasicLyricAutoSearch).performClick()
         scrollToTag(FidelityAnchors.Settings.BasicSectionLyric)
@@ -282,6 +286,7 @@ class BasicSettingsContentTest {
             assertEquals(true, autoStopWhenError)
             assertEquals(true, useCellularPlay)
             assertEquals(true, useCellularDownload)
+            assertEquals(false, silentUpdateDownload)
             assertEquals(false, lyricAutoSearch)
             assertEquals(true, desktopLyricEnabled)
             assertEquals(false, debugErrorLogEnabled)
@@ -321,6 +326,7 @@ class BasicSettingsContentTest {
             downloadQualityOrder = QualityFallbackOrder.Asc,
             useCellularPlay = false,
             useCellularDownload = false,
+            silentUpdateDownloadEnabled = true,
             lyricAutoSearchEnabled = true,
             desktopLyricEnabled = false,
             desktopLyricAlignment = DesktopLyricAlignment.Center,
@@ -355,6 +361,7 @@ class BasicSettingsContentTest {
         onDownloadQualityOrderChange: (QualityFallbackOrder) -> Unit = {},
         onUseCellularPlayChange: (Boolean) -> Unit = {},
         onUseCellularDownloadChange: (Boolean) -> Unit = {},
+        onSilentUpdateDownloadEnabledChange: (Boolean) -> Unit = {},
         onLyricAutoSearchEnabledChange: (Boolean) -> Unit = {},
         onDesktopLyricEnabledChange: (Boolean) -> Unit = {},
         onDesktopLyricAlignmentChange: (DesktopLyricAlignment) -> Unit = {},
@@ -401,6 +408,7 @@ class BasicSettingsContentTest {
                     onDownloadQualityOrderChange = onDownloadQualityOrderChange,
                     onUseCellularPlayChange = onUseCellularPlayChange,
                     onUseCellularDownloadChange = onUseCellularDownloadChange,
+                    onSilentUpdateDownloadEnabledChange = onSilentUpdateDownloadEnabledChange,
                     onLyricAutoSearchEnabledChange = onLyricAutoSearchEnabledChange,
                     onDesktopLyricEnabledChange = onDesktopLyricEnabledChange,
                     onDesktopLyricAlignmentChange = onDesktopLyricAlignmentChange,

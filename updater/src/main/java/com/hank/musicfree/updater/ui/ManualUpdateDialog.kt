@@ -16,7 +16,7 @@ import androidx.core.net.toUri
 import com.hank.musicfree.updater.checker.UpdateChecker
 import com.hank.musicfree.updater.checker.UpdateError
 import com.hank.musicfree.updater.checker.UpdateState
-import com.hank.musicfree.updater.downloader.ApkDownloader
+import com.hank.musicfree.updater.downloader.UpdateDownloadManager
 import com.hank.musicfree.updater.installer.ApkInstaller
 import com.hank.musicfree.updater.installer.InstallIntents
 import kotlinx.coroutines.launch
@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ManualUpdateDialog(
     checker: UpdateChecker,
-    downloader: ApkDownloader,
+    downloadManager: UpdateDownloadManager,
     installer: ApkInstaller,
     localVersionName: String,
     onDismiss: () -> Unit,
@@ -52,22 +52,7 @@ fun ManualUpdateDialog(
             AvailableUpdateDialog(
                 update = s.update,
                 onDownload = {
-                    scope.launch {
-                        checker.transitionDownloading(s.update, 0f, 0L, s.update.variant.size)
-                        val result = downloader.download(s.update) { bytes, total, fraction ->
-                            checker.transitionDownloading(s.update, fraction, bytes, total)
-                        }
-                        when (result) {
-                            is ApkDownloader.Result.Success -> checker.transitionReady(s.update, result.apkFile)
-                            is ApkDownloader.Result.Failure -> {
-                                if (result.cause == UpdateError.Canceled) {
-                                    checker.transitionAvailable(s.update, skipped = false)
-                                } else {
-                                    checker.transitionFailed(s.update, result.cause)
-                                }
-                            }
-                        }
-                    }
+                    downloadManager.downloadNow(s.update)
                 },
                 onSkip = {
                     scope.launch { checker.markSkipped(s.update) }
@@ -82,7 +67,7 @@ fun ManualUpdateDialog(
                 bytes = s.bytes,
                 total = s.total,
                 fraction = s.progress,
-                onCancel = { downloader.cancel() },
+                onCancel = { downloadManager.cancelActiveDownload("manual_dialog_cancel") },
             )
         }
         is UpdateState.ReadyToInstall -> {
