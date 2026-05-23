@@ -44,6 +44,7 @@
 | [docs/superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md](./superpowers/specs/2026-05-03-ui-harness-screen-chrome-design.md) | 当前规范（UI Harness 设计） | 是（作为实现计划输入） | Screen 切换动画、普通 AppBar、沉浸式状态栏和 AI Coding 规则入口设计 |
 | [docs/superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md](./superpowers/specs/2026-05-03-splashscreen-launcher-icon-design.md) | 当前规范（启动视觉专项） | 是（仅 SplashScreen 与 launcher icon 专项） | AndroidX SplashScreen 接入与 RN 启动图标资源对齐设计 |
 | [docs/dev-harness/INDEX.md](./dev-harness/INDEX.md) | 当前规范（Dev Harness 总入口） | 是 | UI / 插件 / 播放器 / 测试 / Runtime State / 网络 / 启动七域规则、错误库、AI skills 关联入口 |
+| [docs/feedback/user-feedback-h5.md](./feedback/user-feedback-h5.md) | 当前规范（用户反馈 H5 入口） | 是 | 首页侧栏用户反馈入口、GitHub Issue H5 表单与 Logan 日志包手动上传边界 |
 | [docs/dev-harness/ui/rules.md](./dev-harness/ui/rules.md) | 当前规范（Dev Harness — UI） | 是 | Screen 切换动画、普通 AppBar、沉浸式状态栏、UI 设计原则 |
 | [docs/dev-harness/plugin/rules.md](./dev-harness/plugin/rules.md) | 当前规范（Dev Harness — Plugin） | 是 | QuickJS 线程模型、网络通道门控、PluginManager 编排 |
 | [docs/dev-harness/player/rules.md](./dev-harness/player/rules.md) | 当前规范（Dev Harness — Player） | 是 | PlayerController 连接、沉浸式 chrome、歌词跟随防抖 |

@@ -40,6 +40,7 @@ class HomeDrawerUiModelTest {
         assertEquals(
             listOf(
                 FidelityAnchors.Home.DrawerSoftwareCheckUpdate,
+                FidelityAnchors.Home.DrawerSoftwareFeedback,
                 FidelityAnchors.Home.DrawerSoftwareAbout,
             ),
             softwareSection.items.map { it.anchorTag },

@@ -37,6 +37,7 @@ fun HomeScreen(
     onNavigateToSettings: (SettingsType) -> Unit,
     onNavigateToPluginList: () -> Unit,
     onNavigateToPermissions: () -> Unit,
+    onOpenFeedback: () -> Unit,
     onNavigateToTopList: () -> Unit,
     onNavigateToPlaylistDetail: (String) -> Unit,
     onNavigateToStarredSheet: (HomeSheetUiModel) -> Unit,
@@ -119,6 +120,7 @@ fun HomeScreen(
                 HomeDrawerAction.OpenBackup -> "home.drawer.settings_backup"
                 HomeDrawerAction.OpenAbout -> "home.drawer.settings_about"
                 HomeDrawerAction.OpenPermissions -> "home.drawer.permissions"
+                HomeDrawerAction.OpenFeedback -> "home.drawer.feedback"
                 HomeDrawerAction.ShowScheduleClosePanel -> "home.drawer.schedule_close"
                 HomeDrawerAction.TriggerManualUpdateCheck -> "home.drawer.check_update"
             }
@@ -132,6 +134,7 @@ fun HomeScreen(
                 HomeDrawerAction.OpenBackup -> onNavigateToSettings(SettingsType.Backup)
                 HomeDrawerAction.OpenAbout -> onNavigateToSettings(SettingsType.About)
                 HomeDrawerAction.OpenPermissions -> onNavigateToPermissions()
+                HomeDrawerAction.OpenFeedback -> onOpenFeedback()
                 HomeDrawerAction.ShowScheduleClosePanel,
                 HomeDrawerAction.TriggerManualUpdateCheck -> Unit
             }

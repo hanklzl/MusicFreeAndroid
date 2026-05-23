@@ -25,6 +25,7 @@ sealed interface HomeDrawerAction {
     data object OpenBackup : HomeDrawerAction
     data object OpenPermissions : HomeDrawerAction
     data object TriggerManualUpdateCheck : HomeDrawerAction
+    data object OpenFeedback : HomeDrawerAction
     data object OpenAbout : HomeDrawerAction
 }
 
@@ -135,6 +136,12 @@ fun buildHomeDrawerUiModel(
                     trailingText = updateTrailingText,
                     hasBadge = hasUpdateBadge,
                     action = HomeDrawerAction.TriggerManualUpdateCheck,
+                ),
+                HomeDrawerItemUiModel(
+                    title = "用户反馈",
+                    iconRes = HomeIcons.DrawerFeedback,
+                    anchorTag = FidelityAnchors.Home.DrawerSoftwareFeedback,
+                    action = HomeDrawerAction.OpenFeedback,
                 ),
                 HomeDrawerItemUiModel(
                     title = "关于 MusicFree",

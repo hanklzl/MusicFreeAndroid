@@ -1,0 +1,66 @@
+name: 用户反馈
+description: 从应用内提交问题反馈
+title: "[反馈] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量说明问题现象、复现步骤，并上传截图与 Logan 日志包 zip。
+
+        日志包可在应用内通过“设置 > 基础设置 > 开发选项 > 生成日志包并分享”生成。日志可能包含搜索词、请求地址、插件返回内容和设备信息，上传前请确认可以分享。
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 简要描述遇到的问题或建议。
+      placeholder: 例如：搜索后点击播放，提示解析失败。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请按顺序写出如何复现。
+      placeholder: |
+        1. 打开应用
+        2. 搜索 ...
+        3. 点击 ...
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望表现
+      placeholder: 你期望应用如何响应？
+    validations:
+      required: false
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际表现
+      placeholder: 实际发生了什么？有无错误提示？
+    validations:
+      required: false
+  - type: input
+    id: app-version
+    attributes:
+      label: App 版本
+      placeholder: 例如：v1.2.7
+    validations:
+      required: false
+  - type: input
+    id: android-version
+    attributes:
+      label: Android 版本 / 设备型号
+      placeholder: 例如：Android 15 / Pixel 8
+    validations:
+      required: false
+  - type: textarea
+    id: attachments
+    attributes:
+      label: 日志包与截图
+      description: 请把应用生成的 Logan 日志包 zip、问题截图或录屏拖入此输入框上传。
+      placeholder: 上传后 GitHub 会自动把附件链接插入这里。
+    validations:
+      required: false

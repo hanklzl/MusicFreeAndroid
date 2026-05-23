@@ -1,11 +1,18 @@
 package com.hank.musicfree.navigation
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
+import com.hank.musicfree.core.feedback.FeedbackIssueLinks
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.UiLogEvents
@@ -70,6 +77,7 @@ fun AppNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     NavigationLogger(navController)
     NavHost(
         navController = navController,
@@ -90,6 +98,7 @@ fun AppNavHost(
             onNavigateToSettings = { type: SettingsType -> navController.navigate(SettingsRoute(type)) },
             onNavigateToPluginList = { navController.navigate(PluginListRoute) },
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
+            onOpenFeedback = { openFeedbackIssueH5(context) },
             onNavigateToTopList = { navController.navigate(TopListRoute) },
             onNavigateToPlaylistDetail = { playlistId ->
                 navController.navigate(PlaylistDetailRoute(playlistId))
@@ -321,6 +330,24 @@ fun AppNavHost(
             onBack = { navController.popBackStack() },
         )
         trafficStatsRoute(onBack = { navController.popBackStack() })
+    }
+}
+
+private fun openFeedbackIssueH5(context: Context) {
+    val url = FeedbackIssueLinks.newIssueUrl()
+    MfLog.detail(
+        category = LogCategory.FEEDBACK,
+        event = "feedback_issue_h5_open",
+        fields = mapOf("url" to url),
+    )
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    } catch (error: ActivityNotFoundException) {
+        MfLog.error(LogCategory.FEEDBACK, "feedback_issue_h5_open_failed", error)
+        Toast.makeText(context, "无法打开 GitHub 反馈页面", Toast.LENGTH_SHORT).show()
+    } catch (error: RuntimeException) {
+        MfLog.error(LogCategory.FEEDBACK, "feedback_issue_h5_open_failed", error)
+        Toast.makeText(context, "打开 GitHub 反馈页面失败", Toast.LENGTH_SHORT).show()
     }
 }
 

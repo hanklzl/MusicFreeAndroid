@@ -43,6 +43,7 @@ object FidelityAnchors {
         const val DrawerOtherBackup = "home.drawer.other.backup"
         const val DrawerOtherPermissions = "home.drawer.other.permissions"
         const val DrawerSoftwareCheckUpdate = "home.drawer.software.checkUpdate"
+        const val DrawerSoftwareFeedback = "home.drawer.software.feedback"
         const val DrawerSoftwareAbout = "home.drawer.software.about"
     }
 
