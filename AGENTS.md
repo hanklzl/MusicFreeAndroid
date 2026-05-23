@@ -92,7 +92,7 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 ./gradlew lint                       # 发布前 lint 检查；日常 Debug 验证默认不跑
 ```
 
-本地功能收尾默认验证 Debug 构建，不要求验证 Release 构建或 lint。Lint 作为发布前检查由 release workflow 与 `scripts/release/preflight.sh` 执行。Release 构建只在签名环境变量齐备或任务明确涉及发布/签名时验证。
+本地功能收尾默认验证 Debug 构建，不要求验证 Release 构建或 lint。Lint 作为发布前检查由 release workflow 与 `scripts/release/preflight.sh` 执行。Release preflight 使用当前 shell 环境变量和工程默认 Gradle 配置，不为它临时覆盖 `GRADLE_USER_HOME`。Release 构建只在签名环境变量齐备或任务明确涉及发布/签名时验证；发布后远端校验以 GitHub Release asset 列表、`gh-pages/release/version.json`、Pages/CDN 可访问性和必要设备烟测为准，不把下载 APK / mapping 文件作为硬性校验项。
 
 ## 当前构建基线（已校验）
 

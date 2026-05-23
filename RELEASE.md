@@ -39,6 +39,7 @@
    bash scripts/release/preflight.sh v1.2.3
    ```
    该脚本会先执行 `./gradlew lint --no-daemon`，通过后再继续；任何报错都不要 push。
+   Preflight 直接使用当前 shell 已导出的签名 / Logan 环境变量和工程默认 Gradle 配置，不为它设置独立 `GRADLE_USER_HOME` 或临时 Gradle cache。
 4. `git add version.properties && git commit -m "chore(release): bump to v1.2.3"`
 5. `git tag v1.2.3`
 6. `git push origin main && git push origin v1.2.3`
@@ -47,11 +48,12 @@
    - notes 末尾「构建产物」矩阵列全
    - `main` 上有 `docs(changelog): release v1.2.3 [skip ci]` 自动 commit
    - `gh-pages/release/version.json` schemaVersion=2、`variants` 双 key、`mapping.url` 指向 release asset
-   - jsdelivr 镜像可拉：
+   - jsdelivr manifest 可访问：
      ```bash
      curl -I https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@gh-pages/release/version.json
      ```
-8. 装一台测试机冷启动验证启动 dialog → 下载 → 安装链路（arm64 与 x86_64 模拟器各一次）。
+   - 发布校验不要求下载 APK / mapping 文件；下载只在排查资产内容、安装问题或线上崩溃反混淆时按需执行。
+8. 如本地已有 preflight / CI 产物且设备可用，可安装做冷启动烟测；这不是发布硬闸，不要求从 GitHub Release 或 CDN 下载资产。
 
 ## 本地干跑 CI step
 
@@ -156,6 +158,7 @@ bash scripts/release/preflight.sh v1.2.3
 ```
 
 脚本串调上述 6 个 step，任一非 0 即停。**push tag 前跑通 preflight 是硬性约束**。
+Preflight 使用调用者当前环境变量和工程默认 Gradle home / project cache；不要为了干跑临时覆盖 `GRADLE_USER_HOME`。
 
 ### 不可本地干跑的 step
 

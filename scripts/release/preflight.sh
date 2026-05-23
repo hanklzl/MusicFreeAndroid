@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # 本地干跑：模拟 CI 的关键 step，验证 release tag 推送前的所有条件就绪。
 # 用法：bash scripts/release/preflight.sh vX.Y.Z
+# 规则：直接使用调用者当前环境变量和工程默认 Gradle 配置；不要为 preflight 单独覆盖 GRADLE_USER_HOME。
 set -euo pipefail
 
 if [ $# -lt 1 ]; then
