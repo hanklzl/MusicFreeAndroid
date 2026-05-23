@@ -6,6 +6,25 @@
 
 <!-- next-release -->
 
+## [v1.2.6] - 2026-05-23
+
+### 变更详情
+
+#### 新功能
+- feat(logan-viewer): 完成 M2-M6 — model 层 + UI + Worker + Pages CI (9453bc8)
+- feat(logan-viewer): 新增 H5 日志可视化工具 (M0 spec + M1 解密层) (68e51db)
+
+#### 杂项
+- chore(release): bump to v1.2.6 (21cef49)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.6-arm64-v8a.apk` · 7.6MB · sha256 `f9a060e18db4`
+- x86_64: `MusicFreeAndroid-v1.2.6-x86_64.apk` · 7.6MB · sha256 `c52f45c368ac`
+- mapping: `mapping-v1.2.6.zip` · sha256 `0f4072b37f13` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.5] - 2026-05-23
 
 ### 变更详情
