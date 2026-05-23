@@ -1,5 +1,11 @@
 # Status Bar Immersive
 
+系统栏图标明暗：
+
+- 状态栏 / 导航栏图标明暗由 `MusicFreeTheme` 依据 App 主题 `isDark` 统一驱动（`isAppearanceLightStatusBars` / `isAppearanceLightNavigationBars`），随运行时切主题即时生效。
+- MUST NOT 依赖 `enableEdgeToEdge()` 默认 `auto`（跟随设备夜间模式，与 App 主题解耦时深色主题图标看不清）；MUST NOT 在 Screen / `MainActivity` 各自手写 `isAppearanceLight*`。
+- 背景与主题无关的全屏页（如恒黑的 `PlayerScreen`）若需例外，在「特殊 chrome 页面」登记并自处理。
+
 普通 AppBar 页面的状态栏：
 
 - Activity 已 `enableEdgeToEdge()`，状态栏透明。

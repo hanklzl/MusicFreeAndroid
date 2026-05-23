@@ -65,6 +65,15 @@ TopAppBar(
 
 新增特殊 Chrome 页面时，必须在本节登记 route、Screen、原因和状态栏策略。
 
+## 系统栏图标明暗 {#rule-system-bar-appearance-follows-theme}
+
+系统状态栏 / 底部导航栏的**图标明暗**（`isAppearanceLightStatusBars` / `isAppearanceLightNavigationBars`）MUST 由 `MusicFreeTheme` 依据 App 主题 `isDark`（`themeState.selected != P_LIGHT`）统一驱动，并随运行时主题切换即时生效。
+
+- MUST NOT 让系统栏图标明暗只依赖 `enableEdgeToEdge()` 默认的 `SystemBarStyle.auto`（它跟随设备夜间模式，而非 App 主题；解耦时深色主题会得到深色图标叠在深底上，看不清）。
+- Screen / `MainActivity` MUST NOT 各自手写 `WindowInsetsControllerCompat.isAppearanceLight*`；明暗是主题的属性，统一在 `MusicFreeTheme` 控制。
+- 例外：背景与主题无关的全屏特殊 Chrome 页面（如恒为纯黑的 `PlayerScreen`），若全局明暗不适用，MUST 在“特殊 Chrome 页面”登记，并在页面驻留期间自行覆盖、退出时复原。
+- 这是 window 级行为，无 JVM 单测覆盖；验收以运行态为准（解耦矩阵：设备浅色 + App 深色，状态栏图标须为浅色且清晰）。
+
 ## MainActivity 责任边界 {#rule-mainactivity-no-implicit-top-inset}
 
 implemented_by: INC-2026-0008

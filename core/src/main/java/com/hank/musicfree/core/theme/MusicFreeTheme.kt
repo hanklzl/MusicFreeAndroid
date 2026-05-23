@@ -6,8 +6,12 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowInsetsControllerCompat
 import com.hank.musicfree.core.theme.runtime.SelectedTheme
 import com.hank.musicfree.core.theme.runtime.ThemeUiState
+import com.hank.musicfree.core.ui.findActivity
 
 @Composable
 fun MusicFreeTheme(
@@ -35,6 +39,23 @@ fun MusicFreeTheme(
             onSurface = colors.text,
         )
     }
+
+    // Drive system bar icon brightness from the app's own theme rather than the
+    // device night-mode setting (enableEdgeToEdge auto). Without this, a dark app
+    // theme on a light-mode device keeps dark status/nav icons that vanish against
+    // the dark appBar/background. Reactive so runtime theme switches apply instantly.
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        val window = view.context.findActivity()?.window
+        if (window != null) {
+            SideEffect {
+                val controller = WindowInsetsControllerCompat(window, view)
+                controller.isAppearanceLightStatusBars = !isDark
+                controller.isAppearanceLightNavigationBars = !isDark
+            }
+        }
+    }
+
     CompositionLocalProvider(
         LocalMusicFreeColors provides colors,
     ) {
