@@ -6,6 +6,39 @@
 
 <!-- next-release -->
 
+## [v1.2.7] - 2026-05-23
+
+### 变更详情
+
+#### 新功能
+- feat: 用户操作时间线 v1 — UI/导航/生命周期埋点 + logan-viewer ActionMatcher (cc5d8dc)
+- feat(updater): 支持断点续传和静默下载 (4810be5)
+
+#### 修复
+- fix(pages): 发布站点时保留 Logan Viewer (1513bdc)
+- fix(ui): 让 Pager tab indicator 跟随滑动 (c9e8029)
+- fix(logan-viewer): 解 release 反馈包 — 硬编码 key、拆 clogan envelope、best-effort (0cb85c1)
+- fix(logan-viewer-pages): 切换到 gh-pages 分支 + 子目录发布 (f44b45d)
+
+#### 文档
+- docs(logan-viewer): 用户操作时间线 v0 mockup + 设计 spec (3b678cf)
+- docs(changelog): release v1.2.6 [skip ci] (1e49aca)
+- docs(changelog): release v1.2.5 [skip ci] (1393ee6)
+
+#### 杂项
+- chore(release): 发布 v1.2.7 (4a60fd1)
+
+#### 其它
+- Merge v1.2.5 CHANGELOG into v1.2.6 release branch (dfb4c94)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.7-arm64-v8a.apk` · 7.6MB · sha256 `d14b8aa02204`
+- x86_64: `MusicFreeAndroid-v1.2.7-x86_64.apk` · 7.6MB · sha256 `d21bcd8ac36a`
+- mapping: `mapping-v1.2.7.zip` · sha256 `bd82df555e04` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.6] - 2026-05-23
 
 ### 变更详情
