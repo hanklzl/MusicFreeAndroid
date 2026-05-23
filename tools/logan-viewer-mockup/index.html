@@ -1,0 +1,1235 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Logan Viewer · v0 用户操作时间线 mockup</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-2: #161922;
+    --bg-3: #1d2230;
+    --border: #2a2f3d;
+    --border-strong: #3a4156;
+    --fg: #e6e8ee;
+    --fg-2: #9aa3b8;
+    --fg-3: #6b7280;
+    --accent: #6ea8ff;
+    --success: #51d28d;
+    --failure: #ff6b6b;
+    --ongoing: #6ea8ff;
+    --partial: #f6c177;
+    --info: #9da7c3;
+    --shadow: 0 1px 0 rgba(255,255,255,0.02), 0 4px 12px rgba(0,0,0,0.25);
+    --row-h: 22px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 13px/1.5 -apple-system, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+  /* Top bar */
+  header.top-bar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+  }
+  header h1 {
+    font-size: 14px; font-weight: 600; margin: 0;
+    letter-spacing: 0.2px;
+  }
+  header .badge {
+    display: inline-block; margin-left: 8px;
+    padding: 2px 8px; border-radius: 999px;
+    background: rgba(110,168,255,0.15); color: var(--accent);
+    font-size: 11px; font-weight: 500;
+  }
+  header .meta { color: var(--fg-3); font-size: 12px; }
+  header .spacer { flex: 1; }
+  header .toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--fg-2); font-size: 12px;
+    cursor: pointer; user-select: none;
+  }
+  header .toggle input { accent-color: var(--accent); }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr 340px;
+    height: calc(100vh - 49px);
+  }
+  aside.sessions, aside.detail {
+    background: var(--bg-2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+  }
+  aside.detail { border-right: 0; border-left: 1px solid var(--border); }
+  section.content {
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Session list */
+  aside.sessions h2,
+  aside.detail h2 {
+    margin: 0; padding: 12px 14px 8px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--fg-3); font-weight: 600;
+  }
+  .session-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .session-item:hover { background: var(--bg-3); }
+  .session-item.active { background: var(--bg-3); border-left: 2px solid var(--accent); padding-left: 12px; }
+  .session-item .ts { font-size: 12px; color: var(--fg); }
+  .session-item .id { font-size: 11px; color: var(--fg-3); }
+  .session-item .counts {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 6px;
+  }
+  .session-item .count {
+    font-size: 11px;
+    padding: 2px 6px; border-radius: 4px;
+    background: rgba(255,255,255,0.04); color: var(--fg-2);
+  }
+  .session-item .count.error { background: rgba(255,107,107,0.12); color: var(--failure); }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .filter-bar label.checkbox {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--fg-2); cursor: pointer; user-select: none;
+    padding: 4px 8px; border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .filter-bar label.checkbox input { accent-color: var(--accent); }
+  .filter-bar label.checkbox:has(input:checked) {
+    background: rgba(110,168,255,0.1); border-color: var(--accent); color: var(--accent);
+  }
+  .filter-bar .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--fg-2);
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .chip[data-on="true"] {
+    background: rgba(110,168,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .chip .icon { font-size: 13px; }
+
+  /* Timeline */
+  .timeline {
+    flex: 1; overflow-y: auto;
+    padding: 8px 16px 24px;
+  }
+  .timeline-gap {
+    text-align: center; color: var(--fg-3); font-size: 11px;
+    padding: 6px 0; margin: 4px 0;
+    border-top: 1px dashed var(--border);
+  }
+
+  /* Action card */
+  .card {
+    display: block;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--info);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 6px 0;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .card:hover { border-color: var(--border-strong); }
+  .card.result-success { border-left-color: var(--success); }
+  .card.result-failure { border-left-color: var(--failure); }
+  .card.result-ongoing { border-left-color: var(--ongoing); }
+  .card.result-partial { border-left-color: var(--partial); }
+
+  .card-header {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card-time {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: var(--fg-3);
+    min-width: 78px;
+  }
+  .card-icon { font-size: 18px; line-height: 1; }
+  .card-title-wrap { flex: 1; min-width: 0; }
+  .card-title { font-size: 13.5px; font-weight: 600; color: var(--fg); }
+  .card-subtitle {
+    font-size: 12px; color: var(--fg-2);
+    margin-top: 2px;
+  }
+  .card-subtitle .sep { color: var(--fg-3); margin: 0 4px; }
+  .card-status { font-size: 12px; font-weight: 500; }
+  .card-status.success { color: var(--success); }
+  .card-status.failure { color: var(--failure); }
+  .card-status.ongoing { color: var(--ongoing); }
+  .card-status.partial { color: var(--partial); }
+  .card-chevron { color: var(--fg-3); font-size: 11px; transition: transform 0.2s; }
+  .card.open .card-chevron { transform: rotate(90deg); }
+
+  .card-followups {
+    margin-top: 6px; padding-left: 28px;
+  }
+  .card-followups .followup {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--fg-2);
+    padding: 2px 0;
+  }
+  .card-followups .followup .arrow { color: var(--accent); }
+
+  .card-body {
+    display: none;
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed var(--border);
+  }
+  .card.open .card-body { display: block; }
+  .child-event {
+    display: grid;
+    grid-template-columns: 78px 76px 1fr;
+    gap: 8px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: var(--fg-2);
+    padding: 2px 0;
+    line-height: 1.6;
+  }
+  .child-event .branch { color: var(--fg-3); }
+  .child-event .ev { color: var(--fg); }
+  .child-event .fields { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .child-event.error .ev { color: var(--failure); }
+
+  /* Raw row */
+  .raw-row {
+    display: grid;
+    grid-template-columns: 78px 18px 76px 1fr;
+    gap: 8px;
+    align-items: center;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11.5px;
+    line-height: var(--row-h);
+    padding: 0 8px;
+    color: var(--fg-2);
+    cursor: pointer;
+  }
+  .raw-row:hover { background: rgba(255,255,255,0.03); border-radius: 4px; }
+  .raw-row .time { color: var(--fg-3); }
+  .raw-row .level {
+    text-align: center;
+    font-size: 10px;
+    padding: 0 4px; border-radius: 3px;
+  }
+  .raw-row .level.trace  { background: rgba(154,163,184,0.12); color: var(--fg-2); }
+  .raw-row .level.detail { background: rgba(110,168,255,0.12); color: var(--accent); }
+  .raw-row .level.error  { background: rgba(255,107,107,0.12); color: var(--failure); }
+  .raw-row .cat { color: var(--info); }
+  .raw-row .ev { color: var(--fg); }
+  .raw-row .fields { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Detail panel */
+  aside.detail .empty {
+    padding: 16px 14px; color: var(--fg-3); font-size: 12px;
+  }
+  .detail-section { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .detail-section h3 {
+    margin: 0 0 8px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--fg-3); font-weight: 600;
+  }
+  .detail-section .kv {
+    display: grid; grid-template-columns: 90px 1fr;
+    gap: 6px 10px;
+    font-size: 12px;
+  }
+  .detail-section .kv .k { color: var(--fg-3); }
+  .detail-section .kv .v {
+    color: var(--fg);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    overflow-wrap: anywhere;
+  }
+  .detail-section .fields-json {
+    margin-top: 6px;
+    padding: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    white-space: pre-wrap; word-break: break-all;
+    color: var(--fg-2);
+  }
+
+  /* Light theme overrides */
+  body.light {
+    --bg: #f7f8fa;
+    --bg-2: #ffffff;
+    --bg-3: #f1f3f8;
+    --border: #e3e6ee;
+    --border-strong: #c8cfdc;
+    --fg: #1a1d24;
+    --fg-2: #5a6377;
+    --fg-3: #8b94a8;
+    --accent: #2f6cd4;
+    --success: #1f9c5b;
+    --failure: #d34646;
+    --ongoing: #2f6cd4;
+    --partial: #c98b29;
+    --info: #6b7891;
+    --shadow: 0 1px 0 rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.05);
+  }
+</style>
+</head>
+<body>
+<header class="top-bar">
+  <h1>用户操作时间线 <span class="badge">v0 mockup</span></h1>
+  <span class="meta">基于真实事件 schema 的纯前端假数据演示</span>
+  <span class="spacer"></span>
+  <label class="toggle"><input type="checkbox" id="theme-toggle" /> 浅色主题</label>
+</header>
+
+<div class="layout">
+  <aside class="sessions">
+    <h2>Sessions</h2>
+    <ul id="session-list" style="list-style:none; padding:0; margin:0;"></ul>
+  </aside>
+
+  <section class="content">
+    <div class="filter-bar">
+      <label class="checkbox"><input type="checkbox" id="structured-only" /> Structured only</label>
+      <div class="chips" id="action-chips"></div>
+    </div>
+    <div class="timeline" id="timeline"></div>
+  </section>
+
+  <aside class="detail">
+    <h2>Detail</h2>
+    <div id="detail-panel"><div class="empty">点击任一卡片 / 原始行查看完整事件字段。</div></div>
+  </aside>
+</div>
+
+<script>
+/* ---------- 1. Fake dataset (2 sessions, ~60 events) ---------- */
+
+const SESSIONS = [
+  {
+    id: 's-2026-05-23-1422',
+    label: '2026-05-23 14:22 · 主线流程',
+    base: '2026-05-23T14:22:00.000+08:00',
+  },
+  {
+    id: 's-2026-05-22-0914',
+    label: '2026-05-22 09:14 · 锁屏后台播放',
+    base: '2026-05-22T09:14:23.000+08:00',
+  },
+  {
+    id: 's-2026-05-22-2030',
+    label: '2026-05-22 20:30 · 进程死亡后冷启动恢复',
+    base: '2026-05-22T20:30:12.000+08:00',
+  },
+];
+
+// helper: relative ms → absolute timestamp
+function makeEvents(sessionId, baseIso, defs) {
+  const baseMs = new Date(baseIso).getTime();
+  return defs.map((d, idx) => {
+    const ts = baseMs + d.t;
+    const iso = new Date(ts).toISOString();
+    return {
+      id: `${sessionId}-${idx}`,
+      sessionId,
+      timestampMs: ts,
+      timestamp: iso,
+      level: d.level || 'detail',
+      category: d.cat,
+      event: d.ev,
+      traceId: d.trace,
+      durationMs: d.dur,
+      result: d.res,
+      fields: d.f || {},
+      errorClass: d.errClass,
+      errorMessage: d.errMsg,
+      stackTrace: d.stack,
+    };
+  });
+}
+
+const EVENTS = [
+  ...makeEvents('s-2026-05-23-1422', '2026-05-23T14:22:00.000+08:00', [
+    // App startup
+    { t: 0,     cat: 'app',        ev: 'app_startup_activity_create_start' },
+    { t: 150,   cat: 'app',        ev: 'app_startup_edge_to_edge_enabled' },
+    { t: 420,   cat: 'app',        ev: 'app_startup_logging_initialized', dur: 420 },
+    // First screen
+    { t: 1000,  cat: 'navigation', ev: 'screen_enter', f: { route: 'home', source: 'app_startup' } },
+    // Tap search bar → search screen
+    { t: 5230,  cat: 'ui',         ev: 'ui_click',     f: { targetId: 'home.search_bar', targetLabel: '搜索', screen: 'home' } },
+    { t: 5260,  cat: 'navigation', ev: 'screen_enter', f: { route: 'search', source: 'home.search_bar' } },
+    // Search "周杰伦"
+    { t: 9110,  cat: 'ui',         ev: 'ui_click',                 f: { targetId: 'search.bar.input_commit', screen: 'search', query: '周杰伦' } },
+    { t: 9150,  cat: 'search',     ev: 'search_start',  trace: 't-search-1', f: { query: '周杰伦', mediaType: 'music', platformCount: 3 } },
+    { t: 9800,  cat: 'search',     ev: 'search_plugin_success', trace: 't-search-1', res: 'success', dur: 650, f: { platform: 'qq', count: 20 } },
+    { t: 9950,  cat: 'search',     ev: 'search_plugin_success', trace: 't-search-1', res: 'success', dur: 800, f: { platform: 'netease', count: 22 } },
+    { t: 10120, cat: 'search',     ev: 'search_plugin_failed',  trace: 't-search-1', res: 'failure', dur: 970, f: { platform: 'mg', reason: 'network_unavailable' } },
+    { t: 10300, cat: 'search',     ev: 'search_session_page_success', trace: 't-search-1', dur: 1150, f: { page: 1, totalCount: 42 } },
+    // Open sheet result
+    { t: 18500, cat: 'ui',         ev: 'ui_click',     f: { targetId: 'search.result.sheet_row', screen: 'search', sheetName: '周杰伦精选', platform: 'qq' } },
+    { t: 18700, cat: 'navigation', ev: 'screen_enter', f: { route: 'plugin_sheet_detail', source: 'search.result.sheet_row', pluginId: 'qq', sheetId: 'abc' } },
+    // Play song
+    { t: 25800, cat: 'ui',         ev: 'ui_click',     f: { targetId: 'plugin_sheet_detail.song_row', screen: 'plugin_sheet_detail', itemName: '七里香' } },
+    { t: 26100, cat: 'player',     ev: 'player_play',  trace: 't-play-1', f: { operation: 'play', itemName: '七里香', itemPlatform: 'qq', positionMs: 0, sid: 'abc' } },
+    { t: 26200, cat: 'plugin',     ev: 'cache_hit',    trace: 't-play-1', f: { sid: 'abc', source: 'local' } },
+    { t: 26300, cat: 'player',     ev: 'playback_resolve_success', trace: 't-play-1', dur: 200, f: { sid: 'abc', durationMs: 180000 } },
+    { t: 26400, cat: 'navigation', ev: 'screen_enter', f: { route: 'player', source: 'plugin_sheet_detail.song_row' } },
+    // Listen ~2:29
+    { t: 175000, cat: 'player',    ev: 'player_pause', trace: 't-play-1', f: { operation: 'pause', sid: 'abc', positionMs: 148900 } },
+    { t: 176100, cat: 'navigation',ev: 'screen_exit',  f: { route: 'player', durationMs: 149700 } },
+    { t: 176200, cat: 'navigation',ev: 'screen_enter', f: { route: 'plugin_sheet_detail', source: 'system_back' } },
+    // Open dialog, add to playlist
+    { t: 190500, cat: 'ui',        ev: 'ui_click',     f: { targetId: 'plugin_sheet_detail.bottom_bar.more', screen: 'plugin_sheet_detail' } },
+    { t: 190600, cat: 'ui',        ev: 'dialog_open',  f: { dialogId: 'MusicItemOptionsSheet', screen: 'plugin_sheet_detail', trigger: 'ui_click' } },
+    { t: 194300, cat: 'ui',        ev: 'ui_click',     f: { targetId: 'music_item_options.add_to_playlist', screen: 'plugin_sheet_detail', dialogId: 'MusicItemOptionsSheet' } },
+    { t: 194400, cat: 'ui',        ev: 'dialog_dismiss', f: { dialogId: 'MusicItemOptionsSheet', screen: 'plugin_sheet_detail', outcome: 'confirm', durationMs: 3800 } },
+    { t: 194500, cat: 'ui',        ev: 'dialog_open',  f: { dialogId: 'AddToPlaylistSheet', screen: 'plugin_sheet_detail', trigger: 'ui_click' } },
+    { t: 200100, cat: 'ui',        ev: 'ui_click',     f: { targetId: 'add_to_playlist.row', screen: 'plugin_sheet_detail', playlistName: '我的最爱' } },
+    { t: 200300, cat: 'ui',        ev: 'dialog_dismiss', f: { dialogId: 'AddToPlaylistSheet', screen: 'plugin_sheet_detail', outcome: 'confirm', durationMs: 5800 } },
+    // Tab switch to Local
+    { t: 210000, cat: 'navigation',ev: 'tab_switch',   f: { from: 'home', to: 'local', source: 'tab_bar' } },
+    { t: 210100, cat: 'navigation',ev: 'screen_enter', f: { route: 'local', source: 'tab_bar' } },
+    // An error
+    { t: 215000, cat: 'lyrics',    ev: 'lyric_search_plugin_failed', level: 'error', res: 'failure',
+       f: { platform: 'qq', itemId: '7li', reason: 'network_timeout' },
+       errClass: 'NetworkTimeoutException', errMsg: 'connect timed out after 10s',
+       stack: 'at PluginManager.fetch(PluginManager.kt:142)\n  at LyricRepository.search(LyricRepository.kt:88)\n  at LyricViewModel$loadLyric$1.invokeSuspend(...)' },
+    // User locks the phone → app goes background; later resumes
+    { t: 218000, cat: 'app',       ev: 'app_background', f: { trigger: 'lifecycle_on_stop', lastScreen: 'local' } },
+    // System trims activity while in background (process survives)
+    { t: 222000, cat: 'app',       ev: 'activity_destroyed',
+       f: { activity: 'MainActivity', reason: 'trim_memory_complete', isFinishing: false, isChangingConfigurations: false, lifetimeMs: 222000 } },
+    { t: 222100, cat: 'runtime',   ev: 'store_destroyed', f: { storeId: 'PlayerViewModel',  scope: 'activity', reason: 'activity_destroyed' } },
+    { t: 222200, cat: 'runtime',   ev: 'store_destroyed', f: { storeId: 'HomeViewModel',    scope: 'activity', reason: 'activity_destroyed' } },
+    { t: 222300, cat: 'runtime',   ev: 'store_destroyed', f: { storeId: 'SearchViewModel',  scope: 'activity', reason: 'activity_destroyed' } },
+    // User resumes → activity recreated, ViewModels restored from SavedStateHandle/snapshot
+    { t: 228000, cat: 'app',       ev: 'app_foreground', f: { trigger: 'lifecycle_on_start', resumeScreen: 'local', backgroundedDurationMs: 10000 } },
+    { t: 228100, cat: 'app',       ev: 'activity_created', f: { activity: 'MainActivity', hasSavedState: true, isConfigChange: false, isColdStart: false } },
+    { t: 228200, cat: 'runtime',   ev: 'store_created',   f: { storeId: 'PlayerViewModel', scope: 'activity', restoredFromSnapshot: true,  snapshotKeys: 4 } },
+    { t: 228300, cat: 'runtime',   ev: 'store_created',   f: { storeId: 'HomeViewModel',   scope: 'activity', restoredFromSnapshot: true,  snapshotKeys: 2 } },
+    { t: 228400, cat: 'runtime',   ev: 'store_created',   f: { storeId: 'SearchViewModel', scope: 'activity', restoredFromSnapshot: false, snapshotKeys: 0 } },
+    // Settings → plugin list → install
+    { t: 230000, cat: 'ui',        ev: 'ui_click',     f: { targetId: 'home.settings_entry', screen: 'home' } },
+    { t: 230100, cat: 'navigation',ev: 'screen_enter', f: { route: 'settings', source: 'home.settings_entry' } },
+    { t: 235000, cat: 'ui',        ev: 'ui_click',     f: { targetId: 'settings.row.plugin_list', screen: 'settings' } },
+    { t: 235100, cat: 'navigation',ev: 'screen_enter', f: { route: 'plugin_list', source: 'settings.row.plugin_list' } },
+    { t: 240000, cat: 'ui',        ev: 'ui_click',     f: { targetId: 'plugin_list.install_url_button', screen: 'plugin_list' } },
+    { t: 240100, cat: 'ui',        ev: 'dialog_open',  f: { dialogId: 'PluginInstallUrlDialog', screen: 'plugin_list', trigger: 'ui_click' } },
+    { t: 250000, cat: 'plugin',    ev: 'plugin_operation_start', trace: 't-install-1', f: { operation: 'install', pluginName: 'wy-music', urlHost: 'cdn.example.com' } },
+    { t: 251500, cat: 'plugin',    ev: 'plugin_operation_success', trace: 't-install-1', res: 'success', dur: 1500, f: { operation: 'install', pluginName: 'wy-music', version: '1.4.2' } },
+    { t: 251600, cat: 'ui',        ev: 'dialog_dismiss', f: { dialogId: 'PluginInstallUrlDialog', outcome: 'confirm', durationMs: 11500 } },
+    // Uncovered raw event (gracefully falls back)
+    { t: 260000, cat: 'settings',  ev: 'desktop_lyric_toggle', f: { enabled: true, opacity: 0.7 } },
+    { t: 260800, cat: 'data',      ev: 'recently_played_cache_refreshed', f: { count: 18 } },
+    // Second play that fails
+    { t: 270000, cat: 'navigation',ev: 'tab_switch',   f: { from: 'local', to: 'player', source: 'tab_bar' } },
+    { t: 270100, cat: 'player',    ev: 'player_play',  trace: 't-play-2', f: { operation: 'play', itemName: '稻香', itemPlatform: 'qq', positionMs: 0, sid: 'dao' } },
+    { t: 270300, cat: 'plugin',    ev: 'cache_miss',   trace: 't-play-2', f: { sid: 'dao' } },
+    { t: 285000, cat: 'player',    ev: 'playback_failed', trace: 't-play-2', level: 'error', res: 'failure', dur: 14900,
+       f: { sid: 'dao', reason: 'source_unavailable', itemName: '稻香' },
+       errClass: 'PlaybackException', errMsg: 'Source could not be resolved' },
+  ]),
+  ...makeEvents('s-2026-05-22-0914', '2026-05-22T09:14:23.000+08:00', [
+    { t: 0,     cat: 'app',        ev: 'app_startup_activity_create_start' },
+    { t: 380,   cat: 'app',        ev: 'app_startup_logging_initialized', dur: 380 },
+    { t: 1100,  cat: 'navigation', ev: 'screen_enter', f: { route: 'home', source: 'app_startup' } },
+    { t: 4500,  cat: 'ui',         ev: 'ui_click',     f: { targetId: 'home.tab_bar.player', targetLabel: '播放', screen: 'home' } },
+    { t: 4600,  cat: 'navigation', ev: 'tab_switch',   f: { from: 'home', to: 'player', source: 'tab_bar' } },
+    { t: 4700,  cat: 'navigation', ev: 'screen_enter', f: { route: 'player', source: 'tab_bar' } },
+    { t: 5200,  cat: 'player',     ev: 'player_play',  trace: 't-play-b1', f: { operation: 'play', itemName: '晴天', itemPlatform: 'netease', positionMs: 0, sid: 'qt' } },
+    { t: 5400,  cat: 'plugin',     ev: 'cache_hit',    trace: 't-play-b1', f: { sid: 'qt' } },
+    { t: 60000, cat: 'lyrics',     ev: 'lyric_load_start', f: { itemName: '晴天' } },
+    { t: 62000, cat: 'lyrics',     ev: 'lyric_cache_hit', f: { itemName: '晴天' } },
+    // Background mid-play (locked screen) → still playing in background
+    { t: 90000, cat: 'app',        ev: 'app_background', f: { trigger: 'lifecycle_on_stop', lastScreen: 'player', isPlaying: true } },
+    // Activity dies, MediaSessionService 继续放歌（service 是 app-scoped）
+    { t: 95000, cat: 'app',        ev: 'activity_destroyed',
+       f: { activity: 'MainActivity', reason: 'trim_memory_running_critical', isFinishing: false, lifetimeMs: 95000 } },
+    { t: 95100, cat: 'runtime',    ev: 'store_destroyed', f: { storeId: 'PlayerViewModel', scope: 'activity', reason: 'activity_destroyed', isPlaying: true } },
+    { t: 95200, cat: 'runtime',    ev: 'store_destroyed', f: { storeId: 'HomeViewModel',   scope: 'activity', reason: 'activity_destroyed' } },
+    // MediaSessionService 健在，未销毁 — 留 raw 行兜底
+    { t: 95300, cat: 'player',     ev: 'media_session_continues_in_background', f: { sid: 'qt', itemName: '晴天' } },
+    // Listening continues in background (no further events captured here) → ongoing
+  ]),
+  ...makeEvents('s-2026-05-22-2030', '2026-05-22T20:30:12.000+08:00', [
+    // Cold start after the previous session's process was killed by the system
+    { t: 0,     cat: 'app',        ev: 'app_startup_activity_create_start' },
+    { t: 50,    cat: 'app',        ev: 'process_start_after_kill',
+       f: { lastBackgroundedDurationMs: 75000000, suspectedReason: 'system_low_memory', previousSessionId: 's-2026-05-22-0914' } },
+    { t: 80,    cat: 'plugin',     ev: 'plugin_engine_init',
+       f: { pluginCount: 3, jsEngineVersion: 'quickjs-2024.01', durationMs: 240 } },
+    { t: 90,    cat: 'plugin',     ev: 'plugin_load_start', f: { pluginName: 'qq' } },
+    { t: 200,   cat: 'plugin',     ev: 'plugin_load_start', f: { pluginName: 'netease' } },
+    { t: 300,   cat: 'plugin',     ev: 'plugin_load_start', f: { pluginName: 'wy-music' } },
+    { t: 320,   cat: 'app',        ev: 'app_startup_edge_to_edge_enabled' },
+    { t: 350,   cat: 'runtime',    ev: 'store_created', f: { storeId: 'PlayQueueStore',   scope: 'app',      restoredFromSnapshot: true,  snapshotKeys: 18 } },
+    { t: 380,   cat: 'runtime',    ev: 'store_created', f: { storeId: 'PluginStateStore', scope: 'app',      restoredFromSnapshot: true,  snapshotKeys: 3 } },
+    { t: 420,   cat: 'runtime',    ev: 'store_created', f: { storeId: 'DownloadStore',    scope: 'app',      restoredFromSnapshot: false, snapshotKeys: 0 } },
+    { t: 460,   cat: 'player',     ev: 'media_session_started', f: { restoredQueueSize: 18 } },
+    { t: 500,   cat: 'app',        ev: 'app_startup_logging_initialized', dur: 500 },
+    { t: 600,   cat: 'app',        ev: 'activity_created',   f: { activity: 'MainActivity', hasSavedState: false, isConfigChange: false, isColdStart: true } },
+    { t: 700,   cat: 'runtime',    ev: 'store_created', f: { storeId: 'PlayerViewModel', scope: 'activity', restoredFromSnapshot: false } },
+    { t: 800,   cat: 'navigation', ev: 'screen_enter', f: { route: 'home', source: 'cold_start' } },
+    // Auto-resume last song from snapshot
+    { t: 1200,  cat: 'player',     ev: 'player_play', trace: 't-resume-1', f: { operation: 'auto_resume', itemName: '晴天', itemPlatform: 'netease', positionMs: 87200, sid: 'qt', fromSnapshot: true } },
+    { t: 1350,  cat: 'plugin',     ev: 'cache_hit', trace: 't-resume-1', f: { sid: 'qt' } },
+    // 用户播放一会儿后主动退出（finish）
+    { t: 50000, cat: 'player',     ev: 'player_pause', trace: 't-resume-1', f: { operation: 'pause', sid: 'qt', positionMs: 136000 } },
+    { t: 51000, cat: 'app',        ev: 'app_background', f: { trigger: 'lifecycle_on_stop', lastScreen: 'home', isPlaying: false } },
+    { t: 52000, cat: 'app',        ev: 'activity_destroyed', f: { activity: 'MainActivity', reason: 'user_explicit_finish', isFinishing: true, lifetimeMs: 51400 } },
+    { t: 52100, cat: 'player',     ev: 'media_session_destroyed', f: { reason: 'service_stopSelf', lastSongId: 'qt', queueSize: 18 } },
+    { t: 52200, cat: 'plugin',     ev: 'plugin_engine_destroyed', f: { reason: 'process_terminating' } },
+  ]),
+];
+
+/* ---------- 2. Action rule engine ---------- */
+
+function fieldFmt(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+function summarizeFields(fields) {
+  const keys = Object.keys(fields || {});
+  if (!keys.length) return '';
+  return keys.slice(0, 3).map(k => `${k}=${fieldFmt(fields[k])}`).join(' · ');
+}
+
+function fmtDuration(ms) {
+  if (ms == null) return '';
+  if (ms < 1000) return `${ms}ms`;
+  const totalSec = Math.round(ms / 1000);
+  if (totalSec < 60) return `${(ms/1000).toFixed(1)}s`;
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+function fmtClock(ms) {
+  const d = new Date(ms);
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3,'0')}`;
+}
+
+// rule: appStartup
+const ruleAppStartup = {
+  id: 'app_startup',
+  label: 'App 启动',
+  icon: '🚀',
+  match(events, start) {
+    const head = events[start];
+    if (head.event !== 'app_startup_activity_create_start') return null;
+    const consumed = [start];
+    let end = start;
+    for (let i = start + 1; i < events.length && events[i].sessionId === head.sessionId; i++) {
+      if (events[i].event && events[i].event.startsWith('app_startup_')) {
+        consumed.push(i); end = i;
+      } else break;
+    }
+    const dur = events[end].timestampMs - head.timestampMs;
+    return {
+      ruleId: 'app_startup',
+      consumedIndices: consumed,
+      card: {
+        ruleId: 'app_startup', icon: '🚀',
+        title: 'App 启动', subtitle: `cold · ${fmtDuration(dur)}`,
+        result: 'success', durationMs: dur,
+        fields: { mode: 'cold' },
+        childEventIds: consumed.map(i => events[i].id),
+      },
+    };
+  },
+};
+
+// rule: tabSwitch
+const ruleTabSwitch = {
+  id: 'tab_switch', label: 'Tab 切换', icon: '🔁',
+  match(events, start) {
+    const e = events[start];
+    if (e.event !== 'tab_switch') return null;
+    return {
+      ruleId: 'tab_switch',
+      consumedIndices: [start],
+      card: {
+        ruleId: 'tab_switch', icon: '🔁',
+        title: `切到 « ${e.fields.to} » Tab`,
+        subtitle: `from ${e.fields.from} · 来源 ${e.fields.source}`,
+        result: 'success',
+        fields: e.fields,
+        childEventIds: [e.id],
+      },
+    };
+  },
+};
+
+// rule: screenVisit (pair screen_enter + screen_exit by same route)
+const ruleScreenVisit = {
+  id: 'screen_visit', label: '页面浏览', icon: '📱',
+  match(events, start) {
+    const e = events[start];
+    if (e.event !== 'screen_enter') return null;
+    const route = e.fields.route;
+    const consumed = [start];
+    let dur;
+    let exitId;
+    for (let i = start + 1; i < events.length && events[i].sessionId === e.sessionId; i++) {
+      if (events[i].event === 'screen_exit' && events[i].fields.route === route) {
+        consumed.push(i);
+        dur = events[i].fields.durationMs ?? (events[i].timestampMs - e.timestampMs);
+        exitId = events[i].id;
+        break;
+      }
+      // Stop at next screen_enter for same/different route → treat as untracked exit
+      if (events[i].event === 'screen_enter') break;
+    }
+    return {
+      ruleId: 'screen_visit',
+      consumedIndices: consumed,
+      card: {
+        ruleId: 'screen_visit', icon: '📱',
+        title: `进入 « ${route} »`,
+        subtitle: dur != null ? `停留 ${fmtDuration(dur)} · 来源 ${e.fields.source ?? '—'}` : `来源 ${e.fields.source ?? '—'}`,
+        result: dur != null ? 'success' : 'ongoing',
+        durationMs: dur,
+        fields: { route, ...e.fields },
+        childEventIds: consumed.map(i => events[i].id),
+      },
+    };
+  },
+};
+
+// rule: playAction
+const rulePlayAction = {
+  id: 'play', label: '播放', icon: '▶',
+  match(events, start) {
+    const e = events[start];
+    if (e.event !== 'player_play') return null;
+    const sid = e.fields.sid;
+    const itemName = e.fields.itemName ?? '(未知)';
+    const platform = e.fields.itemPlatform ?? '?';
+    const consumed = [start];
+    let end = start;
+    let closer;
+    let result = 'ongoing';
+    let durationMs;
+    let cacheStatus; // 'hit' | 'miss' | 'bypass'
+    for (let i = start + 1; i < events.length && events[i].sessionId === e.sessionId; i++) {
+      const ev = events[i];
+      // Greedy consume related events for same sid OR same traceId
+      if ((sid && ev.fields.sid === sid) || (e.traceId && ev.traceId === e.traceId)) {
+        consumed.push(i); end = i;
+        if (ev.event === 'cache_hit') cacheStatus = 'hit';
+        else if (ev.event === 'cache_miss') cacheStatus = 'miss';
+        else if (ev.event === 'cache_bypass') cacheStatus = 'bypass';
+        if (ev.event === 'player_pause' || ev.event === 'player_skip_next' || ev.event === 'playback_failed') {
+          closer = ev;
+          durationMs = ev.timestampMs - e.timestampMs;
+          result = ev.event === 'playback_failed' ? 'failure' : 'success';
+          break;
+        }
+      } else if (ev.event === 'player_play') {
+        // next play start with different sid → end this one as success at last consumed point
+        durationMs = events[end].timestampMs - e.timestampMs;
+        result = 'success';
+        break;
+      }
+    }
+    const cacheLabel = cacheStatus === 'hit' ? '命中缓存'
+                    : cacheStatus === 'miss' ? '未命中'
+                    : cacheStatus === 'bypass' ? '跳过缓存'
+                    : null;
+    const sub = [
+      platform,
+      cacheLabel,
+      result === 'ongoing' ? '播放中' : fmtDuration(durationMs ?? 0),
+    ].filter(Boolean).join(' · ');
+    return {
+      ruleId: 'play',
+      consumedIndices: consumed,
+      card: {
+        ruleId: 'play', icon: '▶',
+        title: `播放《${itemName}》`,
+        subtitle: sub,
+        result,
+        durationMs,
+        fields: { itemName, platform, sid, positionMs: e.fields.positionMs, cache: cacheStatus ?? 'unknown' },
+        childEventIds: consumed.map(i => events[i].id),
+      },
+    };
+  },
+};
+
+// rule: searchAction
+const ruleSearchAction = {
+  id: 'search', label: '搜索', icon: '🔍',
+  match(events, start) {
+    const e = events[start];
+    if (e.event !== 'search_start') return null;
+    const trace = e.traceId;
+    const consumed = [start];
+    let ok = 0, fail = 0, total = 0, lastDur = 0;
+    for (let i = start + 1; i < events.length && events[i].sessionId === e.sessionId; i++) {
+      const ev = events[i];
+      if (ev.traceId === trace && ev.event.startsWith('search_')) {
+        consumed.push(i);
+        if (ev.event === 'search_plugin_success') ok++;
+        if (ev.event === 'search_plugin_failed') fail++;
+        if (ev.event === 'search_session_page_success') {
+          lastDur = ev.durationMs ?? lastDur;
+          total = ev.fields.totalCount ?? total;
+        }
+      } else if (ev.timestampMs - e.timestampMs > 30000) break;
+    }
+    // 30s 内的紧跟点击 → 作为 followup
+    const followups = [];
+    const searchEnd = consumed.length ? events[consumed[consumed.length - 1]].timestampMs : e.timestampMs;
+    for (let i = start + 1; i < events.length && events[i].sessionId === e.sessionId; i++) {
+      const ev = events[i];
+      if (ev.timestampMs < searchEnd) continue;
+      if (ev.timestampMs - searchEnd > 30000) break;
+      if (ev.event === 'ui_click' && /search\.result\./.test(ev.fields.targetId || '')) {
+        const label = ev.fields.sheetName || ev.fields.itemName || ev.fields.targetId;
+        const kind  = ev.fields.targetId?.includes('sheet') ? '打开歌单' : '点击结果';
+        followups.push({ arrow: '→', text: `${kind} « ${label} »`, id: ev.id });
+        consumed.push(i);
+      }
+    }
+    const platforms = (ok + fail) || (e.fields.platformCount ?? 0);
+    const subBits = [`${ok}/${platforms} 插件`];
+    if (total) subBits.push(`${total} 条`);
+    if (lastDur) subBits.push(fmtDuration(lastDur));
+    const result = fail === 0 ? 'success' : (ok > 0 ? 'partial' : 'failure');
+    return {
+      ruleId: 'search',
+      consumedIndices: consumed,
+      card: {
+        ruleId: 'search', icon: '🔍',
+        title: `搜索 "${e.fields.query}"`,
+        subtitle: subBits.join(' · '),
+        result, durationMs: lastDur,
+        followups,
+        fields: { query: e.fields.query, mediaType: e.fields.mediaType, ok, fail, total },
+        childEventIds: consumed.map(i => events[i].id),
+      },
+    };
+  },
+};
+
+// rule: pluginInstall
+const rulePluginInstall = {
+  id: 'plugin_install', label: '插件安装', icon: '📦',
+  match(events, start) {
+    const e = events[start];
+    if (e.event !== 'plugin_operation_start' || e.fields.operation !== 'install') return null;
+    const trace = e.traceId;
+    const consumed = [start];
+    let endEvent;
+    for (let i = start + 1; i < events.length && events[i].sessionId === e.sessionId; i++) {
+      const ev = events[i];
+      if (ev.traceId === trace && /^plugin_operation_(success|failed)$/.test(ev.event)) {
+        consumed.push(i); endEvent = ev; break;
+      }
+    }
+    const success = endEvent?.event === 'plugin_operation_success';
+    const dur = endEvent ? endEvent.timestampMs - e.timestampMs : undefined;
+    return {
+      ruleId: 'plugin_install',
+      consumedIndices: consumed,
+      card: {
+        ruleId: 'plugin_install', icon: '📦',
+        title: `安装插件 « ${e.fields.pluginName} »`,
+        subtitle: success ? `成功 · v${endEvent?.fields?.version ?? '?'} · ${fmtDuration(dur)}` : (endEvent ? `失败：${endEvent.fields?.reason ?? '未知'}` : '安装中…'),
+        result: success ? 'success' : (endEvent ? 'failure' : 'ongoing'),
+        durationMs: dur,
+        fields: { pluginName: e.fields.pluginName, urlHost: e.fields.urlHost },
+        childEventIds: consumed.map(i => events[i].id),
+      },
+    };
+  },
+};
+
+// rule: dialogAction
+const ruleDialog = {
+  id: 'dialog', label: '弹窗', icon: '💬',
+  match(events, start) {
+    const e = events[start];
+    if (e.event !== 'dialog_open') return null;
+    const dialogId = e.fields.dialogId;
+    const consumed = [start];
+    let closer;
+    for (let i = start + 1; i < events.length && events[i].sessionId === e.sessionId; i++) {
+      const ev = events[i];
+      if (ev.event === 'dialog_dismiss' && ev.fields.dialogId === dialogId) {
+        consumed.push(i); closer = ev; break;
+      }
+      // Capture clicks INSIDE this dialog
+      if (ev.event === 'ui_click' && ev.fields.dialogId === dialogId) {
+        consumed.push(i);
+      }
+    }
+    const dur = closer ? closer.fields.durationMs ?? (closer.timestampMs - e.timestampMs) : undefined;
+    const outcome = closer?.fields.outcome ?? 'ongoing';
+    const innerClicks = consumed
+      .map(i => events[i])
+      .filter(ev => ev.event === 'ui_click');
+    return {
+      ruleId: 'dialog',
+      consumedIndices: consumed,
+      card: {
+        ruleId: 'dialog', icon: '💬',
+        title: `弹窗 « ${dialogId} »`,
+        subtitle: closer
+          ? `${outcome === 'confirm' ? '确认' : outcome === 'cancel' ? '取消' : outcome} · ${fmtDuration(dur)} · ${innerClicks.length} 次内部点击`
+          : `打开中`,
+        result: outcome === 'confirm' ? 'success' : (outcome === 'cancel' ? 'failure' : 'ongoing'),
+        durationMs: dur,
+        fields: { dialogId, screen: e.fields.screen, trigger: e.fields.trigger, outcome },
+        childEventIds: consumed.map(i => events[i].id),
+      },
+    };
+  },
+};
+
+// rule: uiClick (fallback for orphan ui_clicks)
+const ruleUiClick = {
+  id: 'ui_click', label: '点击', icon: '👆',
+  match(events, start) {
+    const e = events[start];
+    if (e.event !== 'ui_click') return null;
+    const label = e.fields.targetLabel ?? e.fields.targetId;
+    return {
+      ruleId: 'ui_click',
+      consumedIndices: [start],
+      card: {
+        ruleId: 'ui_click', icon: '👆',
+        title: `点击 « ${label} »`,
+        subtitle: `${e.fields.screen ?? '—'} · ${e.fields.targetId ?? '—'}`,
+        result: 'success',
+        fields: e.fields,
+        childEventIds: [e.id],
+      },
+    };
+  },
+};
+
+// rule: componentLifecycle (Activity / Store / 插件引擎 / MediaSession 销毁创建 / 进程死亡)
+const COMPONENT_LIFECYCLE = {
+  activity_created:         { icon: '🧩', verb: '创建',         kind: 'Activity',     subjectKey: 'activity' },
+  activity_destroyed:       { icon: '🧩', verb: '销毁',         kind: 'Activity',     subjectKey: 'activity' },
+  store_created:            { icon: '🧱', verb: '创建',         kind: 'Store',        subjectKey: 'storeId'  },
+  store_destroyed:          { icon: '🧱', verb: '销毁',         kind: 'Store',        subjectKey: 'storeId'  },
+  plugin_engine_init:       { icon: '⚙️', verb: '初始化',       kind: '插件引擎',     subjectKey: null       },
+  plugin_engine_destroyed:  { icon: '⚙️', verb: '销毁',         kind: '插件引擎',     subjectKey: null       },
+  media_session_started:    { icon: '🎧', verb: '启动',         kind: 'MediaSession', subjectKey: null       },
+  media_session_destroyed:  { icon: '🎧', verb: '销毁',         kind: 'MediaSession', subjectKey: null       },
+  process_start_after_kill: { icon: '💀', verb: '进程死亡后重启', kind: '',            subjectKey: null       },
+};
+const ruleComponentLifecycle = {
+  id: 'component_lifecycle', label: '组件生命周期', icon: '🧩',
+  match(events, start) {
+    const e = events[start];
+    const meta = COMPONENT_LIFECYCLE[e.event];
+    if (!meta) return null;
+    const subject = meta.subjectKey ? e.fields[meta.subjectKey] : '';
+    const title = meta.kind
+      ? `${meta.kind}${subject ? ` « ${subject} »` : ''} ${meta.verb}`
+      : meta.verb;
+    const subBits = [];
+    if (e.event === 'activity_destroyed') {
+      if (e.fields.reason) subBits.push(e.fields.reason);
+      if (e.fields.isFinishing) subBits.push('用户退出');
+      if (e.fields.isChangingConfigurations) subBits.push('配置变更');
+      if (e.fields.lifetimeMs != null) subBits.push(`存活 ${fmtDuration(e.fields.lifetimeMs)}`);
+    } else if (e.event === 'activity_created') {
+      if (e.fields.isColdStart) subBits.push('冷启动');
+      else if (e.fields.isConfigChange) subBits.push('配置变更重建');
+      else if (e.fields.hasSavedState) subBits.push('从 SavedState 恢复');
+      else subBits.push('全新创建');
+    } else if (e.event === 'store_destroyed') {
+      if (e.fields.scope) subBits.push(`scope=${e.fields.scope}`);
+      if (e.fields.reason) subBits.push(e.fields.reason);
+      if (e.fields.isPlaying) subBits.push('销毁时仍在播放');
+    } else if (e.event === 'store_created') {
+      if (e.fields.scope) subBits.push(`scope=${e.fields.scope}`);
+      if (e.fields.restoredFromSnapshot) subBits.push(`从 snapshot 恢复 (${e.fields.snapshotKeys ?? 0} 字段)`);
+      else subBits.push('全新创建');
+    } else if (e.event === 'plugin_engine_init') {
+      if (e.fields.pluginCount != null) subBits.push(`${e.fields.pluginCount} 个插件`);
+      if (e.fields.durationMs != null) subBits.push(fmtDuration(e.fields.durationMs));
+      if (e.fields.jsEngineVersion) subBits.push(e.fields.jsEngineVersion);
+    } else if (e.event === 'plugin_engine_destroyed') {
+      if (e.fields.reason) subBits.push(e.fields.reason);
+    } else if (e.event === 'media_session_started') {
+      if (e.fields.restoredQueueSize != null) subBits.push(`队列 ${e.fields.restoredQueueSize} 首`);
+    } else if (e.event === 'media_session_destroyed') {
+      if (e.fields.reason) subBits.push(e.fields.reason);
+      if (e.fields.queueSize != null) subBits.push(`队列 ${e.fields.queueSize} 首`);
+    } else if (e.event === 'process_start_after_kill') {
+      if (e.fields.suspectedReason) subBits.push(e.fields.suspectedReason);
+      if (e.fields.lastBackgroundedDurationMs != null) subBits.push(`后台 ${fmtDuration(e.fields.lastBackgroundedDurationMs)} 后被杀`);
+    }
+    // result 染色：销毁类 → partial(琥珀)、创建/重启 → success；进程死亡 → failure 标红
+    let result = 'success';
+    if (/_destroyed$/.test(e.event)) result = 'partial';
+    if (e.event === 'process_start_after_kill') result = 'failure';
+    return {
+      ruleId: 'component_lifecycle',
+      consumedIndices: [start],
+      card: {
+        ruleId: 'component_lifecycle', icon: meta.icon,
+        title, subtitle: subBits.join(' · '),
+        result,
+        fields: e.fields,
+        childEventIds: [e.id],
+      },
+    };
+  },
+};
+
+// rule: appLifecycle (foreground/background switch)
+const ruleAppLifecycle = {
+  id: 'app_lifecycle', label: '前后台切换', icon: '📲',
+  match(events, start) {
+    const e = events[start];
+    if (e.event !== 'app_background' && e.event !== 'app_foreground') return null;
+    const isBackground = e.event === 'app_background';
+    const title = isBackground ? '切到后台' : '回到前台';
+    const subBits = [];
+    if (isBackground) {
+      if (e.fields.lastScreen) subBits.push(`从 ${e.fields.lastScreen}`);
+      if (e.fields.isPlaying) subBits.push('播放中');
+      if (e.fields.trigger) subBits.push(e.fields.trigger);
+    } else {
+      if (e.fields.resumeScreen) subBits.push(`回到 ${e.fields.resumeScreen}`);
+      if (e.fields.backgroundedDurationMs != null) subBits.push(`后台 ${fmtDuration(e.fields.backgroundedDurationMs)}`);
+      if (e.fields.trigger) subBits.push(e.fields.trigger);
+    }
+    return {
+      ruleId: 'app_lifecycle',
+      consumedIndices: [start],
+      card: {
+        ruleId: 'app_lifecycle', icon: '📲',
+        title, subtitle: subBits.join(' · '),
+        result: 'success',
+        fields: e.fields,
+        childEventIds: [e.id],
+      },
+    };
+  },
+};
+
+// rule: errorAction
+const ruleError = {
+  id: 'error', label: '错误', icon: '❌',
+  match(events, start) {
+    const e = events[start];
+    if (e.level !== 'error') return null;
+    return {
+      ruleId: 'error',
+      consumedIndices: [start],
+      card: {
+        ruleId: 'error', icon: '❌',
+        title: `${e.errorClass ?? '错误'}: ${e.errorMessage ?? e.event}`,
+        subtitle: `${e.category}/${e.event}${e.fields.reason ? ` · ${e.fields.reason}` : ''}`,
+        result: 'failure',
+        fields: { ...e.fields, errorClass: e.errorClass, errorMessage: e.errorMessage },
+        childEventIds: [e.id],
+        stackTrace: e.stackTrace,
+      },
+    };
+  },
+};
+
+const RULES = [
+  ruleAppStartup,
+  ruleAppLifecycle,
+  ruleComponentLifecycle,
+  ruleTabSwitch,
+  rulePlayAction,
+  ruleSearchAction,
+  rulePluginInstall,
+  ruleDialog,
+  ruleScreenVisit,
+  ruleUiClick,
+  ruleError, // fallback
+];
+
+function matchActions(events) {
+  const items = [];
+  const consumed = new Set();
+  for (let i = 0; i < events.length; i++) {
+    if (consumed.has(i)) continue;
+    let m = null;
+    for (const rule of RULES) {
+      m = rule.match(events, i);
+      if (m) break;
+    }
+    if (m) {
+      for (const idx of m.consumedIndices) consumed.add(idx);
+      items.push({ type: 'action', card: m.card, sortMs: events[i].timestampMs, eventIds: m.consumedIndices.map(idx => events[idx].id) });
+    } else {
+      items.push({ type: 'raw', event: events[i], sortMs: events[i].timestampMs, eventIds: [events[i].id] });
+    }
+  }
+  items.sort((a, b) => a.sortMs - b.sortMs);
+  return items;
+}
+
+/* ---------- 3. State + render ---------- */
+
+const state = {
+  currentSession: SESSIONS[0].id,
+  structuredOnly: false,
+  enabledRules: new Set(RULES.map(r => r.id)),
+  openCards: new Set(),
+  selectedEventId: null,
+};
+
+const eventById = new Map(EVENTS.map(e => [e.id, e]));
+
+function eventsForSession(sid) {
+  return EVENTS.filter(e => e.sessionId === sid);
+}
+
+function renderSessionList() {
+  const ul = document.getElementById('session-list');
+  ul.innerHTML = '';
+  SESSIONS.forEach(s => {
+    const evs = eventsForSession(s.id);
+    const items = matchActions(evs);
+    const counts = {};
+    items.forEach(it => {
+      if (it.type === 'action') counts[it.card.ruleId] = (counts[it.card.ruleId] ?? 0) + 1;
+    });
+    const errCount = evs.filter(e => e.level === 'error').length;
+    const li = document.createElement('li');
+    li.className = 'session-item' + (s.id === state.currentSession ? ' active' : '');
+    const labelOf = id => RULES.find(r => r.id === id)?.label ?? id;
+    const countChips = Object.entries(counts)
+      .filter(([id]) => id !== 'error')
+      .map(([id, c]) => `<span class="count">${labelOf(id)} ${c}</span>`).join('');
+    li.innerHTML = `
+      <div class="ts">${s.label}</div>
+      <div class="id mono">${s.id}</div>
+      <div class="counts">
+        ${countChips}
+        ${errCount ? `<span class="count error">错误 ${errCount}</span>` : ''}
+      </div>`;
+    li.onclick = () => { state.currentSession = s.id; render(); };
+    ul.appendChild(li);
+  });
+}
+
+function renderChips() {
+  const wrap = document.getElementById('action-chips');
+  wrap.innerHTML = '';
+  RULES.forEach(r => {
+    const on = state.enabledRules.has(r.id);
+    const el = document.createElement('span');
+    el.className = 'chip';
+    el.dataset.on = on ? 'true' : 'false';
+    el.innerHTML = `<span class="icon">${r.icon}</span> ${r.label}`;
+    el.onclick = () => {
+      if (state.enabledRules.has(r.id)) state.enabledRules.delete(r.id);
+      else state.enabledRules.add(r.id);
+      render();
+    };
+    wrap.appendChild(el);
+  });
+}
+
+function renderTimeline() {
+  const root = document.getElementById('timeline');
+  root.innerHTML = '';
+  const evs = eventsForSession(state.currentSession);
+  const items = matchActions(evs);
+  let lastBucket = null;
+  for (const item of items) {
+    // Filter
+    if (item.type === 'action' && !state.enabledRules.has(item.card.ruleId)) continue;
+    if (item.type === 'raw' && state.structuredOnly) continue;
+
+    // Time bucket separator (每分钟一段)
+    const bucket = Math.floor(item.sortMs / 60000);
+    if (lastBucket != null && bucket !== lastBucket) {
+      const sep = document.createElement('div');
+      sep.className = 'timeline-gap';
+      sep.textContent = new Date(item.sortMs).toTimeString().slice(0,5);
+      root.appendChild(sep);
+    }
+    lastBucket = bucket;
+
+    if (item.type === 'action') {
+      root.appendChild(renderCard(item));
+    } else {
+      root.appendChild(renderRawRow(item.event));
+    }
+  }
+}
+
+function renderCard(item) {
+  const c = item.card;
+  const wrap = document.createElement('div');
+  wrap.className = `card result-${c.result || 'success'}` + (state.openCards.has(c.childEventIds.join(',')) ? ' open' : '');
+  const headerTime = fmtClock(item.sortMs);
+  const followupHtml = (c.followups && c.followups.length)
+    ? `<div class="card-followups">${c.followups.map(f => `<div class="followup"><span class="arrow">${f.arrow}</span> ${escapeHtml(f.text)}</div>`).join('')}</div>`
+    : '';
+  const statusText = {
+    success: '✓ 完成',
+    failure: '✕ 失败',
+    ongoing: '… 进行中',
+    partial: '◐ 部分',
+  }[c.result || 'success'];
+  wrap.innerHTML = `
+    <div class="card-header">
+      <span class="card-time mono">${headerTime}</span>
+      <span class="card-icon">${c.icon}</span>
+      <div class="card-title-wrap">
+        <div class="card-title">${escapeHtml(c.title)}</div>
+        ${c.subtitle ? `<div class="card-subtitle">${escapeHtml(c.subtitle)}</div>` : ''}
+      </div>
+      <span class="card-status ${c.result || 'success'}">${statusText}</span>
+      <span class="card-chevron">▶</span>
+    </div>
+    ${followupHtml}
+    <div class="card-body">
+      ${c.childEventIds.map(id => renderChildEventLine(id)).join('')}
+    </div>`;
+  wrap.onclick = (e) => {
+    if (e.target.closest('.followup, .child-event')) return;
+    const key = c.childEventIds.join(',');
+    if (state.openCards.has(key)) state.openCards.delete(key);
+    else state.openCards.add(key);
+    selectEvent(c.childEventIds[0]);
+    render();
+  };
+  // Click a child line → select it
+  wrap.querySelectorAll('.child-event').forEach((el, i) => {
+    el.onclick = (e) => {
+      e.stopPropagation();
+      selectEvent(c.childEventIds[i]);
+      renderDetail();
+    };
+  });
+  return wrap;
+}
+
+function renderChildEventLine(id) {
+  const e = eventById.get(id);
+  if (!e) return '';
+  const cls = e.level === 'error' ? 'child-event error' : 'child-event';
+  return `<div class="${cls}" data-event-id="${id}">
+    <span class="branch">├─ ${fmtClock(e.timestampMs)}</span>
+    <span>${escapeHtml(e.category)}</span>
+    <span class="fields"><span class="ev">${escapeHtml(e.event)}</span> ${escapeHtml(summarizeFields(e.fields))}</span>
+  </div>`;
+}
+
+function renderRawRow(e) {
+  const row = document.createElement('div');
+  row.className = 'raw-row';
+  row.innerHTML = `
+    <span class="time">${fmtClock(e.timestampMs)}</span>
+    <span class="level ${e.level}">${e.level[0].toUpperCase()}</span>
+    <span class="cat">${escapeHtml(e.category)}</span>
+    <span class="fields"><span class="ev">${escapeHtml(e.event)}</span> ${escapeHtml(summarizeFields(e.fields))}</span>`;
+  row.onclick = () => { selectEvent(e.id); renderDetail(); };
+  return row;
+}
+
+function selectEvent(id) {
+  state.selectedEventId = id;
+}
+
+function renderDetail() {
+  const root = document.getElementById('detail-panel');
+  if (!state.selectedEventId) {
+    root.innerHTML = '<div class="empty">点击任一卡片 / 原始行查看完整事件字段。</div>';
+    return;
+  }
+  const e = eventById.get(state.selectedEventId);
+  if (!e) return;
+  root.innerHTML = `
+    <div class="detail-section">
+      <h3>Event</h3>
+      <div class="kv">
+        <div class="k">timestamp</div><div class="v">${escapeHtml(e.timestamp)}</div>
+        <div class="k">level</div><div class="v">${e.level}</div>
+        <div class="k">category</div><div class="v">${e.category}</div>
+        <div class="k">event</div><div class="v">${e.event}</div>
+        ${e.traceId ? `<div class="k">traceId</div><div class="v">${e.traceId}</div>` : ''}
+        ${e.durationMs != null ? `<div class="k">durationMs</div><div class="v">${e.durationMs}</div>` : ''}
+        ${e.result ? `<div class="k">result</div><div class="v">${e.result}</div>` : ''}
+        <div class="k">sessionId</div><div class="v">${e.sessionId}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h3>Fields</h3>
+      <div class="fields-json">${escapeHtml(JSON.stringify(e.fields, null, 2))}</div>
+    </div>
+    ${e.errorClass ? `<div class="detail-section">
+      <h3>Error</h3>
+      <div class="kv">
+        <div class="k">errorClass</div><div class="v">${escapeHtml(e.errorClass)}</div>
+        <div class="k">errorMessage</div><div class="v">${escapeHtml(e.errorMessage || '')}</div>
+      </div>
+      ${e.stackTrace ? `<div class="fields-json">${escapeHtml(e.stackTrace)}</div>` : ''}
+    </div>` : ''}
+  `;
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function render() {
+  renderSessionList();
+  renderChips();
+  renderTimeline();
+  renderDetail();
+}
+
+document.getElementById('structured-only').addEventListener('change', (e) => {
+  state.structuredOnly = e.target.checked;
+  render();
+});
+document.getElementById('theme-toggle').addEventListener('change', (e) => {
+  document.body.classList.toggle('light', e.target.checked);
+});
+
+render();
+</script>
+</body>
+</html>
