@@ -21,6 +21,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -76,6 +77,57 @@ class PluginMediaSourceServiceLocalShortCircuitTest {
         verify(plugin).getMediaSource(any(), any())
         // removeFromLocalLibrary must have been called to clean up the stale localPath
         verify(musicRepo).removeFromLocalLibrary(item)
+    }
+
+    /**
+     * Bug fix (v1.2.5): when a plugin/search result hands us a MusicItem with no
+     * `localPath`, the resolver must still consult the DB so a previously
+     * downloaded track is served from disk rather than re-fetched over the
+     * network. Reproduces the pluginSheetDetail / search-result hit path.
+     */
+    @Test
+    fun `resolve uses local file when item localPath is null but track downloaded in db`() = runTest {
+        val downloadedPath = "content://media/external/audio/media/4242"
+        val itemFromPlugin = musicItem(localPath = null)
+        val itemInDb = itemFromPlugin.copy(localPath = downloadedPath)
+        val musicRepo = mock<MusicRepository> {
+            onBlocking { getById(itemFromPlugin.id, itemFromPlugin.platform) } doReturn itemInDb
+        }
+        val probe = LocalFileProbe { true }
+        val plugin = pluginWithUrl("kuwo", "https://kuwo.example/stream.mp3")
+
+        val service = service(
+            plugins = listOf(plugin),
+            localFileProbe = probe,
+            musicRepository = musicRepo,
+        )
+
+        val result = service.resolve(itemFromPlugin)!!
+
+        assertEquals(downloadedPath, result.item.url)
+        assertEquals(downloadedPath, result.source.url)
+        verify(plugin, never()).getMediaSource(any(), any())
+    }
+
+    @Test
+    fun `resolve falls through to plugin when item localPath is null and track not downloaded`() = runTest {
+        val itemFromPlugin = musicItem(localPath = null)
+        val musicRepo = mock<MusicRepository> {
+            onBlocking { getById(itemFromPlugin.id, itemFromPlugin.platform) } doReturn null
+        }
+        val probe = LocalFileProbe { true }
+        val plugin = pluginWithUrl("kuwo", "https://kuwo.example/stream.mp3")
+
+        val service = service(
+            plugins = listOf(plugin),
+            localFileProbe = probe,
+            musicRepository = musicRepo,
+        )
+
+        val result = service.resolve(itemFromPlugin)
+
+        assertEquals("https://kuwo.example/stream.mp3", result?.item?.url)
+        verify(plugin).getMediaSource(any(), any())
     }
 
     // ---------- Fixtures ----------

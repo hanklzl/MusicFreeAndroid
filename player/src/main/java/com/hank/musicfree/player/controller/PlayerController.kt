@@ -546,9 +546,10 @@ class PlayerController @Inject constructor(
                 return@launch
             }
             val resolution = try {
-                // Quality-change is a mid-session operation; no distinct play sid here.
-                // TODO(later-task): thread the active sid through quality-change path.
-                mediaSourceResolver.resolve(item, qualityValue, sid = null)
+                // Quality-change is a mid-session operation: reuse the current play
+                // session's sid so the new resolve event correlates with the same
+                // psid in the log timeline.
+                mediaSourceResolver.resolve(item, qualityValue, sid = currentSidProvider.peek())
             } catch (error: CancellationException) {
                 MfLog.detail(
                     category = LogCategory.PLAYER,
@@ -1228,7 +1229,9 @@ class PlayerController @Inject constructor(
         }
 
         val fresh = runCatching {
-            staleUrlRefresher.resolveFresh(item, quality.name.lowercase())
+            // Reuse current play session sid so the refresh event correlates with
+            // the original failure in the log timeline.
+            staleUrlRefresher.resolveFresh(item, quality.name.lowercase(), sid = currentSidProvider.peek())
         }.onFailure { refreshErr ->
             MfLog.error(
                 category = LogCategory.PLAYER,
@@ -1337,9 +1340,9 @@ class PlayerController @Inject constructor(
         val startedAt = System.nanoTime()
         val quality = currentPlayQuality.name.lowercase()
         val resolution = runCatching {
-            // Failure-recovery resolve; no new play sid minted — pass null.
-            // TODO(later-task): thread the active sid through failure-recovery path.
-            mediaSourceResolver.resolve(item, quality, sid = null)
+            // Failure-recovery resolve: reuse current play session sid so the new
+            // resolve event correlates with the same psid in the log timeline.
+            mediaSourceResolver.resolve(item, quality, sid = currentSidProvider.peek())
         }.onFailure { resolveError ->
             MfLog.error(
                 category = LogCategory.PLAYER,

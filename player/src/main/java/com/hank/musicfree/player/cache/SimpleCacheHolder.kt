@@ -103,6 +103,18 @@ class SimpleCacheHolder @Inject constructor(
                     count = totalRemoved,
                     freedBytes = totalBytes,
                 )
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "media_cache_evict_for_key",
+                    fields = mapOf(
+                        "platform" to platform,
+                        "id" to id,
+                        "quality" to quality?.name?.lowercase(),
+                        "removedQualityCount" to totalRemoved,
+                        "freedBytes" to totalBytes,
+                        "triggerSource" to "stale_url",
+                    ),
+                )
             }
         }.onFailure { throwable ->
             MfLog.error(
@@ -188,6 +200,15 @@ class SimpleCacheHolder @Inject constructor(
                 count = 1,
                 freedBytes = (previousUsed - newBytes).coerceAtLeast(0L),
             )
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "media_cache_max_bytes_changed",
+                fields = mapOf(
+                    "newBytes" to newBytes,
+                    "previousUsed" to previousUsed,
+                    "freedBytes" to (previousUsed - newBytes).coerceAtLeast(0L),
+                ),
+            )
         }.onFailure { error ->
             MfLog.error(
                 category = LogCategory.PLAYER,
@@ -239,6 +260,11 @@ class SimpleCacheHolder @Inject constructor(
         }
         val cacheDir = cacheDir().apply { mkdirs() }
         val available = cacheDir.parentFile?.usableSpace ?: Long.MAX_VALUE
+        val storageScope = if (cacheDir.absolutePath.contains(context.cacheDir.absolutePath)) {
+            "internal"
+        } else {
+            "external"
+        }
         val effective = if (available < LOWSPACE_THRESHOLD) {
             playCacheTelemetry.cacheLowspace(
                 availableBytes = available,
@@ -249,6 +275,17 @@ class SimpleCacheHolder @Inject constructor(
         } else {
             configured
         }
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "media_cache_init",
+            fields = mapOf(
+                "configuredBytes" to configured,
+                "effectiveCapBytes" to effective,
+                "availableBytes" to available,
+                "storageScope" to storageScope,
+                "cacheDirPath" to cacheDir.absolutePath,
+            ),
+        )
         SimpleCache(
             cacheDir,
             PinningCacheEvictor(effective).also { pinningEvictor = it },

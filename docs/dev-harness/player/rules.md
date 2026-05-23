@@ -56,3 +56,5 @@ implemented_by: INC-2026-0017
 - `LyricParser` MUST 接受 RN `timeReg=/\[[\d:.]+\]/g` 兼容的全部三档 LRC 时间戳：`[hh:mm:ss(.ff)?]`、`[mm:ss(.ff)?]`、`[s(.ff)?]`。
 - `LyricParser.parseTimestampMs` 与 `timestampTokenRegex`、`LyricDocument.lyricTimestampRegex` 必须使用一致的格式集合，禁止任一处单独收紧到要求 colon。
 - 任何放宽/收紧时间戳 regex 或 timestamp 解析的 PR MUST 跑 `:core:testDebugUnitTest --tests *LyricParserTest --tests *LyricTimingTest` 与 `:feature:player-ui:testDebugUnitTest --tests *LyricTimestampFormatContractTest`。
+
+参见 [cache-and-logs.md](cache-and-logs.md) 了解三层缓存策略 + 排查 Recipe。

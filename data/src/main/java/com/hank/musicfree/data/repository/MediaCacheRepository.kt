@@ -71,7 +71,30 @@ class MediaCacheRepository private constructor(
     // In-memory LRU tier keyed by "${platform}@${id}" -> parsed sourcesJson.
     // Provides single-track hot-path lookup without DB round-trips. Sized to be
     // small enough to never dominate memory; DB is the source of truth.
-    private val memory = LruCache<String, JSONObject>(MEMORY_LIMIT)
+    // Subclassed so capacity-driven evictions surface in logs — without this,
+    // a hot song silently dropped out of memory looks like "cache disappeared"
+    // when diagnosing reuse complaints.
+    private val memory = object : LruCache<String, JSONObject>(MEMORY_LIMIT) {
+        override fun entryRemoved(
+            evicted: Boolean,
+            key: String,
+            oldValue: JSONObject,
+            newValue: JSONObject?,
+        ) {
+            // evicted=false means manual remove/put-overwrite; only capacity-driven
+            // drops are worth surfacing here.
+            if (!evicted) return
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = "media_cache_memory_evict",
+                fields = mapOf(
+                    "key" to key,
+                    "cacheSize" to size(),
+                    "maxSize" to MEMORY_LIMIT,
+                ),
+            )
+        }
+    }
 
     /**
      * Serializes every public suspend op so that the DB + memory steps are observed
@@ -202,22 +225,56 @@ class MediaCacheRepository private constructor(
     suspend fun deleteEntry(platform: String, id: String, quality: PlayQuality) = mutex.withLock {
         val existing = dao.get(platform, id) ?: run {
             memory.remove(memoryKey(platform, id))
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = "media_cache_delete_entry",
+                fields = mapOf(
+                    "platform" to platform,
+                    "itemId" to id,
+                    "quality" to quality.name.lowercase(),
+                    "result" to "missing",
+                    "rowDeleted" to false,
+                ),
+            )
             return@withLock
         }
         val obj = parseSourcesJson(existing.sourcesJson)
         if (obj == null || !obj.has(quality.name)) {
-            // Nothing to strip; ensure memory mirrors DB
             if (obj != null) memory.put(memoryKey(platform, id), obj)
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = "media_cache_delete_entry",
+                fields = mapOf(
+                    "platform" to platform,
+                    "itemId" to id,
+                    "quality" to quality.name.lowercase(),
+                    "result" to "noop",
+                    "rowDeleted" to false,
+                ),
+            )
             return@withLock
         }
         obj.remove(quality.name)
-        if (obj.length() == 0) {
+        val rowDeleted = obj.length() == 0
+        if (rowDeleted) {
             dao.delete(platform, id)
             memory.remove(memoryKey(platform, id))
         } else {
             dao.upsert(MediaCacheEntity(platform, id, obj.toString(), now()))
             memory.put(memoryKey(platform, id), obj)
         }
+        MfLog.detail(
+            category = LogCategory.DATA,
+            event = "media_cache_delete_entry",
+            fields = mapOf(
+                "platform" to platform,
+                "itemId" to id,
+                "quality" to quality.name.lowercase(),
+                "result" to LogFields.Result.SUCCESS,
+                "rowDeleted" to rowDeleted,
+                "remainingQualities" to obj.length(),
+            ),
+        )
         onSimpleCacheEvict(platform, id, quality)
     }
 
@@ -280,13 +337,18 @@ class MediaCacheRepository private constructor(
     private suspend fun pruneOldest() {
         val startedAt = System.nanoTime()
         try {
+            val totalBefore = dao.count()
             dao.deleteOldest(LIMIT / 2)
             memory.evictAll()
+            val totalAfter = dao.count()
             MfLog.detail(
                 category = LogCategory.DATA,
                 event = "media_cache_prune",
                 fields = mapOf(
-                    "count" to LIMIT / 2,
+                    "count" to (totalBefore - totalAfter).coerceAtLeast(0),
+                    "totalBefore" to totalBefore,
+                    "totalAfter" to totalAfter,
+                    "trigger" to "row_cap",
                     "durationMs" to elapsedMs(startedAt),
                     "result" to LogFields.Result.SUCCESS,
                 ),
@@ -316,6 +378,7 @@ class MediaCacheRepository private constructor(
 
             var removedCount = 0
             var removedBytes = 0L
+            val sampleEvicted = ArrayList<String>()
             for (entry in dao.getOldestEntries()) {
                 if (totalBytes <= coercedLimit) break
                 val entryBytes = entry.sourcesJson.toByteArray().size.toLong()
@@ -324,6 +387,9 @@ class MediaCacheRepository private constructor(
                 totalBytes -= entryBytes
                 removedBytes += entryBytes
                 removedCount += 1
+                if (sampleEvicted.size < EVICTED_SAMPLE) {
+                    sampleEvicted += "${entry.platform}@${entry.id}"
+                }
             }
 
             MfLog.detail(
@@ -334,6 +400,8 @@ class MediaCacheRepository private constructor(
                     "sizeBytes" to removedBytes,
                     "limitBytes" to coercedLimit,
                     "remainingBytes" to totalBytes.coerceAtLeast(0L),
+                    "evictedItems" to sampleEvicted,
+                    "trigger" to "byte_cap",
                     "durationMs" to elapsedMs(startedAt),
                     "result" to LogFields.Result.SUCCESS,
                 ),
@@ -422,6 +490,7 @@ class MediaCacheRepository private constructor(
     companion object {
         const val LIMIT = 800
         const val MEMORY_LIMIT = 200
+        private const val EVICTED_SAMPLE = 10
         const val DEFAULT_MAX_CACHE_SIZE_BYTES = 512L * 1024L * 1024L
 
         /**

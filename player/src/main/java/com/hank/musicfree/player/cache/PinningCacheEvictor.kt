@@ -6,6 +6,8 @@ import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheEvictor
 import androidx.media3.datasource.cache.CacheSpan
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
 
 /**
  * Wraps [LeastRecentlyUsedCacheEvictor] and excludes user-pinned keys from eviction.
@@ -42,7 +44,12 @@ class PinningCacheEvictor(private val maxBytes: Long) : CacheEvictor {
         delegate.onSpanTouched(cache, oldSpan, newSpan)
 
     private fun evictSkippingPinned(cache: Cache, bytesNeeded: Long) {
+        val startedAt = System.nanoTime()
         var freed = 0L
+        var evictedCount = 0
+        val evictedKeys = ArrayList<String>()
+        val pinOverflowSuspended = pinnedSizeBytes * 100L > maxBytes * 70L
+
         val keys = cache.keys.sortedBy { key ->
             cache.getCachedSpans(key).minOfOrNull { it.lastTouchTimestamp } ?: Long.MAX_VALUE
         }
@@ -55,6 +62,29 @@ class PinningCacheEvictor(private val maxBytes: Long) : CacheEvictor {
                 freed += span.length
                 if (freed >= bytesNeeded) break
             }
+            evictedCount += 1
+            if (evictedKeys.size < EVICTED_KEYS_SAMPLE) evictedKeys += key
         }
+
+        if (evictedCount > 0) {
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "media_cache_lru_evict",
+                fields = mapOf(
+                    "evictedCount" to evictedCount,
+                    "evictedBytes" to freed,
+                    "bytesNeeded" to bytesNeeded,
+                    "pinnedSizeBytes" to pinnedSizeBytes,
+                    "maxBytes" to maxBytes,
+                    "pinOverflowSuspended" to pinOverflowSuspended,
+                    "evictedKeys" to evictedKeys,
+                    "durationMs" to (System.nanoTime() - startedAt) / 1_000_000,
+                ),
+            )
+        }
+    }
+
+    private companion object {
+        const val EVICTED_KEYS_SAMPLE = 10
     }
 }

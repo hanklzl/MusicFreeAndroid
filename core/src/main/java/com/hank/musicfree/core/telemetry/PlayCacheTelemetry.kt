@@ -69,6 +69,18 @@ class PlayCacheTelemetry @Inject constructor(
             "sid" to sid, "hasLocalPath" to hasLocalPath, "localPathReadable" to localPathReadable,
         ))
 
+    /**
+     * Emitted when the incoming MusicItem had no localPath but the resolver
+     * reverse-queried `music_items` to discover one. `found=true` means the user
+     * really had downloaded this track and we recovered the local path — without
+     * this lookup the song would have gone over the network (the bug fixed in
+     * v1.2.5). `found=false` simply means not downloaded; plugin path proceeds.
+     */
+    fun resolveLocalDbLookup(sid: String?, platform: String, id: String, found: Boolean) =
+        logger.detail(LogCategory.PLAYER, "resolve_local_db_lookup", mapOf(
+            "sid" to sid, "platform" to platform, "musicItemId" to id, "found" to found,
+        ))
+
     fun resolveCacheLookup(sid: String?, layer: String, hit: Boolean, qualityMatched: Boolean?, ageSeconds: Long?) =
         logger.detail(LogCategory.PLAYER, "resolve_cache_lookup", mapOf(
             "sid" to sid, "layer" to layer, "hit" to hit,

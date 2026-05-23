@@ -99,11 +99,31 @@ class PluginMediaSourceService @Inject constructor(
                 parseQualityOrDefault(quality)
             }
             val cached = mediaCacheRepository.get(item, requestedQuality)
+            // Memory-vs-disk tier distinction lives behind an internal flag on
+            // MediaCacheRepository (cross-module access not exposed). Logging the
+            // generic "repo_db" layer is enough to answer "did the URL cache hit";
+            // upgrade later if a finer split becomes necessary.
+            playCacheTelemetry.resolveCacheLookup(
+                sid = sid,
+                layer = "repo_db",
+                hit = cached != null,
+                qualityMatched = if (cached != null) true else null,
+                ageSeconds = null,
+            )
             if (cached != null) {
+                playCacheTelemetry.cacheHit(
+                    sid = sid,
+                    source = CacheHitSource.REPO_DB,
+                    platform = item.platform,
+                    id = item.id,
+                    quality = requestedQuality.wireName(),
+                    sizeBytes = null,
+                )
                 MfLog.detail(
                     category = LogCategory.PLUGIN,
                     event = "plugin_get_media_source_cache_hit",
                     fields = mapOf(
+                        "sid" to sid,
                         "platform" to item.platform,
                         "musicItemId" to item.id,
                         "quality" to requestedQuality.wireName(),
@@ -157,6 +177,7 @@ class PluginMediaSourceService @Inject constructor(
                 quality = candidateQuality,
                 requestedPlatform = item.platform,
                 redirected = true,
+                sid = sid,
             )
             if (viaAlternative != null) {
                 maybeWriteCache(
@@ -166,6 +187,7 @@ class PluginMediaSourceService @Inject constructor(
                     source = viaAlternative.source,
                     isOffline = isOffline,
                     useCache = useCache,
+                    sid = sid,
                 )
                 return viaAlternative
             }
@@ -175,6 +197,7 @@ class PluginMediaSourceService @Inject constructor(
                 quality = candidateQuality,
                 requestedPlatform = item.platform,
                 redirected = false,
+                sid = sid,
             )
             if (viaSource != null) {
                 maybeWriteCache(
@@ -184,6 +207,7 @@ class PluginMediaSourceService @Inject constructor(
                     source = viaSource.source,
                     isOffline = isOffline,
                     useCache = useCache,
+                    sid = sid,
                 )
                 return viaSource
             }
@@ -208,7 +232,27 @@ class PluginMediaSourceService @Inject constructor(
      *   3) 使用计数器，连续 N 次失败才清。
      */
     private suspend fun resolveLocal(item: MusicItem, sid: String?): MediaSourceResolution? {
-        val path = item.localPath
+        // Bug fix (v1.2.5): When the incoming MusicItem comes from a plugin / search
+        // result, its `localPath` is null even when the user has actually downloaded
+        // the track (the download is recorded in `music_items.localPath` by
+        // `MusicRepository.commitDownloadedTrack`, but UI list items from the plugin
+        // path don't carry it). Reverse-query the DB once so all entry points
+        // benefit from the local short-circuit.
+        val effectiveItem = if (item.localPath.isNullOrBlank()) {
+            val recovered = runCatching { musicRepository.getById(item.id, item.platform) }
+                .getOrNull()
+                ?.localPath
+                ?.takeUnless { it.isBlank() }
+            playCacheTelemetry.resolveLocalDbLookup(
+                sid = sid,
+                platform = item.platform,
+                id = item.id,
+                found = recovered != null,
+            )
+            if (recovered != null) item.copy(localPath = recovered) else item
+        } else item
+
+        val path = effectiveItem.localPath
         if (path.isNullOrBlank()) {
             playCacheTelemetry.resolveLocalCheck(sid ?: "", hasLocalPath = false, localPathReadable = null)
             return null
@@ -220,21 +264,21 @@ class PluginMediaSourceService @Inject constructor(
             playCacheTelemetry.cacheHit(
                 sid = sid,
                 source = CacheHitSource.LOCAL,
-                platform = item.platform,
-                id = item.id,
+                platform = effectiveItem.platform,
+                id = effectiveItem.id,
                 quality = quality.name.lowercase(),
                 sizeBytes = null,
             )
             MediaSourceResolution(
-                item = item.copy(url = path),
+                item = effectiveItem.copy(url = path),
                 source = MediaSourceResult(
                     url = path,
                     headers = null,
                     userAgent = null,
                     quality = quality,
                 ),
-                requestedPlatform = item.platform,
-                resolverPlatform = item.platform,
+                requestedPlatform = effectiveItem.platform,
+                resolverPlatform = effectiveItem.platform,
                 redirected = false,
             )
         } else {
@@ -244,12 +288,16 @@ class PluginMediaSourceService @Inject constructor(
                 event = "local_short_circuit_fallback",
                 fields = mapOf(
                     "sid" to sid,
-                    "platform" to item.platform,
-                    "id" to item.id,
+                    "platform" to effectiveItem.platform,
+                    "id" to effectiveItem.id,
                     "reason" to "unreadable",
+                    // Path tail only (last 40 chars) to avoid logging full storage
+                    // paths; enough to tell foo/Music/track.mp3 from another path.
+                    "localPathTail" to path.takeLast(40),
+                    "isContentUri" to path.startsWith("content://"),
                 ),
             )
-            musicRepository.removeFromLocalLibrary(item)
+            musicRepository.removeFromLocalLibrary(effectiveItem)
             null
         }
     }
@@ -261,6 +309,7 @@ class PluginMediaSourceService @Inject constructor(
         source: MediaSourceResult,
         isOffline: Boolean,
         useCache: Boolean,
+        sid: String?,
     ) {
         if (!shouldWriteCache(cacheControl, isOffline)) return
         // Important #4 fix: don't pollute the STANDARD slot with payloads that
@@ -271,6 +320,7 @@ class PluginMediaSourceService @Inject constructor(
                 category = LogCategory.PLUGIN,
                 event = "plugin_get_media_source_cache_write_skipped_unknown_quality",
                 fields = mapOf(
+                    "sid" to sid,
                     "platform" to item.platform,
                     "musicItemId" to item.id,
                     "quality" to candidateQuality,
@@ -282,10 +332,12 @@ class PluginMediaSourceService @Inject constructor(
             return
         }
         mediaCacheRepository.put(item, pq, source)
+        playCacheTelemetry.cacheWriteEvent(sid = sid, layer = "repo_db", sizeBytes = null)
         MfLog.detail(
             category = LogCategory.PLUGIN,
             event = "plugin_get_media_source_cache_write",
             fields = mapOf(
+                "sid" to sid,
                 "platform" to item.platform,
                 "musicItemId" to item.id,
                 "quality" to pq.wireName(),
@@ -353,11 +405,23 @@ class PluginMediaSourceService @Inject constructor(
         quality: String,
         requestedPlatform: String,
         redirected: Boolean,
+        sid: String?,
     ): MediaSourceResolution? {
         if (!supportsMediaSource()) return null
+        playCacheTelemetry.resolvePluginCallStart(sid = sid, pluginName = info.platform)
+        val startedAt = System.nanoTime()
         val source = runCatching { getMediaSource(item, quality) }.getOrNull()
             ?.takeIf { it.url.isNotBlank() }
-            ?: return null
+        val durationMs = (System.nanoTime() - startedAt) / 1_000_000
+        playCacheTelemetry.resolvePluginCallEnd(
+            sid = sid,
+            durationMs = durationMs,
+            returnedQuality = source?.quality?.name?.lowercase(),
+            hasUrl = source != null,
+            hasHeaders = !source?.headers.isNullOrEmpty(),
+            urlHash = source?.url?.let { playCacheTelemetry.urlHash(it) },
+        )
+        if (source == null) return null
         return MediaSourceResolution(
             item = item.copy(url = source.url),
             source = source,
