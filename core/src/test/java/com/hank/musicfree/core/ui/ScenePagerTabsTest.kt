@@ -1,6 +1,8 @@
 package com.hank.musicfree.core.ui
 
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ScenePagerTabsTest {
@@ -96,6 +98,102 @@ class ScenePagerTabsTest {
                 pageKey = "a",
                 selectedKey = "a",
                 lastDispatchedKey = null,
+            ),
+        )
+    }
+
+    @Test
+    fun `indicator metrics use current tab when pager is settled`() {
+        val tabMetrics = listOf(
+            ScenePagerTabMetrics(left = 0.dp, width = 80.dp),
+            ScenePagerTabMetrics(left = 80.dp, width = 120.dp),
+        )
+
+        assertEquals(
+            ScenePagerIndicatorMetrics(left = 80.dp, width = 120.dp),
+            calculateScenePagerIndicatorMetrics(
+                tabMetrics = tabMetrics,
+                currentPage = 1,
+                currentPageOffsetFraction = 0f,
+            ),
+        )
+    }
+
+    @Test
+    fun `indicator metrics interpolate toward next tab while swiping forward`() {
+        val tabMetrics = listOf(
+            ScenePagerTabMetrics(left = 0.dp, width = 80.dp),
+            ScenePagerTabMetrics(left = 80.dp, width = 120.dp),
+        )
+
+        assertEquals(
+            ScenePagerIndicatorMetrics(left = 20.dp, width = 90.dp),
+            calculateScenePagerIndicatorMetrics(
+                tabMetrics = tabMetrics,
+                currentPage = 0,
+                currentPageOffsetFraction = 0.25f,
+            ),
+        )
+    }
+
+    @Test
+    fun `indicator metrics interpolate toward previous tab while swiping backward`() {
+        val tabMetrics = listOf(
+            ScenePagerTabMetrics(left = 0.dp, width = 80.dp),
+            ScenePagerTabMetrics(left = 80.dp, width = 120.dp),
+        )
+
+        assertEquals(
+            ScenePagerIndicatorMetrics(left = 56.dp, width = 108.dp),
+            calculateScenePagerIndicatorMetrics(
+                tabMetrics = tabMetrics,
+                currentPage = 1,
+                currentPageOffsetFraction = -0.3f,
+            ),
+        )
+    }
+
+    @Test
+    fun `indicator metrics clamp beyond first tab`() {
+        val tabMetrics = listOf(
+            ScenePagerTabMetrics(left = 0.dp, width = 80.dp),
+            ScenePagerTabMetrics(left = 80.dp, width = 120.dp),
+        )
+
+        assertEquals(
+            ScenePagerIndicatorMetrics(left = 0.dp, width = 80.dp),
+            calculateScenePagerIndicatorMetrics(
+                tabMetrics = tabMetrics,
+                currentPage = 0,
+                currentPageOffsetFraction = -0.25f,
+            ),
+        )
+    }
+
+    @Test
+    fun `indicator metrics clamp beyond last tab`() {
+        val tabMetrics = listOf(
+            ScenePagerTabMetrics(left = 0.dp, width = 80.dp),
+            ScenePagerTabMetrics(left = 80.dp, width = 120.dp),
+        )
+
+        assertEquals(
+            ScenePagerIndicatorMetrics(left = 80.dp, width = 120.dp),
+            calculateScenePagerIndicatorMetrics(
+                tabMetrics = tabMetrics,
+                currentPage = 1,
+                currentPageOffsetFraction = 0.25f,
+            ),
+        )
+    }
+
+    @Test
+    fun `indicator metrics return null without tab positions`() {
+        assertNull(
+            calculateScenePagerIndicatorMetrics(
+                tabMetrics = emptyList(),
+                currentPage = 0,
+                currentPageOffsetFraction = 0f,
             ),
         )
     }
