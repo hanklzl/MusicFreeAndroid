@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -28,6 +29,8 @@ import com.hank.musicfree.updater.installer.ApkInstaller
 import com.hank.musicfree.updater.store.UpdatePreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -46,16 +49,17 @@ class HomeDrawerBehaviorTest {
     private lateinit var stubChecker: UpdateChecker
     private lateinit var stubDownloadManager: UpdateDownloadManager
     private lateinit var stubInstaller: ApkInstaller
+    private lateinit var testScope: CoroutineScope
 
     @Before
     fun setUp() {
         state = HomeScreenState()
 
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val scope = CoroutineScope(Dispatchers.IO)
+        testScope = CoroutineScope(Dispatchers.IO)
         val tmpFile = File.createTempFile("update_prefs_test_", ".preferences_pb", context.cacheDir)
         tmpFile.delete()
-        val dataStore = PreferenceDataStoreFactory.create(scope = scope) { tmpFile }
+        val dataStore = PreferenceDataStoreFactory.create(scope = testScope) { tmpFile }
         val stubPrefs = UpdatePreferences(dataStore)
         stubChecker = UpdateChecker(
             client = object : UpdateClient {
@@ -65,7 +69,7 @@ class HomeDrawerBehaviorTest {
             abiResolver = AbiResolver { emptyList() },
             localCode = 0L,
             localName = "test",
-            scope = scope,
+            scope = testScope,
         )
         val stubDownloader = object : ApkDownloader {
             override suspend fun download(
@@ -82,7 +86,7 @@ class HomeDrawerBehaviorTest {
             downloader = stubDownloader,
             prefs = stubPrefs,
             networkTypeDetector = NetworkTypeDetector(context),
-            scope = scope,
+            scope = testScope,
         )
         stubInstaller = ApkInstaller(context)
 
@@ -116,6 +120,11 @@ class HomeDrawerBehaviorTest {
                 )
             }
         }
+    }
+
+    @After
+    fun tearDown() {
+        testScope.cancel()
     }
 
     @Test
@@ -153,6 +162,20 @@ class HomeDrawerBehaviorTest {
         openDrawer()
 
         pressBack()
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            !state.isDrawerOpen
+        }
+        assertFalse(state.isDrawerOpen)
+    }
+
+    @Test
+    fun left_swipe_closes_drawer() {
+        openDrawer()
+
+        composeRule.onNodeWithTag(FidelityAnchors.Home.DrawerRoot).performTouchInput {
+            swipeLeft()
+        }
 
         composeRule.waitUntil(timeoutMillis = 5_000) {
             !state.isDrawerOpen

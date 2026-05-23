@@ -47,14 +47,21 @@ fun HomeDrawerContent(
     onEntryClick: (HomeDrawerAction) -> Unit,
     modifier: Modifier = Modifier,
     statusBarTopPadding: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+    useContainerWidth: Boolean = true,
 ) {
     val context = LocalContext.current
+    val containerWidthModifier = if (useContainerWidth) {
+        Modifier
+            .fillMaxWidth(0.8f)
+            .widthIn(max = rpx(560))
+    } else {
+        Modifier.fillMaxWidth()
+    }
 
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .fillMaxWidth(0.8f)
-            .widthIn(max = rpx(560))
+            .then(containerWidthModifier)
             .background(MusicFreeTheme.colors.pageBackground)
             .testTag(FidelityAnchors.Home.DrawerRoot)
             .semantics { testTagsAsResourceId = true },

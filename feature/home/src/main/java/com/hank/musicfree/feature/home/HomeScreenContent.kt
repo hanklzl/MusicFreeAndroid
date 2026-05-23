@@ -3,18 +3,25 @@ package com.hank.musicfree.feature.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.unit.dp
 import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.FidelityAnchors
@@ -127,16 +134,11 @@ fun HomeScreenContent(
     )
 
     BackHandler(
-        enabled = handleDrawerBack ||
-            state.isTimingCloseVisible ||
-            state.isUpdateCheckVisible,
+        enabled = handleDrawerBack || state.isTimingCloseVisible || state.isUpdateCheckVisible,
     ) {
         if (handleDrawerBack) {
-            if (state.isDrawerOpen) {
-                state.closeDrawer()
-            } else {
-                drawerScope.launch { drawerState.close() }
-            }
+            state.closeDrawer()
+            drawerScope.launch { drawerState.close() }
         } else {
             state.onBackPressedConsumed()
         }
@@ -145,17 +147,31 @@ fun HomeScreenContent(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            HomeDrawerContent(
-                uiModel = drawerUiModel,
-                onEntryClick = { action ->
-                    handleDrawerEntryClick(
-                        state = state,
-                        action = action,
-                        onTriggerManualUpdateCheck = { checker.checkManually() },
-                        onDrawerEntryClick = onDrawerEntryClick,
-                    )
-                },
-            )
+            ModalDrawerSheet(
+                drawerState = drawerState,
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .widthIn(max = rpx(560)),
+                drawerShape = RectangleShape,
+                drawerContainerColor = MusicFreeTheme.colors.pageBackground,
+                drawerContentColor = MusicFreeTheme.colors.text,
+                drawerTonalElevation = 0.dp,
+                windowInsets = WindowInsets.statusBars,
+            ) {
+                HomeDrawerContent(
+                    uiModel = drawerUiModel,
+                    onEntryClick = { action ->
+                        handleDrawerEntryClick(
+                            state = state,
+                            action = action,
+                            onTriggerManualUpdateCheck = { checker.checkManually() },
+                            onDrawerEntryClick = onDrawerEntryClick,
+                        )
+                    },
+                    useContainerWidth = false,
+                    statusBarTopPadding = 0.dp,
+                )
+            }
         },
     ) {
         Column(
