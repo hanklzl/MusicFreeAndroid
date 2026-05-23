@@ -379,7 +379,7 @@ implemented_by: INC-2026-0010
 - 此类测试类 `@Before` 必须执行 `Assume.assumeTrue("...", arg == "true")`，其中 `arg` 取自 instrumentation runner argument `pluginNetworkTests`。
 - `:plugin/build.gradle.kts` 必须保留 `testInstrumentationRunnerArguments["pluginNetworkTests"]` 与 `-Pintegration` 的映射。
 - 默认通道 (`./gradlew :plugin:connectedAndroidTest`) MUST 跳过真网测试；`-Pintegration` 才执行。
-- 真域名（如 `kstore.vip`）出现在测试源中时，文件名必须以 `NetworkIntegrationTest.kt` 结尾且类内必须出现 `Assume.assumeTrue` 引用 `pluginNetworkTests`。
+- 真域名（如真实第三方插件域名）出现在测试源中时，文件名必须以 `NetworkIntegrationTest.kt` 结尾且类内必须出现 `Assume.assumeTrue` 引用 `pluginNetworkTests`。
 
 ## DataStore 隔离 {#rule-datastore-per-instance-isolation}
 
@@ -633,7 +633,7 @@ EOF
 | INC-2026-0007 | ui | 散落的 TopAppBarDefaults.topAppBarColors 手写 | [ui/rules.md#rule-no-raw-material3-topappbar](../ui/rules.md#rule-no-raw-material3-topappbar) | grep |
 | INC-2026-0008 | ui | MainActivity 隐式补顶部 inset 白名单 | [ui/rules.md#rule-mainactivity-no-implicit-top-inset](../ui/rules.md#rule-mainactivity-no-implicit-top-inset) | grep + manual |
 | INC-2026-0009 | plugin | QuickJS 跨线程访问 runtime 崩溃 | [plugin/rules.md#rule-quickjs-single-thread](../plugin/rules.md#rule-quickjs-single-thread) | manual |
-| INC-2026-0010 | plugin | 集成测试默认依赖 kstore.vip 真网络 | [plugin/rules.md#rule-network-test-gated](../plugin/rules.md#rule-network-test-gated) | contract-test |
+| INC-2026-0010 | plugin | 集成测试默认依赖真实第三方插件域名网络 | [plugin/rules.md#rule-network-test-gated](../plugin/rules.md#rule-network-test-gated) | contract-test |
 | INC-2026-0011 | player | 全屏播放器内容贴到状态栏后方 | [player/rules.md#rule-immersive-content-respects-statusbar](../player/rules.md#rule-immersive-content-respects-statusbar) | manual |
 | INC-2026-0012 | player | 歌词自动跟随重复触发 / seek overlay 错位 | [player/rules.md#rule-lyric-follow-debounce](../player/rules.md#rule-lyric-follow-debounce) | contract-test |
 ```
@@ -924,7 +924,7 @@ EOF
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [Incidents Index](../incidents/index.md) ｜ [plugin/rules.md](./rules.md)
 > 最后校验：2026-05-09
 
-## INC-2026-0010 — 集成测试默认依赖 kstore.vip 真网络
+## INC-2026-0010 — 集成测试默认依赖真实第三方插件域名网络
 
 - id: INC-2026-0010
 - area: plugin
@@ -938,11 +938,11 @@ EOF
 
 ### 根因
 
-`:plugin/src/androidTest/.../PluginRuntimeIntegrationTest.kt` 旧版 4 个用例直连 `kstore.vip`，CI 默认通道因网络抖动 flaky；类级 `@Ignore` 同时阻塞 3 个本地用例。
+`:plugin/src/androidTest/.../PluginRuntimeIntegrationTest.kt` 旧版 4 个用例直连真实第三方插件 host，CI 默认通道因网络抖动 flaky；类级 `@Ignore` 同时阻塞 3 个本地用例。
 
 ### 复发条件
 
-新 `:plugin/src/androidTest/` 中出现真域名（`kstore.vip` 等显式列表），但文件名不以 `NetworkIntegrationTest.kt` 结尾，或类内未 `Assume.assumeTrue` 引用 `pluginNetworkTests`。
+新 `:plugin/src/androidTest/` 中出现真域名（`example.invalid` 等显式列表），但文件名不以 `NetworkIntegrationTest.kt` 结尾，或类内未 `Assume.assumeTrue` 引用 `pluginNetworkTests`。
 
 ### 教训
 
@@ -3192,7 +3192,7 @@ import java.io.File
  */
 class PluginNetworkTestGateContractTest {
 
-    private val liveHosts: List<String> = listOf("kstore.vip")
+    private val liveHosts: List<String> = listOf("example.invalid")
 
     @Test
     fun network_androidtest_files_must_be_gated_by_assume() {

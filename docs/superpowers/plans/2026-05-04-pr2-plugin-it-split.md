@@ -22,7 +22,7 @@
 | `plugin/build.gradle.kts` | Modify | 新增 `testInstrumentationRunnerArguments["pluginNetworkTests"]` 桥接；`androidTestImplementation(libs.okhttp.mockwebserver)` |
 | `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeIntegrationTest.kt` | Delete | 拆分到下面 3 个文件 |
 | `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeLocalIntegrationTest.kt` | Create | 3 个无网络依赖的 runtime shim 用例 + 共享 helpers；DataStore 文件名带 UUID 后缀 |
-| `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeNetworkIntegrationTest.kt` | Create | 4 个 kstore.vip 网络用例；类不带 `@Ignore`，`@Before` 做 `Assume` 门控；DataStore 文件名带 UUID 后缀 |
+| `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRuntimeNetworkIntegrationTest.kt` | Create | 4 个真实第三方插件 host 网络用例；类不带 `@Ignore`，`@Before` 做 `Assume` 门控；DataStore 文件名带 UUID 后缀 |
 | `plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginManagerHttpLifecycleTest.kt` | Create | 2 个 MockWebServer 用例覆盖 `installFromUrl + updatePlugin` 编排；DataStore 文件名带 UUID 后缀 |
 
 ---
@@ -492,7 +492,7 @@ import java.util.UUID
 
 /**
  * Live-network integration tests for PluginManager. Depends on
- * `https://13413.kstore.vip/yuanli/...` being reachable. CI default
+ * `https://example.invalid/...` being reachable. CI default
  * channel SKIPS these via Assume.assumeTrue; pass `-Pintegration` to
  * Gradle to enable.
  */
@@ -533,7 +533,7 @@ class PluginRuntimeNetworkIntegrationTest {
     @Test
     fun yuanliWy_searchAndMediaSource_returnsPlayableUrl() = runBlocking {
         val wy = pluginManager.installFromUrl(
-            url = "https://13413.kstore.vip/yuanli/wy.js",
+            url = "https://example.invalid/wy.js",
             fileName = "wy-it.js",
         )
         assertNotNull("WY plugin should install", wy)
@@ -566,7 +566,7 @@ class PluginRuntimeNetworkIntegrationTest {
     @Test
     fun defaultSubscription_installAndWyPlaybackChain_succeeds() = runBlocking {
         val install = pluginManager.installFromSubscriptionUrl(
-            subscriptionUrl = "https://13413.kstore.vip/yuanli/yuanli.json",
+            subscriptionUrl = "https://example.invalid/subscription.json",
         )
         assertTrue(
             "Default subscription should install at least one plugin",
@@ -607,7 +607,7 @@ class PluginRuntimeNetworkIntegrationTest {
     @Test
     fun updatePlugin_thenSearchStillWorks_returnsPlayableResults() = runBlocking {
         val wy = pluginManager.installFromUrl(
-            url = "https://13413.kstore.vip/yuanli/wy.js",
+            url = "https://example.invalid/wy.js",
             fileName = "wy-update-search.js",
         )
         assertNotNull("WY plugin should install", wy)
@@ -647,7 +647,7 @@ class PluginRuntimeNetworkIntegrationTest {
     @Test
     fun updatePlugin_afterSearchRegression_keepsSearchablePluginUsable() = runBlocking {
         val wy = pluginManager.installFromUrl(
-            url = "https://13413.kstore.vip/yuanli/wy.js",
+            url = "https://example.invalid/wy.js",
             fileName = "wy-post-update-search.js",
         )
         assertNotNull("WY plugin should install", wy)
@@ -701,7 +701,7 @@ class PluginRuntimeNetworkIntegrationTest {
   -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginRuntimeNetworkIntegrationTest
 ```
 
-预期：4 个用例 PASSED（需 kstore.vip 可达）。如真机 PASS，建议把 stdout 头部贴入 PR 描述作为 baseline。
+预期：4 个用例 PASSED（需对应插件 host 可达）。如真机 PASS，建议把 stdout 头部贴入 PR 描述作为 baseline。
 
 - [ ] **Step 3：commit**
 
@@ -710,7 +710,7 @@ git add plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginRunt
 git commit -m "$(cat <<'EOF'
 test(plugin): extract live-network integration cases with -Pintegration gate
 
-Pulls the 4 kstore.vip-dependent PluginManager integration cases out of
+Pulls the 4 live-network-dependent PluginManager integration cases out of
 the class-ignored PluginRuntimeIntegrationTest into a standalone class.
 Runtime gating via Assume.assumeTrue on the `pluginNetworkTests`
 instrumentation arg (set true only when -Pintegration is passed),
@@ -1039,11 +1039,11 @@ EOF
 ./gradlew :plugin:connectedAndroidTest -Pintegration
 ```
 
-预期：9 个用例全部 PASSED（3 local + 4 network + 2 MockWebServer）。需 `kstore.vip` 可达。
+预期：9 个用例全部 PASSED（3 local + 4 network + 2 MockWebServer）。需对应插件 host 可达。
 
 如真机 PASS：截 1 段 stdout（包含每个用例的 PASSED 行），贴入 PR 描述作为 baseline。
 
-如 `kstore.vip` 不可达：不阻塞 PR——这是设计上"按需手动通道"，单独排查。
+如对应插件 host 不可达：不阻塞 PR——这是设计上"按需手动通道"，单独排查。
 
 ---
 
@@ -1095,7 +1095,7 @@ Spec: `docs/superpowers/specs/2026-05-04-test-suite-rehabilitation-design.md` §
 - [ ] `./gradlew :plugin:testDebugUnitTest`
 - [ ] `./gradlew :plugin:connectedAndroidTest` — 5 PASSED, 4 SKIPPED
 - [ ] `./gradlew :plugin:connectedDebugAndroidTest -Pintegration=false -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginRuntimeNetworkIntegrationTest` — 4 SKIPPED
-- [ ] `./gradlew :plugin:connectedAndroidTest -Pintegration` — 9 PASSED (requires `kstore.vip` reachable; not blocking if intermittent)
+- [ ] `./gradlew :plugin:connectedAndroidTest -Pintegration` — 9 PASSED (requires plugin host reachable; not blocking if intermittent)
 - [ ] `./gradlew assembleDebug && ./gradlew lint`
 - [ ] `./gradlew connectedAndroidTest` after PR 1 is merged/rebased into this branch
 

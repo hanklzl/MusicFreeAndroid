@@ -345,7 +345,7 @@ git commit -m "feat(parity-audit): symlink skill 到 .claude 与 .codex"
     {
       "id": "wy",
       "display_name": "网易云（v0 测试基线）",
-      "subscription_url": "https://gitee.com/maotoumao/MusicFreePlugins/raw/master/dist/wy/index.js",
+      "subscription_url": "https://example.invalid/wy.js",
       "notes": "v0 仅用该插件验证 home 推荐位 + 搜索链路。"
     }
   ]

@@ -26,7 +26,7 @@
 | 组 | 文件 | 案例 | 根因 |
 |---|---|---|---|
 | A | `app/src/androidTest/.../HomeFidelityHomeStructureTest.kt` | 2 个 `@Test` | 旧 mock MiniPlayer 已被真实 Hilt 版替换；后者在无媒体时 early-return，旧断言永远失败 |
-| B | `plugin/src/androidTest/.../PluginRuntimeIntegrationTest.kt` | 1 个类级（覆盖 7 个 `@Test`） | 4 个用例依赖 `kstore.vip` 真实网络，3 个是本地 runtime shim |
+| B | `plugin/src/androidTest/.../PluginRuntimeIntegrationTest.kt` | 1 个类级（覆盖 7 个 `@Test`） | 4 个用例依赖真实插件网络，3 个是本地 runtime shim |
 | C | `feature/settings/src/test/.../SettingsViewModelTest.kt` + `.../FileSelectorLiteViewModelTest.kt` | 3 个 `@Test` | `runBlocking + UnconfinedTestDispatcher + viewModelScope.launch + Flow.first { predicate }` 死锁，仅在 Robolectric/ByteBuddy 已预热的 JVM 中复现 |
 | D | `feature/home`、`feature/player-ui`、`feature/search`、`feature/settings` 的 `build.gradle.kts` | 全量 `connectedAndroidTest` | feature 模块声明 `androidx.test.runner.AndroidJUnitRunner`，但未声明 androidTest runner 基础依赖；空/无测试模块仍会被全量 connected task 执行，导致 test APK 无法实例化 runner |
 | E | `gradle.properties` | 全量 `connectedAndroidTest` | Gradle daemon heap 固定 `-Xmx2048m`；full androidTest 构建到 `:plugin:mergeExtDexDebugAndroidTest` 时 D8 合并 dex OOM |
@@ -306,10 +306,10 @@ private fun runOnAppThread(description: String = "main thread action", block: ()
 | # | 测试方法 | 网络? | 处置 |
 |---|---|---|---|
 | 1 | `localRuntimeShimPlugin_search_executesWithoutNotFunctionErrors` | ❌ | 进 `PluginRuntimeLocalIntegrationTest` |
-| 2 | `yuanliWy_searchAndMediaSource_returnsPlayableUrl` | ✅ kstore.vip | 进 `PluginRuntimeNetworkIntegrationTest`，`@Assume` 门控 |
-| 3 | `defaultSubscription_installAndWyPlaybackChain_succeeds` | ✅ kstore.vip | 同上 |
-| 4 | `updatePlugin_thenSearchStillWorks_returnsPlayableResults` | ✅ kstore.vip | 同上 |
-| 5 | `updatePlugin_afterSearchRegression_keepsSearchablePluginUsable` | ✅ kstore.vip | 同上 |
+| 2 | `yuanliWy_searchAndMediaSource_returnsPlayableUrl` | ✅ 真实插件网络 | 进 `PluginRuntimeNetworkIntegrationTest`，`@Assume` 门控 |
+| 3 | `defaultSubscription_installAndWyPlaybackChain_succeeds` | ✅ 真实插件网络 | 同上 |
+| 4 | `updatePlugin_thenSearchStillWorks_returnsPlayableResults` | ✅ 真实插件网络 | 同上 |
+| 5 | `updatePlugin_afterSearchRegression_keepsSearchablePluginUsable` | ✅ 真实插件网络 | 同上 |
 | 6 | `updatePlugin_withoutSource_returnsMissingSource_andKeepsPluginUsable` | ❌ | 进 `PluginRuntimeLocalIntegrationTest` |
 | 7 | `updateAllPlugins_withoutSources_returnsFailureSummary` | ❌ | 进 `PluginRuntimeLocalIntegrationTest` |
 
@@ -428,7 +428,7 @@ PR 描述需明确："新增 feature androidTest runner 基线覆盖 4 个 featu
 ./gradlew :plugin:connectedAndroidTest                    # PASS（5 跑通，4 SKIPPED）
 ./gradlew :plugin:connectedDebugAndroidTest -Pintegration=false -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginRuntimeNetworkIntegrationTest
                                                            # PASS（4 SKIPPED，确认 false 不触发真网络）
-./gradlew :plugin:connectedAndroidTest -Pintegration      # PASS（9 全跑，需稳定网络 + kstore.vip 可达）
+./gradlew :plugin:connectedAndroidTest -Pintegration      # PASS（9 全跑，需稳定网络 + 真实插件网络可达）
 ./gradlew connectedAndroidTest                            # 全仓库 PASS
 ./gradlew assembleDebug && ./gradlew lint                 # 整体编译/lint 保护
 ```
@@ -469,7 +469,7 @@ grep -rn "@Ignore" --include="*.kt" 2>/dev/null | grep -v build/ | grep -v .work
 | plugin instrumentation 后续测试资源膨胀 | `LoadedPlugin` 未 destroy / DataStore scope 未取消 | `@After` 调 `pluginManager.uninstallAllPlugins()`，再 `dataStoreScope.cancel()`；MockWebServer 类还要 `server.shutdown()` |
 | `-Pintegration=false` 仍触网 | Gradle gating 只判断 property 是否存在 | 用 `providers.gradleProperty("integration").map { it.isBlank() || it.toBooleanStrictOrNull() == true }.orElse(false)`，明确 false 为禁用 |
 | live-network update 测试假通过 | 只断言 `operationType == UPDATE_SINGLE`，失败结果也满足 | update 用例必须同时断言 `successCount == 1` 与 `failureCount == 0` |
-| `-Pintegration` 通道在真机失败 | kstore.vip 临时不可达或 wy.js 行为变更 | 不阻塞 PR——这是设计上"按需手动通道"，单独排查；可在 PR 描述里贴一次成功的 log 作为 baseline |
+| `-Pintegration` 通道在真机失败 | 真实插件网络临时不可达或 wy.js 行为变更 | 不阻塞 PR——这是设计上"按需手动通道"，单独排查；可在 PR 描述里贴一次成功的 log 作为 baseline |
 | Hilt singleton 状态在 androidTest 之间泄漏 | `@HiltAndroidTest` + 复用 application | β 方案不主动改 PlayerController 状态，无此风险 |
 
 ## 7. Out-of-scope / 观察记录（不在本 spec 执行）

@@ -234,7 +234,7 @@ ViewModel 单测里同时出现 `runBlocking` 与 `Flow.first { ... }` 自旋谓
 | INC-2026-0007 | ui | 散落的 TopAppBarDefaults.topAppBarColors 手写 | ui/rules.md#rule-no-raw-material3-topappbar | grep |
 | INC-2026-0008 | ui | MainActivity 隐式补顶部 inset 白名单 | ui/rules.md#rule-mainactivity-no-implicit-top-inset | grep + manual |
 | INC-2026-0009 | plugin | QuickJS 跨线程访问 runtime 崩溃 | plugin/rules.md#rule-quickjs-single-thread | manual |
-| INC-2026-0010 | plugin | 集成测试默认依赖 kstore.vip 真网络 | plugin/rules.md#rule-network-test-gated | contract-test |
+| INC-2026-0010 | plugin | 集成测试默认依赖真实插件网络 | plugin/rules.md#rule-network-test-gated | contract-test |
 | INC-2026-0011 | player | 全屏播放器内容贴到状态栏后方 | player/rules.md#rule-immersive-content-respects-statusbar | manual |
 | INC-2026-0012 | player | 歌词自动跟随重复触发 / seek overlay 错位 | player/rules.md#rule-lyric-follow-debounce | contract-test |
 
@@ -381,7 +381,7 @@ ViewModel 单测里同时出现 `runBlocking` 与 `Flow.first { ... }` 自旋谓
 | INC-2026-0007 | grep | embedded grep `TopAppBarDefaults.topAppBarColors\(` 在 `--include='*.kt'` 仓库范围内除 `core/ui/MusicFreeScreenChrome.kt` 外应零匹配 |
 | INC-2026-0008 | grep + manual | embedded grep 检查 `app/src/main/java/.../MainActivity.kt` 不含 `WindowInsetsSides.Top` 单独出现；manual 部分写在 incident 里 |
 | INC-2026-0009 | manual | v1 manual + TODO；后续若再有跨线程崩溃事件，升级为 contract-test / runtime invariant；在 incident 字段写明"未自动化原因 = 静态扫成本高，运行时检测会侵入生产代码" |
-| INC-2026-0010 | contract-test | **新增** `plugin/src/test/.../harness/contracts/PluginNetworkTestGateContractTest.kt`：扫 `plugin/src/androidTest/**/*Test.kt` 中出现真域名（`kstore.vip` 等显式列表）的文件，必须命名 `*NetworkIntegrationTest.kt` 且类内出现 `Assume.assumeTrue` 引用 `pluginNetworkTests` |
+| INC-2026-0010 | contract-test | **新增** `plugin/src/test/.../harness/contracts/PluginNetworkTestGateContractTest.kt`：扫 `plugin/src/androidTest/**/*Test.kt` 中出现真实第三方插件域名（登记在 liveHosts 中）的文件，必须命名 `*NetworkIntegrationTest.kt` 且类内出现 `Assume.assumeTrue` 引用 `pluginNetworkTests` |
 | INC-2026-0011 | manual | 视觉性，标记 manual + spec 反向链接；不进 gate |
 | INC-2026-0012 | contract-test | **新增 thin 包装** 复用既有 `feature/player-ui/src/test/.../*LyricTest*.kt` 与 `*MiniPlayerContentTest.kt` 关键断言（防误删 / 退化），登记进 `harness/contracts/` |
 

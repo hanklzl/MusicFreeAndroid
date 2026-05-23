@@ -2,10 +2,10 @@
   "schema_version": 1,
   "plugins": [
     {
-      "id": "wy",
-      "display_name": "网易云（v0 测试基线）",
-      "subscription_url": "https://gitee.com/maotoumao/MusicFreePlugins/raw/master/dist/wy/index.js",
-      "notes": "v0 仅用该插件验证 home 推荐位 + 搜索链路。"
+      "id": "placeholder",
+      "display_name": "占位插件（运行 parity audit 前在本地填入真实订阅 URL）",
+      "subscription_url": "https://example.invalid/plugin.js",
+      "notes": "仓库不内置真实第三方插件 URL。运行 parity audit 前在本地把 subscription_url 改成可用订阅地址，勿提交真实 URL。"
     }
   ]
 }

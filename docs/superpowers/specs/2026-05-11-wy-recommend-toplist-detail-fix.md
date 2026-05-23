@@ -5,7 +5,7 @@
 > 直接执行：是（作为本次修复 spec + plan）
 > 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md)、[AGENTS](../../../AGENTS.md)
 > 相关规范：[推荐歌单与榜单 RN 对齐及详情点击修复设计](./2026-05-09-recommend-toplist-rn-align-design.md)、[Dev Harness 插件规则](../../dev-harness/plugin/rules.md)
-> 外部插件参考：<https://raw.githubusercontent.com/ThomasBy2025/musicfree/refs/heads/main/plugins/wy.js>
+> 外部插件参考：某第三方 WY 插件（仓库不内置其 URL）
 > 最后校验：2026-05-11
 
 ## 背景

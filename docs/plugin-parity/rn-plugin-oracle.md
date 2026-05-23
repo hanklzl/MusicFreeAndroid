@@ -49,13 +49,13 @@ RN_MUSICFREE_ROOT=../.worktrees/MusicFree-plugin-parity-oracle bash scripts/plug
 RN worktree 安装依赖后可直接运行：
 
 ```bash
-npm run probe:plugin-live -- --subscription https://13413.kstore.vip/yuanli/yuanli.json --query "in the end" --quality standard --attempts 2 --timeout-ms 12000
+npm run probe:plugin-live -- --subscription https://example.invalid/subscription.json --query "in the end" --quality standard --attempts 2 --timeout-ms 12000
 ```
 
 单插件聚焦排障：
 
 ```bash
-npm run probe:plugin-live -- --url https://13413.kstore.vip/yuanli/wy.js --query "in the end" --quality standard --attempts 5
+npm run probe:plugin-live -- --url https://example.invalid/wy.js --query "in the end" --quality standard --attempts 5
 ```
 
 脚本会按 RN `plugin.ts` 的运行时约定注入 `axios`、`cheerio`、`crypto-js`、`dayjs`、`big-integer`、`qs`、`he`、`webdav`、`URL`、`process.env.lang=zh-CN`，再执行插件 `search()` 与 `getMediaSource()`。输出 JSON 中的 `supportedMethods`、`supportedSearchType`、`search.count`、`mediaAttempts[*].hasUrl/error` 可直接和 Android `PluginRuntimeNetworkIntegrationTest` 的失败诊断对照；即使某插件 `search()` 抛错，也会先输出已加载到的插件元信息，避免默认源能力矩阵缺项。

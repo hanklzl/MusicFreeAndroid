@@ -28,7 +28,7 @@ implemented_by: INC-2026-0010
 - 此类测试类 `@Before` 必须执行 `Assume.assumeTrue("...", arg == "true")`，其中 `arg` 取自 instrumentation runner argument `pluginNetworkTests`。
 - `:plugin/build.gradle.kts` 必须保留 `testInstrumentationRunnerArguments["pluginNetworkTests"]` 与 `-Pintegration` 的映射。
 - 默认通道 (`./gradlew :plugin:connectedAndroidTest`) MUST 跳过真网测试；`-Pintegration` 才执行。
-- 真域名（如 `kstore.vip`）出现在测试源中时，文件名必须以 `NetworkIntegrationTest.kt` 结尾且类内必须出现 `Assume.assumeTrue` 引用 `pluginNetworkTests`。
+- 真实第三方插件域名（登记在 PluginNetworkTestGateContractTest 的 liveHosts 中）出现在测试源中时，文件名必须以 `NetworkIntegrationTest.kt` 结尾且类内必须出现 `Assume.assumeTrue` 引用 `pluginNetworkTests`。
 
 ## DataStore 隔离 {#rule-datastore-per-instance-isolation}
 

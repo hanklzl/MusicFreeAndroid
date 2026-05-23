@@ -12,7 +12,12 @@ import java.io.File
  */
 class PluginNetworkTestGateContractTest {
 
-    private val liveHosts: List<String> = listOf("kstore.vip")
+    // Known real plugin hosts to guard against. If you add a *NetworkIntegrationTest.kt
+    // that hits a real third-party plugin host, register that host here so this contract
+    // verifies the file is named *NetworkIntegrationTest.kt and gated by Assume.assumeTrue.
+    // `example.invalid` is a non-resolving placeholder (RFC 6761): the repo intentionally
+    // embeds no real third-party plugin URLs, and there are currently no real-network tests.
+    private val liveHosts: List<String> = listOf("example.invalid")
 
     @Test
     fun network_androidtest_files_must_be_gated_by_assume() {

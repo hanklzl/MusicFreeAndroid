@@ -31,7 +31,7 @@
 | INC-2026-0007 | ui | 散落的 TopAppBarDefaults.topAppBarColors 手写 | [ui/rules.md#rule-no-raw-material3-topappbar](../ui/rules.md#rule-no-raw-material3-topappbar) | grep |
 | INC-2026-0008 | ui | MainActivity 隐式补顶部 inset 白名单 | [ui/rules.md#rule-mainactivity-no-implicit-top-inset](../ui/rules.md#rule-mainactivity-no-implicit-top-inset) | grep + manual |
 | INC-2026-0009 | plugin | QuickJS 跨线程访问 runtime 崩溃 | [plugin/rules.md#rule-quickjs-single-thread](../plugin/rules.md#rule-quickjs-single-thread) | manual |
-| INC-2026-0010 | plugin | 集成测试默认依赖 kstore.vip 真网络 | [plugin/rules.md#rule-network-test-gated](../plugin/rules.md#rule-network-test-gated) | contract-test |
+| INC-2026-0010 | plugin | 集成测试默认依赖真实插件网络 | [plugin/rules.md#rule-network-test-gated](../plugin/rules.md#rule-network-test-gated) | contract-test |
 | INC-2026-0011 | player | 全屏播放器内容贴到状态栏后方 | [player/rules.md#rule-immersive-content-respects-statusbar](../player/rules.md#rule-immersive-content-respects-statusbar) | manual |
 | INC-2026-0012 | player | 歌词自动跟随重复触发 / seek overlay 错位 | [player/rules.md#rule-lyric-follow-debounce](../player/rules.md#rule-lyric-follow-debounce) | contract-test |
 | INC-2026-0013 | test | ViewModel 异步加载 stale 结果未丢弃 | [test/rules.md#rule-async-load-generation](../test/rules.md#rule-async-load-generation) | manual |

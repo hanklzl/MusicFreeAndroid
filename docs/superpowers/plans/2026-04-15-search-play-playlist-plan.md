@@ -14,7 +14,7 @@
 **RN 原版目录**: `../MusicFree`
 **构建命令**: `./gradlew assembleDebug`
 **单测命令**: `./gradlew test`
-**订阅源测试地址**: `https://13413.kstore.vip/yuanli/yuanli.json`
+**订阅源测试地址**: `https://example.invalid/subscription.json`
 
 **模块依赖方向**: `:app → :feature:* → :data, :player, :plugin → :core`
 
@@ -958,7 +958,7 @@ val errorEvents: SharedFlow<String> = playerController.errorEvents
 
 ### 9.3 运行时验收
 
-1. 安装订阅源: 设置 → 插件管理 → 订阅 → 添加 `https://13413.kstore.vip/yuanli/yuanli.json`
+1. 安装订阅源: 设置 → 插件管理 → 订阅 → 添加 `https://example.invalid/subscription.json`
 2. 搜索: 输入"周杰伦"，验证全源并行搜索 + 两层 Tab
 3. 播放: 点击搜索结果，验证:
    - 播放器模糊背景
