@@ -13,7 +13,8 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
     "noEmit": true,
-    "types": ["node", "vitest/globals"]
+    "jsx": "react-jsx",
+    "types": ["node", "vitest/globals", "vite/client"]
   },
-  "include": ["src", "scripts", "vitest.config.ts"]
+  "include": ["src", "scripts", "vitest.config.ts", "vite.config.ts"]
 }

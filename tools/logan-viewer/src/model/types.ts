@@ -99,3 +99,11 @@ export interface FilterState {
   onlyErrors: boolean;
   onlyWithTrace: boolean;
 }
+
+export interface EventIndex {
+  events: ParsedEvent[];
+  bySession: Map<string, ParsedEvent[]>;
+  byTrace: Map<string, ParsedEvent[]>;
+  byCategory: Map<LogCategory, number>;
+  sessionSummaries: SessionSummary[];
+}
