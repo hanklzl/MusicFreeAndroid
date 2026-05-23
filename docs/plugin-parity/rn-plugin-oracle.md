@@ -14,7 +14,6 @@
 - Android 快照：`../../plugin/src/test/resources/rn-plugin-oracle.json`
 - Android 守门：`../../plugin/src/test/java/com/hank/musicfree/plugin/harness/contracts/RnPluginOracleContractTest.kt`
 - Android 全能力本地 probe：`../../plugin/src/androidTest/java/com/hank/musicfree/plugin/manager/PluginApiCapabilityParityIntegrationTest.kt`
-- 默认订阅源守门：`../../app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsFixtureContractTest.kt`
 
 ## 刷新流程
 
@@ -34,7 +33,6 @@ RN_MUSICFREE_ROOT=../.worktrees/MusicFree-plugin-parity-oracle bash scripts/plug
 
 ```bash
 ./gradlew :plugin:testDebugUnitTest --tests "com.hank.musicfree.plugin.harness.contracts.RnPluginOracleContractTest" --no-daemon
-./gradlew :app:testDebugUnitTest --tests "com.hank.musicfree.bootstrap.DefaultPluginsFixtureContractTest" --no-daemon
 ./gradlew :plugin:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.plugin.manager.PluginApiCapabilityParityIntegrationTest --no-daemon
 ```
 

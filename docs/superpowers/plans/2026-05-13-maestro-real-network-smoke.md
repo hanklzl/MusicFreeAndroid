@@ -799,7 +799,7 @@ write_device_info() {
 collect_logcat() {
   local flow_dir="$1"
   adb_cmd logcat -d > "${flow_dir}/logcat-full.txt" || true
-  grep -E 'AndroidRuntime|MusicFree|MfLog|default_plugin_bootstrap|plugin_|search_|player_|feedback_' \
+  grep -E 'AndroidRuntime|MusicFree|MfLog|plugin_|search_|player_|feedback_' \
     "${flow_dir}/logcat-full.txt" > "${flow_dir}/logcat-filtered.txt" || true
 }
 
@@ -1048,14 +1048,13 @@ build/maestro-smoke/<timestamp>/
 
 ### core/01_launch_default_plugins
 
-目的：验证 Debug 包启动到首页，默认插件引导不会阻塞或崩溃。
+目的：验证 Debug 包启动到首页不崩溃。
 
 重点检查：
 
 - 首页搜索入口可见。
 - `logcat-filtered.txt` 无 `AndroidRuntime`。
 - 日志包含 `app_start` 或 `main_activity_create_start`。
-- 清空数据后首次启动通常应看到 `default_plugin_bootstrap_*` 事件。
 
 ### core/02_search_play
 
@@ -1134,7 +1133,6 @@ build/maestro-smoke/<timestamp>/
 重点事件：
 
 - 启动：`app_start`、`main_activity_create_start`、`edge_to_edge_enabled`
-- 默认插件：`default_plugin_bootstrap_subscription`、`default_plugin_bootstrap_plugin`、`default_plugin_bootstrap_completed`、`default_plugin_bootstrap_failed`
 - 插件：`plugin_*`、`plugin_api_*`、`plugin_get_media_source_*`
 - 搜索：`search_*`
 - 首页详情：`recommend_*`、`top_list_load_*`、`top_list_detail_load_*`、`plugin_sheet_detail_*`
@@ -1189,10 +1187,6 @@ adb devices
 ### 通知权限弹窗阻塞
 
 flow 已尝试点击 “允许|Allow|Allow notifications”。若厂商 ROM 文案不同，先在设备上手动允许通知权限，再使用 `--skip-install` 复跑。
-
-### 默认插件还没安装完成
-
-首次清数据启动后默认插件需要真实网络。先看 `logcat-filtered.txt` 中的 `default_plugin_bootstrap_*` 事件，再决定是等待、复跑，还是判定网络问题。
 
 ### 搜索失败
 

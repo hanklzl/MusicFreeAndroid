@@ -14,7 +14,7 @@
 - `LoggingInitializer.initialize()` 初始化 Logan 并记录 `app_start`。
 - `MainActivity.onCreate()` 记录 `main_activity_create_start`、`edge_to_edge_enabled`。
 - `RuntimeRestoreCoordinator` 对每个 `RuntimeStore` 记录 `runtime_restore_*` 耗时。
-- 默认插件安装、插件自动更新、播放恢复、更新检查等后台流程各自有零散日志。
+- 插件自动更新、播放恢复、更新检查等后台流程各自有零散日志。
 
 缺口在于：日志包里无法直接回答“本次启动总共花了多久、慢在哪个阶段、这是冷启动还是 Activity 重建”。特别是 Activity 被销毁但 Application 仍在同一进程时，现有事件会再次出现 `MainActivity.onCreate()`，但不能和真正进程冷启动区分。
 
@@ -114,7 +114,6 @@
 | flowName | 现有落点 | 设计动作 |
 |---|---|---|
 | `runtime_restore` | `RuntimeRestoreCoordinator.start()` / `restoreAll()` | 增加聚合 `startup_flow_start` / `startup_flow_complete`，保留每个 store 的 `runtime_restore_*` |
-| `default_plugin_bootstrap` | `DefaultPluginsBootstrapper.start()` / `reconcile()` | 增加 start / skipped / complete 的统一字段，保留现有安装明细事件 |
 | `plugin_auto_update` | `PluginAutoUpdateCoordinator.start()` / `runIfDue()` | 复用现有 start / skipped / completed / failed，补齐 `flowName`、`startupType`、ID 字段 |
 | `playback_runtime_restore` | `RuntimeRestoreCoordinator` 外层 + `PlaybackRuntimeStore.restore()` | `:player` 不直接依赖 `:app` telemetry；外层 `runtime_restore` 聚合事件提供启动 ID，`playback_runtime_restore_*` 保留业务字段 |
 | `update_check_on_launch` | `UpdateCheckCoordinator.start()` / `UpdateChecker.checkOnLaunch()` | 由 `MusicFreeApplication` 传入普通 Map 形式的启动上下文字段；`:updater` 不依赖 `:app` 类型 |
@@ -169,7 +168,7 @@
 模块边界：
 
 - `StartupTelemetry` 只放在 `:app`，不让 `:player`、`:plugin`、`:data`、`:updater` 反向依赖 `:app`。
-- `:app` 内的 `RuntimeRestoreCoordinator`、`DefaultPluginsBootstrapper`、`PluginAutoUpdateCoordinator` 可以直接使用 `StartupTelemetry`。
+- `:app` 内的 `RuntimeRestoreCoordinator`、`PluginAutoUpdateCoordinator` 可以直接使用 `StartupTelemetry`。
 - 跨模块 coordinator 如 `UpdateCheckCoordinator` 只接收 `Map<String, Any?>` 形式的启动上下文字段，避免新增模块耦合。
 - `PlaybackRuntimeStore` 等运行态 Store 保留自身业务事件；启动上下文由 `RuntimeRestoreCoordinator` 的聚合 flow 事件承载。
 
@@ -202,7 +201,6 @@
 改动点：
 
 - `RuntimeRestoreCoordinator` 增加整体 restore flow 的聚合日志；每个 store 日志保留。
-- `DefaultPluginsBootstrapper` 在默认 URL 为空时也记录 skipped terminal，避免“无日志”误判。
 - `PluginAutoUpdateCoordinator`、`UpdateCheckCoordinator` 使用统一字段补齐 terminal duration。
 - `PlaybackRuntimeStore` 不直接补 `:app` 启动 ID；播放恢复属于 `RuntimeRestoreCoordinator` 聚合 flow 的一部分，由外层事件关联启动上下文。
 
@@ -240,7 +238,7 @@
   - restore 聚合 flow start / complete 存在。
   - 单个 store 失败不阻止聚合 terminal 日志。
 
-- `DefaultPluginsBootstrapperTest` / `PluginAutoUpdateCoordinatorTest` / `UpdateCheckCoordinatorTest`
+- `PluginAutoUpdateCoordinatorTest` / `UpdateCheckCoordinatorTest`
   - skipped / success / failure 事件包含 `flowName`、`durationMs`、`result`。
 
 ### 10.2 Contract / instrumentation
@@ -270,7 +268,7 @@ bash scripts/dev-harness/check.sh
    - `app_startup_first_frame`
 2. Activity 被销毁但 Application 仍在时，新的 `MainActivity.onCreate()` 记录 `startupType=warm_activity_recreate`，且 `processStartId` 不变、`activityStartId` 变化、`activityLaunchIndex` 递增。
 3. Activity 仅从后台 resume 时记录 `startupType=activity_resume_existing`，不生成首屏启动 total 事件。
-4. 后台启动流程能看到各自 terminal event 和 `durationMs`，但首屏耗时不等待默认插件、插件自动更新或更新检查完成。
+4. 后台启动流程能看到各自 terminal event 和 `durationMs`，但首屏耗时不等待插件自动更新或更新检查完成。
 5. `StartupBackupRestore.applyIfPending()` 仍在 `attachBaseContext()` 期间执行。
 6. 启动路径新增主线程同步耗时满足 Startup Harness 预算：`activity_content_set` 中位数新增不超过 5ms，`first_frame` 中位数新增不超过 10ms；若无法采集，必须在验收说明里明确原因。
 7. 日志事件命名稳定小写 snake_case，字段满足现有日志规范。

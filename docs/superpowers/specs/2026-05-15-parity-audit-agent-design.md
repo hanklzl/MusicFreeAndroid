@@ -215,7 +215,7 @@ per scenario:
 | 构建 RN APK | `cd ../MusicFree && yarn && cd android && ./gradlew assembleDebug` | `manifest.json.preflight_failed=rn_build`，本轮终止 |
 | 构建 Android APK | `./gradlew :app:assembleDebug` | 同上，`android_build` |
 | 安装两侧 APK | `adb install -r ...` | 同上 |
-| 装固定 plugin 集 | 跑 `maestro/flows/parity/_bootstrap/install-plugins.{rn,android}.yaml`，拉 `docs/parity-audit/parity-plugins.json` 中 URL 列表 | `plugin_bootstrap_failed` |
+| 装固定 plugin 集 | 跑 `maestro/flows/parity/_bootstrap/install-plugins.{rn,android}.yaml`，拉 `docs/parity-audit/parity-plugins.json` 中 URL 列表 | `plugin_install_failed` |
 | 记录设备/构建指纹 | `adb shell getprop ro.product.model` + 两仓库 `git rev-parse HEAD` | 写入 `manifest.json` |
 
 ### 3.3 单 scenario 执行
@@ -550,7 +550,7 @@ REPORT.md 末尾自动嵌入"本轮 agent 操作摘要"。`mode=replay:<run-id>`
 ## Open Questions
 
 - SSIM 0.92 阈值是经验猜测，需在 v1 跑 3 轮后用样本回调
-- `parity-plugins.json` 初始集合需在 v0 验证哪些 RN 默认插件仍可用
+- `parity-plugins.json` 初始集合需在 v0 验证哪些插件仍可用
 - Maestro 自动合成 flow 的成功率未知；v0 需有"自动合成 < 60% scenario 成功时回滚到人工种子 1–2 个"应急
 - v2 之前不实现 perf 类 diff 的"基线学习"；先按硬阈值
 - agent 是否需要在 v1 内集成"运行成本预算上限"（如 token / wall-clock）以防失控；待 v0 实测后决定

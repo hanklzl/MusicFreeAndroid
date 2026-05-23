@@ -285,7 +285,7 @@ grep -rln "com.hank.musicfree.di.ApplicationScope" --include="*.kt" \
 # import com.hank.musicfree.core.di.ApplicationScope
 ```
 
-预期触达文件：`PluginAutoUpdateCoordinator.kt`、`DefaultPluginsBootstrapper.kt`、`PlaybackStartupCoordinator.kt` 等。
+预期触达文件：`PluginAutoUpdateCoordinator.kt`、`PlaybackStartupCoordinator.kt` 等。
 
 - [ ] **Step 4: 编译全仓**
 

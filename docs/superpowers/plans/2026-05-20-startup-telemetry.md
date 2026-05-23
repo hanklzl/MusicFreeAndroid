@@ -30,10 +30,6 @@
   - Adds aggregate `runtime_restore` startup flow events around existing per-store logs.
 - Modify `app/src/test/java/com/hank/musicfree/runtime/RuntimeRestoreCoordinatorTest.kt`
   - Verifies aggregate flow logs and failure isolation.
-- Modify `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt`
-  - Adds startup flow skipped / start / complete / failed events.
-- Modify `app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapperTest.kt`
-  - Verifies empty URL skipped flow and reconcile completion logs.
 - Modify `app/src/main/java/com/hank/musicfree/bootstrap/PluginAutoUpdateCoordinator.kt`
   - Adds startup flow terminal logs for disabled, interval skipped, success, partial failure, failure, and cancellation branches.
 - Modify `app/src/test/java/com/hank/musicfree/bootstrap/PluginAutoUpdateCoordinatorTest.kt`
@@ -1266,97 +1262,13 @@ git add app/src/main/java/com/hank/musicfree/runtime/RuntimeRestoreCoordinator.k
 git commit -m "feat(startup): 记录运行态恢复聚合耗时"
 ```
 
-## Task 5: Plugin Bootstrap and Auto Update Startup Flows
+## Task 5: Plugin Auto Update Startup Flow
 
 **Files:**
-- Modify: `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt`
-- Modify: `app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapperTest.kt`
 - Modify: `app/src/main/java/com/hank/musicfree/bootstrap/PluginAutoUpdateCoordinator.kt`
 - Modify: `app/src/test/java/com/hank/musicfree/bootstrap/PluginAutoUpdateCoordinatorTest.kt`
 
-- [ ] **Step 1: Add failing tests for default bootstrap startup flow**
-
-Add logger setup to `DefaultPluginsBootstrapperTest`:
-
-```kotlin
-import com.hank.musicfree.logging.LogCategory
-import com.hank.musicfree.logging.LogFields
-import com.hank.musicfree.logging.MfLog
-import com.hank.musicfree.logging.MfLogger
-import com.hank.musicfree.startup.StartupTelemetry
-import java.util.concurrent.CopyOnWriteArrayList
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-```
-
-Add:
-
-```kotlin
-@After
-fun tearDown() {
-    StartupTelemetry.resetForTest()
-    MfLog.resetForTest()
-}
-
-@Test
-fun reconcile_logsStartupFlowComplete() = runTest {
-    val logger = RecordingLogger()
-    MfLog.install(logger)
-    StartupTelemetry.resetForTest(idProvider = { "startup-id" })
-    StartupTelemetry.attachBaseContextStart()
-    StartupTelemetry.applicationOnCreateStart()
-    StartupTelemetry.markLoggingReady()
-    val pluginManager = mock<PluginManager> {
-        on { allEntries } doReturn MutableStateFlow(emptyList())
-    }
-    val pluginMetaStore = mock<PluginMetaStore> {
-        on { subscriptions } doReturn flowOf(emptyList())
-    }
-
-    bootstrapper(pluginManager, pluginMetaStore).reconcile(
-        subscriptionUrls = listOf("https://example.com/sub.json"),
-        pluginUrls = emptyList(),
-    )
-
-    val complete = logger.events.single { it.event == "startup_flow_complete" }
-    assertEquals(LogCategory.APP, complete.category)
-    assertEquals("default_plugin_bootstrap", complete.fields["flowName"])
-    assertEquals(LogFields.Result.SUCCESS, complete.fields["result"])
-    assertNotNull(complete.fields["durationMs"])
-}
-
-private data class RecordedLogEvent(
-    val category: LogCategory,
-    val event: String,
-    val fields: Map<String, Any?>,
-)
-
-private class RecordingLogger : MfLogger {
-    val events = CopyOnWriteArrayList<RecordedLogEvent>()
-
-    override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
-        events += RecordedLogEvent(category, event, fields)
-    }
-
-    override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
-        events += RecordedLogEvent(category, event, fields)
-    }
-
-    override fun error(
-        category: LogCategory,
-        event: String,
-        throwable: Throwable?,
-        fields: Map<String, Any?>,
-    ) {
-        events += RecordedLogEvent(category, event, fields)
-    }
-
-    override fun flush() = Unit
-}
-```
-
-- [ ] **Step 2: Add failing tests for plugin auto update startup flow**
+- [ ] **Step 1: Add failing tests for plugin auto update startup flow**
 
 Add equivalent logger imports and `tearDown()` to `PluginAutoUpdateCoordinatorTest`, then add:
 
@@ -1385,101 +1297,19 @@ fun `runIfDue logs startup flow skipped when disabled`() = runTest {
 }
 ```
 
-Reuse the same `RecordedLogEvent` and `RecordingLogger` classes as in `DefaultPluginsBootstrapperTest`.
+`RecordedLogEvent` 和 `RecordingLogger` 复用与 `PluginAutoUpdateCoordinatorTest` 中相同的模式（参考 `UpdateCheckCoordinatorTest` 的同名内部类写法）。
 
-- [ ] **Step 3: Run plugin startup tests to verify failure**
+- [ ] **Step 2: Run plugin startup tests to verify failure**
 
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest --tests com.hank.musicfree.bootstrap.PluginAutoUpdateCoordinatorTest --no-daemon
+./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.bootstrap.PluginAutoUpdateCoordinatorTest --no-daemon
 ```
 
 Expected: FAIL because startup flow events are not emitted.
 
-- [ ] **Step 4: Implement DefaultPluginsBootstrapper telemetry**
-
-Modify `DefaultPluginsBootstrapper.kt`.
-
-Add imports:
-
-```kotlin
-import com.hank.musicfree.logging.LogFields
-import com.hank.musicfree.startup.StartupTelemetry
-import kotlin.coroutines.cancellation.CancellationException
-```
-
-At the top of `start()`, replace the empty URL return with:
-
-```kotlin
-if (DefaultPlugins.subscriptionUrls.isEmpty() && DefaultPlugins.pluginUrls.isEmpty()) {
-    val flow = StartupTelemetry.startFlow("default_plugin_bootstrap")
-    StartupTelemetry.completeFlow(
-        token = flow,
-        result = LogFields.Result.SKIPPED,
-        reason = "empty_defaults",
-    )
-    return
-}
-```
-
-At the top of `reconcile(subscriptionUrls, pluginUrls)`, replace the empty lists return with:
-
-```kotlin
-val startupFlow = StartupTelemetry.startFlow(
-    flowName = "default_plugin_bootstrap",
-    extraFields = mapOf(
-        "subscriptionUrlCount" to subscriptionUrls.size,
-        "pluginUrlCount" to pluginUrls.size,
-    ),
-)
-if (subscriptionUrls.isEmpty() && pluginUrls.isEmpty()) {
-    StartupTelemetry.completeFlow(
-        token = startupFlow,
-        result = LogFields.Result.SKIPPED,
-        reason = "empty_input",
-    )
-    return
-}
-```
-
-Wrap the existing reconcile body in `try/catch`. At the existing completed log site, before returning, add:
-
-```kotlin
-StartupTelemetry.completeFlow(
-    token = startupFlow,
-    result = if (failedCount == 0) LogFields.Result.SUCCESS else LogFields.Result.FAILURE,
-    reason = if (failedCount == 0) null else "partial_failure",
-    extraFields = mapOf(
-        "installedSubscriptionCount" to installedSubscriptionCount,
-        "installedPluginCount" to installedPluginCount,
-        "skippedCount" to skippedCount,
-        "failedCount" to failedCount,
-    ),
-)
-```
-
-Add catch blocks around the body:
-
-```kotlin
-} catch (error: CancellationException) {
-    StartupTelemetry.completeFlow(
-        token = startupFlow,
-        result = LogFields.Result.CANCELLED,
-        reason = LogFields.Reason.CANCELLED,
-    )
-    throw error
-} catch (error: Throwable) {
-    StartupTelemetry.completeFlow(
-        token = startupFlow,
-        result = LogFields.Result.FAILURE,
-        reason = "exception",
-    )
-    throw error
-}
-```
-
-- [ ] **Step 5: Implement PluginAutoUpdateCoordinator telemetry**
+- [ ] **Step 3: Implement PluginAutoUpdateCoordinator telemetry**
 
 Modify `PluginAutoUpdateCoordinator.kt`.
 
@@ -1550,20 +1380,20 @@ StartupTelemetry.completeFlow(
 )
 ```
 
-- [ ] **Step 6: Run plugin startup tests**
+- [ ] **Step 4: Run plugin startup tests**
 
 Run:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest --tests com.hank.musicfree.bootstrap.PluginAutoUpdateCoordinatorTest --no-daemon
+./gradlew :app:testDebugUnitTest --tests com.hank.musicfree.bootstrap.PluginAutoUpdateCoordinatorTest --no-daemon
 ```
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add app/src/main/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapper.kt app/src/test/java/com/hank/musicfree/bootstrap/DefaultPluginsBootstrapperTest.kt app/src/main/java/com/hank/musicfree/bootstrap/PluginAutoUpdateCoordinator.kt app/src/test/java/com/hank/musicfree/bootstrap/PluginAutoUpdateCoordinatorTest.kt
+git add app/src/main/java/com/hank/musicfree/bootstrap/PluginAutoUpdateCoordinator.kt app/src/test/java/com/hank/musicfree/bootstrap/PluginAutoUpdateCoordinatorTest.kt
 git commit -m "feat(startup): 记录插件启动后台流程"
 ```
 
@@ -2129,7 +1959,7 @@ Spec coverage:
 - Application phases and pending restore order: Task 2.
 - Activity content set and first frame: Task 3.
 - Runtime restore background flow: Task 4.
-- Default plugin and plugin auto-update flows: Task 5.
+- Plugin auto-update flow: Task 5.
 - Update check flow without `:updater` depending on `:app`: Task 6.
 - Startup Harness budget and evidence: Task 7.
 

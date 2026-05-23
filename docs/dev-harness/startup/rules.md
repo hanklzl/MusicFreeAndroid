@@ -14,7 +14,7 @@
 - `MusicFreeApplication.attachBaseContext()` / `MusicFreeApplication.onCreate()`。
 - `MainActivity.onCreate()` / `onStart()` / `onResume()` 与 AndroidX SplashScreen 调用。
 - `StartupBackupRestore`、`LoggingInitializer`、`StartupTelemetry`。
-- 启动时调度的 coordinator：`RuntimeRestoreCoordinator`、`DefaultPluginsBootstrapper`、`PluginAutoUpdateCoordinator`、`PlaybackStartupCoordinator`、`UpdateCheckCoordinator`。
+- 启动时调度的 coordinator：`RuntimeRestoreCoordinator`、`PluginAutoUpdateCoordinator`、`PlaybackStartupCoordinator`、`UpdateCheckCoordinator`。
 - 启动耗时日志事件、启动类型字段、首帧统计、启动后台流程统计。
 - Manifest / theme 中影响启动 Activity、Splash theme、postSplashScreenTheme 的配置。
 
@@ -73,7 +73,7 @@ MUST：
 
 guard: contract-test + manual
 
-默认插件引导、插件自动更新、Runtime restore、播放恢复、更新检查等后台流程 MUST 非阻塞首屏。
+插件自动更新、Runtime restore、播放恢复、更新检查等后台流程 MUST 非阻塞首屏。
 
 MUST：
 
@@ -83,7 +83,7 @@ MUST：
 
 MUST NOT：
 
-- 在首屏路径同步等待默认插件安装、插件自动更新、更新检查、搜索 / 详情 snapshot 大 payload 恢复。
+- 在首屏路径同步等待插件自动更新、更新检查、搜索 / 详情 snapshot 大 payload 恢复。
 - 把后台流程全部完成时间当作 `app_startup_first_frame` 或首屏启动总耗时。
 
 ## 启动结构化日志 {#rule-startup-structured-logs}

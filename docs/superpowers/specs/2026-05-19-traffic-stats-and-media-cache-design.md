@@ -428,7 +428,7 @@ class TrafficSampleSinkImpl @Inject constructor(
 改造：
 
 - 文件迁移：`app/di/ApplicationScope.kt` → `core/di/ApplicationScope.kt`；`app/di/CoroutineModule.kt` → `core/di/CoroutineModule.kt`。
-- 更新所有引用方的 import：`com.hank.musicfree.di.ApplicationScope` → `com.hank.musicfree.core.di.ApplicationScope`。当前调用方包括 `PluginAutoUpdateCoordinator`、`DefaultPluginsBootstrapper`、`PlaybackStartupCoordinator` 等。
+- 更新所有引用方的 import：`com.hank.musicfree.di.ApplicationScope` → `com.hank.musicfree.core.di.ApplicationScope`。当前调用方包括 `PluginAutoUpdateCoordinator`、`PlaybackStartupCoordinator` 等。
 - 不改变 provider 实现（`CoroutineScope(SupervisorJob() + Dispatchers.Default)`），不改变绑定语义。
 
 ### 4.5 五个 OkHttpClient 收敛到 `@BaseOkHttp`

@@ -176,7 +176,7 @@ write_device_info() {
 collect_logcat() {
   local flow_dir="$1"
   adb_cmd logcat -d > "${flow_dir}/logcat-full.txt" || true
-  grep -E 'AndroidRuntime|MusicFree|MfLog|default_plugin_bootstrap|plugin_|search_|player_|feedback_' \
+  grep -E 'AndroidRuntime|MusicFree|MfLog|plugin_|search_|player_|feedback_' \
     "${flow_dir}/logcat-full.txt" > "${flow_dir}/logcat-filtered.txt" || true
 }
 

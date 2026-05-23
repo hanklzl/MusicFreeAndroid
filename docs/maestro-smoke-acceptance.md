@@ -1,7 +1,7 @@
 # Maestro Smoke 验收指南
 
 > 文档状态：当前规范
-> 适用范围：Debug 包真实网络 smoke、默认插件/订阅链路、Maestro 运行证据与 logcat 判读
+> 适用范围：Debug 包真实网络 smoke、Maestro 运行证据与 logcat 判读
 > 直接执行：是
 > 当前入口：[DOCS_STATUS](./DOCS_STATUS.md)、[Maestro smoke 设计](./superpowers/specs/2026-05-13-maestro-real-network-smoke-design.md)
 > 最后校验：2026-05-13
@@ -17,7 +17,7 @@
 1. 本机可执行 `adb`。
 2. 本机已安装 Maestro CLI，可执行 `maestro`。
 3. 至少一台设备或模拟器处于 `device` 状态。
-4. 设备可访问默认插件和订阅源所在网络。
+4. 设备可访问插件/订阅源所在网络。
 5. 当前分支可以构建 Debug APK。
 
 确认设备：
@@ -109,14 +109,13 @@ build/maestro-smoke/<timestamp>/
 
 ### core/01_launch_default_plugins
 
-目的：验证 Debug 包启动到首页，默认插件引导不会阻塞或崩溃。
+目的：验证启动到首页不崩溃、首屏可交互。
 
 重点检查：
 
 - 首页搜索入口可见。
 - `logcat-filtered.txt` 无 `AndroidRuntime`。
 - 日志包含 `app_start` 或 `main_activity_create_start`。
-- 清空数据后首次启动通常应看到 `default_plugin_bootstrap_*` 事件。
 
 ### core/02_search_play
 
@@ -175,7 +174,7 @@ build/maestro-smoke/<timestamp>/
 
 目的：通过真实搜索播放建立播放状态，再验证 mini player、播放器页和队列入口。
 
-前置条件：设备网络可访问默认插件搜索和音源链路；flow 会自行搜索 `jay` 并点击首个单曲。
+前置条件：运行此 flow 前需先在插件管理页手动安装可用插件；flow 会自行搜索 `jay` 并点击首个单曲。
 
 重点检查：
 
@@ -190,12 +189,11 @@ build/maestro-smoke/<timestamp>/
 
 1. Maestro 结果：`status.txt`、`maestro.log`、截图。
 2. `logcat`：`logcat-full.txt` 与 `logcat-filtered.txt`。
-3. 结构化日志：启动、默认插件、插件 API、搜索、播放、反馈日志包相关事件。
+3. 结构化日志：启动、插件 API、搜索、播放、反馈日志包相关事件。
 
 重点事件：
 
 - 启动：`app_start`、`main_activity_create_start`、`edge_to_edge_enabled`
-- 默认插件：`default_plugin_bootstrap_subscription`、`default_plugin_bootstrap_plugin`、`default_plugin_bootstrap_completed`、`default_plugin_bootstrap_failed`
 - 插件：`plugin_*`、`plugin_api_*`、`plugin_get_media_source_*`
 - 搜索：`search_*`
 - 首页详情：`recommend_*`、`top_list_load_*`、`top_list_detail_load_*`、`plugin_sheet_detail_*`
@@ -215,7 +213,6 @@ build/maestro-smoke/<timestamp>/
 优先视为环境或远端问题：
 
 - DNS、TLS、HTTP 超时。
-- 默认插件远端文件无法访问。
 - 远端插件返回结构变化。
 - 搜索返回空结果。
 - 设备网络不可用。
@@ -251,9 +248,9 @@ adb devices
 
 flow 已尝试点击 “允许|Allow|Allow notifications”。若厂商 ROM 文案不同，先在设备上手动允许通知权限，再使用 `--skip-install` 复跑。
 
-### 默认插件还没安装完成
+### 插件未安装
 
-首次清数据启动后默认插件需要真实网络。先看 `logcat-filtered.txt` 中的 `default_plugin_bootstrap_*` 事件，再决定是等待、复跑，还是判定网络问题。
+搜索或播放相关 flow 需要可用插件。若搜索无结果或插件 API 报错，请先前往插件管理页手动安装可用插件，再复跑相关 flow。
 
 ### 搜索失败
 

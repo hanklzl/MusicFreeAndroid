@@ -9,7 +9,6 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import com.hank.musicfree.bootstrap.DefaultPluginsBootstrapper
 import com.hank.musicfree.bootstrap.PlaybackStartupCoordinator
 import com.hank.musicfree.bootstrap.PluginAutoUpdateCoordinator
 import com.hank.musicfree.core.di.ApplicationScope
@@ -40,7 +39,6 @@ import okhttp3.OkHttpClient
 @HiltAndroidApp
 class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
 
-    @Inject lateinit var defaultPluginsBootstrapper: DefaultPluginsBootstrapper
     @Inject lateinit var pluginAutoUpdateCoordinator: PluginAutoUpdateCoordinator
     @Inject lateinit var playbackStartupCoordinator: PlaybackStartupCoordinator
     @Inject lateinit var updateCheckCoordinator: UpdateCheckCoordinator
@@ -137,7 +135,6 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
         registerProcessLifecycleObserver()
         prefetchCoordinator.start()
         runtimeRestoreCoordinator.start()
-        defaultPluginsBootstrapper.start()
         pluginAutoUpdateCoordinator.start()
         playbackStartupCoordinator.start()
         val playbackObserversFlow = StartupTelemetry.startFlow("playback_startup_observers")

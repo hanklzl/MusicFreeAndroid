@@ -50,14 +50,6 @@ implemented_by: INC-2026-0014
 - userVariable 写错误 MUST 向调用方暴露（不在 catch block swallow），由 ViewModel 决定是否回滚 UI。
 - 适用范围：`:plugin/src/main/.../uservariable/...` 与 `JsBridge.setUserVariable(...)` 写路径。
 
-## 默认引导插件 (dev fixture) {#rule-default-bootstrap-plugins-list}
-
-- `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPlugins.kt` 中的 `subscriptionUrls` 与 `pluginUrls` 列表是 dev / test fixture，由 `DefaultPluginsBootstrapper` 在 `MusicFreeApplication.onCreate()` 触发，每次冷启动 reconcile。
-- MUST：发布构建前必须人工把两个 list 改成 `emptyList()` 或全行 `//` 注释。任何 release tag 携带未清空的列表都视为违规。
-- MUST NOT：不得在该文件中引入按 buildType / BuildConfig 切换的"自动剥离"逻辑——保留"必须手动改 + 人工 review 一次"的语义，避免把策略埋进 gradle。
-- 适用范围：`:app/bootstrap/`、`MusicFreeApplication.onCreate()`、任何调用 `DefaultPluginsBootstrapper.start()` 的入口。
-- 关联设计：`docs/superpowers/specs/2026-05-11-default-bootstrap-plugins-design.md`。
-
 ## 插件失败必须可见 {#rule-plugin-failure-must-surface}
 
 implemented_by: INC-2026-0018

@@ -88,14 +88,6 @@
     "failure_message": null
   },
   {
-    "module": ":app",
-    "class": "com.hank.musicfree.bootstrap.DefaultPluginsBootstrapperTest",
-    "method": "reconcile_continuesAfterSubscriptionFailure",
-    "time_seconds": 3.371,
-    "status": "passed",
-    "failure_message": null
-  },
-  {
     "module": ":updater",
     "class": "com.hank.musicfree.updater.checker.UpdateCheckerTest",
     "method": "available when remote newer and not skipped and abi matches",

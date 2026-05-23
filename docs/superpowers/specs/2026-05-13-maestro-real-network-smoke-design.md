@@ -2,16 +2,16 @@
 status: 当前规范
 date: 2026-05-13
 topic: Maestro 真实网络 smoke 功能测试
-scope: Debug 包运行态验收、真实默认插件/订阅网络链路、logcat 与结构化日志取证
+scope: Debug 包运行态验收、真实网络链路、logcat 与结构化日志取证
 ---
 
 # Maestro 真实网络 Smoke 功能测试设计
 
 ## 1. 背景
 
-当前仓库已经具备 Debug 默认引导插件能力：`DefaultPluginsBootstrapper` 会在冷启动后根据 `app/src/main/java/com/hank/musicfree/bootstrap/DefaultPlugins.kt` 中的订阅源和单插件 URL 自动 reconcile 插件。日志系统也已经落地 `MfLog` / Logan，覆盖启动、默认插件引导、插件、搜索、播放器、反馈日志包等核心链路。
+当前仓库日志系统已落地 `MfLog` / Logan，覆盖启动、插件、搜索、播放器、反馈日志包等核心链路。
 
-现在需要引入 Maestro 功能测试用例，帮助后续在设备或模拟器上执行真实运行态验收，并把失败现场与 `logcat`、结构化日志和 Logan 日志包关联起来。用户已明确选择使用真实默认插件/订阅网络链路，而不是本地 mock 或稳定夹具。
+现在需要引入 Maestro 功能测试用例，帮助后续在设备或模拟器上执行真实运行态验收，并把失败现场与 `logcat`、结构化日志和 Logan 日志包关联起来。
 
 ## 2. 目标
 
@@ -63,7 +63,7 @@ docs/
   maestro-smoke-acceptance.md
 ```
 
-`core` flow 是日常最小验收集；`extended` flow 依赖真实网络和默认插件能力更重，默认作为人工验收或问题复现补充。
+`core` flow 是日常最小验收集；`extended` flow 依赖真实网络和插件能力更重，默认作为人工验收或问题复现补充。
 
 ## 6. 运行脚本设计
 
@@ -94,7 +94,6 @@ com.hank.musicfree.debug
    - `AndroidRuntime`
    - `MusicFree`
    - `MfLog`
-   - `default_plugin_bootstrap`
    - `plugin_`
    - `search_`
    - `player_`
@@ -129,21 +128,19 @@ com.hank.musicfree.debug
 
 ### 8.1 `01_launch_default_plugins.yaml`
 
-目的：验证 Debug 包可启动到首页，默认插件引导不会阻塞或崩溃。
+目的：验证启动到首页不崩溃、首屏可交互。
 
 步骤：
 
 1. 启动 `com.hank.musicfree.debug`。
 2. 处理系统通知权限弹窗：允许或跳过，取决于设备 Android 版本。
 3. 等待首页导航栏或搜索入口出现。
-4. 等待一段短时间，给默认插件 reconcile 写入日志。
 
 验收重点：
 
 - UI 到达首页。
 - `logcat` 无 `AndroidRuntime` 崩溃。
 - 日志中至少出现 `app_start` 或 `main_activity_create_start`。
-- 若网络可用，预期出现 `default_plugin_bootstrap_*` 事件；若未出现，需结合是否已有插件、URL 是否已跳过和 app data 是否清理判断。
 
 ### 8.2 `02_search_play.yaml`
 
@@ -241,7 +238,7 @@ com.hank.musicfree.debug
 
 目的：通过真实搜索播放建立播放状态，再验证 mini player、播放器页和队列入口基础可用。
 
-前置条件：设备网络可访问默认插件搜索和音源链路；flow 自行搜索 `jay` 并点击首个单曲。
+前置条件：运行此 flow 前需先在插件管理页手动安装可用插件；flow 自行搜索 `jay` 并点击首个单曲。
 
 步骤：
 
@@ -267,7 +264,6 @@ com.hank.musicfree.debug
 重点事件包括：
 
 - 启动：`app_start`、`main_activity_create_start`、`edge_to_edge_enabled`
-- 默认插件：`default_plugin_bootstrap_subscription`、`default_plugin_bootstrap_plugin`、`default_plugin_bootstrap_completed`、`default_plugin_bootstrap_failed`
 - 插件：`plugin_*`、`plugin_api_*`、`plugin_get_media_source_*`
 - 搜索：`search_*`
 - 首页详情：`recommend_*`、`top_list_load_*`、`top_list_detail_load_*`、`plugin_sheet_detail_*`
@@ -294,7 +290,7 @@ com.hank.musicfree.debug
    - 无设备或设备 unauthorized。
    - 未安装 Maestro。
    - 系统权限弹窗阻塞。
-   - 默认插件未安装完成。
+   - 插件未安装（搜索/播放类 flow 需先手动安装插件）。
    - 真网插件返回为空或失败。
    - 搜索成功但播放解析失败。
    - 系统分享面板不应在 smoke 中打开。

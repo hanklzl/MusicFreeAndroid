@@ -180,7 +180,7 @@ refactor(app): 应用包名重命名为 com.hank.musicfree
 - [ ] `./gradlew test` 通过（contract 测试是首要 gate）
 - [ ] `bash scripts/dev-harness/check.sh` 通过
 - [ ] `./gradlew :app:assembleRelease` 通过（R8 / 反射保留验证）
-- [ ] 模拟器装 debug 包，应用启动 + 默认插件 bootstrap + 搜索 → 播放一首歌 OK
+- [ ] 模拟器装 debug 包，应用启动 + 搜索（需先手动安装插件）→ 播放一首歌 OK
 - [ ] Logan 日志中 `applicationId=com.hank.musicfree.debug`
 
 ## 7. 决策记录
