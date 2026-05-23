@@ -1,37 +1,39 @@
 {
   "schemaVersion": 2,
-  "version": "1.2.6",
-  "versionCode": 10206,
-  "releasedAt": "2026-05-23T04:42:58Z",
-  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.2.6",
+  "version": "1.2.7",
+  "versionCode": 10207,
+  "releasedAt": "2026-05-23T15:41:20Z",
+  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.2.7",
   "changeLog": [
-    "feat(logan-viewer): 完成 M2-M6 — model 层 + UI + Worker + Pages CI (9453bc8)",
-    "feat(logan-viewer): 新增 H5 日志可视化工具 (M0 spec + M1 解密层) (68e51db)",
-    "chore(release): bump to v1.2.6 (21cef49)",
-    "arm64-v8a: `MusicFreeAndroid-v1.2.6-arm64-v8a.apk` · 7.6MB · sha256 `f9a060e18db4`",
-    "x86_64: `MusicFreeAndroid-v1.2.6-x86_64.apk` · 7.6MB · sha256 `c52f45c368ac`",
-    "mapping: `mapping-v1.2.6.zip` · sha256 `0f4072b37f13` (R8 反混淆用)"
+    "feat: 用户操作时间线 v1 — UI/导航/生命周期埋点 + logan-viewer ActionMatcher (cc5d8dc)",
+    "feat(updater): 支持断点续传和静默下载 (4810be5)",
+    "fix(pages): 发布站点时保留 Logan Viewer (1513bdc)",
+    "fix(ui): 让 Pager tab indicator 跟随滑动 (c9e8029)",
+    "fix(logan-viewer): 解 release 反馈包 — 硬编码 key、拆 clogan envelope、best-effort (0cb85c1)",
+    "fix(logan-viewer-pages): 切换到 gh-pages 分支 + 子目录发布 (f44b45d)",
+    "docs(logan-viewer): 用户操作时间线 v0 mockup + 设计 spec (3b678cf)",
+    "docs(changelog): release v1.2.6 [skip ci] (1e49aca)"
   ],
   "variants": {
     "arm64-v8a": {
       "download": [
-        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.6/MusicFreeAndroid-v1.2.6-arm64-v8a.apk",
-        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.6/release/MusicFreeAndroid-v1.2.6-arm64-v8a.apk"
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.7/MusicFreeAndroid-v1.2.7-arm64-v8a.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.7/release/MusicFreeAndroid-v1.2.7-arm64-v8a.apk"
       ],
-      "size": 7892857,
-      "sha256": "f9a060e18db4f25f851dde60e62bdc586ae2ca0b6fceb66dcc4a3a292b6e9a4f"
+      "size": 7909261,
+      "sha256": "d14b8aa02204966f9974b7ad0fb68aadf2b7a0424c03cda5ea1fe6ca42b53cd9"
     },
     "x86_64": {
       "download": [
-        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.6/MusicFreeAndroid-v1.2.6-x86_64.apk",
-        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.6/release/MusicFreeAndroid-v1.2.6-x86_64.apk"
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.7/MusicFreeAndroid-v1.2.7-x86_64.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.7/release/MusicFreeAndroid-v1.2.7-x86_64.apk"
       ],
-      "size": 7928013,
-      "sha256": "c52f45c368ac8ef6726f70639941739856cad9d9dca2d4d0f2e5377e014b3767"
+      "size": 7944417,
+      "sha256": "d21bcd8ac36a73946da119115ad32a17682d13c7c577a571414ee5dd46a512a8"
     }
   },
   "mapping": {
-    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.6/mapping-v1.2.6.zip",
-    "sha256": "0f4072b37f1398469e4cc2d6a2ed1bcda7608ea26e581c6af401ebce6919ecc2"
+    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.7/mapping-v1.2.7.zip",
+    "sha256": "bd82df555e04b8181c8ffb3956d9d4960f9414ab1751390409f8d50615ad8ca6"
   }
 }
