@@ -3,23 +3,25 @@
 // 单行 JSON schema 与 logging/src/main/java/com/hank/musicfree/logging/LogEventFormatter.kt
 // 严格对齐；新增字段时两边同步。
 
-export type LogLevel = 'verbose' | 'debug' | 'info' | 'warn' | 'error';
+// LogLevel wireName 在 logging/LogLevel.kt 里只有 trace/detail/error。
+export type LogLevel = 'trace' | 'detail' | 'error';
 
+// LogCategory wireName 在 logging/LogCategory.kt 里全小写：app/plugin/player/...
 export type LogCategory =
-  | 'APP'
-  | 'PLUGIN'
-  | 'SEARCH'
-  | 'PLAYER'
-  | 'PLAYLIST_IMPORT'
-  | 'FEEDBACK'
-  | 'DATA'
-  | 'FILE_IO'
-  | 'DOWNLOAD'
-  | 'SETTINGS'
-  | 'HOME'
-  | 'LYRICS'
-  | 'UPDATE'
-  | 'RUNTIME'
+  | 'app'
+  | 'plugin'
+  | 'search'
+  | 'player'
+  | 'playlist_import'
+  | 'feedback'
+  | 'data'
+  | 'file_io'
+  | 'download'
+  | 'settings'
+  | 'home'
+  | 'lyrics'
+  | 'update'
+  | 'runtime'
   | (string & {});
 
 export interface ManifestFileEntry {

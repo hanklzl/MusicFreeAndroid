@@ -30,6 +30,8 @@ export interface DecodeOptions {
 export interface DecodeResult {
   blocks: DecodedBlock[];
   truncatedBlockIndices: number[];
+  /** 单个 block 因解密 / 解压失败被 skip 时记录原因；不影响其它 block。 */
+  skippedBlocks: Array<{ blockIndex: number; reason: string }>;
 }
 
 export class LoganDecodeError extends Error {}
@@ -48,26 +50,30 @@ export function decodeLoganFile(
 
   const blocks: DecodedBlock[] = [];
   const truncatedBlockIndices: number[] = [];
+  const skippedBlocks: Array<{ blockIndex: number; reason: string }> = [];
   const decoder = new TextDecoder('utf-8', { fatal: false });
   let position = 0;
+  let blockCounter = 0;
 
   while (position < bytes.length) {
     if (bytes[position++] !== ENCRYPT_CONTENT_START) continue;
 
     if (bytes.length - position < LENGTH_BYTES) {
-      throw new LoganDecodeError(`Invalid Logan block header at byte ${position - 1}`);
+      // 尾部不完整的 header 视为文件结束，best-effort 不抛
+      break;
     }
 
     const encryptedLength = readBigEndianInt(bytes, position);
     position += LENGTH_BYTES;
     if (encryptedLength <= 0 || encryptedLength > bytes.length - position) {
-      throw new LoganDecodeError(
-        `Invalid Logan block length ${encryptedLength} at byte ${position - LENGTH_BYTES}`,
-      );
+      // 长度异常通常是误命中 0x01 magic byte（容错跳过下一个 0x01）
+      position -= LENGTH_BYTES; // 回退，让外循环继续扫描
+      continue;
     }
 
     const encrypted = bytes.subarray(position, position + encryptedLength);
     position += encryptedLength;
+    const blockIndex = blockCounter++;
 
     let compressed: Uint8Array;
     try {
@@ -76,14 +82,14 @@ export function decodeLoganFile(
       try {
         compressed = cbc(opts.key, opts.iv, { disablePadding: true }).decrypt(encrypted);
       } catch (noPaddingErr) {
-        throw new LoganDecodeError(
-          `AES decrypt failed at block #${blocks.length}: ${(pkcs7Err as Error).message}; ` +
-            `NoPadding fallback also failed: ${(noPaddingErr as Error).message}`,
-        );
+        skippedBlocks.push({
+          blockIndex,
+          reason: `AES decrypt failed: ${(pkcs7Err as Error).message}; NoPadding: ${(noPaddingErr as Error).message}`,
+        });
+        continue;
       }
     }
 
-    const blockIndex = blocks.length;
     let plain: Uint8Array;
     let isTruncated = false;
     try {
@@ -91,11 +97,11 @@ export function decodeLoganFile(
     } catch (gzErr) {
       const partial = partialGunzipUpToLastNewline(compressed);
       if (partial.length === 0) {
-        throw new LoganDecodeError(
-          `Gunzip failed at block #${blockIndex} with no recoverable bytes: ${
-            (gzErr as Error).message
-          }`,
-        );
+        skippedBlocks.push({
+          blockIndex,
+          reason: `gunzip: ${(gzErr as Error).message}`,
+        });
+        continue;
       }
       plain = partial;
       isTruncated = true;
@@ -112,9 +118,12 @@ export function decodeLoganFile(
   }
 
   if (blocks.length === 0) {
-    throw new LoganDecodeError(`No Logan encrypted blocks found in ${sourceFile}`);
+    throw new LoganDecodeError(
+      `No Logan blocks could be decoded in ${sourceFile}. Total skipped: ${skippedBlocks.length}` +
+        (skippedBlocks[0] ? `. First reason: ${skippedBlocks[0].reason}` : ''),
+    );
   }
-  return { blocks, truncatedBlockIndices };
+  return { blocks, truncatedBlockIndices, skippedBlocks };
 }
 
 function readBigEndianInt(bytes: Uint8Array, offset: number): number {
@@ -174,8 +183,9 @@ function mergeChunks(chunks: Uint8Array[]): Uint8Array {
 }
 
 /**
- * 按 KeyPair 顺序尝试解密；isPlaceholder 的 pair 默认跳过。
- * 返回第一个解密成功的 KeyPair 和解码结果。
+ * 按 KeyPair 顺序尝试解密；isPlaceholder 的 pair 默认跳过。返回第一个能解出至少
+ * 一个 block 的 KeyPair 与解码结果。同一文件内单个 block 损坏不会让流程退到下一个
+ * key——key 选择以"能否解出第一个有效 block"为准。
  */
 export function decodeWithAnyKey(
   bytes: Uint8Array,

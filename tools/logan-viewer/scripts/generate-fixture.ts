@@ -26,7 +26,7 @@ const blocks = [
   ],
   [
     {
-      level: 'info' as const,
+      level: 'trace' as const,
       category: 'PLUGIN' as const,
       event: 'plugin_install_start',
       timestamp: '2026-05-23T12:00:02.000+08:00',
@@ -35,7 +35,7 @@ const blocks = [
       fields: { name: 'bilibili' },
     },
     {
-      level: 'info' as const,
+      level: 'trace' as const,
       category: 'PLUGIN' as const,
       event: 'plugin_install_success',
       timestamp: '2026-05-23T12:00:03.200+08:00',

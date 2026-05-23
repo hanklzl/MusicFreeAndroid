@@ -15,7 +15,7 @@ const ENCRYPT_CONTENT_START = 0x01;
 export const SAMPLE_SESSION_ID = '11111111-2222-3333-4444-555555555555';
 
 export const SAMPLE_APP_START_EVENT: RawLogEvent = {
-  level: 'info',
+  level: 'trace',
   category: 'APP',
   event: 'app_start',
   timestamp: '2026-05-23T12:00:00.000+08:00',

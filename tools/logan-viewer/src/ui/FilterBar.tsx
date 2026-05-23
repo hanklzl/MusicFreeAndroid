@@ -3,7 +3,7 @@ import React from 'react';
 import { useViewer } from '../state/store.js';
 import type { LogCategory, LogLevel } from '../model/types.js';
 
-const ALL_LEVELS: LogLevel[] = ['verbose', 'debug', 'info', 'warn', 'error'];
+const ALL_LEVELS: LogLevel[] = ['trace', 'detail', 'error'];
 
 export function FilterBar() {
   const filter = useViewer((s) => s.filter);

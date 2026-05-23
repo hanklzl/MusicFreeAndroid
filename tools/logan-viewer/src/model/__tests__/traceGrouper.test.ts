@@ -6,7 +6,7 @@ import type { RawLogEvent } from '../types.js';
 
 function ev(overrides: Partial<RawLogEvent> = {}): RawLogEvent {
   return {
-    level: 'info',
+    level: 'trace',
     category: 'APP',
     event: 'evt',
     timestamp: '2026-05-23T12:00:00.000+08:00',

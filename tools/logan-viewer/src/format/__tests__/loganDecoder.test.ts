@@ -15,7 +15,7 @@ import {
 import { readFeedbackZip } from '../zipReader.js';
 
 const PLAYER_EVENT = {
-  level: 'info' as const,
+  level: 'trace' as const,
   category: 'PLAYER' as const,
   event: 'cache_hit',
   timestamp: '2026-05-23T12:00:05.000+08:00',

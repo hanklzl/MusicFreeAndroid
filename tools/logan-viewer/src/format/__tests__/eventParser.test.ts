@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseDecodedText } from '../eventParser.js';
 
 const VALID_LINE = JSON.stringify({
-  level: 'info',
+  level: 'trace',
   category: 'APP',
   event: 'app_start',
   timestamp: '2026-05-23T12:00:00.000+08:00',
@@ -35,7 +35,7 @@ describe('parseDecodedText', () => {
   });
 
   it('skips objects missing required fields', () => {
-    const text = `${VALID_LINE}\n${JSON.stringify({ level: 'info' })}`;
+    const text = `${VALID_LINE}\n${JSON.stringify({ level: 'trace' })}`;
     const result = parseDecodedText(text);
     expect(result.events).toHaveLength(1);
     expect(result.skipped).toHaveLength(1);

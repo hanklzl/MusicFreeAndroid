@@ -40,6 +40,10 @@ export async function readFeedbackZip(input: Blob | ArrayBuffer | Uint8Array): P
   const loganEntries: Array<{ relativePath: string; file: JSZip.JSZipObject }> = [];
   loganDir.forEach((relativePath, file) => {
     if (file.dir) return;
+    // logan/ 目录下除 Logan 加密文件（文件名是 timestamp 数字）外，还会有
+    // ReadableLogStore 的明文 logan/readable-errors.log。后者不是 Logan 协议，
+    // 不能走 AES-CBC + gunzip 解码，跳过避免误判。
+    if (!/^\d+$/.test(relativePath)) return;
     loganEntries.push({ relativePath, file });
   });
 
