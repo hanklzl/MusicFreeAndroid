@@ -6,6 +6,31 @@
 
 <!-- next-release -->
 
+## [v1.2.8] - 2026-05-24
+
+### 变更详情
+
+#### 新功能
+- feat(feedback): 增加 GitHub H5 用户反馈入口 (2344d47)
+
+#### 修复
+- fix(ui): 深色模式系统栏图标跟随 App 主题 (7cabf65)
+
+#### 文档
+- docs(release): 明确 preflight 校验口径 (04eb5be)
+- docs(changelog): release v1.2.7 [skip ci] (446b386)
+
+#### 杂项
+- chore(release): bump to v1.2.8 (173aae0)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.8-arm64-v8a.apk` · 7.6MB · sha256 `2b1a1442aabb`
+- x86_64: `MusicFreeAndroid-v1.2.8-x86_64.apk` · 7.6MB · sha256 `04846305c505`
+- mapping: `mapping-v1.2.8.zip` · sha256 `81d450b33296` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.7] - 2026-05-23
 
 ### 变更详情
