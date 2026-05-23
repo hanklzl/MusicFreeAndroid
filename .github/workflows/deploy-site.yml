@@ -32,6 +32,7 @@ jobs:
         run: |
           rsync -a --delete \
             --exclude='release/' \
+            --exclude='logan-viewer/' \
             --exclude='.git/' \
             docs/site/ _ghpages/
 

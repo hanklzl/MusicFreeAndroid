@@ -35,11 +35,13 @@ owner: lzl0120@gmail.com
 - 不修改任何 Kotlin / Gradle 业务代码。
 - 不修改 AGENTS.md / RELEASE.md（审计后确认这两个文件已经是开发者向内容的 source of truth，README 反而是 stale fork，所以本次只删 README、不向 AGENTS.md/RELEASE.md 添加任何行）。
 - 不重写 `release/version.json` 生成逻辑（仍由 release workflow 维护，本次只确保 site sync 不覆盖它）。
+- 不重写 `logan-viewer/` 静态工具发布逻辑（仍由 `logan-viewer-pages.yml` 维护，本次只确保 site sync 不覆盖它）。
 
 ### 硬性约束
 
 - **`gh-pages` 分支上的 `release/` 目录绝对不能被站点同步删掉**。`release/version.json` 是应用内更新链路的关键文件，被覆盖会让所有现网用户的更新检测崩溃。site sync 必须 `--exclude=release/`。
-- 两个写 `gh-pages` 的 workflow（release-apk、deploy-site）必须共用同一个 `concurrency` group，避免 race。
+- **`gh-pages` 分支上的 `logan-viewer/` 目录绝对不能被站点同步删掉**。该目录由 `logan-viewer-pages.yml` 发布，site sync 必须 `--exclude=logan-viewer/`。
+- 三个写 `gh-pages` 的 workflow（release-apk、deploy-site、logan-viewer-pages）必须共用同一个 `concurrency` group，避免 race。
 - 文档引用一律使用相对路径，不写绝对路径。
 - 提交使用用户 git config 身份，不加 `Co-Authored-By: Claude`。
 
@@ -366,6 +368,7 @@ jobs:
         run: |
           rsync -a --delete \
             --exclude='release/' \
+            --exclude='logan-viewer/' \
             --exclude='.git/' \
             docs/site/ _ghpages/
 
@@ -386,12 +389,13 @@ jobs:
 **关键点**：
 
 - `--exclude='release/'` 是硬性约束，绝对不能去掉，否则会覆盖应用内更新链路依赖的 `release/version.json`。
+- `--exclude='logan-viewer/'` 是硬性约束，绝对不能去掉，否则会删除 Logan Viewer 的 GitHub Pages 静态产物。
 - 不创建 `.nojekyll`：本设计启用 Jekyll 渲染 `docs/site/` 内容（主题 = minima），`.nojekyll` 会禁用 Jekyll。
 - GitHub Pages Source 维持 `Branch: gh-pages` / `/ (root)`，Jekyll 自动从根读取 `_config.yml`。
 
 ### 5.5 release workflow 改造
 
-GitHub Actions 一个 workflow 只能声明一个 `concurrency`。现有 `.github/workflows/android-release-apk.yml` 用的是 `android-release-apk-${{ github.ref }}`（防同 tag 重复触发）；本次需要把它替换为 `gh-pages-deploy`，与 site workflow 共用，确保任意时刻只有一个 workflow 在写 `gh-pages` 分支：
+GitHub Actions 一个 workflow 只能声明一个 `concurrency`。现有 `.github/workflows/android-release-apk.yml` 用的是 `android-release-apk-${{ github.ref }}`（防同 tag 重复触发）；本次需要把它替换为 `gh-pages-deploy`，与 site / Logan Viewer workflow 共用，确保任意时刻只有一个 workflow 在写 `gh-pages` 分支：
 
 ```yaml
 concurrency:
@@ -418,6 +422,7 @@ concurrency:
    - 访问 `https://hanklzl.github.io/MusicFreeAndroid/` 确认 minima 主题渲染。
    - 访问 `/MusicFreeAndroid/download/`，按钮显示具体版本号 + 直链到当前 release APK。
    - `curl -I https://hanklzl.github.io/MusicFreeAndroid/release/version.json` 返回 200，确认 site sync 未误删 `release/`。
+   - `curl -I https://hanklzl.github.io/MusicFreeAndroid/logan-viewer/` 返回 200，确认 site sync 未误删 `logan-viewer/`。
    - 触发一次 `workflow_dispatch` 走一次 release workflow（或等下一次 nightly），确认 `release/version.json` 仍能正常更新、不被 site sync 覆盖。
 
 ## 7. 风险与缓解
@@ -425,10 +430,11 @@ concurrency:
 | 风险 | 缓解 |
 |---|---|
 | site sync 误删 `release/version.json` → 现网应用更新崩溃 | `--exclude='release/'` 强制保留；首次部署后立刻 curl 验证；release workflow 跑一次回归确认仍能写入 |
+| site sync 误删 `logan-viewer/` → GitHub Pages 日志工具 404 | `--exclude='logan-viewer/'` 强制保留；站点发布后立刻 curl 验证 |
 | Jekyll 渲染失败（语法错、front matter 错） | `_config.yml` 与每页用最简 front matter；首次部署后人工访问每个页面确认无 500 |
 | 站点 baseurl 与 JS 路径漂移 | `_config.yml` 锁 `baseurl: "/MusicFreeAndroid"`，JS 写死同名前缀；任何改动需同步两处 |
 | `version.json` schema 变更 | JS 用 optional chaining + try/catch，HTML 端兜底链接保证 fallback 可下载 |
-| 两个 workflow 并发写 gh-pages | 共用 `concurrency: group: gh-pages-deploy` 串行 |
+| 多个 workflow 并发写 gh-pages | 共用 `concurrency: group: gh-pages-deploy` 串行 |
 | GitHub Pages 部署延迟 | Pages 全球 CDN 缓存最长 ~10 分钟；属于 GitHub 平台行为，不可缓解 |
 
 ## 8. 后续工作（不在本次范围）
