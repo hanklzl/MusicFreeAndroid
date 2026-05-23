@@ -25,6 +25,7 @@ import com.hank.musicfree.core.theme.FontSizes
 import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.logUiClick
 
 @Composable
 fun FileSelectorLiteScreen(
@@ -96,6 +97,11 @@ fun FileSelectorLiteScreen(
                         Spacer(modifier = Modifier.height(rpx(16)))
                         Button(
                             onClick = {
+                                logUiClick(
+                                    "settings.file_selector.pick_directory",
+                                    "file_selector",
+                                    if (uiState.isConfigured) "更换目录" else "选择目录",
+                                )
                                 openDocumentTreeLauncher.launch(uiState.selectedDirectory?.uri)
                             },
                         ) {

@@ -2,6 +2,10 @@ package com.hank.musicfree
 
 import android.app.Application
 import android.content.Context
+import android.content.SharedPreferences
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -18,7 +22,9 @@ import com.hank.musicfree.logging.LoggingConfig
 import com.hank.musicfree.player.cache.SimpleCacheHolder
 import com.hank.musicfree.player.prefetch.PrefetchCoordinator
 import com.hank.musicfree.logging.LoggingInitializer
+import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.UiLogEvents
 import com.hank.musicfree.plugin.engine.AxiosShim
 import com.hank.musicfree.runtime.RuntimeRestoreCoordinator
 import com.hank.musicfree.startup.StartupTelemetry
@@ -127,6 +133,8 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
             result = LogFields.Result.SUCCESS,
             reason = "scheduled",
         )
+        detectProcessStartAfterKill()
+        registerProcessLifecycleObserver()
         prefetchCoordinator.start()
         runtimeRestoreCoordinator.start()
         defaultPluginsBootstrapper.start()
@@ -151,6 +159,12 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader
+
+    companion object {
+        private const val PROCESS_LIFETIME_PREFS = "mf_process_lifetime"
+        private const val KEY_LAST_BACKGROUND_TS = "last_background_ts"
+        private const val KEY_LAST_FOREGROUND_TS = "last_foreground_ts"
+    }
 
     /**
      * Watches [AppPreferences.maxMusicCacheSizeBytes] and forwards changes to
@@ -177,6 +191,67 @@ class MusicFreeApplication : Application(), SingletonImageLoader.Factory {
             }
         }
     }
+
+    /**
+     * 应用前后台切换观察者：通过 [ProcessLifecycleOwner] 监听整个进程的 ON_START / ON_STOP。
+     * 在 [UiLogEvents.APP_FOREGROUND] 上携带 backgroundedDurationMs，让 viewer 端
+     * 复原"用户离开 N 秒后回来"。
+     */
+    private fun registerProcessLifecycleObserver() {
+        val prefs = processLifetimePrefs()
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                val now = System.currentTimeMillis()
+                val lastBgAt = prefs.getLong(KEY_LAST_BACKGROUND_TS, 0L)
+                val bgDuration = if (lastBgAt > 0L) (now - lastBgAt).coerceAtLeast(0L) else 0L
+                val fields = mutableMapOf<String, Any?>(
+                    UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.LIFECYCLE_ON_START,
+                )
+                if (lastBgAt > 0L) {
+                    fields[UiLogEvents.Fields.BACKGROUNDED_DURATION_MS] = bgDuration
+                }
+                MfLog.detail(LogCategory.APP, UiLogEvents.APP_FOREGROUND, fields)
+                prefs.edit()
+                    .putLong(KEY_LAST_FOREGROUND_TS, now)
+                    .remove(KEY_LAST_BACKGROUND_TS)
+                    .apply()
+            }
+
+            override fun onStop(owner: LifecycleOwner) {
+                val now = System.currentTimeMillis()
+                MfLog.detail(
+                    LogCategory.APP,
+                    UiLogEvents.APP_BACKGROUND,
+                    mapOf(UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.LIFECYCLE_ON_STOP),
+                )
+                prefs.edit().putLong(KEY_LAST_BACKGROUND_TS, now).apply()
+            }
+        })
+    }
+
+    /**
+     * 进程死亡检测：上一次 session 进过 background 但没回到 foreground，说明进程被杀。
+     * 在冷启动 [onCreate] 中调用，紧跟在 logging 初始化之后。
+     */
+    private fun detectProcessStartAfterKill() {
+        val prefs = processLifetimePrefs()
+        val lastBgAt = prefs.getLong(KEY_LAST_BACKGROUND_TS, 0L)
+        if (lastBgAt > 0L) {
+            val sinceBackground = (System.currentTimeMillis() - lastBgAt).coerceAtLeast(0L)
+            MfLog.detail(
+                LogCategory.APP,
+                UiLogEvents.PROCESS_START_AFTER_KILL,
+                mapOf(
+                    UiLogEvents.Fields.LAST_BACKGROUNDED_DURATION_MS to sinceBackground,
+                    UiLogEvents.Fields.SUSPECTED_REASON to "previous_session_did_not_foreground",
+                ),
+            )
+            prefs.edit().remove(KEY_LAST_BACKGROUND_TS).apply()
+        }
+    }
+
+    private fun processLifetimePrefs(): SharedPreferences =
+        getSharedPreferences(PROCESS_LIFETIME_PREFS, Context.MODE_PRIVATE)
 
     private fun startLoggingPreferenceBridge() {
         applicationScope.launch {

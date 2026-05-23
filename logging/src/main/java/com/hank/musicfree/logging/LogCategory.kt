@@ -15,4 +15,6 @@ enum class LogCategory(val wireName: String) {
     LYRICS("lyrics"),
     UPDATE("update"),
     RUNTIME("runtime"),
+    UI("ui"),
+    NAVIGATION("navigation"),
 }

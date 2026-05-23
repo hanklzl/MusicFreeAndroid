@@ -98,6 +98,24 @@ implemented_by: INC-2026-0015
 - 适用范围：`feature/*/src/main/.../*.kt` 中所有顶层浮层 composable。
 - 与 INC-2026-0008（MainActivity 不补 implicit top inset）配合：MainActivity 不为浮层补 inset，浮层 composable 自己负责。
 
+## 用户行为埋点 {#rule-user-action-logging}
+
+设计来源：[用户操作时间线设计](../../superpowers/specs/2026-05-23-user-action-timeline-design.md)
+
+新增或修改 Compose Screen 中的可点击元素（`Modifier.clickable`、`IconButton`、`Card onClick`、`ListItem onClick` 等）时：
+
+- 用户可见的操作入口 MUST 通过 `:core:ui/LoggedClickable.kt` 的三个工具之一记录：
+  - `Modifier.loggedClick(targetId, screen, fields = ..., onClick = ...)`
+  - `LoggedIconButton(targetId, screen, onClick = ..., ...content)`
+  - 非 Modifier / 非 IconButton 链路用 `logUiClick(targetId, screen, extra = ...)`
+- `targetId` MUST 遵循 `<screen>.<region>.<element>` snake_case 约定，例如 `player.controls.play` / `search.result.music_row` / `settings.row.theme`。
+- `screen` MUST 是该屏幕的稳定名（不带 path、不带后缀），例如 `home` / `player` / `search` / `settings` / `plugin_list`。
+- `ModalBottomSheet` / `Dialog` MUST 在 show 时显式发 `dialog_open`、在 dismiss 时发 `dialog_dismiss`（outcome=confirm/cancel/system），不依赖 `ui_click` 推断。
+- `screen_enter` / `screen_exit` / `tab_switch` / `app_foreground` / `app_background` / `activity_*` / `process_start_after_kill` 等导航与生命周期事件由 `AppNavHost` / `MusicFreeApplication` / `MainActivity` 统一发出，Screen MUST NOT 重复埋。
+- 不需要埋点的：调试/dev 面板按钮、`onShare = {}` 等空 lambda、纯视觉无业务语义的展开/折叠（且有等价 ui_click 父节点）。
+
+事件契约与字段定义见 `logging/src/main/java/.../UiLogEvents.kt` 与 [Logan Logging System Design](../../superpowers/specs/2026-05-05-logging-system-design.md)。
+
 ## 待开域 backlog
 
 - DB schema during dev：dev 阶段直接改 entity 类、不写 `Migration` 对象。这是 data 域 rule，等 `docs/dev-harness/data/rules.md` 引入时正式落入。来源：项目记忆 promotion。

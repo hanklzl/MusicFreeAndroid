@@ -77,6 +77,7 @@
 | [docs/superpowers/specs/2026-05-15-enable-horizontal-swipe-design.md](./superpowers/specs/2026-05-15-enable-horizontal-swipe-design.md) | 历史记录 | 否 | 已被 [2026-05-20 Scene Pager 设计](./superpowers/specs/2026-05-20-scene-pager-tabs-design.md) 取代；仅保留轻量横向手势实现背景 |
 | [docs/superpowers/specs/2026-05-19-runtime-store-architecture-design.md](./superpowers/specs/2026-05-19-runtime-store-architecture-design.md) | 当前规范（RuntimeStore 运行时架构） | 是（作为实现计划输入） | RuntimeStore + SnapshotStore 分层、插件/播放/下载/搜索/详情/Route seed 持久化恢复设计 |
 | [docs/superpowers/specs/2026-05-19-startup-telemetry-design.md](./superpowers/specs/2026-05-19-startup-telemetry-design.md) | 当前规范（启动耗时分段与日志） | 是（作为实现计划输入） | 启动分段耗时、冷启动 / Activity 重建启动分类、首屏与后台流程结构化日志设计 |
+| [docs/superpowers/specs/2026-05-23-user-action-timeline-design.md](./superpowers/specs/2026-05-23-user-action-timeline-design.md) | 当前规范（用户操作时间线） | 是（作为实现计划输入） | UI/导航/生命周期 17 个标准事件、`Modifier.loggedClick` 与 `LoggedIconButton` 工具、logan-viewer 端 ActionMatcher 规则集与混排 ActionCard 渲染设计 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/parity-audit/README.md](./parity-audit/README.md) | 当前规范（Parity Audit 专项） | 是 | parity-audit-skill 管理的状态、scenario catalog 与运行产物目录索引 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |

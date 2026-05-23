@@ -21,6 +21,7 @@ import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.FidelityAnchors
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.logUiClick
 
 @Composable
 fun SetCustomThemeScreen(
@@ -34,7 +35,10 @@ fun SetCustomThemeScreen(
         title = "自定义主题",
         onBack = onBack,
         actions = {
-            TextButton(onClick = onBack) {
+            TextButton(onClick = {
+                logUiClick("settings.custom_theme.done", "set_custom_theme", "完成")
+                onBack()
+            }) {
                 Text(text = "完成", color = MusicFreeTheme.colors.appBarText)
             }
         },

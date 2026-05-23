@@ -78,10 +78,15 @@ import com.hank.musicfree.core.ui.AddToPlaylistBottomSheetContent
 import com.hank.musicfree.core.ui.CoverImage
 import com.hank.musicfree.core.ui.DownloadQualityDialog
 import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.LoggedIconButton
 import com.hank.musicfree.core.ui.MusicFreeStatusBarChrome
 import com.hank.musicfree.core.ui.MusicItemOptionsSheet
 import com.hank.musicfree.core.ui.MusicFreeScenePagerTabs
 import com.hank.musicfree.core.ui.ScenePagerPage
+import com.hank.musicfree.core.ui.logUiClick
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.UiLogEvents
 import com.hank.musicfree.plugin.api.AlbumItemBase
 import com.hank.musicfree.plugin.api.ArtistItemBase
 import com.hank.musicfree.plugin.api.MusicSheetItemBase
@@ -204,7 +209,14 @@ fun SearchScreen(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(
                         onSearch = {
-                            if (query.isNotBlank()) viewModel.searchAll(query.trim())
+                            if (query.isNotBlank()) {
+                                logUiClick(
+                                    targetId = "search.bar.input_commit",
+                                    screen = "search",
+                                    extra = mapOf("query" to query.trim()),
+                                )
+                                viewModel.searchAll(query.trim())
+                            }
                         },
                     ),
                     decorationBox = { innerTextField ->
@@ -216,7 +228,11 @@ fun SearchScreen(
                         ) {
                             Box(Modifier.weight(1f)) { innerTextField() }
                             if (query.isNotBlank()) {
-                                IconButton(onClick = { query = "" }) {
+                                LoggedIconButton(
+                                    targetId = "search.bar.clear",
+                                    screen = "search",
+                                    onClick = { query = "" },
+                                ) {
                                     Icon(
                                         painter = painterResource(R.drawable.ic_x_mark),
                                         contentDescription = "清空",
@@ -332,9 +348,31 @@ fun SearchScreen(
     }
 
     optionsItem?.let { item ->
+        MfLog.detail(
+            LogCategory.UI,
+            UiLogEvents.DIALOG_OPEN,
+            mapOf(
+                UiLogEvents.Fields.DIALOG_ID to "MusicItemOptionsSheet",
+                UiLogEvents.Fields.SCREEN to "search",
+                UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                "itemId" to item.id,
+                "platform" to item.platform,
+            ),
+        )
         MusicItemOptionsSheet(
             item = item,
-            onDismiss = { optionsItem = null },
+            onDismiss = {
+                MfLog.detail(
+                    LogCategory.UI,
+                    UiLogEvents.DIALOG_DISMISS,
+                    mapOf(
+                        UiLogEvents.Fields.DIALOG_ID to "MusicItemOptionsSheet",
+                        UiLogEvents.Fields.SCREEN to "search",
+                        UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                    ),
+                )
+                optionsItem = null
+            },
             onDownload = { qualityFor = it; optionsItem = null },
         )
     }
@@ -452,7 +490,14 @@ private fun SearchResultPanel(
                 ScenePagerPage(key = mediaType, label = mediaType.label)
             },
             selectedKey = pagerUiState.selectedMediaType,
-            onSelectedKeyChange = onSelectMediaType,
+            onSelectedKeyChange = { mediaType ->
+                logUiClick(
+                    targetId = "search.filter.scope_tab",
+                    screen = "search",
+                    extra = mapOf("tab" to mediaType.key),
+                )
+                onSelectMediaType(mediaType)
+            },
             modifier = Modifier.fillMaxSize(),
             edgePadding = 0.dp,
             beyondViewportPageCount = 1,
@@ -522,7 +567,14 @@ private fun SearchPluginPagerScene(
     MusicFreeScenePagerTabs(
         pages = scene.plugins.map { plugin -> ScenePagerPage(key = plugin.platform, label = plugin.platform) },
         selectedKey = scene.selectedPlatform,
-        onSelectedKeyChange = { platform -> onSelectPlatform(mediaType, platform) },
+        onSelectedKeyChange = { platform ->
+            logUiClick(
+                targetId = "search.filter.plugin_chip",
+                screen = "search",
+                extra = mapOf("platform" to platform, "mediaType" to mediaType.key),
+            )
+            onSelectPlatform(mediaType, platform)
+        },
         modifier = Modifier.fillMaxSize(),
         edgePadding = 0.dp,
         beyondViewportPageCount = 1,
@@ -664,7 +716,14 @@ private fun SearchSuccessResultList(
             ) { sheet ->
                 SheetResultItem(
                     item = sheet.item,
-                    onClick = { onSheetClick(sheet.item) },
+                    onClick = {
+                        logUiClick(
+                            targetId = "search.result.sheet_row",
+                            screen = "search",
+                            extra = mapOf("itemId" to sheet.item.id, "platform" to sheet.item.platform),
+                        )
+                        onSheetClick(sheet.item)
+                    },
                 )
             }
 
@@ -688,8 +747,22 @@ private fun SearchSuccessResultList(
                     val music = result.item
                     MusicResultItem(
                         item = music,
-                        onClick = { onMusicClick(music, musicQueue) },
-                        onLongClick = { onLongClick(music) },
+                        onClick = {
+                            logUiClick(
+                                targetId = "search.result.music_row",
+                                screen = "search",
+                                extra = mapOf("itemId" to music.id, "platform" to music.platform),
+                            )
+                            onMusicClick(music, musicQueue)
+                        },
+                        onLongClick = {
+                            logUiClick(
+                                targetId = "search.result.music_more_menu",
+                                screen = "search",
+                                extra = mapOf("itemId" to music.id, "platform" to music.platform),
+                            )
+                            onLongClick(music)
+                        },
                         onPlayNext = { onPlayNext(music) },
                         onAddToPlaylist = { onAddToPlaylist(music) },
                         onToggleFavorite = { onToggleFavorite(music) },
@@ -701,21 +774,42 @@ private fun SearchSuccessResultList(
                     title = result.item.title.orEmpty().ifBlank { "未命名专辑" },
                     tag = result.item.platform,
                     description = albumDescription(result.item),
-                    onClick = { onAlbumClick(result.item) },
+                    onClick = {
+                        logUiClick(
+                            targetId = "search.result.album_row",
+                            screen = "search",
+                            extra = mapOf("itemId" to result.item.id, "platform" to result.item.platform),
+                        )
+                        onAlbumClick(result.item)
+                    },
                 )
                 is PluginSearchItem.Artist -> MediaResultItem(
                     coverUri = result.item.avatar,
                     title = result.item.name.orEmpty().ifBlank { "未知歌手" },
                     tag = result.item.platform,
                     description = artistDescription(result.item),
-                    onClick = { onArtistClick(result.item) },
+                    onClick = {
+                        logUiClick(
+                            targetId = "search.result.artist_row",
+                            screen = "search",
+                            extra = mapOf("itemId" to result.item.id, "platform" to result.item.platform),
+                        )
+                        onArtistClick(result.item)
+                    },
                 )
                 is PluginSearchItem.Sheet -> MediaResultItem(
                     coverUri = result.item.artwork ?: result.item.coverImg,
                     title = result.item.title.orEmpty().ifBlank { "未命名歌单" },
                     tag = result.item.platform,
                     description = result.item.description.orEmpty(),
-                    onClick = { onSheetClick(result.item) },
+                    onClick = {
+                        logUiClick(
+                            targetId = "search.result.sheet_row",
+                            screen = "search",
+                            extra = mapOf("itemId" to result.item.id, "platform" to result.item.platform),
+                        )
+                        onSheetClick(result.item)
+                    },
                 )
             }
         }
@@ -899,7 +993,12 @@ private fun MusicResultItem(
             )
         }
 
-        IconButton(onClick = { showMenu = true }) {
+        LoggedIconButton(
+            targetId = "search.result.music_row_menu",
+            screen = "search",
+            fields = mapOf("itemId" to item.id, "platform" to item.platform),
+            onClick = { showMenu = true },
+        ) {
             Icon(
                 painter = painterResource(R.drawable.ic_ellipsis_vertical),
                 contentDescription = null,

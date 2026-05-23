@@ -1,39 +1,18 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import React from 'react';
 
-import { applyFilterToRows } from '../model/filter.js';
-import { groupBySession, type TimelineRow } from '../model/traceGrouper.js';
-import type { ParsedEvent, TraceGroup } from '../model/types.js';
+import { matchActions } from '../actions/matchActions.js';
+import type { TimelineItem } from '../actions/types.js';
+import type { ParsedEvent } from '../model/types.js';
 import { useViewer } from '../state/store.js';
+import { ActionCard } from './ActionCard.js';
 
 type FlatRow =
-  | { kind: 'group-header'; group: TraceGroup; expanded: boolean }
-  | { kind: 'group-child'; event: ParsedEvent; groupId: string }
-  | { kind: 'single'; event: ParsedEvent };
+  | { kind: 'action'; item: Extract<TimelineItem, { kind: 'action' }>; expanded: boolean }
+  | { kind: 'raw'; event: ParsedEvent };
 
 const ROW_HEIGHT = 22;
-
-function flatten(
-  rows: TimelineRow[],
-  expanded: Set<string>,
-  autoExpandError: boolean,
-): FlatRow[] {
-  const out: FlatRow[] = [];
-  for (const row of rows) {
-    if (row.kind === 'single') {
-      out.push({ kind: 'single', event: row.event });
-    } else {
-      const isExpanded = expanded.has(row.group.id) || (autoExpandError && row.group.hasError);
-      out.push({ kind: 'group-header', group: row.group, expanded: isExpanded });
-      if (isExpanded) {
-        for (const event of row.group.events) {
-          out.push({ kind: 'group-child', event, groupId: row.group.id });
-        }
-      }
-    }
-  }
-  return out;
-}
+const ACTION_CARD_HEIGHT = 64;
 
 function formatTimestamp(ms: number): string {
   if (!ms) return '--:--:--';
@@ -107,51 +86,7 @@ function SingleRow({
   );
 }
 
-function GroupHeaderRow({
-  group,
-  expanded,
-  onToggle,
-  selected,
-  onSelect,
-}: {
-  group: TraceGroup;
-  expanded: boolean;
-  onToggle: () => void;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <div
-      className={`row group-header ${group.hasError ? 'error' : ''} ${
-        selected ? 'selected' : ''
-      }`}
-      onClick={onSelect}
-    >
-      <span className="ts">{formatTimestamp(group.startMs)}</span>
-      <span
-        className="caret"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-      >
-        {expanded ? '▼' : '▶'}
-      </span>
-      <CategoryChip category={group.category} />
-      <span className="ev">
-        {group.headEvent.event}
-        {group.headEvent.event !== group.tailEvent.event && ` → ${group.tailEvent.event}`}
-      </span>
-      <span className="count">└ {group.events.length} events</span>
-      <span className="dur">+{group.durationMs}ms</span>
-      {group.result && (
-        <span className="dur" style={{ color: group.hasError ? 'var(--error)' : 'var(--success)' }}>
-          {group.hasError ? '⚠' : '✓'} {group.result}
-        </span>
-      )}
-    </div>
-  );
-}
+// GroupHeaderRow / TraceGroup-based rendering removed — replaced by ActionCard.
 
 export function Timeline() {
   const selectedSessionId = useViewer((s) => s.selectedSessionId);
@@ -162,32 +97,72 @@ export function Timeline() {
   const selectedEventId = useViewer((s) => s.selectedEventId);
   const setSelectedEvent = useViewer((s) => s.setSelectedEvent);
 
-  const rows = React.useMemo<TimelineRow[]>(() => {
+  const sessionEvents = React.useMemo<ParsedEvent[]>(() => {
     if (!selectedSessionId || !bySession) return [];
-    const events = bySession.get(selectedSessionId) ?? [];
-    return groupBySession(selectedSessionId, events);
+    return bySession.get(selectedSessionId) ?? [];
   }, [selectedSessionId, bySession]);
 
-  const filteredRows = React.useMemo(() => applyFilterToRows(rows, filter), [rows, filter]);
-  const flat = React.useMemo(
-    () => flatten(filteredRows, expandedGroupIds, true),
-    [filteredRows, expandedGroupIds],
+  const items = React.useMemo<TimelineItem[]>(
+    () => matchActions(sessionEvents),
+    [sessionEvents],
   );
+
+  // 把 ParsedEvent 索引按 id，便于 ActionCard 展开时找子事件实体。
+  const eventsById = React.useMemo(() => {
+    const m = new Map<string, ParsedEvent>();
+    for (const e of sessionEvents) m.set(e.id, e);
+    return m;
+  }, [sessionEvents]);
+
+  // 适用现有 filter：levels / categories / eventQuery / onlyErrors 仅过滤 raw 事件，
+  // ActionCard 默认全显示——未来可以加 action-type chip。
+  const filtered = React.useMemo(() => {
+    if (!filter) return items;
+    return items.filter((item) => {
+      if (item.kind === 'action') return true;
+      const ev = item.event;
+      if (filter.levels.size > 0 && !filter.levels.has(ev.level)) return false;
+      if (filter.categories.size > 0 && !filter.categories.has(ev.category)) return false;
+      if (filter.onlyErrors && ev.level !== 'error' && !ev.errorClass) return false;
+      if (filter.onlyWithTrace && !ev.traceId) return false;
+      if (filter.eventQuery && !ev.event.toLowerCase().includes(filter.eventQuery.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+  }, [items, filter]);
+
+  const flat = React.useMemo<FlatRow[]>(() => {
+    const out: FlatRow[] = [];
+    for (const item of filtered) {
+      if (item.kind === 'action') {
+        const cardKey = item.eventIds.join(',');
+        out.push({
+          kind: 'action',
+          item,
+          expanded: expandedGroupIds.has(cardKey),
+        });
+      } else {
+        out.push({ kind: 'raw', event: item.event });
+      }
+    }
+    return out;
+  }, [filtered, expandedGroupIds]);
 
   const parentRef = React.useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: flat.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 20,
+    estimateSize: (i) => (flat[i]?.kind === 'action' ? ACTION_CARD_HEIGHT : ROW_HEIGHT),
+    overscan: 12,
   });
 
   return (
     <div ref={parentRef} className="timeline">
       {flat.length === 0 && (
         <div className="empty-state" style={{ height: '100%' }}>
-          {rows.length === 0 ? '该 session 无事件' : '当前过滤无匹配'}
+          {items.length === 0 ? '该 session 无事件' : '当前过滤无匹配'}
         </div>
       )}
       <div
@@ -198,8 +173,8 @@ export function Timeline() {
         }}
       >
         {virtualizer.getVirtualItems().map((vrow) => {
-          const item = flat[vrow.index];
-          if (!item) return null;
+          const row = flat[vrow.index];
+          if (!row) return null;
           return (
             <div
               key={vrow.key}
@@ -213,28 +188,24 @@ export function Timeline() {
                 transform: `translateY(${vrow.start}px)`,
               }}
             >
-              {item.kind === 'single' && (
-                <SingleRow
-                  event={item.event}
-                  selected={item.event.id === selectedEventId}
-                  onSelect={() => setSelectedEvent(item.event.id)}
+              {row.kind === 'action' && (
+                <ActionCard
+                  card={row.item.card}
+                  timestampMs={row.item.sortMs}
+                  expanded={row.expanded}
+                  selected={row.item.eventIds.includes(selectedEventId ?? '')}
+                  childEvents={row.item.eventIds
+                    .map((id) => eventsById.get(id))
+                    .filter((e): e is ParsedEvent => e != null)}
+                  onToggle={() => toggleGroup(row.item.eventIds.join(','))}
+                  onSelectChild={(id) => setSelectedEvent(id)}
                 />
               )}
-              {item.kind === 'group-header' && (
-                <GroupHeaderRow
-                  group={item.group}
-                  expanded={item.expanded}
-                  onToggle={() => toggleGroup(item.group.id)}
-                  selected={item.group.headEvent.id === selectedEventId}
-                  onSelect={() => setSelectedEvent(item.group.headEvent.id)}
-                />
-              )}
-              {item.kind === 'group-child' && (
+              {row.kind === 'raw' && (
                 <SingleRow
-                  event={item.event}
-                  selected={item.event.id === selectedEventId}
-                  onSelect={() => setSelectedEvent(item.event.id)}
-                  childOfGroup
+                  event={row.event}
+                  selected={row.event.id === selectedEventId}
+                  onSelect={() => setSelectedEvent(row.event.id)}
                 />
               )}
             </div>

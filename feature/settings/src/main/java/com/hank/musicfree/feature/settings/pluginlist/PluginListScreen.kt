@@ -71,9 +71,14 @@ import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.AddToPlaylistBottomSheetContent
 import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.LoggedIconButton
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.logUiClick
 import com.hank.musicfree.feature.settings.components.SettingSectionCard
 import com.hank.musicfree.feature.settings.components.SettingSwitchRow
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.UiLogEvents
 import com.hank.musicfree.plugin.runtime.PluginState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -147,15 +152,26 @@ fun PluginListScreen(
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     DropdownMenuItem(
                         text = { Text("订阅设置") },
-                        onClick = { showMenu = false; onNavigateToPluginSubscription() },
+                        onClick = {
+                            logUiClick("plugin_list.toolbar.subscription", screen = "plugin_list")
+                            showMenu = false
+                            onNavigateToPluginSubscription()
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("排序") },
-                        onClick = { showMenu = false; onNavigateToPluginSort() },
+                        onClick = {
+                            logUiClick("plugin_list.toolbar.sort", screen = "plugin_list")
+                            showMenu = false
+                            onNavigateToPluginSort()
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("卸载全部") },
-                        onClick = { showMenu = false; showUninstallAllConfirm = true },
+                        onClick = {
+                            showMenu = false
+                            showUninstallAllConfirm = true
+                        },
                     )
                 }
             }
@@ -168,11 +184,19 @@ fun PluginListScreen(
                 DropdownMenu(expanded = showFabMenu, onDismissRequest = { showFabMenu = false }) {
                     DropdownMenuItem(
                         text = { Text("从本地安装") },
-                        onClick = { showFabMenu = false; showInstallLocalDialog = true },
+                        onClick = {
+                            logUiClick("plugin_list.toolbar.install_file", screen = "plugin_list")
+                            showFabMenu = false
+                            showInstallLocalDialog = true
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("从网络安装") },
-                        onClick = { showFabMenu = false; showInstallUrlDialog = true },
+                        onClick = {
+                            logUiClick("plugin_list.toolbar.install_url", screen = "plugin_list")
+                            showFabMenu = false
+                            showInstallUrlDialog = true
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("更新全部插件") },
@@ -275,9 +299,26 @@ fun PluginListScreen(
     }
 
     if (showInstallUrlDialog) {
+        MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_OPEN, mapOf(
+            UiLogEvents.Fields.DIALOG_ID to "PluginInstallUrlDialog",
+            UiLogEvents.Fields.SCREEN to "plugin_list",
+            UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+        ))
         InstallUrlDialog(
-            onDismiss = { showInstallUrlDialog = false },
+            onDismiss = {
+                MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_DISMISS, mapOf(
+                    UiLogEvents.Fields.DIALOG_ID to "PluginInstallUrlDialog",
+                    UiLogEvents.Fields.SCREEN to "plugin_list",
+                    UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                ))
+                showInstallUrlDialog = false
+            },
             onConfirm = { url ->
+                MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_DISMISS, mapOf(
+                    UiLogEvents.Fields.DIALOG_ID to "PluginInstallUrlDialog",
+                    UiLogEvents.Fields.SCREEN to "plugin_list",
+                    UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CONFIRM,
+                ))
                 showInstallUrlDialog = false
                 viewModel.installFromUrl(url)
             },
@@ -316,18 +357,44 @@ fun PluginListScreen(
     }
 
     uninstallTarget?.let { target ->
+        MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_OPEN, mapOf(
+            UiLogEvents.Fields.DIALOG_ID to "PluginUninstallConfirmDialog",
+            UiLogEvents.Fields.SCREEN to "plugin_list",
+            UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+        ))
         AlertDialog(
-            onDismissRequest = { uninstallTarget = null },
+            onDismissRequest = {
+                MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_DISMISS, mapOf(
+                    UiLogEvents.Fields.DIALOG_ID to "PluginUninstallConfirmDialog",
+                    UiLogEvents.Fields.SCREEN to "plugin_list",
+                    UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                ))
+                uninstallTarget = null
+            },
             title = { Text("确认") },
             text = { Text("确定要卸载「${target.info.platform}」插件吗？") },
             confirmButton = {
                 TextButton(onClick = {
+                    logUiClick("plugin_list.dialog.install_url_confirm", screen = "plugin_list")
+                    MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_DISMISS, mapOf(
+                        UiLogEvents.Fields.DIALOG_ID to "PluginUninstallConfirmDialog",
+                        UiLogEvents.Fields.SCREEN to "plugin_list",
+                        UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CONFIRM,
+                    ))
                     uninstallTarget = null
                     viewModel.uninstallPlugin(target.info.platform)
                 }) { Text("确定") }
             },
             dismissButton = {
-                TextButton(onClick = { uninstallTarget = null }) { Text("取消") }
+                TextButton(onClick = {
+                    logUiClick("plugin_list.dialog.cancel", screen = "plugin_list")
+                    MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_DISMISS, mapOf(
+                        UiLogEvents.Fields.DIALOG_ID to "PluginUninstallConfirmDialog",
+                        UiLogEvents.Fields.SCREEN to "plugin_list",
+                        UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                    ))
+                    uninstallTarget = null
+                }) { Text("取消") }
             },
         )
     }
@@ -653,6 +720,11 @@ private fun PluginCard(
         modifier = Modifier
             .fillMaxWidth()
             .alpha(alpha),
+        onClick = {
+            logUiClick("plugin_list.row.plugin_item", screen = "plugin_list",
+                extra = mapOf("platform" to item.info.platform))
+            onShowDescription()
+        },
     ) {
         Column(modifier = Modifier.padding(rpx(16))) {
             Row(
@@ -711,11 +783,22 @@ private fun PluginCard(
                 verticalArrangement = Arrangement.spacedBy(rpx(8)),
             ) {
                 if (item.canUpdate) {
-                    AssistChip(onClick = onUpdate, label = { Text("更新") })
+                    AssistChip(
+                        onClick = {
+                            logUiClick("plugin_list.row.update", screen = "plugin_list",
+                                extra = mapOf("platform" to item.info.platform))
+                            onUpdate()
+                        },
+                        label = { Text("更新") },
+                    )
                     AssistChip(onClick = onShare, label = { Text("分享") })
                 }
                 AssistChip(
-                    onClick = onUninstall,
+                    onClick = {
+                        logUiClick("plugin_list.row.uninstall", screen = "plugin_list",
+                            extra = mapOf("platform" to item.info.platform))
+                        onUninstall()
+                    },
                     label = { Text("卸载") },
                     colors = AssistChipDefaults.assistChipColors(
                         labelColor = MaterialTheme.colorScheme.error,

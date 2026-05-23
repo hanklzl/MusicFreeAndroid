@@ -16,6 +16,7 @@ import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.theme.runtime.SelectedTheme
 import com.hank.musicfree.core.theme.runtime.ThemeUiState
 import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.logUiClick
 import com.hank.musicfree.feature.settings.components.SettingSectionCard
 import com.hank.musicfree.feature.settings.components.SettingSwitchRow
 
@@ -47,7 +48,15 @@ fun ThemeSettingsContent(
                     checked = state.followSystem,
                     enabled = true,
                     testTag = FidelityAnchors.Settings.ThemeFollowSystemSwitch,
-                    onCheckedChange = onFollowSystemToggle,
+                    onCheckedChange = { enabled ->
+                        logUiClick(
+                            "settings.theme.follow_system",
+                            "settings",
+                            "跟随系统主题",
+                            mapOf("enabled" to enabled),
+                        )
+                        onFollowSystemToggle(enabled)
+                    },
                 )
             }
         }

@@ -46,8 +46,10 @@ import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 import com.hank.musicfree.feature.settings.components.SettingSectionCard
 import com.hank.musicfree.feature.settings.themesetting.ThemeSettingsContent
 import com.hank.musicfree.feature.settings.themesetting.ThemeSettingsViewModel
+import com.hank.musicfree.core.ui.logUiClick
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.UiLogEvents
 
 @Composable
 fun SettingsScreen(
@@ -189,7 +191,18 @@ fun SettingsScreen(
                 onClearLyricCache = viewModel::clearLyricCache,
                 onClearImageCache = viewModel::clearImageCache,
                 onNavigateToFileSelector = onNavigateToFileSelector,
-                onCreateFeedbackPackage = { showFeedbackConfirm = true },
+                onCreateFeedbackPackage = {
+                    showFeedbackConfirm = true
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_OPEN,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "FeedbackExportConfirmDialog",
+                            UiLogEvents.Fields.SCREEN to "settings",
+                            UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                        ),
+                    )
+                },
                 onClearLogs = viewModel::clearLogs,
                 onDebugErrorLogEnabledChange = viewModel::setDebugErrorLogEnabled,
                 onDebugTraceLogEnabledChange = viewModel::setDebugTraceLogEnabled,
@@ -205,10 +218,19 @@ fun SettingsScreen(
                 ThemeSettingsContent(
                     state = themeState,
                     onFollowSystemToggle = { themeVm.onFollowSystemToggle(it, systemDark) },
-                    onSelectLight = { themeVm.onSelectTheme(SelectedTheme.P_LIGHT) },
-                    onSelectDark = { themeVm.onSelectTheme(SelectedTheme.P_DARK) },
+                    onSelectLight = {
+                        logUiClick("settings.theme.select_light", "settings", "亮色")
+                        themeVm.onSelectTheme(SelectedTheme.P_LIGHT)
+                    },
+                    onSelectDark = {
+                        logUiClick("settings.theme.select_dark", "settings", "暗色")
+                        themeVm.onSelectTheme(SelectedTheme.P_DARK)
+                    },
                     onSelectCustom = { themeVm.onSelectTheme(SelectedTheme.CUSTOM) },
-                    onNavigateToSetCustomTheme = onNavigateToSetCustomTheme,
+                    onNavigateToSetCustomTheme = {
+                        logUiClick("settings.theme.select_custom", "settings", "自定义主题")
+                        onNavigateToSetCustomTheme()
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -216,9 +238,11 @@ fun SettingsScreen(
             SettingsType.Backup -> BackupRestoreContent(
                 state = backupRestoreUiState,
                 onCreateBackup = {
+                    logUiClick("settings.backup.create", "settings", "创建备份/迁移包")
                     createBackupLauncher.launch("MusicFree-backup-${java.time.LocalDate.now()}.mfbackup")
                 },
                 onRestoreBackup = {
+                    logUiClick("settings.backup.restore", "settings", "从备份恢复")
                     restoreBackupLauncher.launch(
                         arrayOf("application/octet-stream", "application/zip", "*/*"),
                     )
@@ -234,9 +258,29 @@ fun SettingsScreen(
 
     if (showFeedbackConfirm) {
         FeedbackExportConfirmDialog(
-            onDismiss = { showFeedbackConfirm = false },
+            onDismiss = {
+                showFeedbackConfirm = false
+                MfLog.detail(
+                    LogCategory.UI,
+                    UiLogEvents.DIALOG_DISMISS,
+                    mapOf(
+                        UiLogEvents.Fields.DIALOG_ID to "FeedbackExportConfirmDialog",
+                        UiLogEvents.Fields.SCREEN to "settings",
+                        UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                    ),
+                )
+            },
             onConfirm = {
                 showFeedbackConfirm = false
+                MfLog.detail(
+                    LogCategory.UI,
+                    UiLogEvents.DIALOG_DISMISS,
+                    mapOf(
+                        UiLogEvents.Fields.DIALOG_ID to "FeedbackExportConfirmDialog",
+                        UiLogEvents.Fields.SCREEN to "settings",
+                        UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CONFIRM,
+                    ),
+                )
                 viewModel.createFeedbackPackage()
             },
         )
@@ -254,10 +298,41 @@ fun SettingsScreen(
     }
 
     if (backupRestoreUiState.restoreConfirmationVisible) {
+        MfLog.detail(
+            LogCategory.UI,
+            UiLogEvents.DIALOG_OPEN,
+            mapOf(
+                UiLogEvents.Fields.DIALOG_ID to "BackupRestoreConfirmDialog",
+                UiLogEvents.Fields.SCREEN to "settings",
+                UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+            ),
+        )
         BackupRestoreConfirmDialog(
             state = backupRestoreUiState,
-            onDismiss = viewModel::dismissRestoreConfirmation,
-            onConfirm = viewModel::confirmRestore,
+            onDismiss = {
+                MfLog.detail(
+                    LogCategory.UI,
+                    UiLogEvents.DIALOG_DISMISS,
+                    mapOf(
+                        UiLogEvents.Fields.DIALOG_ID to "BackupRestoreConfirmDialog",
+                        UiLogEvents.Fields.SCREEN to "settings",
+                        UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                    ),
+                )
+                viewModel.dismissRestoreConfirmation()
+            },
+            onConfirm = {
+                MfLog.detail(
+                    LogCategory.UI,
+                    UiLogEvents.DIALOG_DISMISS,
+                    mapOf(
+                        UiLogEvents.Fields.DIALOG_ID to "BackupRestoreConfirmDialog",
+                        UiLogEvents.Fields.SCREEN to "settings",
+                        UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CONFIRM,
+                    ),
+                )
+                viewModel.confirmRestore()
+            },
         )
     }
 }

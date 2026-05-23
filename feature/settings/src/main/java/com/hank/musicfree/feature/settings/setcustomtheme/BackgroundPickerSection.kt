@@ -25,6 +25,7 @@ import coil3.compose.AsyncImage
 import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.logUiClick
 
 @Composable
 fun BackgroundPickerSection(
@@ -49,6 +50,7 @@ fun BackgroundPickerSection(
                 .clip(RoundedCornerShape(rpx(12)))
                 .background(MusicFreeTheme.colors.placeholder)
                 .clickable {
+                    logUiClick("settings.custom_theme.pick_background", "set_custom_theme", "选择背景图")
                     launcher.launch(
                         PickVisualMediaRequest(
                             ActivityResultContracts.PickVisualMedia.ImageOnly,

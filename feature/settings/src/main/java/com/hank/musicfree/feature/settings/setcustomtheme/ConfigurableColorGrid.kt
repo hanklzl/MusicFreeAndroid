@@ -31,6 +31,7 @@ import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.theme.runtime.CONFIGURABLE_COLOR_KEYS
 import com.hank.musicfree.core.theme.runtime.toHexString
 import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.logUiClick
 
 @Composable
 fun ConfigurableColorGrid(
@@ -57,7 +58,15 @@ fun ConfigurableColorGrid(
                         ColorItem(
                             key = key,
                             currentColor = colors.byKey(key),
-                            onClick = { onColorClicked(key) },
+                            onClick = {
+                                logUiClick(
+                                    "settings.custom_theme.color_chip",
+                                    "set_custom_theme",
+                                    colorKeyToLabel(key),
+                                    mapOf("colorKey" to key),
+                                )
+                                onColorClicked(key)
+                            },
                         )
                     }
                 }

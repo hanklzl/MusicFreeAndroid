@@ -28,6 +28,7 @@ import com.hank.musicfree.plugin.runtime.PluginStateKeys
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
+import com.hank.musicfree.logging.UiLogEvents
 import com.hank.musicfree.logging.timedSuspend
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -152,6 +153,7 @@ class PluginManager @Inject constructor(
 
     private val mutex = Mutex()
     private val _loaded = AtomicBoolean(false)
+    private val pluginEngineInitLogged = AtomicBoolean(false)
 
     private val httpClient: OkHttpClient by lazy {
         baseOkHttpClient.newBuilder()
@@ -221,6 +223,8 @@ class PluginManager @Inject constructor(
      *    pre-Phase-E behaviour).
      */
     suspend fun loadAllPlugins() = mutex.withLock {
+        val initStartedAtMs = System.currentTimeMillis()
+        val isFirstInit = pluginEngineInitLogged.compareAndSet(false, true)
         withContext(Dispatchers.IO) {
             // Destroy any previously loaded plugins (the local entry is a no-op).
             _plugins.value.forEach { it.destroy() }
@@ -385,6 +389,18 @@ class PluginManager @Inject constructor(
                 backgroundScope.launch {
                     completeLazyLoad(entry)
                 }
+            }
+
+            if (isFirstInit) {
+                val durationMs = (System.currentTimeMillis() - initStartedAtMs).coerceAtLeast(0L)
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = UiLogEvents.PLUGIN_ENGINE_INIT,
+                    fields = mapOf(
+                        UiLogEvents.Fields.PLUGIN_COUNT to newEntries.size,
+                        UiLogEvents.Fields.DURATION_MS to durationMs,
+                    ),
+                )
             }
         }
     }

@@ -21,6 +21,7 @@ import com.hank.musicfree.core.model.PlaybackRuntimeSettings
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.UiLogEvents
 import com.hank.musicfree.player.R
 import com.hank.musicfree.player.source.HeaderInjectingDataSourceFactory
 import dagger.hilt.android.AndroidEntryPoint
@@ -42,6 +43,7 @@ class PlaybackService : MediaSessionService() {
     @Inject lateinit var appPreferences: AppPreferences
 
     private var mediaSession: MediaSession? = null
+    private var serviceCreatedAtMs: Long = 0L
     @Volatile
     private var showCloseButtonOnNotification: Boolean = false
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -139,12 +141,18 @@ class PlaybackService : MediaSessionService() {
     @AndroidXOptIn(markerClass = [UnstableApi::class])
     override fun onCreate() {
         super.onCreate()
+        serviceCreatedAtMs = System.currentTimeMillis()
         MfLog.detail(
             category = LogCategory.PLAYER,
             event = "playback_service_created",
             fields = mapOf(
                 "status" to "start",
             ),
+        )
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = UiLogEvents.MEDIA_SESSION_STARTED,
+            fields = emptyMap(),
         )
 
         setMediaNotificationProvider(
@@ -193,11 +201,27 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        val sessionPlayer = mediaSession?.player
+        val queueSize = sessionPlayer?.mediaItemCount ?: 0
+        val lastSongId = (sessionPlayer?.currentMediaItem?.mediaId).orEmpty()
+        val lifetimeMs = if (serviceCreatedAtMs > 0L) {
+            (System.currentTimeMillis() - serviceCreatedAtMs).coerceAtLeast(0L)
+        } else 0L
         MfLog.detail(
             category = LogCategory.PLAYER,
             event = "playback_service_destroyed",
             fields = mapOf(
                 "status" to "start",
+            ),
+        )
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = UiLogEvents.MEDIA_SESSION_DESTROYED,
+            fields = mapOf(
+                UiLogEvents.Fields.REASON to "service_on_destroy",
+                UiLogEvents.Fields.LAST_SONG_ID to lastSongId,
+                UiLogEvents.Fields.QUEUE_SIZE to queueSize,
+                UiLogEvents.Fields.LIFETIME_MS to lifetimeMs,
             ),
         )
         flushLastPosition()

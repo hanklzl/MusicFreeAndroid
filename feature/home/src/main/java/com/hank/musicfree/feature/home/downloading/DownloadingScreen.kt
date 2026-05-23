@@ -30,7 +30,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hank.musicfree.core.ui.LoggedIconButton
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.logUiClick
+import com.hank.musicfree.core.ui.loggedClick
 import com.hank.musicfree.downloader.model.DownloadFailReason
 import com.hank.musicfree.downloader.model.DownloadStatus
 import com.hank.musicfree.downloader.model.DownloadTaskUi
@@ -54,15 +57,27 @@ fun DownloadingScreen(
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
                     text = { Text("全部重试失败项") },
-                    onClick = { viewModel.retryAllFailed(); menuOpen = false },
+                    onClick = {
+                        logUiClick("downloading.toolbar.retry_all", screen = "downloading")
+                        viewModel.retryAllFailed()
+                        menuOpen = false
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("清空失败项") },
-                    onClick = { viewModel.clearFailed(); menuOpen = false },
+                    onClick = {
+                        logUiClick("downloading.toolbar.clear_all", screen = "downloading")
+                        viewModel.clearFailed()
+                        menuOpen = false
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("取消所有进行中") },
-                    onClick = { viewModel.cancelAllInflight(); menuOpen = false },
+                    onClick = {
+                        logUiClick("downloading.toolbar.cancel_all", screen = "downloading")
+                        viewModel.cancelAllInflight()
+                        menuOpen = false
+                    },
                 )
             }
         },
@@ -114,7 +129,11 @@ private fun ActiveRow(task: DownloadTaskUi, onCancel: () -> Unit) {
     val pct = task.totalBytes?.takeIf { it > 0 }?.let {
         ((task.downloadedBytes ?: 0L) * 100 / it).toInt()
     } ?: 0
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = 8.dp)
+        .loggedClick(targetId = "downloading.row.song", screen = "downloading",
+            fields = mapOf("title" to task.title), onClick = {})) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(task.title, style = MaterialTheme.typography.bodyLarge)
@@ -128,7 +147,11 @@ private fun ActiveRow(task: DownloadTaskUi, onCancel: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            IconButton(onClick = onCancel) {
+            LoggedIconButton(
+                targetId = "downloading.row.cancel",
+                screen = "downloading",
+                onClick = onCancel,
+            ) {
                 Icon(Icons.Filled.Close, contentDescription = "取消")
             }
         }
@@ -160,7 +183,11 @@ private fun FailedRow(task: DownloadTaskUi, onRetry: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        IconButton(onClick = onRetry) {
+        LoggedIconButton(
+            targetId = "downloading.row.resume",
+            screen = "downloading",
+            onClick = onRetry,
+        ) {
             Icon(Icons.Filled.Refresh, contentDescription = "重试")
         }
     }

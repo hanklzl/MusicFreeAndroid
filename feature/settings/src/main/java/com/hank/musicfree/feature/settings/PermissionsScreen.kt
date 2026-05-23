@@ -36,6 +36,7 @@ import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.FidelityAnchors
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.logUiClick
 
 @Composable
 fun PermissionsScreen(
@@ -96,6 +97,7 @@ fun PermissionsScreen(
                 actionText = if (uiState.overlayGranted) "已授权" else "去设置",
                 actionEnabled = !uiState.overlayGranted,
                 onAction = {
+                    logUiClick("settings.permissions.overlay", "permissions", "悬浮窗权限")
                     openOverlaySettings(context)
                 },
             )
@@ -105,6 +107,7 @@ fun PermissionsScreen(
                 actionText = if (uiState.storageAudioGranted) "已授权" else "请求权限",
                 actionEnabled = !uiState.storageAudioGranted,
                 onAction = {
+                    logUiClick("settings.permissions.storage_audio", "permissions", "存储/音频读取权限")
                     storagePermissionLauncher.launch(storagePermission)
                 },
             )
@@ -114,6 +117,7 @@ fun PermissionsScreen(
                 actionText = if (uiState.notificationGranted) "已授权" else "请求权限",
                 actionEnabled = !uiState.notificationGranted && notificationPermission != null,
                 onAction = {
+                    logUiClick("settings.permissions.notification", "permissions", "通知权限")
                     notificationPermission?.let(notificationPermissionLauncher::launch)
                 },
             )

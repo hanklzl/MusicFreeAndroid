@@ -21,6 +21,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.logUiClick
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.UiLogEvents
 import com.hank.musicfree.plugin.meta.SubscriptionItem
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,7 +61,10 @@ fun PluginSubscriptionScreen(
         onBack = onBack,
         modifier = modifier,
         floatingActionButton = {
-            FloatingActionButton(onClick = { openAddDialog() }) {
+            FloatingActionButton(onClick = {
+                logUiClick("plugin_subscription.toolbar.add", screen = "plugin_subscription")
+                openAddDialog()
+            }) {
                 Icon(Icons.Default.Add, contentDescription = "添加订阅")
             }
         },
@@ -85,7 +92,11 @@ fun PluginSubscriptionScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { openEditDialog(index, item) },
+                            .clickable {
+                                logUiClick("plugin_subscription.row.subscription", screen = "plugin_subscription",
+                                    extra = mapOf("name" to item.name))
+                                openEditDialog(index, item)
+                            },
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -125,8 +136,21 @@ fun PluginSubscriptionScreen(
 
     if (showDialog) {
         val isEditing = editingIndex >= 0
+        val dialogId = if (isEditing) "PluginSubscriptionEditDialog" else "PluginSubscriptionAddDialog"
+        MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_OPEN, mapOf(
+            UiLogEvents.Fields.DIALOG_ID to dialogId,
+            UiLogEvents.Fields.SCREEN to "plugin_subscription",
+            UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+        ))
         AlertDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = {
+                MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_DISMISS, mapOf(
+                    UiLogEvents.Fields.DIALOG_ID to dialogId,
+                    UiLogEvents.Fields.SCREEN to "plugin_subscription",
+                    UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                ))
+                showDialog = false
+            },
             title = { Text(if (isEditing) "编辑订阅" else "添加订阅") },
             text = {
                 Column {
@@ -151,6 +175,11 @@ fun PluginSubscriptionScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_DISMISS, mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to dialogId,
+                            UiLogEvents.Fields.SCREEN to "plugin_subscription",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CONFIRM,
+                        ))
                         if (isEditing) {
                             viewModel.updateSubscription(editingIndex, dialogName.trim(), dialogUrl.trim())
                         } else {
@@ -165,13 +194,26 @@ fun PluginSubscriptionScreen(
                 Row {
                     if (isEditing) {
                         TextButton(onClick = {
+                            logUiClick("plugin_subscription.row.delete", screen = "plugin_subscription")
+                            MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_DISMISS, mapOf(
+                                UiLogEvents.Fields.DIALOG_ID to dialogId,
+                                UiLogEvents.Fields.SCREEN to "plugin_subscription",
+                                UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                            ))
                             viewModel.removeSubscription(editingIndex)
                             showDialog = false
                         }) {
                             Text("删除", color = MaterialTheme.colorScheme.error)
                         }
                     }
-                    TextButton(onClick = { showDialog = false }) { Text("取消") }
+                    TextButton(onClick = {
+                        MfLog.detail(LogCategory.UI, UiLogEvents.DIALOG_DISMISS, mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to dialogId,
+                            UiLogEvents.Fields.SCREEN to "plugin_subscription",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                        ))
+                        showDialog = false
+                    }) { Text("取消") }
                 }
             },
         )

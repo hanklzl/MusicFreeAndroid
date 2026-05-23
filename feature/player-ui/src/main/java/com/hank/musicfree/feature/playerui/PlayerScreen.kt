@@ -87,6 +87,10 @@ import com.hank.musicfree.core.theme.IconSizes
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.AddToPlaylistBottomSheetContent
 import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.logUiClick
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.UiLogEvents
 import com.hank.musicfree.data.repository.LocalLyricKind
 import com.hank.musicfree.feature.playerui.component.more.PlayerMoreOptionsSheet
 import com.hank.musicfree.feature.playerui.component.quality.MusicQualitySheet
@@ -270,14 +274,81 @@ fun PlayerScreen(
                         currentQuality = currentQuality,
                         isDownloaded = isDownloaded,
                         currentSpeed = currentSpeed,
-                        onToggleFav = { viewModel.toggleCurrentFavorite() },
-                        onToggleLyrics = { selectContentPage(PlayerContentPage.Lyrics) },
-                        onQualityClick = { qualitySheetMode = MusicQualitySheetMode.Play },
-                        onDownloadClick = {
-                            if (!isDownloaded) qualitySheetMode = MusicQualitySheetMode.Download
+                        onToggleFav = {
+                            logUiClick(
+                                "player.controls.favorite_toggle",
+                                screen = "player",
+                                extra = mapOf(
+                                    "itemId" to (currentItem?.let { "${it.platform}@${it.id}" }),
+                                    "isFavorite" to isFav,
+                                ),
+                            )
+                            viewModel.toggleCurrentFavorite()
                         },
-                        onSpeedClick = { showRateSheet = true },
-                        onMoreClick = { showMoreOptionsSheet = true },
+                        onToggleLyrics = {
+                            logUiClick("player.controls.lyric_toggle", screen = "player")
+                            selectContentPage(PlayerContentPage.Lyrics)
+                        },
+                        onQualityClick = {
+                            logUiClick("player.controls.quality", screen = "player")
+                            MfLog.detail(
+                                LogCategory.UI,
+                                UiLogEvents.DIALOG_OPEN,
+                                mapOf(
+                                    UiLogEvents.Fields.DIALOG_ID to "MusicQualitySheet",
+                                    UiLogEvents.Fields.SCREEN to "player",
+                                    UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                                    "mode" to "play",
+                                ),
+                            )
+                            qualitySheetMode = MusicQualitySheetMode.Play
+                        },
+                        onDownloadClick = {
+                            logUiClick(
+                                "player.controls.download",
+                                screen = "player",
+                                extra = mapOf("isDownloaded" to isDownloaded),
+                            )
+                            if (!isDownloaded) {
+                                MfLog.detail(
+                                    LogCategory.UI,
+                                    UiLogEvents.DIALOG_OPEN,
+                                    mapOf(
+                                        UiLogEvents.Fields.DIALOG_ID to "MusicQualitySheet",
+                                        UiLogEvents.Fields.SCREEN to "player",
+                                        UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                                        "mode" to "download",
+                                    ),
+                                )
+                                qualitySheetMode = MusicQualitySheetMode.Download
+                            }
+                        },
+                        onSpeedClick = {
+                            logUiClick("player.controls.speed", screen = "player")
+                            MfLog.detail(
+                                LogCategory.UI,
+                                UiLogEvents.DIALOG_OPEN,
+                                mapOf(
+                                    UiLogEvents.Fields.DIALOG_ID to "PlayRateSheet",
+                                    UiLogEvents.Fields.SCREEN to "player",
+                                    UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                                ),
+                            )
+                            showRateSheet = true
+                        },
+                        onMoreClick = {
+                            logUiClick("player.controls.more", screen = "player")
+                            MfLog.detail(
+                                LogCategory.UI,
+                                UiLogEvents.DIALOG_OPEN,
+                                mapOf(
+                                    UiLogEvents.Fields.DIALOG_ID to "PlayerMoreOptionsSheet",
+                                    UiLogEvents.Fields.SCREEN to "player",
+                                    UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                                ),
+                            )
+                            showMoreOptionsSheet = true
+                        },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -298,14 +369,68 @@ fun PlayerScreen(
                         state = lyricsUiState,
                         onFontSize = {
                             val nextFontLevel = (lyricsUiState.fontSizeLevel + 1).mod(4)
+                            logUiClick(
+                                "player.lyrics.font_size",
+                                screen = "player",
+                                extra = mapOf("nextLevel" to nextFontLevel),
+                            )
                             viewModel.setLyricDetailFontSize(nextFontLevel)
                         },
-                        onOffset = { showLyricOffsetDialog = true },
-                        onSearch = ::openLyricAssociation,
+                        onOffset = {
+                            logUiClick("player.lyrics.offset", screen = "player")
+                            MfLog.detail(
+                                LogCategory.UI,
+                                UiLogEvents.DIALOG_OPEN,
+                                mapOf(
+                                    UiLogEvents.Fields.DIALOG_ID to "LyricOffsetDialog",
+                                    UiLogEvents.Fields.SCREEN to "player",
+                                    UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                                ),
+                            )
+                            showLyricOffsetDialog = true
+                        },
+                        onSearch = {
+                            logUiClick(
+                                "player.lyrics.search",
+                                screen = "player",
+                                extra = mapOf("associationType" to lyricAssociationType.name),
+                            )
+                            val dialogId = when (lyricAssociationType) {
+                                LyricAssociationType.Search -> "PlayerLyricSearchSheet"
+                                LyricAssociationType.Input -> "ManualLyricAssociationDialog"
+                            }
+                            MfLog.detail(
+                                LogCategory.UI,
+                                UiLogEvents.DIALOG_OPEN,
+                                mapOf(
+                                    UiLogEvents.Fields.DIALOG_ID to dialogId,
+                                    UiLogEvents.Fields.SCREEN to "player",
+                                    UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                                ),
+                            )
+                            openLyricAssociation()
+                        },
                         onToggleTranslation = {
+                            logUiClick(
+                                "player.lyrics.toggle_translation",
+                                screen = "player",
+                                extra = mapOf("nextShowTranslation" to !lyricsUiState.showTranslation),
+                            )
                             viewModel.setLyricShowTranslation(!lyricsUiState.showTranslation)
                         },
-                        onMore = { showMoreOptionsSheet = true },
+                        onMore = {
+                            logUiClick("player.lyrics.more", screen = "player")
+                            MfLog.detail(
+                                LogCategory.UI,
+                                UiLogEvents.DIALOG_OPEN,
+                                mapOf(
+                                    UiLogEvents.Fields.DIALOG_ID to "PlayerMoreOptionsSheet",
+                                    UiLogEvents.Fields.SCREEN to "player",
+                                    UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                                ),
+                            )
+                            showMoreOptionsSheet = true
+                        },
                     )
 
                     PlayerLyricsOperationsBottomSpacer()
@@ -315,7 +440,10 @@ fun PlayerScreen(
             PlayerSeekBar(
                 position = state.position,
                 duration = state.duration,
-                onSeek = { viewModel.seekTo(it) },
+                onSeek = {
+                    logUiClick("player.controls.seek", screen = "player")
+                    viewModel.seekTo(it)
+                },
                 modifier = Modifier
                     .padding(horizontal = rpx(48))
                     .testTag(PlayerSeekBarTestTag),
@@ -327,34 +455,129 @@ fun PlayerScreen(
                     shuffleEnabled = state.shuffleEnabled,
                     repeatMode = state.repeatMode,
                 ),
-                onTogglePlayPause = { viewModel.togglePlayPause() },
-                onSkipPrevious = { viewModel.skipToPrevious() },
-                onSkipNext = { viewModel.skipToNext() },
-                onCyclePlaybackMode = { viewModel.cyclePlaybackMode() },
-                onOpenQueue = { showQueueSheet = true },
+                onTogglePlayPause = {
+                    logUiClick(
+                        targetId = if (state.isPlaying) "player.controls.pause" else "player.controls.play",
+                        screen = "player",
+                    )
+                    viewModel.togglePlayPause()
+                },
+                onSkipPrevious = {
+                    logUiClick("player.controls.skip_previous", screen = "player")
+                    viewModel.skipToPrevious()
+                },
+                onSkipNext = {
+                    logUiClick("player.controls.skip_next", screen = "player")
+                    viewModel.skipToNext()
+                },
+                onCyclePlaybackMode = {
+                    logUiClick("player.controls.cycle_mode", screen = "player")
+                    viewModel.cyclePlaybackMode()
+                },
+                onOpenQueue = {
+                    logUiClick("player.controls.open_queue", screen = "player")
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_OPEN,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "PlayQueueSheet",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                        ),
+                    )
+                    showQueueSheet = true
+                },
             )
 
             Spacer(Modifier.height(rpx(48)))
         }
 
         // Add-to-playlist bottom sheet
+        LaunchedEffect(sheetState.visible) {
+            if (sheetState.visible) {
+                MfLog.detail(
+                    LogCategory.UI,
+                    UiLogEvents.DIALOG_OPEN,
+                    mapOf(
+                        UiLogEvents.Fields.DIALOG_ID to "AddToPlaylistSheet",
+                        UiLogEvents.Fields.SCREEN to "player",
+                        UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                    ),
+                )
+            }
+        }
         if (sheetState.visible) {
             var showCreateInSheet by remember { mutableStateOf(false) }
             ModalBottomSheet(
-                onDismissRequest = { viewModel.hideAddToPlaylistSheet() },
+                onDismissRequest = {
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_DISMISS,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "AddToPlaylistSheet",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.SYSTEM,
+                        ),
+                    )
+                    viewModel.hideAddToPlaylistSheet()
+                },
             ) {
                 AddToPlaylistBottomSheetContent(
                     playlists = allPlaylists,
-                    onSelect = { viewModel.addPendingToPlaylist(it.id) },
-                    onCreateNew = { showCreateInSheet = true },
+                    onSelect = {
+                        logUiClick(
+                            "player.sheet.add_to_playlist.select",
+                            screen = "player",
+                            extra = mapOf("playlistId" to it.id),
+                        )
+                        viewModel.addPendingToPlaylist(it.id)
+                    },
+                    onCreateNew = {
+                        logUiClick("player.sheet.add_to_playlist.create_new", screen = "player")
+                        MfLog.detail(
+                            LogCategory.UI,
+                            UiLogEvents.DIALOG_OPEN,
+                            mapOf(
+                                UiLogEvents.Fields.DIALOG_ID to "InlinePlayerCreatePlaylistDialog",
+                                UiLogEvents.Fields.SCREEN to "player",
+                                UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                            ),
+                        )
+                        showCreateInSheet = true
+                    },
                     folderPlusIcon = painterResource(id = R.drawable.ic_folder_plus),
                     favoriteCoverIcon = painterResource(id = R.drawable.ic_playlist_favorite_cover),
                 )
             }
             if (showCreateInSheet) {
                 InlinePlayerCreatePlaylistDialog(
-                    onDismiss = { showCreateInSheet = false },
+                    onDismiss = {
+                        MfLog.detail(
+                            LogCategory.UI,
+                            UiLogEvents.DIALOG_DISMISS,
+                            mapOf(
+                                UiLogEvents.Fields.DIALOG_ID to "InlinePlayerCreatePlaylistDialog",
+                                UiLogEvents.Fields.SCREEN to "player",
+                                UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                            ),
+                        )
+                        showCreateInSheet = false
+                    },
                     onCreate = { name ->
+                        logUiClick(
+                            "player.sheet.add_to_playlist.create_confirm",
+                            screen = "player",
+                            extra = mapOf("name" to name),
+                        )
+                        MfLog.detail(
+                            LogCategory.UI,
+                            UiLogEvents.DIALOG_DISMISS,
+                            mapOf(
+                                UiLogEvents.Fields.DIALOG_ID to "InlinePlayerCreatePlaylistDialog",
+                                UiLogEvents.Fields.SCREEN to "player",
+                                UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CONFIRM,
+                            ),
+                        )
                         viewModel.createPlaylistAndAddPending(name)
                         showCreateInSheet = false
                     },
@@ -366,8 +589,33 @@ fun PlayerScreen(
             PlayerLyricSearchSheet(
                 groups = lyricSearchResults,
                 loading = lyricSearchLoading,
-                onDismiss = { showLyricSearchSheet = false },
+                onDismiss = {
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_DISMISS,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "PlayerLyricSearchSheet",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.SYSTEM,
+                        ),
+                    )
+                    showLyricSearchSheet = false
+                },
                 onSelect = { target ->
+                    logUiClick(
+                        "player.sheet.lyric_search.select_result",
+                        screen = "player",
+                        extra = mapOf("targetId" to "${target.platform}@${target.id}"),
+                    )
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_DISMISS,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "PlayerLyricSearchSheet",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CONFIRM,
+                        ),
+                    )
                     viewModel.associateLyric(target)
                     showLyricSearchSheet = false
                     Toast.makeText(context, "已关联歌词", Toast.LENGTH_SHORT).show()
@@ -377,9 +625,33 @@ fun PlayerScreen(
 
         if (showManualLyricAssociationDialog) {
             ManualLyricAssociationDialog(
-                onDismiss = { showManualLyricAssociationDialog = false },
+                onDismiss = {
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_DISMISS,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "ManualLyricAssociationDialog",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CANCEL,
+                        ),
+                    )
+                    showManualLyricAssociationDialog = false
+                },
                 onConfirm = { input ->
+                    logUiClick(
+                        "player.dialog.manual_lyric_association.confirm",
+                        screen = "player",
+                    )
                     if (viewModel.associateLyricFromManualInput(input)) {
+                        MfLog.detail(
+                            LogCategory.UI,
+                            UiLogEvents.DIALOG_DISMISS,
+                            mapOf(
+                                UiLogEvents.Fields.DIALOG_ID to "ManualLyricAssociationDialog",
+                                UiLogEvents.Fields.SCREEN to "player",
+                                UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CONFIRM,
+                            ),
+                        )
                         showManualLyricAssociationDialog = false
                         Toast.makeText(context, "已关联歌词", Toast.LENGTH_SHORT).show()
                     } else {
@@ -396,38 +668,87 @@ fun PlayerScreen(
         if (showLyricOffsetDialog) {
             LyricOffsetDialog(
                 currentOffsetMs = lyricsUiState.userOffsetMs,
-                onDismiss = { showLyricOffsetDialog = false },
+                onDismiss = {
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_DISMISS,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "LyricOffsetDialog",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.SYSTEM,
+                        ),
+                    )
+                    showLyricOffsetDialog = false
+                },
                 onSetOffset = viewModel::setLyricOffset,
             )
         }
 
         if (showMoreOptionsSheet && currentItem != null) {
+            fun dismissMoreSheet(outcome: String) {
+                MfLog.detail(
+                    LogCategory.UI,
+                    UiLogEvents.DIALOG_DISMISS,
+                    mapOf(
+                        UiLogEvents.Fields.DIALOG_ID to "PlayerMoreOptionsSheet",
+                        UiLogEvents.Fields.SCREEN to "player",
+                        UiLogEvents.Fields.OUTCOME to outcome,
+                    ),
+                )
+            }
             PlayerMoreOptionsSheet(
                 item = currentItem,
                 desktopLyricEnabled = desktopLyricOverlayState.enabled,
                 isDownloaded = isDownloaded,
-                onDismiss = { showMoreOptionsSheet = false },
+                onDismiss = {
+                    dismissMoreSheet(UiLogEvents.Outcome.SYSTEM)
+                    showMoreOptionsSheet = false
+                },
                 onPlayNext = {
+                    logUiClick("player.sheet.more.play_next", screen = "player")
+                    dismissMoreSheet(UiLogEvents.Outcome.CONFIRM)
                     showMoreOptionsSheet = false
                     viewModel.playCurrentNext()
                     Toast.makeText(context, "已加入下一首播放", Toast.LENGTH_SHORT).show()
                 },
                 onAddToPlaylist = {
+                    logUiClick("player.sheet.more.add_to_playlist", screen = "player")
+                    dismissMoreSheet(UiLogEvents.Outcome.CONFIRM)
                     showMoreOptionsSheet = false
                     viewModel.showAddToPlaylistSheet()
                 },
                 onDownload = {
+                    logUiClick("player.sheet.more.download", screen = "player")
+                    dismissMoreSheet(UiLogEvents.Outcome.CONFIRM)
                     showMoreOptionsSheet = false
                     if (!isDownloaded) {
+                        MfLog.detail(
+                            LogCategory.UI,
+                            UiLogEvents.DIALOG_OPEN,
+                            mapOf(
+                                UiLogEvents.Fields.DIALOG_ID to "MusicQualitySheet",
+                                UiLogEvents.Fields.SCREEN to "player",
+                                UiLogEvents.Fields.TRIGGER to UiLogEvents.Trigger.UI_CLICK,
+                                "mode" to "download",
+                            ),
+                        )
                         qualitySheetMode = MusicQualitySheetMode.Download
                     }
                 },
                 onClearPluginCache = {
+                    logUiClick("player.sheet.more.clear_plugin_cache", screen = "player")
+                    dismissMoreSheet(UiLogEvents.Outcome.CONFIRM)
                     showMoreOptionsSheet = false
                     viewModel.clearCurrentPluginCache()
                     Toast.makeText(context, "缓存已清除", Toast.LENGTH_SHORT).show()
                 },
                 onToggleDesktopLyric = {
+                    logUiClick(
+                        "player.sheet.more.toggle_desktop_lyric",
+                        screen = "player",
+                        extra = mapOf("currentlyEnabled" to desktopLyricOverlayState.enabled),
+                    )
+                    dismissMoreSheet(UiLogEvents.Outcome.CONFIRM)
                     showMoreOptionsSheet = false
                     if (desktopLyricOverlayState.enabled) {
                         viewModel.setDesktopLyricEnabled(false)
@@ -443,16 +764,22 @@ fun PlayerScreen(
                     }
                 },
                 onImportRawLyric = {
+                    logUiClick("player.sheet.more.import_raw_lyric", screen = "player")
+                    dismissMoreSheet(UiLogEvents.Outcome.CONFIRM)
                     showMoreOptionsSheet = false
                     pendingImportKind = LocalLyricKind.Raw
                     openLyricDocument.launch(arrayOf("text/*", "application/octet-stream"))
                 },
                 onImportTranslatedLyric = {
+                    logUiClick("player.sheet.more.import_translated_lyric", screen = "player")
+                    dismissMoreSheet(UiLogEvents.Outcome.CONFIRM)
                     showMoreOptionsSheet = false
                     pendingImportKind = LocalLyricKind.Translation
                     openLyricDocument.launch(arrayOf("text/*", "application/octet-stream"))
                 },
                 onDeleteLocalLyric = {
+                    logUiClick("player.sheet.more.delete_local_lyric", screen = "player")
+                    dismissMoreSheet(UiLogEvents.Outcome.CONFIRM)
                     viewModel.deleteLocalLyric()
                     showMoreOptionsSheet = false
                     Toast.makeText(context, "已删除本地歌词", Toast.LENGTH_SHORT).show()
@@ -466,7 +793,18 @@ fun PlayerScreen(
         if (showQueueSheet) {
             PlayQueueSheet(
                 viewModel = viewModel,
-                onDismiss = { showQueueSheet = false },
+                onDismiss = {
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_DISMISS,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "PlayQueueSheet",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.SYSTEM,
+                        ),
+                    )
+                    showQueueSheet = false
+                },
             )
         }
 
@@ -475,8 +813,38 @@ fun PlayerScreen(
                 current = currentQuality,
                 mode = mode,
                 availableQualities = currentItem?.qualities,
-                onDismiss = { qualitySheetMode = null },
+                onDismiss = {
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_DISMISS,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "MusicQualitySheet",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.SYSTEM,
+                            "mode" to mode.name.lowercase(),
+                        ),
+                    )
+                    qualitySheetMode = null
+                },
                 onSelect = { quality ->
+                    logUiClick(
+                        "player.sheet.quality.select",
+                        screen = "player",
+                        extra = mapOf(
+                            "quality" to quality.name,
+                            "mode" to mode.name.lowercase(),
+                        ),
+                    )
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_DISMISS,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "MusicQualitySheet",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CONFIRM,
+                            "mode" to mode.name.lowercase(),
+                        ),
+                    )
                     when (mode) {
                         MusicQualitySheetMode.Play -> {
                             viewModel.setCurrentQuality(quality)
@@ -498,8 +866,33 @@ fun PlayerScreen(
         if (showRateSheet) {
             PlayRateSheet(
                 current = currentSpeed,
-                onDismiss = { showRateSheet = false },
+                onDismiss = {
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_DISMISS,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "PlayRateSheet",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.SYSTEM,
+                        ),
+                    )
+                    showRateSheet = false
+                },
                 onSelect = { rate ->
+                    logUiClick(
+                        "player.sheet.rate.select",
+                        screen = "player",
+                        extra = mapOf("rate" to rate),
+                    )
+                    MfLog.detail(
+                        LogCategory.UI,
+                        UiLogEvents.DIALOG_DISMISS,
+                        mapOf(
+                            UiLogEvents.Fields.DIALOG_ID to "PlayRateSheet",
+                            UiLogEvents.Fields.SCREEN to "player",
+                            UiLogEvents.Fields.OUTCOME to UiLogEvents.Outcome.CONFIRM,
+                        ),
+                    )
                     viewModel.setPlaybackSpeed(rate)
                     showRateSheet = false
                 },

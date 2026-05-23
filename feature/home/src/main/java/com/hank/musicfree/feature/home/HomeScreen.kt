@@ -15,6 +15,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hank.musicfree.core.navigation.SettingsType
 import com.hank.musicfree.core.runtime.rememberUiRuntimeStore
+import com.hank.musicfree.core.ui.logUiClick
 import com.hank.musicfree.feature.home.playlist.CreatePlaylistDialog
 import com.hank.musicfree.feature.home.playlistimport.PlaylistImportRoute
 import com.hank.musicfree.feature.home.playlistimport.PlaylistImportViewModel
@@ -109,6 +110,19 @@ fun HomeScreen(
         downloadManager = updateBadgeViewModel.downloadManager,
         installer = updateBadgeViewModel.installer,
         onDrawerEntryClick = { action ->
+            val targetId = when (action) {
+                HomeDrawerAction.OpenListenStats -> "home.drawer.listen_stats"
+                HomeDrawerAction.OpenTrafficStats -> "home.drawer.traffic_stats"
+                HomeDrawerAction.OpenSettingsRoot -> "home.drawer.settings_basic"
+                HomeDrawerAction.OpenPluginManagement -> "home.drawer.plugin_list"
+                HomeDrawerAction.OpenThemeSettings -> "home.drawer.settings_theme"
+                HomeDrawerAction.OpenBackup -> "home.drawer.settings_backup"
+                HomeDrawerAction.OpenAbout -> "home.drawer.settings_about"
+                HomeDrawerAction.OpenPermissions -> "home.drawer.permissions"
+                HomeDrawerAction.ShowScheduleClosePanel -> "home.drawer.schedule_close"
+                HomeDrawerAction.TriggerManualUpdateCheck -> "home.drawer.check_update"
+            }
+            logUiClick(targetId, screen = "home")
             when (action) {
                 HomeDrawerAction.OpenListenStats -> onNavigateToListenStats()
                 HomeDrawerAction.OpenTrafficStats -> onNavigateToTrafficStats()
@@ -122,17 +136,50 @@ fun HomeScreen(
                 HomeDrawerAction.TriggerManualUpdateCheck -> Unit
             }
         },
-        onNavigateToSearch = onNavigateToSearch,
-        onNavigateToRecommendSheets = onNavigateToRecommendSheets,
-        onNavigateToTopList = onNavigateToTopList,
-        onNavigateToHistory = onNavigateToHistory,
-        onNavigateToLocal = onNavigateToLocal,
-        onSelectTab = { uiRuntimeStore.setHomeTab(it.name) },
-        onCreateClick = { showCreateDialog = true },
-        onImportClick = { importViewModel.openImportSheet() },
-        onOpenMineSheet = { sheetId -> onNavigateToPlaylistDetail(sheetId) },
-        onOpenStarredSheet = onNavigateToStarredSheet,
-        onOpenStarredAlbum = onNavigateToStarredAlbum,
+        onNavigateToSearch = {
+            logUiClick("home.search_bar", screen = "home", targetLabel = "搜索")
+            onNavigateToSearch()
+        },
+        onNavigateToRecommendSheets = {
+            logUiClick("home.recommend_sheets", screen = "home")
+            onNavigateToRecommendSheets()
+        },
+        onNavigateToTopList = {
+            logUiClick("home.top_list", screen = "home")
+            onNavigateToTopList()
+        },
+        onNavigateToHistory = {
+            logUiClick("home.history", screen = "home")
+            onNavigateToHistory()
+        },
+        onNavigateToLocal = {
+            logUiClick("home.local", screen = "home")
+            onNavigateToLocal()
+        },
+        onSelectTab = {
+            logUiClick("home.sheet_tab.${it.name.lowercase()}", screen = "home")
+            uiRuntimeStore.setHomeTab(it.name)
+        },
+        onCreateClick = {
+            logUiClick("home.sheet.create", screen = "home")
+            showCreateDialog = true
+        },
+        onImportClick = {
+            logUiClick("home.sheet.import", screen = "home")
+            importViewModel.openImportSheet()
+        },
+        onOpenMineSheet = { sheetId ->
+            logUiClick("home.sheet.mine_row", screen = "home", extra = mapOf("sheetId" to sheetId))
+            onNavigateToPlaylistDetail(sheetId)
+        },
+        onOpenStarredSheet = {
+            logUiClick("home.sheet.starred_sheet_row", screen = "home", extra = mapOf("id" to it.id))
+            onNavigateToStarredSheet(it)
+        },
+        onOpenStarredAlbum = {
+            logUiClick("home.sheet.starred_album_row", screen = "home", extra = mapOf("id" to it.id))
+            onNavigateToStarredAlbum(it)
+        },
         onTrashClick = { row ->
             pendingUnstar = row
             MfLog.detail(

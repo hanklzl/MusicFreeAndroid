@@ -32,6 +32,7 @@ import com.hank.musicfree.core.model.SearchResultClickAction
 import com.hank.musicfree.core.model.SortMode
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.core.ui.logUiClick
 import com.hank.musicfree.feature.settings.components.SettingActionRow
 import com.hank.musicfree.feature.settings.components.SettingSectionCard
 import com.hank.musicfree.feature.settings.components.SettingSwitchRow
@@ -274,7 +275,10 @@ fun BasicSettingsContent(
                     title = "下载路径",
                     value = storageDirectoryLabel(state.storageAccessState),
                     enabled = true,
-                    onClick = onNavigateToFileSelector,
+                    onClick = {
+                        logUiClick("settings.row.file_selector", "settings", "下载路径")
+                        onNavigateToFileSelector()
+                    },
                 )
                 SettingValueRow(
                     title = "最大同时下载数目",
@@ -395,17 +399,26 @@ fun BasicSettingsContent(
                     title = "清除音乐缓存",
                     enabled = !state.cacheActionInProgress,
                     trailingText = state.cacheActionMessage.orEmpty(),
-                    onClick = onClearMusicCache,
+                    onClick = {
+                        logUiClick("settings.row.clear_music_cache", "settings", "清除音乐缓存")
+                        onClearMusicCache()
+                    },
                 )
                 SettingActionRow(
                     title = "清除歌词缓存",
                     enabled = !state.cacheActionInProgress,
-                    onClick = onClearLyricCache,
+                    onClick = {
+                        logUiClick("settings.row.clear_lyric_cache", "settings", "清除歌词缓存")
+                        onClearLyricCache()
+                    },
                 )
                 SettingActionRow(
                     title = "清除图片缓存",
                     enabled = !state.cacheActionInProgress,
-                    onClick = onClearImageCache,
+                    onClick = {
+                        logUiClick("settings.row.clear_image_cache", "settings", "清除图片缓存")
+                        onClearImageCache()
+                    },
                 )
             }
         }
@@ -432,19 +445,28 @@ fun BasicSettingsContent(
                 SettingActionRow(
                     title = "查看错误日志",
                     enabled = true,
-                    onClick = onViewErrorLog,
+                    onClick = {
+                        logUiClick("settings.row.view_error_log", "settings", "查看错误日志")
+                        onViewErrorLog()
+                    },
                 )
                 SettingActionRow(
                     title = "生成日志包并分享",
                     enabled = !isFeedbackActionInProgress,
                     trailingText = if (feedbackExportState.isExporting) "生成中" else "",
-                    onClick = onCreateFeedbackPackage,
+                    onClick = {
+                        logUiClick("settings.row.feedback", "settings", "生成日志包并分享")
+                        onCreateFeedbackPackage()
+                    },
                 )
                 SettingActionRow(
                     title = "清空日志",
                     enabled = !isFeedbackActionInProgress,
                     trailingText = if (feedbackExportState.isClearing) "清理中" else "",
-                    onClick = onClearLogs,
+                    onClick = {
+                        logUiClick("settings.row.clear_logs", "settings", "清空日志")
+                        onClearLogs()
+                    },
                 )
             }
         }

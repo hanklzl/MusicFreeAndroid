@@ -54,6 +54,7 @@ import com.hank.musicfree.feature.playerui.component.MiniPlayer
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.UiLogEvents
 import com.hank.musicfree.navigation.AppNavHost
 import com.hank.musicfree.startup.StartupTelemetry
 import com.hank.musicfree.startup.StartupTelemetry.StartupActivitySession
@@ -87,14 +88,26 @@ class MainActivity : ComponentActivity() {
     lateinit var themeRepository: ThemeRepository
 
     private var startupSession: StartupActivitySession? = null
+    private var activityCreatedAtMs: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val startup = StartupTelemetry.beginActivityCreate()
         startupSession = startup
+        activityCreatedAtMs = System.currentTimeMillis()
         startup.logInstant(
             event = "app_startup_activity_create_start",
             phase = "activity_create_start",
             result = LogFields.Result.SUCCESS,
+        )
+        MfLog.detail(
+            LogCategory.APP,
+            UiLogEvents.ACTIVITY_CREATED,
+            mapOf(
+                UiLogEvents.Fields.ACTIVITY to javaClass.simpleName,
+                UiLogEvents.Fields.HAS_SAVED_STATE to (savedInstanceState != null),
+                UiLogEvents.Fields.IS_COLD_START to (savedInstanceState == null),
+                UiLogEvents.Fields.IS_CONFIG_CHANGE to (savedInstanceState != null),
+            ),
         )
         val splashPhase = startup.startPhase("splash_installed")
         installSplashScreen()
@@ -247,6 +260,28 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         startupSession?.let(StartupTelemetry::recordActivityResume)
+    }
+
+    override fun onDestroy() {
+        val now = System.currentTimeMillis()
+        val lifetimeMs = if (activityCreatedAtMs > 0L) (now - activityCreatedAtMs).coerceAtLeast(0L) else 0L
+        val reason = when {
+            isFinishing -> "user_explicit_finish"
+            isChangingConfigurations -> "configuration_change"
+            else -> "system_destroy"
+        }
+        MfLog.detail(
+            LogCategory.APP,
+            UiLogEvents.ACTIVITY_DESTROYED,
+            mapOf(
+                UiLogEvents.Fields.ACTIVITY to javaClass.simpleName,
+                UiLogEvents.Fields.REASON to reason,
+                UiLogEvents.Fields.IS_FINISHING to isFinishing,
+                UiLogEvents.Fields.IS_CHANGING_CONFIG to isChangingConfigurations,
+                UiLogEvents.Fields.LIFETIME_MS to lifetimeMs,
+            ),
+        )
+        super.onDestroy()
     }
 }
 

@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
+import com.hank.musicfree.core.ui.logUiClick
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -40,6 +41,8 @@ fun PluginSortScreen(
     val platforms by viewModel.sortedPlatforms.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        logUiClick("plugin_sort.row.drag_handle", screen = "plugin_sort",
+            extra = mapOf("from" to from.index, "to" to to.index))
         viewModel.onReorder(from.index, to.index)
     }
 
@@ -49,6 +52,7 @@ fun PluginSortScreen(
         modifier = modifier,
         actions = {
             TextButton(onClick = {
+                logUiClick("plugin_sort.row.reset", screen = "plugin_sort")
                 viewModel.saveOrder()
                 onBack()
             }) {
