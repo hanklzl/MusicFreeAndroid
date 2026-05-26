@@ -2,6 +2,7 @@ package com.hank.musicfree.player.controller
 
 import android.content.Context
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import com.hank.musicfree.core.media.MediaSourceResolution
 import com.hank.musicfree.core.media.MediaSourceResolver
@@ -211,6 +212,94 @@ class PlayerControllerNotificationControlsTest {
                     controller.playQueue.currentItem?.url == "https://cdn.example.test/1.mp3"
             }
         } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `app play reloads restored queue when prepared media item is stale`() {
+        val resolver = RecordingResolver(
+            resolvedUrl = "https://cdn.example.test/1.mp3",
+        )
+        val controller = PlayerController(
+            context,
+            resolver,
+            listenTracker = mock<ListenTracker>(),
+            currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(),
+            playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
+        )
+        val staleMediaItem = MediaItem.Builder().setMediaId("test:stale").build()
+        val mockMediaController = mock<MediaController> {
+            on { currentMediaItem } doReturn staleMediaItem
+            on { playbackState } doReturn Player.STATE_READY
+        }
+        controller.setMediaControllerForTest(mockMediaController)
+
+        try {
+            controller.restoreQueue(
+                items = listOf(testItem("1").copy(url = null)),
+                startIndex = 0,
+                playWhenRestored = false,
+            )
+
+            controller.play()
+
+            waitUntil("app play resolves stale restored queue item") {
+                resolver.requestedIds == listOf("1")
+            }
+            waitUntil("app play sets media item before play") {
+                runCatching {
+                    val ordered = inOrder(mockMediaController)
+                    ordered.verify(mockMediaController).setMediaItem(any())
+                    ordered.verify(mockMediaController).play()
+                }.isSuccess
+            }
+        } finally {
+            controller.setMediaControllerForTest(null)
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `app play reloads restored queue when controller is idle`() {
+        val resolver = RecordingResolver(
+            resolvedUrl = "https://cdn.example.test/1.mp3",
+        )
+        val controller = PlayerController(
+            context,
+            resolver,
+            listenTracker = mock<ListenTracker>(),
+            currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(),
+            playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
+        )
+        val matchingMediaItem = MediaItem.Builder().setMediaId("test:1").build()
+        val mockMediaController = mock<MediaController> {
+            on { currentMediaItem } doReturn matchingMediaItem
+            on { playbackState } doReturn Player.STATE_IDLE
+        }
+        controller.setMediaControllerForTest(mockMediaController)
+
+        try {
+            controller.restoreQueue(
+                items = listOf(testItem("1").copy(url = null)),
+                startIndex = 0,
+                playWhenRestored = false,
+            )
+
+            controller.play()
+
+            waitUntil("app play resolves idle restored queue item") {
+                resolver.requestedIds == listOf("1")
+            }
+            waitUntil("idle app play sets media item before play") {
+                runCatching {
+                    val ordered = inOrder(mockMediaController)
+                    ordered.verify(mockMediaController).setMediaItem(any())
+                    ordered.verify(mockMediaController).play()
+                }.isSuccess
+            }
+        } finally {
+            controller.setMediaControllerForTest(null)
             controller.release()
         }
     }

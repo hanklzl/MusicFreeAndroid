@@ -64,6 +64,10 @@ for entry in "${SKILLS[@]}"; do
   fi
 
   for tool_root in .claude/skills .codex/skills; do
+    if [[ -L "$tool_root" ]]; then
+      check_link "$tool_root" ".agents/skills" || errors=$((errors + 1))
+      continue
+    fi
     link="$tool_root/$name"
     expected="$agents_dir"
     check_link "$link" "$expected" || errors=$((errors + 1))

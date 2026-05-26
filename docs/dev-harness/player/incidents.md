@@ -2,7 +2,35 @@
 
 > 文档状态：当前规范（Dev Harness — Player Incidents）
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [Incidents Index](../incidents/index.md) ｜ [player/rules.md](./rules.md)
-> 最后校验：2026-05-09
+> 最后校验：2026-05-26
+
+## INC-2026-0024 — 冷启动恢复后通知栏与 mini player 状态分叉
+
+- id: INC-2026-0024
+- area: player
+- date: 2026-05-26
+- status: active
+- rule_ref: docs/dev-harness/player/rules.md#rule-restored-play-command-source-isolation
+- guard:
+    type: contract-test
+    target: player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerNotificationControlsTest.kt, player/src/test/java/com/hank/musicfree/player/service/PlaybackServiceCommandRoutingTest.kt
+- fix_ref: GitHub Issue #8
+
+### 根因
+
+冷启动恢复队列后，app 内 `MediaController` 可能仍持有 stale / idle 的 `currentMediaItem` 缓存，而 `PlaybackService.session.player` 为空。旧 `PlayerController.play()` 只判断 `currentMediaItem != null` 就直接 `controller.play()`；随后 `PlaybackService.onPlayerCommandRequest` 又把来自 app 自己包名的 empty-session `COMMAND_PLAY_PAUSE` 当作通知栏兜底，重复触发 `PlaybackNotificationCommandHandler.play()`，造成系统媒体控件和 mini player 状态短暂或持续不同步。
+
+### 复发条件
+
+修改 `PlayerController.play()`、`PlaybackService.onPlayerCommandRequest` 或通知命令 handler 后，以下任一断言被破坏：
+
+- restored queue + stale / idle controller 时，app 内 `play()` 没有先 `setMediaItem` 再 `play()`。
+- `controller.packageName == packageName` 的 app 内 empty-session `PLAY_PAUSE` 被转发到 notification fallback。
+- 外部 / 系统控制器 empty-session `PLAY_PAUSE` 无法恢复队列当前项。
+
+### 教训
+
+controller 缓存与 session player 不是同一个事实源；冷启动恢复链路必须用队列当前项和 controller 状态共同判定是否需要重新装载。empty-session fallback 只属于外部媒体控制入口，app 自己的 controller 命令必须跳过该 fallback，并保留足够诊断字段供反馈包还原。
 
 ## INC-2026-0012 — 歌词自动跟随重复触发 / seek overlay 错位
 

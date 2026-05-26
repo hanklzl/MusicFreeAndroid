@@ -5,7 +5,7 @@
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
 > 设计来源：[Dev Harness 基础设施设计](../../superpowers/specs/2026-05-09-dev-harness-foundation-design.md)、[播放器状态栏避让设计](../../superpowers/specs/2026-05-04-player-statusbar-inset-design.md)、[播放页歌词交互修正设计](../../superpowers/specs/2026-05-05-player-lyrics-interaction-fix-design.md)、[歌词纯秒小数时间戳修复设计](../../superpowers/specs/2026-05-10-lyric-second-only-timestamp-fix-design.md)
-> 最后校验：2026-05-10
+> 最后校验：2026-05-26
 
 ## 强制入口
 
@@ -48,6 +48,15 @@ implemented_by: INC-2026-0022
 - `PlaybackService.onPlayerCommandRequest` MUST NOT 在 `session.player.mediaItemCount == 0` 路径里同步触发任何最终会经 `MediaController` IPC 回到 `onPlayerCommandRequest` 自身的 `controller.play()` 调用；否则会形成同步无限递归直到 `StackOverflowError`。
 - `PlayerController.playFromNotification`（即 `PlaybackNotificationCommandHandler.play()` 的回调）MUST 总是经 `activateCurrentQueueItem` / `setMediaItemAndPlay` 等先 `setMediaItem` 再 `play` 的路径加载队列项，禁止根据 `mediaController.currentMediaItem` 走 `play() → controller.play()` 的捷径——controller 缓存与 session player 可能短暂不一致。
 - 任何改 `onPlayerCommandRequest` 或 `playFromNotification` 的 PR MUST 跑 `:player:testDebugUnitTest --tests *PlayerControllerNotificationControlsTest*`。
+
+## 恢复队列播放命令来源隔离 {#rule-restored-play-command-source-isolation}
+
+implemented_by: INC-2026-0024
+
+- `PlayerController.play()` 在 restored queue / 冷启动恢复后，若 `MediaController.currentMediaItem == null`、`MediaController.playbackState == STATE_IDLE`，或 `currentMediaItem.mediaId` 与队列当前项不一致，MUST 先走 `activateCurrentQueueItem` / `setMediaItemAndPlay` 重新装载队列当前项，再触发 `play()`；不得只因 controller 缓存非空就直接 `controller.play()`。
+- `PlaybackService.onPlayerCommandRequest` 处理 empty-session `COMMAND_PLAY_PAUSE` 时 MUST 区分命令来源：`controller.packageName == packageName` 的 app 内 controller 命令不得转发到 `PlaybackNotificationCommandHandler.play()`；仅外部 / 系统控制器可走通知栏 empty-session 兜底。
+- 该链路日志 MUST 至少包含 `controllerPackage`、`isAppController`、`sessionMediaItemCount`、`playerPlaybackState`、`queueIndex`、`queueSize`、`currentItemId`，用于反馈包判断系统媒体控件与 app 内 player state 是否分叉。
+- 任何改 `PlayerController.play()`、`PlaybackService.onPlayerCommandRequest` 或 `PlaybackNotificationCommandHandler` 诊断字段的 PR MUST 跑 `:player:testDebugUnitTest --tests *PlayerControllerNotificationControlsTest* --tests *PlaybackServiceCommandRoutingTest*`。
 
 ## 歌词解析时间戳格式 {#rule-lyric-parser-supports-second-only-timestamp}
 

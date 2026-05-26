@@ -366,14 +366,34 @@ class SplashScreenResourceContractTest {
     }
 
     private fun locateRnMain(projectRoot: Path): Path {
-        val candidates = listOf(
+        val mainCheckoutRoot = locateMainCheckoutRootFromLinkedWorktree(projectRoot)
+        val candidates = listOfNotNull(
             projectRoot.resolve("../MusicFree/android/app/src/main").normalize(),
             projectRoot.resolve("../../MusicFree/android/app/src/main").normalize(),
             projectRoot.resolve("../../../MusicFree/android/app/src/main").normalize(),
             projectRoot.resolve("../../../../MusicFree/android/app/src/main").normalize(),
+            mainCheckoutRoot?.resolve("../MusicFree/android/app/src/main")?.normalize(),
         )
 
         return candidates.firstOrNull { Files.isDirectory(it) }
             ?: error("Could not locate RN Android source root from $projectRoot")
+    }
+
+    private fun locateMainCheckoutRootFromLinkedWorktree(projectRoot: Path): Path? {
+        val gitFile = projectRoot.resolve(".git")
+        if (!Files.isRegularFile(gitFile)) return null
+        val gitDirValue = Files.readString(gitFile)
+            .lineSequence()
+            .firstOrNull()
+            ?.removePrefix("gitdir:")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: return null
+        val gitDir = Paths.get(gitDirValue).let { path ->
+            if (path.isAbsolute) path else projectRoot.resolve(path).normalize()
+        }
+        val worktreesDir = gitDir.parent?.takeIf { it.fileName.toString() == "worktrees" }
+            ?: return null
+        return worktreesDir.parent?.parent
     }
 }

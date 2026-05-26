@@ -5,6 +5,22 @@ interface PlaybackNotificationQueueControls {
     fun skipToNextFromNotification()
     fun playFromNotification()
     fun closeFromNotification()
+    fun notificationDiagnostics(): PlaybackNotificationQueueDiagnostics =
+        PlaybackNotificationQueueDiagnostics.EMPTY
+}
+
+data class PlaybackNotificationQueueDiagnostics(
+    val queueIndex: Int,
+    val queueSize: Int,
+    val currentItemId: String?,
+) {
+    companion object {
+        val EMPTY = PlaybackNotificationQueueDiagnostics(
+            queueIndex = -1,
+            queueSize = 0,
+            currentItemId = null,
+        )
+    }
 }
 
 object PlaybackNotificationCommandHandler {
@@ -36,6 +52,9 @@ object PlaybackNotificationCommandHandler {
     fun close() {
         controls?.closeFromNotification()
     }
+
+    fun diagnosticsSnapshot(): PlaybackNotificationQueueDiagnostics =
+        controls?.notificationDiagnostics() ?: PlaybackNotificationQueueDiagnostics.EMPTY
 
     internal fun detachAllForTest() {
         controls = null

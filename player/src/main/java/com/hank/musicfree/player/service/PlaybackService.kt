@@ -121,18 +121,39 @@ class PlaybackService : MediaSessionService() {
             controller: MediaSession.ControllerInfo,
             playerCommand: Int,
         ): Int {
-            if (playerCommand == Player.COMMAND_PLAY_PAUSE && session.player.mediaItemCount == 0) {
+            val sessionMediaItemCount = session.player.mediaItemCount
+            if (playerCommand == Player.COMMAND_PLAY_PAUSE && sessionMediaItemCount == 0) {
+                val diagnostics = PlaybackNotificationCommandHandler.diagnosticsSnapshot()
+                val isAppController = controller.packageName == packageName
+                val shouldRouteToNotification = shouldRouteEmptySessionPlayToNotification(
+                    playerCommand = playerCommand,
+                    sessionMediaItemCount = sessionMediaItemCount,
+                    controllerPackage = controller.packageName,
+                    servicePackage = packageName,
+                )
                 MfLog.detail(
                     category = LogCategory.PLAYER,
                     event = "playback_notification_player_command",
                     fields = mapOf(
-                        "status" to "start",
+                        "status" to if (shouldRouteToNotification) "start" else "skipped",
                         "command" to "play_pause",
-                        "reason" to "empty_session_player",
+                        "reason" to if (shouldRouteToNotification) {
+                            "empty_session_player"
+                        } else {
+                            "app_controller_empty_session_player"
+                        },
                         "controllerPackage" to controller.packageName,
+                        "isAppController" to isAppController,
+                        "sessionMediaItemCount" to sessionMediaItemCount,
+                        "playerPlaybackState" to session.player.playbackState,
+                        "queueIndex" to diagnostics.queueIndex,
+                        "queueSize" to diagnostics.queueSize,
+                        "currentItemId" to diagnostics.currentItemId.orEmpty(),
                     ),
                 )
-                PlaybackNotificationCommandHandler.play()
+                if (shouldRouteToNotification) {
+                    PlaybackNotificationCommandHandler.play()
+                }
             }
             return SessionResult.RESULT_SUCCESS
         }
@@ -338,6 +359,17 @@ class PlaybackService : MediaSessionService() {
             withContext(Dispatchers.IO) {
                 !settings.allowConcurrentPlayback()
             }
+
+        internal fun shouldRouteEmptySessionPlayToNotification(
+            playerCommand: Int,
+            sessionMediaItemCount: Int,
+            controllerPackage: String,
+            servicePackage: String,
+        ): Boolean {
+            return playerCommand == Player.COMMAND_PLAY_PAUSE &&
+                sessionMediaItemCount == 0 &&
+                controllerPackage != servicePackage
+        }
 
         internal suspend fun flushLastPositionTo(
             prefs: AppPreferences,

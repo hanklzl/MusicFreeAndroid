@@ -31,6 +31,7 @@ import com.hank.musicfree.player.network.PlaybackNetworkStateProvider
 import com.hank.musicfree.player.queue.PlayQueue
 import com.hank.musicfree.player.queue.PlayQueueSnapshot
 import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
+import com.hank.musicfree.player.service.PlaybackNotificationQueueDiagnostics
 import com.hank.musicfree.player.service.PlaybackNotificationQueueControls
 import com.hank.musicfree.player.service.PlaybackService
 import com.hank.musicfree.player.listening.ListenTracker
@@ -218,7 +219,22 @@ class PlayerController @Inject constructor(
 
     fun play() {
         withConnectedController { controller ->
-            if (controller.currentMediaItem == null) {
+            val activationReason = queueActivationReasonForPlay(controller)
+            if (activationReason != null) {
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "player_play_queue_activation_required",
+                    fields = mapOf(
+                        "status" to "start",
+                        "operation" to "play",
+                        "reason" to activationReason,
+                        "queueIndex" to playQueue.currentIndex,
+                        "queueSize" to playQueue.size,
+                        "currentItemId" to playQueue.currentItem?.id.orEmpty(),
+                        "preparedMediaId" to controller.currentMediaItem?.mediaId.orEmpty(),
+                        "controllerPlaybackState" to controller.playbackState,
+                    ),
+                )
                 activateCurrentQueueItem(operation = "play")
             } else {
                 controller.play()
@@ -368,11 +384,22 @@ class PlayerController @Inject constructor(
                 "status" to "start",
                 "operation" to "notification_play",
                 "hasPreparedMediaItem" to (mediaController?.currentMediaItem != null),
+                "preparedMediaId" to mediaController?.currentMediaItem?.mediaId.orEmpty(),
+                "controllerPlaybackState" to (mediaController?.playbackState ?: Player.STATE_IDLE),
                 "queueIndex" to playQueue.currentIndex,
                 "queueSize" to playQueue.size,
+                "currentItemId" to playQueue.currentItem?.id.orEmpty(),
             ),
         )
         activateCurrentQueueItem(operation = "notification_play")
+    }
+
+    override fun notificationDiagnostics(): PlaybackNotificationQueueDiagnostics {
+        return PlaybackNotificationQueueDiagnostics(
+            queueIndex = playQueue.currentIndex,
+            queueSize = playQueue.size,
+            currentItemId = playQueue.currentItem?.id,
+        )
     }
 
     override fun closeFromNotification() {
@@ -784,6 +811,20 @@ class PlayerController @Inject constructor(
             ),
         )
     }
+
+    private fun queueActivationReasonForPlay(controller: MediaController): String? {
+        val preparedItem = controller.currentMediaItem ?: return "missing_media_item"
+        if (controller.playbackState == Player.STATE_IDLE) return "controller_idle"
+        val queueItem = playQueue.currentItem ?: return null
+        val expectedMediaId = queueItem.toPlaybackMediaId()
+        return if (preparedItem.mediaId != expectedMediaId) {
+            "media_item_mismatch"
+        } else {
+            null
+        }
+    }
+
+    private fun MusicItem.toPlaybackMediaId(): String = "$platform:$id"
 
     private fun playResolvedItem(playable: MusicItem, generation: Long) {
         withConnectedController { controller ->
