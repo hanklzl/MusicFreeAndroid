@@ -6,6 +6,31 @@
 
 <!-- next-release -->
 
+## [v1.2.9] - 2026-05-27
+
+### 变更详情
+
+#### 修复
+- fix(player): 修复冷启动播放状态同步 (7fd0d62)
+- fix(home): 修复侧栏返回关闭失效 (e90455e)
+
+#### 文档
+- docs(changelog): release v1.2.8 [skip ci] (8e3313f)
+
+#### 杂项
+- chore(release): 发布 v1.2.9 (4f30c4c)
+- chore(plugin): 清理仓库残留的真实第三方插件 URL (51caab5)
+- chore(plugin): 移除启动自动安装插件特性并清理相关代码与文档 (e4d5eac)
+- chore(skills): 统一 skills 到 .agents 并改为整目录软链 (4d70012)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.9-arm64-v8a.apk` · 7.6MB · sha256 `d314c7540ab9`
+- x86_64: `MusicFreeAndroid-v1.2.9-x86_64.apk` · 7.6MB · sha256 `e681110b0c02`
+- mapping: `mapping-v1.2.9.zip` · sha256 `e15141cc3fdc` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.8] - 2026-05-24
 
 ### 变更详情
