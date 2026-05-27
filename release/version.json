@@ -1,39 +1,39 @@
 {
   "schemaVersion": 2,
-  "version": "1.2.8",
-  "versionCode": 10208,
-  "releasedAt": "2026-05-23T17:03:00Z",
-  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.2.8",
+  "version": "1.2.9",
+  "versionCode": 10209,
+  "releasedAt": "2026-05-27T00:32:01Z",
+  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.2.9",
   "changeLog": [
-    "feat(feedback): 增加 GitHub H5 用户反馈入口 (2344d47)",
-    "fix(ui): 深色模式系统栏图标跟随 App 主题 (7cabf65)",
-    "docs(release): 明确 preflight 校验口径 (04eb5be)",
-    "docs(changelog): release v1.2.7 [skip ci] (446b386)",
-    "chore(release): bump to v1.2.8 (173aae0)",
-    "arm64-v8a: `MusicFreeAndroid-v1.2.8-arm64-v8a.apk` · 7.6MB · sha256 `2b1a1442aabb`",
-    "x86_64: `MusicFreeAndroid-v1.2.8-x86_64.apk` · 7.6MB · sha256 `04846305c505`",
-    "mapping: `mapping-v1.2.8.zip` · sha256 `81d450b33296` (R8 反混淆用)"
+    "fix(player): 修复冷启动播放状态同步 (7fd0d62)",
+    "fix(home): 修复侧栏返回关闭失效 (e90455e)",
+    "docs(changelog): release v1.2.8 [skip ci] (8e3313f)",
+    "chore(release): 发布 v1.2.9 (4f30c4c)",
+    "chore(plugin): 清理仓库残留的真实第三方插件 URL (51caab5)",
+    "chore(plugin): 移除启动自动安装插件特性并清理相关代码与文档 (e4d5eac)",
+    "chore(skills): 统一 skills 到 .agents 并改为整目录软链 (4d70012)",
+    "arm64-v8a: `MusicFreeAndroid-v1.2.9-arm64-v8a.apk` · 7.6MB · sha256 `d314c7540ab9`"
   ],
   "variants": {
     "arm64-v8a": {
       "download": [
-        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.8/MusicFreeAndroid-v1.2.8-arm64-v8a.apk",
-        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.8/release/MusicFreeAndroid-v1.2.8-arm64-v8a.apk"
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.9/MusicFreeAndroid-v1.2.9-arm64-v8a.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.9/release/MusicFreeAndroid-v1.2.9-arm64-v8a.apk"
       ],
-      "size": 7926325,
-      "sha256": "2b1a1442aabbe6dc272fb4ba3fa752ac5d1e1a0c7878f779018d337a979e4bcd"
+      "size": 7909941,
+      "sha256": "d314c7540ab976ae558245ff99198772aebf4c2efadec23aa462c12962192d2d"
     },
     "x86_64": {
       "download": [
-        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.8/MusicFreeAndroid-v1.2.8-x86_64.apk",
-        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.8/release/MusicFreeAndroid-v1.2.8-x86_64.apk"
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.9/MusicFreeAndroid-v1.2.9-x86_64.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.9/release/MusicFreeAndroid-v1.2.9-x86_64.apk"
       ],
-      "size": 7961481,
-      "sha256": "04846305c5057b80edd027fef718ef526a327ea6b6a88ee6f9c107a06d049391"
+      "size": 7945097,
+      "sha256": "e681110b0c02fd81b3d425f5b94dec10f7c3f5b7f8fed6712ca8090705d0c806"
     }
   },
   "mapping": {
-    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.8/mapping-v1.2.8.zip",
-    "sha256": "81d450b33296b259c877074ed5d3e08fb872a5fcc74ffa855e5d91ac85bdd6ab"
+    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.9/mapping-v1.2.9.zip",
+    "sha256": "e15141cc3fdcbcaad8b65e1875aa3990cc572ce274ffe40a342640725daffc8f"
   }
 }
