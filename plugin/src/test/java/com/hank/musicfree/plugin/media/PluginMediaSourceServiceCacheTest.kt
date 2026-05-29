@@ -1,5 +1,6 @@
 package com.hank.musicfree.plugin.media
 
+import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.AudioInterruptionAction
@@ -71,6 +72,7 @@ class PluginMediaSourceServiceCacheTest {
         assertEquals("https://cache.example/cached.mp3", result.source.url)
         assertEquals("kuwo", result.requestedPlatform)
         assertEquals("kuwo", result.resolverPlatform)
+        assertEquals(MediaSourceCachePolicy.Cache, result.cachePolicy)
         val hit = logger.events.single { it.event == "plugin_get_media_source_cache_hit" }
         assertEquals(LogCategory.PLUGIN, hit.category)
         assertEquals("cache", hit.fields["cacheControl"])
@@ -133,6 +135,7 @@ class PluginMediaSourceServiceCacheTest {
         val result = service.resolve(item("kuwo"), quality = "standard")!!
 
         assertEquals("https://kuwo.example/fresh.mp3", result.item.url)
+        assertEquals(MediaSourceCachePolicy.NoStore, result.cachePolicy)
         verify(plugin).getMediaSource(any(), eq("standard"))
         verify(cache, never()).get(any(), any())
         verify(cache, never()).put(any(), any(), any())
@@ -142,7 +145,7 @@ class PluginMediaSourceServiceCacheTest {
     }
 
     @Test
-    fun `no-cache online does not read and does not write (Task 4 policy)`() = runTest {
+    fun `no-cache online does not read but writes`() = runTest {
         val logger = CacheRecordingLogger()
         MfLog.install(logger)
         // cacheControl null defaults to no-cache via CacheControl.parse(null)
@@ -171,10 +174,11 @@ class PluginMediaSourceServiceCacheTest {
         val result = service.resolve(item("kuwo"), quality = "standard")!!
 
         assertEquals("https://kuwo.example/fresh.mp3", result.item.url)
+        assertEquals(MediaSourceCachePolicy.NoCache, result.cachePolicy)
         verify(plugin).getMediaSource(any(), eq("standard"))
-        // online + no-cache: must NOT read AND must NOT write (Task 4)
+        // online + no-cache: must NOT read but must write resolved-source cache
         verify(cache, never()).get(any(), any())
-        verify(cache, never()).put(any(), any(), any())
+        verify(cache).put(any(), eq(PlayQuality.STANDARD), any())
         val skipped = logger.events.single { it.event == "plugin_get_media_source_cache_read_skipped" }
         assertEquals("no-cache", skipped.fields["cacheControl"])
         assertEquals(false, skipped.fields["offline"])
@@ -210,6 +214,7 @@ class PluginMediaSourceServiceCacheTest {
         if (result != null) {
             verify(cache).put(any(), eq(PlayQuality.STANDARD), any())
         }
+        assertEquals(MediaSourceCachePolicy.NoCache, result?.cachePolicy)
     }
 
     @Test
@@ -243,6 +248,7 @@ class PluginMediaSourceServiceCacheTest {
         val result = service.resolve(item("kuwo"), quality = "standard")!!
 
         assertEquals("https://cache.example/offline-cached.mp3", result.item.url)
+        assertEquals(MediaSourceCachePolicy.NoCache, result.cachePolicy)
         val hit = logger.events.single { it.event == "plugin_get_media_source_cache_hit" }
         assertEquals("no-cache", hit.fields["cacheControl"])
         assertEquals(true, hit.fields["offline"])

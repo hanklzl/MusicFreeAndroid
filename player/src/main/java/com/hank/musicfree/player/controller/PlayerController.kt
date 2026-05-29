@@ -37,6 +37,7 @@ import com.hank.musicfree.player.service.PlaybackService
 import com.hank.musicfree.player.listening.ListenTracker
 import com.hank.musicfree.core.telemetry.CurrentSidProvider
 import com.hank.musicfree.core.telemetry.PlayCacheTelemetry
+import com.hank.musicfree.player.source.PlaybackCacheKeyRegistrar
 import com.hank.musicfree.player.source.TrackHeaderRegistry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -78,6 +79,9 @@ class PlayerController @Inject constructor(
     private val playbackRuntimeSettings: PlaybackRuntimeSettings = PlaybackRuntimeSettings.Defaults,
     private val networkStateProvider: PlaybackNetworkStateProvider = PlaybackNetworkStateProvider.AlwaysAllowed,
     private val trackHeaderRegistry: TrackHeaderRegistry = TrackHeaderRegistry(),
+    private val playbackCacheKeyRegistrar: PlaybackCacheKeyRegistrar = PlaybackCacheKeyRegistrar(
+        trackHeaderRegistry,
+    ),
     private val staleUrlRefresher: StaleUrlRefresher = EmptyStaleUrlRefresher,
     private val listenTracker: ListenTracker,
     private val currentSidProvider: CurrentSidProvider,
@@ -107,8 +111,14 @@ class PlayerController @Inject constructor(
      * time using the user's default; updated by `changeQuality`. Used to target
      * the right slot when evicting cache on HTTP failures.
      */
-    @Volatile
-    private var currentPlayQuality: PlayQuality = PlayQuality.STANDARD
+    private val _currentQualityFlow = MutableStateFlow(PlayQuality.STANDARD)
+    val currentQualityFlow: StateFlow<PlayQuality> = _currentQualityFlow.asStateFlow()
+
+    private var currentPlayQuality: PlayQuality
+        get() = _currentQualityFlow.value
+        set(value) {
+            _currentQualityFlow.value = value
+        }
 
     @Volatile
     private var pendingRestorePosition: Long? = null
@@ -620,6 +630,17 @@ class PlayerController @Inject constructor(
                 return@launch
             }
             if (!playQueue.isCurrentItem(expectedIndex, item)) return@launch
+            val changedUrl = requireNotNull(playable.url)
+            val source = resolution.source
+            registerPlayCacheKey(
+                item = item,
+                url = changedUrl,
+                headers = source.headers.orEmpty(),
+                userAgent = source.userAgent,
+                quality = quality,
+                cachePolicy = resolution.cachePolicy,
+                trigger = PlaybackCacheKeyRegistrar.Trigger.PLAYBACK,
+            )
             playQueue.replaceCurrent(expectedIndex, item, playable)
             emitQueueState()
             withConnectedController { controller ->
@@ -971,15 +992,15 @@ class PlayerController @Inject constructor(
         val resolvedUrl = playable?.url
         return if (playable != null && !resolvedUrl.isNullOrBlank()) {
             val source = resolution.source
-            if (!source.headers.isNullOrEmpty() || !source.userAgent.isNullOrBlank()) {
-                trackHeaderRegistry.put(
-                    resolvedUrl,
-                    source.headers.orEmpty(),
-                    source.userAgent,
-                    cacheKey = "${item.platform}:${item.id}",
-                    quality = currentPlayQuality,
-                )
-            }
+            registerPlayCacheKey(
+                item = item,
+                url = resolvedUrl,
+                headers = source.headers.orEmpty(),
+                userAgent = source.userAgent,
+                quality = currentPlayQuality,
+                cachePolicy = resolution.cachePolicy,
+                trigger = PlaybackCacheKeyRegistrar.Trigger.PLAYBACK,
+            )
             MfLog.detail(
                 category = LogCategory.PLAYER,
                 event = "playback_resolve_success",
@@ -1047,6 +1068,27 @@ class PlayerController @Inject constructor(
         "result" to result,
         "reason" to reason,
     )
+
+    private fun registerPlayCacheKey(
+        item: MusicItem,
+        url: String,
+        headers: Map<String, String>,
+        userAgent: String?,
+        quality: PlayQuality,
+        cachePolicy: com.hank.musicfree.core.media.MediaSourceCachePolicy,
+        trigger: PlaybackCacheKeyRegistrar.Trigger,
+    ) {
+        playbackCacheKeyRegistrar.register(
+            platform = item.platform,
+            itemId = item.id,
+            url = url,
+            headers = headers,
+            userAgent = userAgent,
+            quality = quality,
+            cachePolicy = cachePolicy,
+            trigger = trigger,
+        )
+    }
 
     private fun MusicItem.isLocalPlaybackSource(): Boolean {
         if (platform.equals("local", ignoreCase = true)) return true
@@ -1319,15 +1361,15 @@ class PlayerController @Inject constructor(
         }
 
         val source = fresh.source
-        if (!source.headers.isNullOrEmpty() || !source.userAgent.isNullOrBlank()) {
-            trackHeaderRegistry.put(
-                freshUrl,
-                source.headers.orEmpty(),
-                source.userAgent,
-                cacheKey = "${item.platform}:${item.id}",
-                quality = quality,
-            )
-        }
+        registerPlayCacheKey(
+            item = item,
+            url = freshUrl,
+            headers = source.headers.orEmpty(),
+            userAgent = source.userAgent,
+            quality = quality,
+            cachePolicy = fresh.cachePolicy,
+            trigger = PlaybackCacheKeyRegistrar.Trigger.STALE_REFRESH,
+        )
         playQueue.replaceCurrent(expectedIndex, item, refreshedItem)
         emitQueueState()
 
@@ -1428,15 +1470,15 @@ class PlayerController @Inject constructor(
         }
 
         val source = resolution.source
-        if (!source.headers.isNullOrEmpty() || !source.userAgent.isNullOrBlank()) {
-            trackHeaderRegistry.put(
-                changedUrl,
-                source.headers.orEmpty(),
-                source.userAgent,
-                cacheKey = "${item.platform}:${item.id}",
-                quality = currentPlayQuality,
-            )
-        }
+        registerPlayCacheKey(
+            item = item,
+            url = changedUrl,
+            headers = source.headers.orEmpty(),
+            userAgent = source.userAgent,
+            quality = currentPlayQuality,
+            cachePolicy = resolution.cachePolicy,
+            trigger = PlaybackCacheKeyRegistrar.Trigger.FAILURE_SOURCE_CHANGE,
+        )
         playQueue.replaceCurrent(expectedIndex, item, changedItem)
         emitQueueState()
 

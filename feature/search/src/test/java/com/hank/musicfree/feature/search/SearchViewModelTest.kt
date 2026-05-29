@@ -1,6 +1,7 @@
 package com.hank.musicfree.feature.search
 
 import com.hank.musicfree.core.media.EmptyMediaSourceResolver
+import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import com.hank.musicfree.core.media.MediaSourceResolution
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.core.model.MediaSourceResult
@@ -561,6 +562,7 @@ class SearchViewModelTest {
                     requestedPlatform = item.platform,
                     resolverPlatform = "resolver",
                     redirected = true,
+                    cachePolicy = MediaSourceCachePolicy.NoCache,
                 )
             }
         }
@@ -625,6 +627,7 @@ class SearchViewModelTest {
                     requestedPlatform = item.platform,
                     resolverPlatform = "resolver",
                     redirected = true,
+                    cachePolicy = MediaSourceCachePolicy.NoCache,
                 )
             }
         }

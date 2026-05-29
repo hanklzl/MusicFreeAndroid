@@ -32,6 +32,7 @@ class MediaSourceResolverTest {
             requestedPlatform = "source",
             resolverPlatform = "target",
             redirected = true,
+            cachePolicy = MediaSourceCachePolicy.NoCache,
         )
 
         assertEquals("1", resolution.item.id)

@@ -56,7 +56,7 @@ class PlayCacheTelemetry @Inject constructor(
             "fallbackBytes" to fallbackBytes,
         ))
 
-    // --- 9 diagnostic events ---
+    // --- 11 diagnostic events ---
     fun playSessionStart(sid: String, platform: String, id: String, requestedQuality: String, networkType: String, isOnline: Boolean) =
         logger.detail(LogCategory.PLAYER, "play_session_start", mapOf(
             "sid" to sid, "platform" to platform, "id" to id,
@@ -111,6 +111,36 @@ class PlayCacheTelemetry @Inject constructor(
             "bytesFromCache" to bytesFromCache,
             "bytesFromUpstream" to bytesFromUpstream,
         ))
+
+    fun media3DataSourceClose(
+        sid: String?,
+        cacheKey: String,
+        cacheHit: Boolean,
+        bytesFromCache: Long,
+        bytesFromUpstream: Long,
+        cacheBypassReason: String?,
+    ) = logger.detail(
+        LogCategory.PLAYER,
+        "media3_datasource_close",
+        mapOf(
+            "sid" to sid,
+            "cacheKey" to cacheKey,
+            "cacheHit" to cacheHit,
+            "bytesFromCache" to bytesFromCache,
+            "bytesFromUpstream" to bytesFromUpstream,
+            "cacheBypassReason" to cacheBypassReason,
+        ),
+    )
+
+    fun mediaCacheBypass(sid: String?, cacheKey: String, reason: String) = logger.detail(
+        LogCategory.PLAYER,
+        "media_cache_bypass",
+        mapOf(
+            "sid" to sid,
+            "cacheKey" to cacheKey,
+            "reason" to reason,
+        ),
+    )
 
     fun media3DataSourceError(sid: String?, errorCode: Int, httpStatus: Int?, position: Long, cacheKey: String?, retryCount: Int) =
         logger.error(LogCategory.PLAYER, "media3_datasource_error", null, mapOf(

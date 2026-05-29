@@ -17,6 +17,7 @@ data class MediaSourceResolution(
     val requestedPlatform: String,
     val resolverPlatform: String,
     val redirected: Boolean,
+    val cachePolicy: MediaSourceCachePolicy,
 )
 
 object EmptyMediaSourceResolver : MediaSourceResolver {

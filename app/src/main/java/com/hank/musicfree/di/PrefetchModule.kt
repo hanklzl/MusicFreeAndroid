@@ -5,6 +5,7 @@ import com.hank.musicfree.downloader.io.NetworkMonitor
 import com.hank.musicfree.player.controller.PlayerController
 import com.hank.musicfree.player.prefetch.PrefetchCoordinator
 import com.hank.musicfree.player.source.HeaderInjectingDataSourceFactory
+import com.hank.musicfree.player.source.PlaybackCacheKeyRegistrar
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,12 +28,15 @@ object PrefetchModule {
         resolver: MediaSourceResolver,
         playerController: PlayerController,
         networkMonitor: NetworkMonitor,
+        cacheKeyRegistrar: PlaybackCacheKeyRegistrar,
         headerInjectingDataSourceFactory: HeaderInjectingDataSourceFactory,
     ): PrefetchCoordinator = PrefetchCoordinator(
         resolver = resolver,
         progressFlow = playerController.progressTickFlow,
         nextItemFlow = playerController.nextItemFlow,
         isWifiFlow = networkMonitor.isWifi,
+        currentQualityFlow = playerController.currentQualityFlow,
+        cacheKeyRegistrar = cacheKeyRegistrar,
         headerInjectingDataSourceFactory = headerInjectingDataSourceFactory,
     )
 }

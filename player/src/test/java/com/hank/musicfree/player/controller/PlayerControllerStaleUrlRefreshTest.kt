@@ -2,6 +2,7 @@ package com.hank.musicfree.player.controller
 
 import android.content.Context
 import androidx.media3.common.PlaybackException
+import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import com.hank.musicfree.core.media.MediaSourceResolution
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.core.media.StaleUrlRefresher
@@ -323,6 +324,7 @@ class PlayerControllerStaleUrlRefreshTest {
                 requestedPlatform = item.platform,
                 resolverPlatform = item.platform,
                 redirected = false,
+                cachePolicy = MediaSourceCachePolicy.NoCache,
             )
         }
     }
@@ -338,6 +340,7 @@ class PlayerControllerStaleUrlRefreshTest {
                 requestedPlatform = item.platform,
                 resolverPlatform = item.platform,
                 redirected = false,
+                cachePolicy = MediaSourceCachePolicy.NoCache,
             )
         }
     }

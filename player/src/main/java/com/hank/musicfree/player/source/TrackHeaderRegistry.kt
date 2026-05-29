@@ -1,6 +1,7 @@
 package com.hank.musicfree.player.source
 
 import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +22,8 @@ class TrackHeaderRegistry @Inject constructor() {
         val userAgent: String?,
         val cacheKey: String? = null,
         val quality: PlayQuality? = null,
+        val byteCacheAllowed: Boolean = true,
+        val cachePolicy: MediaSourceCachePolicy = MediaSourceCachePolicy.NoCache,
     )
 
     // accessOrder=true: get() bumps recency
@@ -36,14 +39,23 @@ class TrackHeaderRegistry @Inject constructor() {
         userAgent: String?,
         cacheKey: String? = null,
         quality: PlayQuality? = null,
+        byteCacheAllowed: Boolean = true,
+        cachePolicy: MediaSourceCachePolicy = MediaSourceCachePolicy.NoCache,
     ) {
-        map[url] = HeaderEntry(headers, userAgent, cacheKey, quality)
+        map[url] = HeaderEntry(
+            headers = headers,
+            userAgent = userAgent,
+            cacheKey = cacheKey,
+            quality = quality,
+            byteCacheAllowed = byteCacheAllowed,
+            cachePolicy = cachePolicy,
+        )
     }
 
     @Synchronized
     fun get(url: String): HeaderEntry? = map[url]
 
     companion object {
-        const val MAX = 16
+        const val MAX = 64
     }
 }

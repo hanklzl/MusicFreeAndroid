@@ -59,8 +59,8 @@ class CacheControlPolicyTest {
     }
 
     @Test
-    fun `shouldWriteCache NoCache writes only when offline`() {
-        assertFalse(shouldWriteCache(CacheControl.NoCache, isOffline = false))
+    fun `shouldWriteCache NoCache writes regardless of connectivity`() {
+        assertTrue(shouldWriteCache(CacheControl.NoCache, isOffline = false))
         assertTrue(shouldWriteCache(CacheControl.NoCache, isOffline = true))
     }
 

@@ -1,8 +1,10 @@
 package com.hank.musicfree.player.controller
 
 import android.content.Context
+import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import com.hank.musicfree.core.media.MediaSourceResolution
 import com.hank.musicfree.core.media.MediaSourceResolver
+import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.PlaybackSpeeds
@@ -11,6 +13,8 @@ import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.MfLogger
 import com.hank.musicfree.player.listening.ListenTracker
+import com.hank.musicfree.player.source.PlaybackCacheKeyRegistrar
+import com.hank.musicfree.player.source.TrackHeaderRegistry
 import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
 import org.mockito.kotlin.mock
 import java.util.concurrent.CountDownLatch
@@ -176,6 +180,80 @@ class PlayerControllerSpeedTest {
             assertEquals("Quality Track", event.fields["itemName"])
             assertEquals("demo", event.fields["platform"])
             assertEquals("no_source", event.fields["reason"])
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `changeQuality registers cache key for resolved quality url`() {
+        val newUrl = "https://cdn.example.test/track/high.mp3"
+        val changedHeaders = mapOf("Referer" to "https://music.example.test")
+        val userAgent = "MusicFreeAndroidTest/1.0"
+        val cachePolicy = MediaSourceCachePolicy.NoStore
+        val qualityResolver = object : MediaSourceResolver {
+            override suspend fun resolve(item: MusicItem, quality: String?, sid: String?): MediaSourceResolution? {
+                return if (quality == PlayQuality.HIGH.name.lowercase()) {
+                    MediaSourceResolution(
+                        item = item.copy(url = newUrl),
+                        source = MediaSourceResult(
+                            url = newUrl,
+                            headers = changedHeaders,
+                            userAgent = userAgent,
+                            quality = PlayQuality.HIGH,
+                        ),
+                        requestedPlatform = item.platform,
+                        resolverPlatform = item.platform,
+                        redirected = false,
+                        cachePolicy = cachePolicy,
+                    )
+                } else {
+                    null
+                }
+            }
+        }
+        val registry = TrackHeaderRegistry()
+        val controller = PlayerController(
+            context,
+            qualityResolver,
+            trackHeaderRegistry = registry,
+            playbackCacheKeyRegistrar = PlaybackCacheKeyRegistrar(registry),
+            listenTracker = mock(),
+            currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(),
+            playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
+        )
+        val mockMediaController = mock<androidx.media3.session.MediaController> {}
+
+        try {
+            controller.setMediaControllerForTest(mockMediaController)
+            controller.playQueue.setQueue(
+                listOf(
+                    MusicItem(
+                        id = "song-1",
+                        platform = "platform",
+                        title = "Song 1",
+                        artist = "Artist",
+                        album = null,
+                        duration = 1L,
+                        url = "https://cdn.example.test/track/original.mp3",
+                        artwork = null,
+                        qualities = null,
+                    ),
+                ),
+                startIndex = 0,
+            )
+
+            controller.changeQuality(PlayQuality.HIGH)
+            Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+
+            val entry = registry.get(newUrl)
+            assertNotNull(entry)
+            assertEquals("platform:song-1", entry!!.cacheKey)
+            assertEquals(PlayQuality.HIGH, entry.quality)
+            assertEquals(cachePolicy, entry.cachePolicy)
+            assertEquals(false, entry.byteCacheAllowed)
+            assertEquals(changedHeaders, entry.headers)
+            assertEquals(userAgent, entry.userAgent)
         } finally {
             controller.release()
         }

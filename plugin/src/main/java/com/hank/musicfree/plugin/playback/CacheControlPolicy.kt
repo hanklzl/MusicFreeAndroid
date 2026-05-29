@@ -1,30 +1,25 @@
 package com.hank.musicfree.plugin.playback
 
-enum class CacheControl(val wire: String) {
-    Cache("cache"),
-    NoCache("no-cache"),
-    NoStore("no-store");
+import com.hank.musicfree.core.media.MediaSourceCachePolicy
+import com.hank.musicfree.core.media.canReadResolvedSource
+import com.hank.musicfree.core.media.canWriteResolvedSource
 
-    companion object {
-        fun parse(s: String?): CacheControl = when (s?.lowercase()) {
-            "cache" -> Cache
-            "no-store" -> NoStore
-            else -> NoCache
-        }
-    }
-}
+private val cacheControlWireValues = listOf(
+    "cache",
+    "no-cache",
+    "no-store",
+)
 
-fun shouldUseCache(cc: CacheControl, isOffline: Boolean): Boolean =
-    cc == CacheControl.Cache || (cc == CacheControl.NoCache && isOffline)
+typealias CacheControl = MediaSourceCachePolicy
 
-fun shouldWriteCache(cc: CacheControl, isOffline: Boolean): Boolean = when (cc) {
-    CacheControl.Cache -> true
-    CacheControl.NoStore -> false
-    CacheControl.NoCache -> isOffline // online + no-cache → don't pollute cache
-}
+fun shouldUseCache(cacheControl: CacheControl, isOffline: Boolean): Boolean =
+    cacheControl.canReadResolvedSource(isOffline)
+
+fun shouldWriteCache(cacheControl: CacheControl, isOffline: Boolean): Boolean =
+    cacheControl.canWriteResolvedSource()
 
 @Deprecated(
-    message = "Use shouldWriteCache(cc, isOffline)",
-    replaceWith = ReplaceWith("shouldWriteCache(cc, isOffline = true)"),
+    message = "Use shouldWriteCache(cacheControl, isOffline = true)",
+    replaceWith = ReplaceWith("shouldWriteCache(cacheControl, isOffline = true)"),
 )
-fun shouldWriteCache(cc: CacheControl): Boolean = shouldWriteCache(cc, isOffline = true)
+fun shouldWriteCache(cacheControl: CacheControl): Boolean = shouldWriteCache(cacheControl, isOffline = true)

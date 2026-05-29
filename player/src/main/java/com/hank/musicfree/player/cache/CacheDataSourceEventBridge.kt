@@ -6,18 +6,13 @@ import androidx.media3.datasource.cache.CacheDataSource
 import com.hank.musicfree.core.telemetry.CurrentSidProvider
 import com.hank.musicfree.core.telemetry.PlayCacheTelemetry
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Bridges CacheDataSource cache/upstream byte counters into PlayCacheTelemetry as
- * `media3_datasource_open` events. Each call to `newListener(cacheKey)` returns a fresh
- * stateful listener instance because the underlying `CacheDataSource.EventListener` API
- * accumulates per-source-open counters.
- *
- * Known limitation: because `createDataSource()` is called once per ExoPlayer data-source
- * slot (not once per DataSpec), the `cacheKey` logged here is the placeholder `"(per-open)"`.
- * Per-DataSpec cache-hit byte tallies require wrapping CacheDataSource manually (Task 9+).
+ * Bridges cache bytes and transfer-level bytes into PlayCacheTelemetry for each opened
+ * data source session.
  */
 @AndroidXOptIn(markerClass = [UnstableApi::class])
 @Singleton
@@ -25,26 +20,61 @@ class CacheDataSourceEventBridge @Inject constructor(
     private val telemetry: PlayCacheTelemetry,
     private val sidProvider: CurrentSidProvider,
 ) {
-    fun newListener(cacheKey: String): CacheDataSource.EventListener {
-        val cacheBytes = AtomicLong(0)
-        val upstreamBytes = AtomicLong(0)
-        // Emit one open-event upfront with sid + cacheKey; final tallies are flushed
-        // by play_session_end (PlayerController) when the play session terminates.
+    interface Session : CacheDataSource.EventListener {
+        fun addBytesRead(byteCount: Long)
+        fun closeOnce()
+    }
+
+    fun newSession(cacheKey: String, cacheBypassReason: String? = null): Session {
+        val cachedBytes = AtomicLong(0)
+        val totalBytes = AtomicLong(0)
+        val closed = AtomicBoolean(false)
+        val sid = sidProvider.peek()
+
         telemetry.media3DataSourceOpen(
-            sid = sidProvider.peek(),
+            sid = sid,
             cacheKey = cacheKey,
             cacheHit = false,
             bytesFromCache = 0L,
             bytesFromUpstream = 0L,
         )
-        return object : CacheDataSource.EventListener {
-            override fun onCachedBytesRead(cacheSizeBytes: Long, cachedBytesRead: Long) {
-                cacheBytes.addAndGet(cachedBytesRead)
+
+        if (cacheBypassReason != null) {
+            telemetry.mediaCacheBypass(
+                sid = sid,
+                cacheKey = cacheKey,
+                reason = cacheBypassReason,
+            )
+        }
+
+        return object : Session {
+            override fun addBytesRead(byteCount: Long) {
+                if (byteCount > 0) {
+                    totalBytes.addAndGet(byteCount)
+                }
             }
 
-            override fun onCacheIgnored(reason: Int) {
-                // ignored — covered by media3_datasource_error if upstream fails
+            override fun onCachedBytesRead(cacheSizeBytes: Long, cachedBytesRead: Long) {
+                if (cachedBytesRead > 0) {
+                    cachedBytes.addAndGet(cachedBytesRead)
+                }
             }
+
+            override fun closeOnce() {
+                if (closed.compareAndSet(false, true).not()) return
+                val total = totalBytes.get()
+                val cached = cachedBytes.get()
+                telemetry.media3DataSourceClose(
+                    sid = sid,
+                    cacheKey = cacheKey,
+                    cacheHit = cached > 0L,
+                    bytesFromCache = cached,
+                    bytesFromUpstream = (total - cached).coerceAtLeast(0),
+                    cacheBypassReason = cacheBypassReason,
+                )
+            }
+
+            override fun onCacheIgnored(reason: Int) = Unit
         }
     }
 }

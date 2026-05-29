@@ -1,6 +1,7 @@
 package com.hank.musicfree.plugin.media
 
 import com.hank.musicfree.core.media.MediaSourceResolution
+import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.core.media.StaleUrlRefresher
 import com.hank.musicfree.core.model.MediaSourceResult
@@ -78,7 +79,7 @@ class PluginMediaSourceService @Inject constructor(
         resolveLocal(item, sid)?.let { return it }
 
         val sourcePlugin = pluginManager.getPlugin(item.platform) ?: return null
-        val cacheControl = CacheControl.parse(sourcePlugin.info.cacheControl)
+        val cachePolicy = MediaSourceCachePolicy.parse(sourcePlugin.info.cacheControl)
         val isOffline = networkStateProvider.isOffline()
 
         // 1. Try cache (only when the caller permits it AND policy permits it).
@@ -89,7 +90,7 @@ class PluginMediaSourceService @Inject constructor(
         // stale kuwo URL. Track as a follow-up; fix candidates: invalidate cache on
         // PluginMetaStore alternative-plugins change, or include resolver platform
         // in the cache key.
-        if (useCache && shouldUseCache(cacheControl, isOffline = isOffline)) {
+        if (useCache && shouldUseCache(cachePolicy, isOffline = isOffline)) {
             // Important #2/#3 fix: when quality is null, target the user's
             // default play quality (the same quality the fetch loop will ask
             // for first) so caches written at HIGH/SUPER actually get re-read.
@@ -127,7 +128,7 @@ class PluginMediaSourceService @Inject constructor(
                         "platform" to item.platform,
                         "musicItemId" to item.id,
                         "quality" to requestedQuality.wireName(),
-                        "cacheControl" to cacheControl.wire,
+                        "cacheControl" to cachePolicy.wire,
                         "offline" to isOffline,
                         "useCache" to useCache,
                     ),
@@ -136,12 +137,13 @@ class PluginMediaSourceService @Inject constructor(
                     item = item,
                     quality = requestedQuality,
                     resolverPlatform = sourcePlugin.info.platform,
+                    cachePolicy = cachePolicy,
                 )
             }
         } else {
             logCacheReadSkipped(
                 item = item,
-                cacheControl = cacheControl,
+                cachePolicy = cachePolicy,
                 isOffline = isOffline,
                 useCache = useCache,
             )
@@ -150,8 +152,8 @@ class PluginMediaSourceService @Inject constructor(
         // 2. Walk quality candidates, ask plugin (optionally via alternative).
         val missReason = when {
             !useCache -> CacheMissReason.DISABLED
-            cacheControl == CacheControl.NoStore -> CacheMissReason.DISABLED
-            cacheControl == CacheControl.NoCache && !isOffline -> CacheMissReason.NO_CACHE_POLICY
+            cachePolicy == MediaSourceCachePolicy.NoStore -> CacheMissReason.DISABLED
+            cachePolicy == MediaSourceCachePolicy.NoCache && !isOffline -> CacheMissReason.NO_CACHE_POLICY
             else -> CacheMissReason.COLD
         }
         playCacheTelemetry.cacheMiss(
@@ -177,11 +179,15 @@ class PluginMediaSourceService @Inject constructor(
                 quality = candidateQuality,
                 requestedPlatform = item.platform,
                 redirected = true,
+                // Cache ownership follows source/request plugin policy:
+                // preserve existing behavior where alternative resolution
+                // does not switch cache-control policy ownership.
+                cachePolicy = cachePolicy,
                 sid = sid,
             )
             if (viaAlternative != null) {
                 maybeWriteCache(
-                    cacheControl = cacheControl,
+                    cachePolicy = cachePolicy,
                     item = item,
                     candidateQuality = candidateQuality,
                     source = viaAlternative.source,
@@ -197,11 +203,12 @@ class PluginMediaSourceService @Inject constructor(
                 quality = candidateQuality,
                 requestedPlatform = item.platform,
                 redirected = false,
+                cachePolicy = cachePolicy,
                 sid = sid,
             )
             if (viaSource != null) {
                 maybeWriteCache(
-                    cacheControl = cacheControl,
+                    cachePolicy = cachePolicy,
                     item = item,
                     candidateQuality = candidateQuality,
                     source = viaSource.source,
@@ -280,6 +287,7 @@ class PluginMediaSourceService @Inject constructor(
                 requestedPlatform = effectiveItem.platform,
                 resolverPlatform = effectiveItem.platform,
                 redirected = false,
+                cachePolicy = MediaSourceCachePolicy.NoStore,
             )
         } else {
             playCacheTelemetry.resolveLocalCheck(sid ?: "", hasLocalPath = true, localPathReadable = false)
@@ -303,7 +311,7 @@ class PluginMediaSourceService @Inject constructor(
     }
 
     private suspend fun maybeWriteCache(
-        cacheControl: CacheControl,
+        cachePolicy: CacheControl,
         item: MusicItem,
         candidateQuality: String,
         source: MediaSourceResult,
@@ -311,7 +319,7 @@ class PluginMediaSourceService @Inject constructor(
         useCache: Boolean,
         sid: String?,
     ) {
-        if (!shouldWriteCache(cacheControl, isOffline)) return
+        if (!shouldWriteCache(cachePolicy, isOffline)) return
         // Important #4 fix: don't pollute the STANDARD slot with payloads that
         // came back for an unknown wire quality. parseStrictQuality returns null
         // when the wire string does not map to a known PlayQuality.
@@ -324,7 +332,7 @@ class PluginMediaSourceService @Inject constructor(
                     "platform" to item.platform,
                     "musicItemId" to item.id,
                     "quality" to candidateQuality,
-                    "cacheControl" to cacheControl.wire,
+                    "cacheControl" to cachePolicy.wire,
                     "offline" to isOffline,
                     "useCache" to useCache,
                 ),
@@ -341,7 +349,7 @@ class PluginMediaSourceService @Inject constructor(
                 "platform" to item.platform,
                 "musicItemId" to item.id,
                 "quality" to pq.wireName(),
-                "cacheControl" to cacheControl.wire,
+                "cacheControl" to cachePolicy.wire,
                 "offline" to isOffline,
                 "useCache" to useCache,
             ),
@@ -350,7 +358,7 @@ class PluginMediaSourceService @Inject constructor(
 
     private fun logCacheReadSkipped(
         item: MusicItem,
-        cacheControl: CacheControl,
+        cachePolicy: CacheControl,
         isOffline: Boolean,
         useCache: Boolean,
     ) {
@@ -360,11 +368,11 @@ class PluginMediaSourceService @Inject constructor(
             fields = mapOf(
                 "platform" to item.platform,
                 "musicItemId" to item.id,
-                "cacheControl" to cacheControl.wire,
+                "cacheControl" to cachePolicy.wire,
                 "offline" to isOffline,
                 "useCache" to useCache,
                 "reason" to cacheReadSkipReason(
-                    cacheControl = cacheControl,
+                    cachePolicy = cachePolicy,
                     isOffline = isOffline,
                     useCache = useCache,
                 ),
@@ -373,13 +381,13 @@ class PluginMediaSourceService @Inject constructor(
     }
 
     private fun cacheReadSkipReason(
-        cacheControl: CacheControl,
+        cachePolicy: CacheControl,
         isOffline: Boolean,
         useCache: Boolean,
     ): String = when {
         !useCache -> "caller_bypassed_cache"
-        cacheControl == CacheControl.NoStore -> "cache_control_no_store"
-        cacheControl == CacheControl.NoCache && !isOffline -> "policy_no_cache_online"
+        cachePolicy == CacheControl.NoStore -> "cache_control_no_store"
+        cachePolicy == CacheControl.NoCache && !isOffline -> "policy_no_cache_online"
         else -> "cache_policy_not_allowed"
     }
 
@@ -387,6 +395,7 @@ class PluginMediaSourceService @Inject constructor(
         item: MusicItem,
         quality: PlayQuality,
         resolverPlatform: String,
+        cachePolicy: CacheControl,
     ): MediaSourceResolution = MediaSourceResolution(
         item = item.copy(url = url),
         source = MediaSourceResult(
@@ -398,6 +407,7 @@ class PluginMediaSourceService @Inject constructor(
         requestedPlatform = item.platform,
         resolverPlatform = resolverPlatform,
         redirected = false,
+        cachePolicy = cachePolicy,
     )
 
     private suspend fun LoadedPlugin.resolveWith(
@@ -405,6 +415,7 @@ class PluginMediaSourceService @Inject constructor(
         quality: String,
         requestedPlatform: String,
         redirected: Boolean,
+        cachePolicy: CacheControl,
         sid: String?,
     ): MediaSourceResolution? {
         if (!supportsMediaSource()) return null
@@ -428,6 +439,7 @@ class PluginMediaSourceService @Inject constructor(
             requestedPlatform = requestedPlatform,
             resolverPlatform = info.platform,
             redirected = redirected,
+            cachePolicy = cachePolicy,
         )
     }
 

@@ -1,5 +1,6 @@
 package com.hank.musicfree.player.source
 
+import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -23,15 +24,16 @@ class TrackHeaderRegistryTest {
     @Test
     fun `LRU evicts oldest when MAX exceeded`() {
         val r = TrackHeaderRegistry()
-        repeat(TrackHeaderRegistry.MAX + 5) { i ->
+        val overflow = 5
+        repeat(TrackHeaderRegistry.MAX + overflow) { i ->
             r.put("k$i", mapOf("X" to "$i"), null)
         }
         // first 5 should be evicted
-        repeat(5) { i -> assertNull(r.get("k$i")) }
+        repeat(overflow) { i -> assertNull(r.get("k$i")) }
         // last MAX still present
         repeat(TrackHeaderRegistry.MAX) { i ->
-            val key = "k${i + 5}"
-            assertEquals("${i + 5}", r.get(key)?.headers?.get("X"))
+            val key = "k${i + overflow}"
+            assertEquals("${i + overflow}", r.get(key)?.headers?.get("X"))
         }
     }
 
@@ -53,9 +55,32 @@ class TrackHeaderRegistryTest {
     }
 
     @Test
+    fun `put defaults include byte-cache allowed and no-cache policy`() {
+        val r = TrackHeaderRegistry()
+        r.put("https://x/b", emptyMap(), "UA")
+        val entry = r.get("https://x/b")!!
+        assertEquals(true, entry.byteCacheAllowed)
+        assertEquals(MediaSourceCachePolicy.NoCache, entry.cachePolicy)
+    }
+
+    @Test
+    fun `MAX is 64 entries`() {
+        assertEquals(64, TrackHeaderRegistry.MAX)
+    }
+
+    @Test
     fun `put without cacheKey default null`() {
         val r = TrackHeaderRegistry()
         r.put("https://x/b", emptyMap(), null)
         assertNull(r.get("https://x/b")?.cacheKey)
+    }
+
+    @Test
+    fun `put stores byteCacheAllowed false when configured`() {
+        val r = TrackHeaderRegistry()
+        r.put("https://x/c", emptyMap(), null, byteCacheAllowed = false, cachePolicy = MediaSourceCachePolicy.NoStore)
+        val entry = r.get("https://x/c")!!
+        assertEquals(false, entry.byteCacheAllowed)
+        assertEquals(MediaSourceCachePolicy.NoStore, entry.cachePolicy)
     }
 }

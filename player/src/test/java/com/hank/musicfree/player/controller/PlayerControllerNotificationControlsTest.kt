@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
+import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import com.hank.musicfree.core.media.MediaSourceResolution
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.core.model.MediaSourceResult
@@ -376,6 +377,40 @@ class PlayerControllerNotificationControlsTest {
         }
     }
 
+    @Test
+    fun `playItem registers cache key when resolver headers are empty`() {
+        val registry = TrackHeaderRegistry()
+        val resolver = RecordingResolver(
+            resolvedUrl = "https://cdn.example.test/fresh-no-headers.mp3",
+            headers = emptyMap(),
+            userAgent = null,
+        )
+        val controller = PlayerController(
+            context = context,
+            mediaSourceResolver = resolver,
+            trackHeaderRegistry = registry,
+            listenTracker = mock<ListenTracker>(),
+            currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(),
+            playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
+        )
+
+        try {
+            controller.playItem(testItem("1").copy(url = "https://cdn.example.test/stale.mp3"))
+
+            waitUntil("cache key is registered") {
+                registry.get("https://cdn.example.test/fresh-no-headers.mp3") != null
+            }
+            val entry = registry.get("https://cdn.example.test/fresh-no-headers.mp3")!!
+            assertEquals("test:1", entry.cacheKey)
+            assertEquals(true, entry.byteCacheAllowed)
+            assertEquals(MediaSourceCachePolicy.NoCache, entry.cachePolicy)
+            assertEquals(emptyMap<String, String>(), entry.headers)
+            assertEquals(null, entry.userAgent)
+        } finally {
+            controller.release()
+        }
+    }
+
     private fun testItem(id: String) = MusicItem(
         id = id,
         platform = "test",
@@ -426,6 +461,7 @@ class PlayerControllerNotificationControlsTest {
                 requestedPlatform = item.platform,
                 resolverPlatform = item.platform,
                 redirected = false,
+                cachePolicy = MediaSourceCachePolicy.NoCache,
             )
         }
     }
