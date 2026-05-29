@@ -104,7 +104,7 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - Gradle Wrapper：`9.4.1`
 - AGP：`9.2.1`
 - Kotlin：`2.3.21`
-- Compose BOM：`2026.05.00`
+- Compose BOM：`2026.05.01`
 
 ## 模块架构
 
