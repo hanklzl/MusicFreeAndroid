@@ -1,38 +1,36 @@
 {
   "schemaVersion": 2,
-  "version": "1.2.11",
-  "versionCode": 10211,
-  "releasedAt": "2026-05-29T17:37:00Z",
-  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.2.11",
+  "version": "1.2.12",
+  "versionCode": 10212,
+  "releasedAt": "2026-05-29T23:25:35Z",
+  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.2.12",
   "changeLog": [
-    "feat(listen-stats): 每日时长改长按提示、听歌时段加小时刻度 (0119c98)",
-    "docs(changelog): release v1.2.10 [skip ci] (59b9e0d)",
-    "chore(release): bump to v1.2.11 (1039b41)",
-    "chore(deps): 升级 Compose BOM/KSP/mockk/org.json 到最新 stable (031aaf4)",
-    "arm64-v8a: `MusicFreeAndroid-v1.2.11-arm64-v8a.apk` · 7.6MB · sha256 `458362101ece`",
-    "x86_64: `MusicFreeAndroid-v1.2.11-x86_64.apk` · 7.6MB · sha256 `b3b8ab1281df`",
-    "mapping: `mapping-v1.2.11.zip` · sha256 `0f48a66d5818` (R8 反混淆用)"
+    "feat(home): 歌单/插件歌单/榜单详情展示已下载标识 (77ea5ac)",
+    "chore(release): bump to v1.2.12 (d4880c1)",
+    "arm64-v8a: `MusicFreeAndroid-v1.2.12-arm64-v8a.apk` · 7.6MB · sha256 `e50b95fd9830`",
+    "x86_64: `MusicFreeAndroid-v1.2.12-x86_64.apk` · 7.6MB · sha256 `56d27e39e070`",
+    "mapping: `mapping-v1.2.12.zip` · sha256 `283320483bd9` (R8 反混淆用)"
   ],
   "variants": {
     "arm64-v8a": {
       "download": [
-        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.11/MusicFreeAndroid-v1.2.11-arm64-v8a.apk",
-        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.11/release/MusicFreeAndroid-v1.2.11-arm64-v8a.apk"
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.12/MusicFreeAndroid-v1.2.12-arm64-v8a.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.12/release/MusicFreeAndroid-v1.2.12-arm64-v8a.apk"
       ],
       "size": 7926329,
-      "sha256": "458362101ece753ef00d6b4dea183c8cbf1c2cf9aba20df9f4ee0a9938ee9e50"
+      "sha256": "e50b95fd98309be218a1900450880107998f8e67e54c18dc96c6d53b34f1c774"
     },
     "x86_64": {
       "download": [
-        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.11/MusicFreeAndroid-v1.2.11-x86_64.apk",
-        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.11/release/MusicFreeAndroid-v1.2.11-x86_64.apk"
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.12/MusicFreeAndroid-v1.2.12-x86_64.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.12/release/MusicFreeAndroid-v1.2.12-x86_64.apk"
       ],
       "size": 7961485,
-      "sha256": "b3b8ab1281df6c71aba1109e38f58011d9cc3f024e3bcfa822c597fb0153a31c"
+      "sha256": "56d27e39e07053ca488be99c1d9c8ba6c068e106fc2bdd0ba42607eee0bb17d2"
     }
   },
   "mapping": {
-    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.11/mapping-v1.2.11.zip",
-    "sha256": "0f48a66d5818f34e7739d8a3a4c9c4dfbbf0e8a9b409336666dc99c3bcf9a74d"
+    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.12/mapping-v1.2.12.zip",
+    "sha256": "283320483bd9e621332906562d7bb8005e43555df1701afc545d04d27380d79f"
   }
 }
