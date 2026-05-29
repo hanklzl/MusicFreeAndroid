@@ -2,6 +2,7 @@ package com.hank.musicfree.feature.home.component
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.theme.MusicFreeTheme
@@ -35,6 +36,44 @@ class PluginMusicRowTest {
         composeRule.onNodeWithText("夜空中最亮的星").assertIsDisplayed()
         composeRule.onNodeWithText("网易云").assertIsDisplayed()
         composeRule.onNodeWithText("逃跑计划 - 世界").assertIsDisplayed()
+    }
+
+    @Test
+    fun `plugin music row shows downloaded badge when downloaded`() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                PluginMusicRow(
+                    index = 0,
+                    item = track(),
+                    isFavorite = false,
+                    onClick = {},
+                    onLongClick = {},
+                    onAction = {},
+                    downloaded = true,
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("已下载").assertIsDisplayed()
+    }
+
+    @Test
+    fun `plugin music row hides downloaded badge when not downloaded`() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                PluginMusicRow(
+                    index = 0,
+                    item = track(),
+                    isFavorite = false,
+                    onClick = {},
+                    onLongClick = {},
+                    onAction = {},
+                    downloaded = false,
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("已下载").assertDoesNotExist()
     }
 
     private fun track() = MusicItem(

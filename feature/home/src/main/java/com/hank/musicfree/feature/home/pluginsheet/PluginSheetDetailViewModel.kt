@@ -83,6 +83,10 @@ class PluginSheetDetailViewModel @Inject constructor(
         .observeIsStarred(route.sheetId, route.pluginPlatform)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val downloadedKeys: StateFlow<Set<String>> = downloader.downloadedKeys
+        .map { keys -> keys.mapTo(HashSet()) { it.value } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
     // ── Playlist / Favorite ──────────────────────────────────────────────────
 
     private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())

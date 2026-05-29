@@ -77,6 +77,10 @@ class TopListDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TopListDetailUiState(loading = true))
     val uiState: StateFlow<TopListDetailUiState> = _uiState.asStateFlow()
 
+    val downloadedKeys: StateFlow<Set<String>> = downloader.downloadedKeys
+        .map { keys -> keys.mapTo(HashSet()) { it.value } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
     // ── Playlist / Favorite ──────────────────────────────────────────────────
 
     private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())

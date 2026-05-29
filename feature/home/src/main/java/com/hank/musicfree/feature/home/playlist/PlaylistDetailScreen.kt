@@ -52,11 +52,13 @@ fun PlaylistDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
     val allPlaylists by viewModel.allPlaylists.collectAsStateWithLifecycle()
+    val downloadedKeys by viewModel.downloadedKeys.collectAsStateWithLifecycle()
 
     PlaylistDetailContent(
         state = state,
         sheetState = sheetState,
         allPlaylists = allPlaylists,
+        downloadedKeys = downloadedKeys,
         favoriteResolver = viewModel::isFavoriteFlow,
         onBack = onBack,
         onNavigateToSearchMusicList = onNavigateToSearchMusicList,
@@ -83,6 +85,7 @@ internal fun PlaylistDetailContent(
     sheetState: AddToPlaylistSheetState,
     allPlaylists: List<Playlist>,
     favoriteResolver: (MusicItem) -> Flow<Boolean>,
+    downloadedKeys: Set<String> = emptySet(),
     onBack: () -> Unit,
     onNavigateToSearchMusicList: (String) -> Unit,
     onNavigateToMusicListEditorLite: (String) -> Unit,
@@ -161,6 +164,7 @@ internal fun PlaylistDetailContent(
                     MusicItemRow(
                         item = item,
                         isFavorite = isFavorite,
+                        downloaded = downloadedKeys.contains("${item.id}@${item.platform}"),
                         actions = setOf(
                             MusicItemAction.PlayNext,
                             MusicItemAction.ToggleFavorite,

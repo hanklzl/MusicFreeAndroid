@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -56,6 +57,10 @@ class PlaylistDetailViewModel @Inject constructor(
     ) { playlist, musics ->
         PlaylistDetailUiState(playlist = playlist, musics = musics, isLoading = false)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlaylistDetailUiState())
+
+    val downloadedKeys: StateFlow<Set<String>> = downloader.downloadedKeys
+        .map { keys -> keys.mapTo(HashSet()) { it.value } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())
     val sheetState: StateFlow<AddToPlaylistSheetState> = _sheetState.asStateFlow()

@@ -55,6 +55,7 @@ fun PluginSheetDetailScreen(
     val sheetState by viewModel.sheetState.collectAsState()
     val allPlaylists by viewModel.allPlaylists.collectAsState()
     val isSheetStarred by viewModel.isSheetStarred.collectAsStateWithLifecycle()
+    val downloadedKeys by viewModel.downloadedKeys.collectAsStateWithLifecycle()
     var optionsItem by remember { mutableStateOf<MusicItem?>(null) }
     var qualityFor by remember { mutableStateOf<MusicItem?>(null) }
     val defaultQuality by viewModel.defaultDownloadQuality.collectAsStateWithLifecycle(initialValue = PlayQuality.STANDARD)
@@ -125,6 +126,7 @@ fun PluginSheetDetailScreen(
                                 index = index,
                                 item = item,
                                 isFavorite = isFav,
+                                downloaded = downloadedKeys.contains("${item.id}@${item.platform}"),
                                 onClick = {
                                     scope.launch {
                                         viewModel.playAt(index)
