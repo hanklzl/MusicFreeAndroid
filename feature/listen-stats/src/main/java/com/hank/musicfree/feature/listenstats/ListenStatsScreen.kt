@@ -48,10 +48,6 @@ fun ListenStatsScreen(
         onClearRequested = viewModel::onClearRequested,
         onClearConfirmed = viewModel::onClearConfirmed,
         onClearDismissed = viewModel::onClearDismissed,
-        onBarClick = { epochDay ->
-            viewModel.onScopeChange(TimeScope.DAY)
-            viewModel.onAnchorChange(LocalDate.ofEpochDay(epochDay))
-        },
         onHeatmapClick = { epochDay ->
             viewModel.onScopeChange(TimeScope.DAY)
             viewModel.onAnchorChange(LocalDate.ofEpochDay(epochDay))
@@ -76,7 +72,6 @@ internal fun StatelessListenStatsScaffold(
     onClearRequested: () -> Unit,
     @Suppress("UNUSED_PARAMETER") onClearConfirmed: () -> Unit,
     @Suppress("UNUSED_PARAMETER") onClearDismissed: () -> Unit,
-    onBarClick: (Long) -> Unit,
     onHeatmapClick: (Long) -> Unit,
 ) {
     MusicFreeScreenScaffold(
@@ -101,7 +96,7 @@ internal fun StatelessListenStatsScaffold(
                     onArtistsClick = { onNavigateToDetail("ALL_ARTISTS", state.scope.name, state.anchor.toEpochDay(), null) },
                 )
             }
-            item { DailyBarsCard(daily = state.snapshot.dailyBuckets, onBarClick = onBarClick) }
+            item { DailyBarsCard(daily = state.snapshot.dailyBuckets) }
             item {
                 TopSongsCard(
                     rows = state.snapshot.topSongs,

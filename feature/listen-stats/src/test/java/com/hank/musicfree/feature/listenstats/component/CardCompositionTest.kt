@@ -4,13 +4,19 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.data.db.dao.TopArtistRow
 import com.hank.musicfree.data.db.dao.TopSongRow
+import com.hank.musicfree.data.repository.listenstats.model.DailyBucket
+import com.hank.musicfree.data.repository.listenstats.model.HourBucket
 import com.hank.musicfree.data.repository.listenstats.model.ListenedSong
 import com.hank.musicfree.data.repository.listenstats.model.TimeScope
 import org.junit.Rule
@@ -175,5 +181,60 @@ class CardCompositionTest {
         composeRule.onNodeWithText("叶蒨文").assertIsDisplayed()
         composeRule.onAllNodesWithText("qq", substring = true).assertCountEquals(0)
         composeRule.onAllNodesWithText("·", substring = true).assertCountEquals(0)
+    }
+
+    // ── 每日时长长按提示 + 听歌时段刻度 ──
+
+    @Test fun formatListenDuration_boundaries() {
+        assert(formatListenDuration(0) == "0秒")
+        assert(formatListenDuration(45) == "45秒")
+        assert(formatListenDuration(60) == "1分钟")
+        assert(formatListenDuration(59 * 60) == "59分钟")
+        assert(formatListenDuration(83 * 60) == "1小时23分钟")
+        assert(formatListenDuration(3600) == "1小时")
+        assert(formatListenDuration(3661) == "1小时1分钟")
+        assert(formatListenDuration(-5) == "0秒")
+    }
+
+    @Test fun dailyBars_longPress_showsDateAndDurationTooltip() {
+        val day = LocalDate.of(2026, 5, 30).toEpochDay()
+        composeRule.setContent {
+            MusicFreeTheme {
+                DailyBarsCard(daily = listOf(DailyBucket(dayEpochDay = day, seconds = 3661)))
+            }
+        }
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onAllNodesWithTag("daily-bar", useUnmergedTree = true).onFirst().performTouchInput { longClick() }
+        // 推进虚拟时钟越过长按阈值并让气泡渲染，但停在自动消失之前
+        composeRule.mainClock.advanceTimeBy(800)
+        composeRule.onNodeWithText("5月30日 · 1小时1分钟", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test fun hourBars_longPress_showsHourAndDurationTooltip() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                HourCard(buckets = listOf(HourBucket(hourOfDay = 14, seconds = 1380)))
+            }
+        }
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onAllNodesWithTag("hour-bar", useUnmergedTree = true)[14].performTouchInput { longClick() }
+        composeRule.mainClock.advanceTimeBy(800)
+        composeRule.onNodeWithText("14:00 · 23分钟", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test fun hourCard_rendersEvenHourAxisLabels_hidesOddHours() {
+        composeRule.setContent {
+            MusicFreeTheme {
+                HourCard(buckets = listOf(HourBucket(hourOfDay = 14, seconds = 1380)))
+            }
+        }
+        // 每隔两小时一个刻度：偶数小时可见
+        composeRule.onNodeWithText("0").assertIsDisplayed()
+        composeRule.onNodeWithText("6").assertIsDisplayed()
+        composeRule.onNodeWithText("12").assertIsDisplayed()
+        composeRule.onNodeWithText("22").assertIsDisplayed()
+        // 奇数小时不渲染刻度
+        composeRule.onAllNodesWithText("7").assertCountEquals(0)
+        composeRule.onAllNodesWithText("13").assertCountEquals(0)
     }
 }

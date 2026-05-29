@@ -43,7 +43,6 @@ class ListenStatsScreenTest {
                     onClearRequested = {},
                     onClearConfirmed = {},
                     onClearDismissed = {},
-                    onBarClick = {},
                     onHeatmapClick = {},
                 )
             }
@@ -77,7 +76,6 @@ class ListenStatsScreenTest {
                     onClearRequested = {},
                     onClearConfirmed = {},
                     onClearDismissed = {},
-                    onBarClick = {},
                     onHeatmapClick = {},
                 )
             }
