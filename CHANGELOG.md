@@ -6,6 +6,27 @@
 
 <!-- next-release -->
 
+## [v1.2.10] - 2026-05-29
+
+### 变更详情
+
+#### 修复
+- fix(player): 修复在线播放稳定缓存键 (736eedf)
+
+#### 文档
+- docs(changelog): release v1.2.9 [skip ci] (148c3cb)
+
+#### 杂项
+- chore(release): 发布 v1.2.10 (2f7327d)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.10-arm64-v8a.apk` · 7.6MB · sha256 `296e199cb303`
+- x86_64: `MusicFreeAndroid-v1.2.10-x86_64.apk` · 7.6MB · sha256 `5e38d6de1296`
+- mapping: `mapping-v1.2.10.zip` · sha256 `7ddef6c566ae` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.9] - 2026-05-27
 
 ### 变更详情
