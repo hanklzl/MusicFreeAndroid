@@ -6,6 +6,28 @@
 
 <!-- next-release -->
 
+## [v1.2.11] - 2026-05-30
+
+### 变更详情
+
+#### 新功能
+- feat(listen-stats): 每日时长改长按提示、听歌时段加小时刻度 (0119c98)
+
+#### 文档
+- docs(changelog): release v1.2.10 [skip ci] (59b9e0d)
+
+#### 杂项
+- chore(release): bump to v1.2.11 (1039b41)
+- chore(deps): 升级 Compose BOM/KSP/mockk/org.json 到最新 stable (031aaf4)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.11-arm64-v8a.apk` · 7.6MB · sha256 `458362101ece`
+- x86_64: `MusicFreeAndroid-v1.2.11-x86_64.apk` · 7.6MB · sha256 `b3b8ab1281df`
+- mapping: `mapping-v1.2.11.zip` · sha256 `0f48a66d5818` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.10] - 2026-05-29
 
 ### 变更详情
