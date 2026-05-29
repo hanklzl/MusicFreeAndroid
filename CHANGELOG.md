@@ -6,6 +6,24 @@
 
 <!-- next-release -->
 
+## [v1.2.12] - 2026-05-30
+
+### 变更详情
+
+#### 新功能
+- feat(home): 歌单/插件歌单/榜单详情展示已下载标识 (77ea5ac)
+
+#### 杂项
+- chore(release): bump to v1.2.12 (d4880c1)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.12-arm64-v8a.apk` · 7.6MB · sha256 `e50b95fd9830`
+- x86_64: `MusicFreeAndroid-v1.2.12-x86_64.apk` · 7.6MB · sha256 `56d27e39e070`
+- mapping: `mapping-v1.2.12.zip` · sha256 `283320483bd9` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.11] - 2026-05-30
 
 ### 变更详情
