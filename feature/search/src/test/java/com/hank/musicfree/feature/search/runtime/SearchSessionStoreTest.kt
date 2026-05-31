@@ -18,8 +18,10 @@ import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.After
@@ -130,15 +132,15 @@ class SearchSessionStoreTest {
         store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("demo")))
 
         val oldSearch = launch { store.search("old") }
-        advanceUntilIdle()
+        runCurrent()
         val newSearch = launch { store.search("new") }
-        advanceUntilIdle()
+        runCurrent()
 
         gateway.complete(
             query = "new",
             result = SearchResult(isEnd = true, data = listOf(PluginSearchItem.Music(music("new-result")))),
         )
-        advanceUntilIdle()
+        runCurrent()
         gateway.complete(
             query = "old",
             result = SearchResult(isEnd = true, data = listOf(PluginSearchItem.Music(music("old-result")))),
@@ -167,15 +169,15 @@ class SearchSessionStoreTest {
         store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("demo")))
 
         val oldSearch = launch { store.search("old") }
-        advanceUntilIdle()
+        runCurrent()
         val newSearch = launch { store.search("new") }
-        advanceUntilIdle()
+        runCurrent()
 
         gateway.complete(
             query = "new",
             result = SearchResult(isEnd = true, data = listOf(PluginSearchItem.Music(music("new-result")))),
         )
-        advanceUntilIdle()
+        runCurrent()
         gateway.fail(query = "old", error = IllegalStateException("old failed"))
         oldSearch.join()
         newSearch.join()
@@ -353,7 +355,7 @@ class SearchSessionStoreTest {
 
         store.selectMediaType(SearchMediaType.ALBUM)
         val albumSearch = launch { store.ensureMediaSearched(SearchMediaType.ALBUM) }
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(SearchPageStatus.SEARCHING, store.state.value.pageStatus)
 
         store.selectMediaType(SearchMediaType.MUSIC)
@@ -361,6 +363,93 @@ class SearchSessionStoreTest {
         assertEquals(SearchPageStatus.RESULT, store.state.value.pageStatus)
         gateway.completeAlbum()
         albumSearch.join()
+    }
+
+    @Test
+    fun completedPluginShowsResultPanelWhilePeerPluginStillLoads() = runTest {
+        val gateway = ControllablePlatformSearchGateway()
+        val store = searchSessionStore(gateway = gateway)
+        store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("slow"), plugin("fast")))
+
+        val searchJob = launch { store.search("hello") }
+        runCurrent()
+
+        gateway.complete(
+            platform = "fast",
+            result = SearchResult(isEnd = true, data = listOf(PluginSearchItem.Music(music("fast-result")))),
+        )
+        runCurrent()
+
+        assertEquals(SearchPageStatus.RESULT, store.state.value.pageStatus)
+        val typeResults = store.state.value.results.getValue(SearchMediaType.MUSIC)
+        assertTrue(typeResults.getValue("slow") is PluginSearchState.Loading)
+        val fastResult = typeResults.getValue("fast")
+        assertTrue(fastResult is PluginSearchState.Success)
+        assertEquals(
+            "fast-result",
+            ((fastResult as PluginSearchState.Success).items.single() as PluginSearchItem.Music).item.id,
+        )
+        assertTrue(searchJob.isActive)
+
+        gateway.complete(
+            platform = "slow",
+            result = SearchResult(isEnd = true, data = listOf(PluginSearchItem.Music(music("slow-result")))),
+        )
+        searchJob.join()
+    }
+
+    @Test
+    fun pluginSearchTimeoutMarksOnlyThatPluginAsError() = runTest {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val store = searchSessionStore(gateway = NeverReturningSearchGateway())
+        store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("demo")))
+
+        val searchJob = launch { store.search("hello") }
+        runCurrent()
+        advanceTimeBy(15_001L)
+        advanceUntilIdle()
+
+        assertEquals(SearchPageStatus.RESULT, store.state.value.pageStatus)
+        val state = store.state.value.results.getValue(SearchMediaType.MUSIC).getValue("demo")
+        assertTrue(state is PluginSearchState.Error)
+        assertEquals("搜索超时", (state as PluginSearchState.Error).message)
+
+        val event = logger.events.single { it.event == "search_plugin_timeout" }
+        assertEquals("demo", event.fields["platform"])
+        assertEquals("music", event.fields["mediaType"])
+        assertEquals("hello", event.fields["query"])
+        assertEquals(LogFields.Result.FAILURE, event.fields["result"])
+        assertEquals("timeout", event.fields["reason"])
+        assertEquals(0, event.fields["pendingCount"])
+        searchJob.join()
+    }
+
+    @Test
+    fun loadMoreTimeoutLogsFailureAndKeepsExistingResults() = runTest {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val gateway = LoadMoreTimeoutGateway()
+        val store = searchSessionStore(gateway = gateway)
+        store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("demo")))
+        store.search("hello")
+
+        val loadMoreJob = launch { store.loadMore(SearchMediaType.MUSIC, "demo") }
+        runCurrent()
+        advanceTimeBy(15_001L)
+        advanceUntilIdle()
+
+        val state = store.state.value.results.getValue(SearchMediaType.MUSIC).getValue("demo")
+        assertTrue(state is PluginSearchState.Success)
+        assertEquals(1, (state as PluginSearchState.Success).items.size)
+        assertEquals(1, state.page)
+
+        val event = logger.events.single { it.event == "search_session_page_timeout" }
+        assertEquals("demo", event.fields["platform"])
+        assertEquals(2, event.fields["page"])
+        assertEquals(LogFields.Result.FAILURE, event.fields["result"])
+        assertEquals("timeout", event.fields["reason"])
+        loadMoreJob.join()
     }
 
     private fun searchSessionStore(
@@ -463,6 +552,56 @@ class SearchSessionStoreTest {
         val query: String,
         val deferred: CompletableDeferred<SearchResult>,
     )
+
+    private data class PendingPlatformRequest(
+        val platform: String,
+        val deferred: CompletableDeferred<SearchResult>,
+    )
+
+    private class ControllablePlatformSearchGateway : SearchSessionGateway {
+        private val requests = CopyOnWriteArrayList<PendingPlatformRequest>()
+
+        override suspend fun search(
+            platform: String,
+            query: String,
+            page: Int,
+            mediaType: SearchMediaType,
+        ): SearchResult {
+            val request = PendingPlatformRequest(platform = platform, deferred = CompletableDeferred())
+            requests += request
+            return request.deferred.await()
+        }
+
+        fun complete(platform: String, result: SearchResult) {
+            requests.single { it.platform == platform }.deferred.complete(result)
+        }
+    }
+
+    private class NeverReturningSearchGateway : SearchSessionGateway {
+        override suspend fun search(
+            platform: String,
+            query: String,
+            page: Int,
+            mediaType: SearchMediaType,
+        ): SearchResult = CompletableDeferred<SearchResult>().await()
+    }
+
+    private class LoadMoreTimeoutGateway : SearchSessionGateway {
+        override suspend fun search(
+            platform: String,
+            query: String,
+            page: Int,
+            mediaType: SearchMediaType,
+        ): SearchResult {
+            if (page == 1) {
+                return SearchResult(
+                    isEnd = false,
+                    data = listOf(PluginSearchItem.Music(music("first-page"))),
+                )
+            }
+            return CompletableDeferred<SearchResult>().await()
+        }
+    }
 
     private class MutableSignatureProvider(
         var signature: String,

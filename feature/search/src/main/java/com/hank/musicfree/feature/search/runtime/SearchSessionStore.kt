@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -114,6 +115,11 @@ private data class SearchRequest(
     val mediaType: SearchMediaType,
     val platform: String,
     val page: Int,
+)
+
+private data class TimedSearchResult(
+    val result: SearchResult,
+    val durationMs: Long,
 )
 
 @Singleton
@@ -435,9 +441,12 @@ class SearchSessionStore internal constructor(
 
         val startedAt = System.nanoTime()
         try {
-            val (result, durationMs) = timedSuspend {
-                gateway.search(platform, request.query, request.page, mediaType)
+            val timedResult = searchGatewayWithTimeout(request)
+            if (timedResult == null) {
+                logLoadMoreTimeout(request, elapsedMs(startedAt))
+                return
             }
+            val (result, durationMs) = timedResult
             val latestState = _state.value
             val latest = latestState.results[mediaType]?.get(platform)
             if (
@@ -532,11 +541,13 @@ class SearchSessionStore internal constructor(
             ),
         )
 
+        val batchStartedAt = System.nanoTime()
         coroutineScope {
             plugins.map { plugin ->
                 async { searchPlugin(query, mediaType, generation, plugin) }
             }.awaitAll()
         }
+        logSearchBatchFinished(query, mediaType, generation, elapsedMs(batchStartedAt))
         checkSearchCompletion(mediaType)
         if (_state.value.results[mediaType]?.values?.any { it is PluginSearchState.Success } == true) {
             persist()
@@ -552,13 +563,26 @@ class SearchSessionStore internal constructor(
         val request = SearchRequest(generation, query, mediaType, pluginInfo.platform, 1)
         val startedAt = System.nanoTime()
         try {
-            val (result, durationMs) = timedSuspend {
-                gateway.search(pluginInfo.platform, request.query, request.page, mediaType)
+            val timedResult = searchGatewayWithTimeout(request)
+            if (timedResult == null) {
+                if (isStaleSearchRequest(request)) {
+                    logStaleResult(request, elapsedMs(startedAt))
+                    return
+                }
+                updatePluginState(mediaType, pluginInfo.platform, PluginSearchState.Error("搜索超时"))
+                logSearchPluginTimeout(request, elapsedMs(startedAt))
+                return
             }
+            val (result, durationMs) = timedResult
             if (isStaleSearchRequest(request)) {
                 logStaleResult(request, elapsedMs(startedAt))
                 return
             }
+            updatePluginState(
+                mediaType,
+                pluginInfo.platform,
+                PluginSearchState.Success(items = result.data, isEnd = result.isEnd, page = 1),
+            )
             MfLog.detail(
                 category = LogCategory.SEARCH,
                 event = "search_plugin_success",
@@ -575,12 +599,8 @@ class SearchSessionStore internal constructor(
                     "result" to LogFields.Result.SUCCESS,
                     "generation" to generation,
                     "durationMs" to durationMs,
+                    "pendingCount" to pendingPluginCount(_state.value, mediaType),
                 ),
-            )
-            updatePluginState(
-                mediaType,
-                pluginInfo.platform,
-                PluginSearchState.Success(items = result.data, isEnd = result.isEnd, page = 1),
             )
         } catch (error: CancellationException) {
             throw error
@@ -589,6 +609,7 @@ class SearchSessionStore internal constructor(
                 logStaleResult(request, elapsedMs(startedAt))
                 return
             }
+            updatePluginState(mediaType, pluginInfo.platform, PluginSearchState.Error(error.message ?: "搜索失败"))
             MfLog.error(
                 category = LogCategory.SEARCH,
                 event = "search_plugin_failed",
@@ -603,9 +624,9 @@ class SearchSessionStore internal constructor(
                     "result" to LogFields.Result.FAILURE,
                     "generation" to generation,
                     "durationMs" to elapsedMs(startedAt),
+                    "pendingCount" to pendingPluginCount(_state.value, mediaType),
                 ),
             )
-            updatePluginState(mediaType, pluginInfo.platform, PluginSearchState.Error(error.message ?: "搜索失败"))
         }
     }
 
@@ -650,10 +671,10 @@ class SearchSessionStore internal constructor(
     private fun pageStatusForSelectedMedia(state: SearchSessionState): SearchPageStatus {
         val selectedResults = state.results[state.selectedMediaType]
         if (selectedResults != null) {
-            return if (selectedResults.values.any { it is PluginSearchState.Loading }) {
-                SearchPageStatus.SEARCHING
-            } else {
+            return if (selectedResults.values.any { it.isTerminal() }) {
                 SearchPageStatus.RESULT
+            } else {
+                SearchPageStatus.SEARCHING
             }
         }
 
@@ -669,7 +690,12 @@ class SearchSessionStore internal constructor(
         _state.update { current ->
             val typeMap = (current.results[mediaType] ?: emptyMap()).toMutableMap()
             typeMap[platform] = searchState
-            current.copy(results = current.results.toMutableMap().apply { put(mediaType, typeMap) })
+            val next = current.copy(results = current.results.toMutableMap().apply { put(mediaType, typeMap) })
+            if (mediaType == next.selectedMediaType) {
+                next.copy(pageStatus = pageStatusForSelectedMedia(next))
+            } else {
+                next
+            }
         }
     }
 
@@ -686,6 +712,112 @@ class SearchSessionStore internal constructor(
             _state.update { it.copy(pageStatus = pageStatusForSelectedMedia(it)) }
         }
     }
+
+    private suspend fun searchGatewayWithTimeout(request: SearchRequest): TimedSearchResult? = coroutineScope {
+        val worker = async {
+            val (result, durationMs) = timedSuspend {
+                gateway.search(request.platform, request.query, request.page, request.mediaType)
+            }
+            TimedSearchResult(result, durationMs)
+        }
+        val result = withTimeoutOrNull(PLUGIN_SEARCH_TIMEOUT_MS) {
+            worker.await()
+        }
+        if (result == null) {
+            worker.cancel()
+        }
+        result
+    }
+
+    private fun logSearchPluginTimeout(request: SearchRequest, durationMs: Long) {
+        MfLog.error(
+            category = LogCategory.SEARCH,
+            event = "search_plugin_timeout",
+            throwable = null,
+            fields = searchOperationFields(
+                request = request,
+                operation = "search_plugin",
+                count = 0,
+                result = LogFields.Result.FAILURE,
+                reason = REASON_TIMEOUT,
+                durationMs = durationMs,
+            ) + mapOf(
+                "timeoutMs" to PLUGIN_SEARCH_TIMEOUT_MS,
+                "pendingCount" to pendingPluginCount(_state.value, request.mediaType),
+            ),
+        )
+    }
+
+    private fun logLoadMoreTimeout(request: SearchRequest, durationMs: Long) {
+        MfLog.error(
+            category = LogCategory.SEARCH,
+            event = "search_session_page_timeout",
+            throwable = null,
+            fields = searchOperationFields(
+                request = request,
+                operation = "search_session_load_more",
+                count = 0,
+                result = LogFields.Result.FAILURE,
+                reason = REASON_TIMEOUT,
+                durationMs = durationMs,
+            ) + ("timeoutMs" to PLUGIN_SEARCH_TIMEOUT_MS),
+        )
+    }
+
+    private fun logSearchBatchFinished(query: String, mediaType: SearchMediaType, generation: Long, durationMs: Long) {
+        val current = _state.value
+        if (current.query != query || current.generation != generation) return
+        val states = current.results[mediaType].orEmpty().values
+        val successCount = states.count { it is PluginSearchState.Success }
+        val errorCount = states.count { it is PluginSearchState.Error }
+        val pendingCount = states.count { it is PluginSearchState.Loading }
+        val itemCount = states.sumOf { state ->
+            (state as? PluginSearchState.Success)?.items?.size ?: 0
+        }
+        MfLog.detail(
+            category = LogCategory.SEARCH,
+            event = "search_batch_finished",
+            fields = mapOf(
+                "query" to query,
+                "type" to mediaType.key,
+                "mediaType" to mediaType.key,
+                "platformCount" to states.size,
+                "successCount" to successCount,
+                "errorCount" to errorCount,
+                "pendingCount" to pendingCount,
+                "count" to itemCount,
+                "status" to "finished",
+                "result" to if (successCount > 0) LogFields.Result.SUCCESS else LogFields.Result.FAILURE,
+                "generation" to generation,
+                "durationMs" to durationMs,
+            ),
+        )
+    }
+
+    private fun searchOperationFields(
+        request: SearchRequest,
+        operation: String,
+        count: Int,
+        result: String,
+        reason: String,
+        durationMs: Long,
+    ): Map<String, Any?> = mapOf(
+        "operation" to operation,
+        "query" to request.query,
+        "type" to request.mediaType.key,
+        "mediaType" to request.mediaType.key,
+        "platform" to request.platform,
+        "page" to request.page,
+        "count" to count,
+        "status" to "failed",
+        "result" to result,
+        "reason" to reason,
+        "generation" to request.generation,
+        "durationMs" to durationMs,
+    )
+
+    private fun pendingPluginCount(state: SearchSessionState, mediaType: SearchMediaType): Int =
+        state.results[mediaType].orEmpty().values.count { it is PluginSearchState.Loading }
 
     private fun validateRestoredSignature() {
         val restoredSignature = restoredSourceSignature ?: return
@@ -848,8 +980,12 @@ class SearchSessionStore internal constructor(
         private const val SNAPSHOT_CAPACITY = 10
         private const val OPERATION_RESTORE = "search_session_restore"
         private const val OPERATION_PERSIST = "search_session_persist"
+        private const val REASON_TIMEOUT = "timeout"
+        private const val PLUGIN_SEARCH_TIMEOUT_MS = 15_000L
     }
 }
+
+private fun PluginSearchState.isTerminal(): Boolean = this is PluginSearchState.Success || this is PluginSearchState.Error
 
 private fun PluginSearchItem.toJsonObject(): JsonObject = when (this) {
     is PluginSearchItem.Music -> typedItem("music", item.toJsonObject())

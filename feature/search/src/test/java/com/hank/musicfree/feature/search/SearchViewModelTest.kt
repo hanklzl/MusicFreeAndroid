@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -403,7 +404,7 @@ class SearchViewModelTest {
 
         viewModel.loadMore()
         viewModel.loadMore()
-        advanceUntilIdle()
+        runCurrent()
 
         verify(plugin, times(1)).search("hello", 2, "music")
 

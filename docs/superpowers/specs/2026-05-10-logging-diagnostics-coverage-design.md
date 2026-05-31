@@ -112,7 +112,7 @@ ViewModel 打点只覆盖用户动作入口和异步状态转移，不给每个 
   - `MusicDetailViewModel` / `AlbumDetailViewModel` / `ArtistDetailViewModel`：详情加载、分页、下载入口。
   - `PlaylistViewModel` / `PlaylistDetailViewModel` / `MusicListEditorLiteViewModel`：歌单 CRUD、排序、删除、批量编辑、批量下载。
 - `feature/search`：
-  - 搜索、分页、平台切换、fallback 播放解析、下载入口；已有事件保留并补缺字段。
+  - 搜索、分页、平台切换、fallback 播放解析、下载入口；已有事件保留并补缺字段。搜索批次终态记录 `search_batch_finished`；单插件首屏超时记录 `search_plugin_timeout`；加载更多超时记录 `search_session_page_timeout`。
 - `feature/player-ui`：
   - 收藏、音质切换、速度、添加到歌单、歌词搜索/关联/导入/偏移/删除、播放控制入口。
 - `feature/settings`：
