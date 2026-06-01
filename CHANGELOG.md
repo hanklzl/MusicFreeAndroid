@@ -6,6 +6,32 @@
 
 <!-- next-release -->
 
+## [v1.2.13] - 2026-06-02
+
+### 变更详情
+
+#### 新功能
+- feat(home): 歌单/插件歌单/榜单详情展示已下载标识 (5c6643b)
+
+#### 修复
+- fix(search): 避免慢插件阻塞搜索结果 (c9bab7c)
+
+#### 文档
+- docs(changelog): release v1.2.12 [skip ci] (dcfb191)
+- docs(changelog): release v1.2.11 [skip ci] (acd1c89)
+
+#### 杂项
+- chore(release): bump to v1.2.13 (7910f01)
+- chore(release): bump to v1.2.12 (033d18e)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.13-arm64-v8a.apk` · 7.6MB · sha256 `256fb429e665`
+- x86_64: `MusicFreeAndroid-v1.2.13-x86_64.apk` · 7.6MB · sha256 `71635ed9b89f`
+- mapping: `mapping-v1.2.13.zip` · sha256 `d1d36816b06a` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.12] - 2026-05-30
 
 ### 变更详情
