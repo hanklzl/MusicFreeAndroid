@@ -91,6 +91,59 @@ class SearchViewModelRuntimeStoreTest {
         assertEquals("song-1", (success.items.single() as PluginSearchItem.Music).item.id)
     }
 
+    /**
+     * Regression for the page-lifecycle demotion (2026-06-05): re-entering search
+     * must NOT restore a previously persisted snapshot — the query box starts empty
+     * and a new search returns results. Previously the singleton store + init
+     * restore() left the old query in the box and wiped `searchablePlugins`, hanging
+     * the next search with no results.
+     */
+    @Test
+    fun reentryStartsFreshAndSearchReturnsResults() = runTest {
+        whenever(pluginManager.ensurePluginsLoaded()).thenReturn(Unit)
+        val loaded = loadedPlugin("demo")
+        pluginFlow.value = listOf(loaded)
+        searchablePluginFlow.value = listOf(loaded)
+        val snapshotStore = InMemorySnapshotStore()
+        val gateway = StaticSearchGateway(
+            SearchResult(isEnd = true, data = listOf(PluginSearchItem.Music(music("fresh-result")))),
+        )
+
+        // Session 1: produce a persisted snapshot with query "old".
+        val previous = SearchSessionStore(
+            snapshotStore = snapshotStore,
+            gateway = gateway,
+            signatureProvider = SearchPluginSignatureProvider { "sig" },
+            json = Json { ignoreUnknownKeys = true },
+            clock = SearchSessionClock { 1_000L },
+        )
+        previous.setSearchablePlugins(SearchMediaType.MUSIC, listOf(loaded.info))
+        previous.search("old")
+        previous.persist()
+
+        // Session 2 (re-entry): brand-new per-ViewModel store on the same snapshot store.
+        val store = SearchSessionStore(
+            snapshotStore = snapshotStore,
+            gateway = gateway,
+            signatureProvider = SearchPluginSignatureProvider { "sig" },
+            json = Json { ignoreUnknownKeys = true },
+            clock = SearchSessionClock { 1_000L },
+        )
+        val viewModel = createViewModel(store)
+        advanceUntilIdle()
+
+        // Box is cleared: the snapshot was NOT restored on entry.
+        assertEquals("", viewModel.currentQuery.value)
+
+        // A new search returns results (no hang from clobbered searchablePlugins).
+        viewModel.searchAll("hello")
+        advanceUntilIdle()
+        assertEquals("hello", viewModel.currentQuery.value)
+        val success = viewModel.searchResults.value.getValue(SearchMediaType.MUSIC).getValue("demo")
+            as PluginSearchState.Success
+        assertEquals("fresh-result", (success.items.single() as PluginSearchItem.Music).item.id)
+    }
+
     private fun createViewModel(store: SearchSessionStore): SearchViewModel = SearchViewModel(
         pluginManager = pluginManager,
         playerController = playerController,

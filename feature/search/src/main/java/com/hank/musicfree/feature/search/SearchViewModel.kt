@@ -151,9 +151,11 @@ class SearchViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.Lazily, PluginSearchState.Idle)
 
     init {
-        viewModelScope.launch {
-            searchSessionStore.restore()
-        }
+        // Page-lifecycle: the store is per-ViewModel, so a fresh screen entry starts
+        // with empty state. We intentionally do NOT restore a persisted snapshot here
+        // (search no longer survives process death — matching RN), which also avoids
+        // the prior bug where restore() overwrote the live `searchablePlugins` set and
+        // left re-entered searches stuck with no results.
         viewModelScope.launch {
             SearchMediaType.entries.forEach { mediaType ->
                 viewModelScope.launch {

@@ -23,7 +23,6 @@ import com.hank.musicfree.plugin.api.PluginSearchItem
 import com.hank.musicfree.plugin.api.SearchResult
 import java.security.MessageDigest
 import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -122,7 +121,18 @@ private data class TimedSearchResult(
     val durationMs: Long,
 )
 
-@Singleton
+/**
+ * Page-lifecycle search session state.
+ *
+ * Demoted from a process-level `@Singleton` `RuntimeStore` to a per-[SearchViewModel]
+ * instance (see `docs/dev-harness/runtime/rules.md#rule-runtime-state-classification`):
+ * leaving the search screen clears the ViewModel, and with it this store, so the
+ * query box and results reset on re-entry. Configuration changes (rotation, theme)
+ * keep the state because the ViewModel is retained; it is intentionally NOT restored
+ * across process death (matching RN). The `restore()` / `persist()` snapshot methods
+ * remain for the [RuntimeStore] contract + unit coverage but are no longer wired into
+ * app startup or invoked on the search hot path.
+ */
 class SearchSessionStore internal constructor(
     private val snapshotStore: SnapshotStore,
     private val gateway: SearchSessionGateway,
@@ -482,7 +492,6 @@ class SearchSessionStore internal constructor(
                     durationMs = durationMs,
                 ),
             )
-            persist()
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
@@ -549,9 +558,6 @@ class SearchSessionStore internal constructor(
         }
         logSearchBatchFinished(query, mediaType, generation, elapsedMs(batchStartedAt))
         checkSearchCompletion(mediaType)
-        if (_state.value.results[mediaType]?.values?.any { it is PluginSearchState.Success } == true) {
-            persist()
-        }
     }
 
     private suspend fun searchPlugin(

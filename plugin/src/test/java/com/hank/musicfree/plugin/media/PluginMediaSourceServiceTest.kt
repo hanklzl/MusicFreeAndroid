@@ -21,6 +21,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
@@ -124,6 +125,36 @@ class PluginMediaSourceServiceTest {
         val result = service.resolve(item("source"), quality = "high")
 
         assertEquals(null, result)
+    }
+
+    @Test
+    fun `awaits plugin load before concluding no source on cold start`() = runTest {
+        // Cold-start race: the plugin is not yet in the loaded set when playback
+        // resolve runs. doResolve must trigger ensurePluginsLoaded() and retry
+        // getPlugin() instead of immediately returning no_source (INC tonight).
+        val source = plugin("source", supportsMedia = true, url = "https://source.example/1.mp3")
+        val manager = mock<PluginManager>()
+        val metaStore = mock<PluginMetaStore>()
+        var loaded = false
+        whenever(manager.plugins).thenReturn(MutableStateFlow(emptyList()))
+        whenever(manager.getPlugin("source")).thenAnswer { if (loaded) source else null }
+        doSuspendableAnswer { loaded = true }.whenever(manager).ensurePluginsLoaded()
+        whenever(metaStore.alternativePlugins).thenReturn(flowOf(emptyMap()))
+        whenever(metaStore.disabledPlugins).thenReturn(flowOf(emptySet()))
+        whenever(manager.pluginMetaStore).thenReturn(metaStore)
+        val service = PluginMediaSourceService(
+            pluginManager = manager,
+            mediaCacheRepository = mock<MediaCacheRepository>(),
+            musicRepository = mock<MusicRepository>(),
+            localFileProbe = LocalFileProbe { false },
+            playbackRuntimeSettings = PlaybackRuntimeSettings.Defaults,
+            networkStateProvider = PluginNetworkStateProvider.AlwaysOnline,
+            playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
+        )
+
+        val result = service.resolve(item("source"))
+
+        assertEquals("https://source.example/1.mp3", result?.item?.url)
     }
 
     private fun service(

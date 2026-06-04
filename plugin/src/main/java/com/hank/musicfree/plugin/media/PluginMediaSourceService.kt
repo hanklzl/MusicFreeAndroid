@@ -78,7 +78,17 @@ class PluginMediaSourceService @Inject constructor(
         // 0. Local short-circuit: if the item has a downloaded local copy, serve it directly.
         resolveLocal(item, sid)?.let { return it }
 
-        val sourcePlugin = pluginManager.getPlugin(item.platform) ?: return null
+        // Cold-start race: plugins are lazy-loaded (only when a plugin-backed screen
+        // opens, or when the auto-update interval elapses). Playing a queued/playlist
+        // track right after launch could otherwise hit an empty plugin set and return
+        // `no_source` without ever calling the plugin. Trigger a load and retry once —
+        // matching every other plugin consumer, which calls ensurePluginsLoaded() first.
+        val sourcePlugin = pluginManager.getPlugin(item.platform)
+            ?: run {
+                pluginManager.ensurePluginsLoaded()
+                pluginManager.getPlugin(item.platform)
+            }
+            ?: return null
         val cachePolicy = MediaSourceCachePolicy.parse(sourcePlugin.info.cacheControl)
         val isOffline = networkStateProvider.isOffline()
 

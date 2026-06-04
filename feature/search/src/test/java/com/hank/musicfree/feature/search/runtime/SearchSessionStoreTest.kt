@@ -194,8 +194,11 @@ class SearchSessionStoreTest {
         assertEquals("old", stale.fields["query"])
     }
 
+    // Search is now page-lifecycle (see 2026-06-05-search-session-page-lifecycle spec):
+    // the search hot path no longer auto-persists. persist() is retained for the
+    // RuntimeStore contract and exercised here directly to keep snapshot coverage.
     @Test
-    fun terminalSearchSuccessPersistsSnapshotAndStructuredLog() = runTest {
+    fun persistWritesSnapshotAndStructuredLog() = runTest {
         val logger = RecordingLogger()
         MfLog.install(logger)
         val snapshotStore = InMemorySnapshotStore()
@@ -208,6 +211,7 @@ class SearchSessionStoreTest {
         store.setSearchablePlugins(SearchMediaType.MUSIC, listOf(plugin("demo")))
 
         store.search("hello")
+        store.persist()
 
         val key = snapshotStore.keys(NAMESPACE, limit = 10).single()
         val snapshot = snapshotStore.read(NAMESPACE, key)

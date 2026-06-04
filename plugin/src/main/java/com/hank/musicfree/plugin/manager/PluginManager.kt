@@ -36,6 +36,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -152,6 +155,11 @@ class PluginManager @Inject constructor(
     val allEntries: StateFlow<List<PluginEntry>> = _entries.asStateFlow()
 
     private val mutex = Mutex()
+    // Coalesces concurrent ensurePluginsLoaded() callers (startup preload + search +
+    // home detail screens can all race at cold start) into a single load. Without
+    // this, two callers both pass the `_loaded` check and each run loadAllPlugins(),
+    // which destroys + reloads every plugin and can disrupt an in-flight resolve.
+    private val ensureLoadMutex = Mutex()
     private val _loaded = AtomicBoolean(false)
     private val pluginEngineInitLogged = AtomicBoolean(false)
 
@@ -206,7 +214,12 @@ class PluginManager @Inject constructor(
      */
     suspend fun ensurePluginsLoaded() {
         if (_loaded.get()) return
-        loadAllPlugins()
+        ensureLoadMutex.withLock {
+            // Re-check inside the lock: a racing caller may have just finished
+            // the load while we were waiting for the mutex.
+            if (_loaded.get()) return
+            loadAllPlugins()
+        }
     }
 
     /**
@@ -240,13 +253,15 @@ class PluginManager @Inject constructor(
             val newEntries = mutableListOf<PluginEntry>()
             val backgroundLoads = mutableListOf<PluginEntry>()
             val files = pluginsDir.listFiles { _, name -> name.endsWith(".js") } ?: emptyArray()
-            for (file in files) {
-                val installSource = readInstallMetadata(file)
+            // First pass: classify each file. Cache hits emit a Loading entry now
+            // (JS evaluation is deferred to the background scope); cache misses are
+            // collected for a parallel load below. Slots are filled by index so the
+            // final order matches on-disk file order regardless of completion order.
+            val entriesByIndex = arrayOfNulls<PluginEntry>(files.size)
+            val pluginsByIndex = arrayOfNulls<LoadedPlugin>(files.size)
+            val missIndices = mutableListOf<Int>()
+            for ((index, file) in files.withIndex()) {
                 val cached = cacheByPath[file.absolutePath]
-
-                // Cache hit: emit a Loading entry from the cached metadata so
-                // the UI has something to show, then queue the JS evaluation
-                // to run on the background scope.
                 if (cached != null && isCacheFresh(cached, file)) {
                     val info = cached.toPluginInfo()
                     val loadingEntry = PluginEntry(
@@ -254,10 +269,10 @@ class PluginManager @Inject constructor(
                         state = PluginState.Loading,
                         info = info,
                         loaded = null,
-                        installSource = installSource,
+                        installSource = readInstallMetadata(file),
                         attemptedPlatform = info.platform,
                     )
-                    newEntries.add(loadingEntry)
+                    entriesByIndex[index] = loadingEntry
                     backgroundLoads.add(loadingEntry)
                     MfLog.detail(
                         category = LogCategory.PLUGIN,
@@ -270,103 +285,29 @@ class PluginManager @Inject constructor(
                             "state" to PluginStateKeys.STATE_LOADING,
                         ),
                     )
-                    continue
+                } else {
+                    missIndices.add(index)
                 }
+            }
 
-                // Cache miss / lazy disabled / stale cache: load synchronously.
-                MfLog.detail(
-                    category = LogCategory.PLUGIN,
-                    event = "plugin_load_start",
-                    fields = mapOf(
-                        "operation" to "load",
-                        "status" to "start",
-                        "fileName" to file.name,
-                    ),
-                )
-                try {
-                    val (plugin, durationMs) = timedSuspend {
-                        loadPluginFromFile(file, installSource)
+            // Cache miss / lazy disabled / stale cache: load in parallel. Each
+            // plugin runs on its own single-thread QuickJS engine, so the loads are
+            // independent; a stale lazy-cache (e.g. right after an app update) would
+            // otherwise reload every plugin one-by-one on the foreground path.
+            coroutineScope {
+                missIndices.map { index ->
+                    async {
+                        val (entry, plugin) = loadCacheMissEntry(files[index])
+                        entriesByIndex[index] = entry
+                        pluginsByIndex[index] = plugin
                     }
-                    if (plugin != null) {
-                        loadedPlugins.add(plugin)
-                        newEntries.add(
-                            PluginEntry(
-                                filePath = plugin.filePath,
-                                state = PluginState.Mounted,
-                                info = plugin.info,
-                                loaded = plugin,
-                                installSource = plugin.installSource,
-                                attemptedPlatform = plugin.info.platform,
-                            ),
-                        )
-                        // Phase E: persist the freshly-loaded metadata so the
-                        // next cold start can skip JS evaluation.
-                        upsertCacheRow(file, plugin.info)
-                        MfLog.detail(
-                            category = LogCategory.PLUGIN,
-                            event = "plugin_load_success",
-                            fields = mapOf(
-                                "operation" to "load",
-                                "status" to "success",
-                                "platform" to plugin.info.platform,
-                                "fileName" to file.name,
-                                "durationMs" to durationMs,
-                                "state" to PluginStateKeys.STATE_MOUNTED,
-                            ),
-                        )
-                    } else {
-                        newEntries.add(
-                            PluginEntry(
-                                filePath = file.absolutePath,
-                                state = PluginState.Failed(
-                                    PluginErrorReason.CannotParse,
-                                    "loadPluginFromFile returned null",
-                                ),
-                                info = null,
-                                loaded = null,
-                                installSource = installSource,
-                                attemptedPlatform = null,
-                            ),
-                        )
-                        MfLog.error(
-                            category = LogCategory.PLUGIN,
-                            event = "plugin_load_failed",
-                            fields = mapOf(
-                                "operation" to "load",
-                                "status" to "failed",
-                                "fileName" to file.name,
-                                "state" to PluginStateKeys.STATE_FAILED,
-                                "reason" to PluginStateKeys.REASON_CANNOT_PARSE,
-                            ),
-                        )
-                    }
-                } catch (e: Exception) {
-                    newEntries.add(
-                        PluginEntry(
-                            filePath = file.absolutePath,
-                            state = PluginState.Failed(
-                                PluginErrorReason.CannotParse,
-                                e.message ?: e::class.qualifiedName,
-                            ),
-                            info = null,
-                            loaded = null,
-                            installSource = installSource,
-                            attemptedPlatform = null,
-                        ),
-                    )
-                    MfLog.error(
-                        category = LogCategory.PLUGIN,
-                        event = "plugin_load_failed",
-                        throwable = e,
-                        fields = mapOf(
-                            "operation" to "load",
-                            "status" to "failed",
-                            "fileName" to file.name,
-                            "state" to PluginStateKeys.STATE_FAILED,
-                            "reason" to PluginStateKeys.REASON_CANNOT_PARSE,
-                        ),
-                    )
-                }
+                }.awaitAll()
+            }
+
+            // Assemble in original file order.
+            for (index in files.indices) {
+                entriesByIndex[index]?.let { newEntries.add(it) }
+                pluginsByIndex[index]?.let { loadedPlugins.add(it) }
             }
             val local = buildLocalEntry()
             loadedPlugins += local
@@ -402,6 +343,105 @@ class PluginManager @Inject constructor(
                     ),
                 )
             }
+        }
+    }
+
+    /**
+     * Load a single cache-miss plugin file: logs start/success/failure, builds the
+     * resulting [PluginEntry], and persists the metadata cache row on success.
+     * This is pure per-file work with no shared mutable state, so it is safe to run
+     * concurrently across files (each plugin gets its own single-thread QuickJS
+     * engine). Returns the entry plus the [LoadedPlugin] when the load succeeded.
+     */
+    private suspend fun loadCacheMissEntry(file: File): Pair<PluginEntry, LoadedPlugin?> {
+        val installSource = readInstallMetadata(file)
+        MfLog.detail(
+            category = LogCategory.PLUGIN,
+            event = "plugin_load_start",
+            fields = mapOf(
+                "operation" to "load",
+                "status" to "start",
+                "fileName" to file.name,
+            ),
+        )
+        return try {
+            val (plugin, durationMs) = timedSuspend {
+                loadPluginFromFile(file, installSource)
+            }
+            if (plugin != null) {
+                // Phase E: persist the freshly-loaded metadata so the next cold
+                // start can skip JS evaluation.
+                upsertCacheRow(file, plugin.info)
+                MfLog.detail(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_load_success",
+                    fields = mapOf(
+                        "operation" to "load",
+                        "status" to "success",
+                        "platform" to plugin.info.platform,
+                        "fileName" to file.name,
+                        "durationMs" to durationMs,
+                        "state" to PluginStateKeys.STATE_MOUNTED,
+                    ),
+                )
+                PluginEntry(
+                    filePath = plugin.filePath,
+                    state = PluginState.Mounted,
+                    info = plugin.info,
+                    loaded = plugin,
+                    installSource = plugin.installSource,
+                    attemptedPlatform = plugin.info.platform,
+                ) to plugin
+            } else {
+                MfLog.error(
+                    category = LogCategory.PLUGIN,
+                    event = "plugin_load_failed",
+                    fields = mapOf(
+                        "operation" to "load",
+                        "status" to "failed",
+                        "fileName" to file.name,
+                        "state" to PluginStateKeys.STATE_FAILED,
+                        "reason" to PluginStateKeys.REASON_CANNOT_PARSE,
+                    ),
+                )
+                PluginEntry(
+                    filePath = file.absolutePath,
+                    state = PluginState.Failed(
+                        PluginErrorReason.CannotParse,
+                        "loadPluginFromFile returned null",
+                    ),
+                    info = null,
+                    loaded = null,
+                    installSource = installSource,
+                    attemptedPlatform = null,
+                ) to null
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            MfLog.error(
+                category = LogCategory.PLUGIN,
+                event = "plugin_load_failed",
+                throwable = e,
+                fields = mapOf(
+                    "operation" to "load",
+                    "status" to "failed",
+                    "fileName" to file.name,
+                    "state" to PluginStateKeys.STATE_FAILED,
+                    "reason" to PluginStateKeys.REASON_CANNOT_PARSE,
+                ),
+            )
+            PluginEntry(
+                filePath = file.absolutePath,
+                state = PluginState.Failed(
+                    PluginErrorReason.CannotParse,
+                    e.message ?: e::class.qualifiedName,
+                ),
+                info = null,
+                loaded = null,
+                installSource = installSource,
+                attemptedPlatform = null,
+            ) to null
         }
     }
 

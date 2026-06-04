@@ -117,21 +117,48 @@ object AxiosShim {
         engine.asyncFunction<String>("__axios_request") { args -> handleRequest(args) }
 
         // Build the axios object in JS: axios is a callable function with .get/.post/.request.
-        // Each wrapper awaits the JSON string and parses it.
+        // Each wrapper awaits the JSON string and parses it, then enforces axios's error
+        // contract: reject (throw) on transport/timeout errors (Kotlin's status:-1 sentinel)
+        // and on out-of-range HTTP status, honoring a per-call `validateStatus`. RN
+        // MusicFree plugins are written against real axios (same throw + validateStatus
+        // behaviour), so any plugin that works in RN keeps working here; transport failures
+        // surface as clean rejections the plugin's try/catch handles, instead of resolving a
+        // fake `{ status: -1 }` object that later crashes with "cannot read property of
+        // undefined". Network errors always reject regardless of validateStatus (axios only
+        // applies validateStatus to a received response).
         engine.evaluate<Any?>(
             """
             (function() {
-              async function parseResponse(promise) {
+              async function parseResponse(promise, config) {
                 var json = await promise;
                 var res;
-                try { res = JSON.parse(json); } catch(e) { res = { status: -1, data: json }; }
+                try { res = JSON.parse(json); } catch (e) { res = { status: -1, data: json }; }
                 globalThis.__lastAxiosResponse = res;
+                var status = res.status;
+                if (status === -1) {
+                  var message = (typeof res.data === 'string' && res.data) ? res.data : 'Network Error';
+                  var networkError = new Error(message);
+                  networkError.isAxiosError = true;
+                  networkError.code = message.toLowerCase().indexOf('timeout') >= 0 ? 'ECONNABORTED' : 'ERR_NETWORK';
+                  throw networkError;
+                }
+                var validateStatus = config && config.validateStatus;
+                var accepted = (typeof validateStatus === 'function')
+                  ? validateStatus(status)
+                  : (status >= 200 && status < 300);
+                if (!accepted) {
+                  var httpError = new Error('Request failed with status code ' + status);
+                  httpError.isAxiosError = true;
+                  httpError.code = 'ERR_BAD_RESPONSE';
+                  httpError.response = res;
+                  throw httpError;
+                }
                 return res;
               }
-              var axios = function(config) { return parseResponse(__axios_request(config)); };
-              axios.get = function() { return parseResponse(__axios_get.apply(null, arguments)); };
-              axios.post = function() { return parseResponse(__axios_post.apply(null, arguments)); };
-              axios.request = function(config) { return parseResponse(__axios_request(config)); };
+              var axios = function(config) { return parseResponse(__axios_request(config), config); };
+              axios.get = function(url, config) { return parseResponse(__axios_get.apply(null, arguments), config); };
+              axios.post = function(url, data, config) { return parseResponse(__axios_post.apply(null, arguments), config); };
+              axios.request = function(config) { return parseResponse(__axios_request(config), config); };
               axios.create = function() { return axios; };
               axios.default = axios;
               globalThis.axios = axios;

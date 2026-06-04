@@ -174,7 +174,16 @@ class PluginRuntimeLocalIntegrationTest {
           version: '1.0.0',
           supportedSearchType: ['music'],
           async search(query, page, type) {
-            const req = axios.default({ method: 'noop', url: 'https://example.com' });
+            // axios now follows the real error contract: an unsupported method rejects.
+            // Await + catch so there is no unhandled rejection and the shim still proves
+            // axios is required and callable.
+            let reqStatus = 'n/a';
+            try {
+              const req = await axios.default({ method: 'noop', url: 'https://example.com' });
+              reqStatus = String(req.status);
+            } catch (e) {
+              reqStatus = 'rejected';
+            }
             const q = qs.stringify({ q: query, page: page });
             const decoded = he.decode('&amp;');
             const date = dayjs('2026-03-21').format('YYYY-MM-DD');
@@ -193,7 +202,7 @@ class PluginRuntimeLocalIntegrationTest {
                 id: 'it-1',
                 platform: 'runtime-shim-it',
                 songmid: 'song-mid-it-1',
-                title: decoded + '|' + q + '|' + date + '|' + mod + '|' + req.status + '|' + typeof encrypted,
+                title: decoded + '|' + q + '|' + date + '|' + mod + '|' + reqStatus + '|' + typeof encrypted,
                 artist: 'integration',
                 album: 'integration',
                 duration: 1,

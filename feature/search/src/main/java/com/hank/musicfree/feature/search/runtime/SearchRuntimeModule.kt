@@ -1,20 +1,18 @@
 package com.hank.musicfree.feature.search.runtime
 
-import com.hank.musicfree.core.runtime.RuntimeStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import dagger.multibindings.IntoSet
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class SearchRuntimeModule {
-    @Binds
-    @IntoSet
-    @Singleton
-    abstract fun bindSearchSessionStore(store: SearchSessionStore): RuntimeStore<*>
+    // SearchSessionStore is intentionally NOT bound as a process-level RuntimeStore:
+    // it is page-scoped (one instance per SearchViewModel, injected via its @Inject
+    // constructor) so search state resets on screen exit. See
+    // docs/dev-harness/runtime/rules.md#rule-runtime-state-classification.
 
     @Binds
     @Singleton
