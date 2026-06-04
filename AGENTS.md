@@ -59,6 +59,13 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - 若用户未指定分支名，使用与任务语义一致的简短分支名。
 - 文档、脚本和说明中引用 worktree 路径时使用相对路径，避免写入 `/Users/...` 绝对路径。
 - worktree 分支合并回 `main` 时必须使用 `git merge --squash`，把分支上所有 commit 压成单个 commit。Commit message 使用 conventional commits 格式（`feat(scope): ...`、`fix(scope): ...`、`docs(scope): ...` 等）简要说明变更类型与范围；正文可补一两句"做了什么、为什么"，不要把每一步过程写进 message, 提交使用中文。
+- squash merge 回 `main` 后，若功能 worktree 已完成收尾验证，且 `main` 的 tracked tree 与功能分支 tip 的 tracked tree 完全一致，可跳过 `main` 上重复执行 `bash scripts/dev-harness/check.sh` 与 `./gradlew :app:assembleDebug --no-daemon`。推荐在删除分支前保存并比较 tree hash：
+  ```bash
+  branch_tree="$(git rev-parse '<branch>^{tree}')"
+  main_tree="$(git rev-parse 'HEAD^{tree}')"
+  test "$main_tree" = "$branch_tree"
+  ```
+  只有在该比较通过、`git status --short` 没有源码类未提交变更、且 worktree 上已通过 targeted unit tests、`bash scripts/dev-harness/check.sh`、`./gradlew :app:assembleDebug --no-daemon` 时，才允许跳过 `main` 重跑；若比较不通过、合并有手工冲突解决、`main` 合并了额外 tracked 内容，或 worktree 验证不完整，必须在 `main` 上重跑对应验证。
 
 ## Plan 模式 / 工作项拆分约束
 
@@ -289,6 +296,23 @@ Room Entity 不直接暴露给上层；通过 mapper 转换为 domain model。Re
 
 - 编译、单测、集成测试、模拟器/设备验证、最终 review 必须集中执行
 - 默认构建闸门使用 Debug 构建（如 `:app:assembleDebug`）；不要因缺少 Release 签名环境变量而阻塞普通功能收尾。
+- 若使用功能 worktree 开发，收尾验证优先在 worktree 上集中执行。squash merge 回 `main` 后，只有在 `main` tracked tree 与已验证分支 tip 完全一致时，才可按上文 Git Worktree 规则跳过重复的 harness check 与 Debug 编译；否则最终结论必须以 `main` 上的验证结果为准。
+- 默认 worktree 收尾模板：
+  ```bash
+  # 功能 worktree 上
+  ./gradlew :<changed-module>:testDebugUnitTest --no-daemon
+  bash scripts/dev-harness/check.sh
+  ./gradlew :app:assembleDebug --no-daemon
+  branch_tree="$(git rev-parse 'HEAD^{tree}')"
+
+  # squash merge 回 main 并提交后
+  main_tree="$(git rev-parse 'HEAD^{tree}')"
+  if test "$main_tree" != "$branch_tree"; then
+    bash scripts/dev-harness/check.sh
+    ./gradlew :app:assembleDebug --no-daemon
+  fi
+  ```
+  `main_tree == branch_tree` 时，说明最终 tracked 文件快照与已验证 worktree 完全一致，可跳过 `main` 上重复验证；若不一致，必须在 `main` 上补跑上述验证。若改动触及多个模块，`:<changed-module>:testDebugUnitTest` 应替换为所有相关模块的 targeted unit tests。
 - 运行态验收优先于“代码看起来没问题”的乐观判断
 - 功能可能通过编译和测试，但仍会在运行态失败；结论必须以运行证据为准
 

@@ -77,4 +77,5 @@ implemented_by: INC-2026-0016
 - 修改 ViewModel / Repository / 注入入口的构造器参数 MUST 同步更新所有 `*Test.kt` 中的 fixture / fake / factory。
 - PR MUST 跑该模块完整 `testDebugUnitTest` 通过后再合入；不能仅靠 `assembleDebug` 验证（gradle 测试源编译被 build cache 掩盖）。
 - PR 合入前 MUST 在本地跑 `bash scripts/dev-harness/check.sh`（默认含编译全模块测试源步骤）；新加模块时 MUST 同步加入 `scripts/dev-harness/check.sh` 的 `:<each-module>:compileDebugUnitTestKotlin` 模块列表。
+- 若使用功能 worktree，`testDebugUnitTest` 与 `bash scripts/dev-harness/check.sh` 可在功能 worktree 上完成。squash merge 回 `main` 后，按 [AGENTS.md](../../../AGENTS.md) 的默认 worktree 收尾模板先比较 tracked tree；只有在 `main` 的 tracked tree 与已验证分支 tip 的 tracked tree 完全一致时，才可跳过 `main` 上重复执行 `bash scripts/dev-harness/check.sh`；否则 MUST 在 `main` 上重跑。
 - 本地等价命令：`bash scripts/dev-harness/check.sh`（默认含编译全模块测试源步骤）。
