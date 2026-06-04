@@ -6,6 +6,29 @@
 
 <!-- next-release -->
 
+## [v1.2.14] - 2026-06-05
+
+### 变更详情
+
+#### 修复
+- fix(plugin): 修复冷启动播放无音源、搜索再进入卡死与插件网络硬崩 (56724e1)
+- fix(player): 修复上一首无法切歌 (3a5a9d7)
+
+#### 文档
+- docs(workflow): 优化 worktree 合并后验证策略 (fdb93cc)
+- docs(changelog): release v1.2.13 [skip ci] (28d46d4)
+
+#### 杂项
+- chore(release): bump to v1.2.14 (525ee74)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.14-arm64-v8a.apk` · 7.6MB · sha256 `d14ea470607c`
+- x86_64: `MusicFreeAndroid-v1.2.14-x86_64.apk` · 7.6MB · sha256 `284e5a2d3e53`
+- mapping: `mapping-v1.2.14.zip` · sha256 `6cdd0e382162` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.13] - 2026-06-02
 
 ### 变更详情
