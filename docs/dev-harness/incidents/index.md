@@ -4,7 +4,7 @@
 > 适用范围：跨域 incident ID 唯一性、状态汇总、guard 类型反查
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
-> 最后校验：2026-05-26
+> 最后校验：2026-06-05
 
 ## 编号规则
 
@@ -46,3 +46,4 @@
 | INC-2026-0022 | player | 通知播放空 session 自递归 StackOverflowError | [player/rules.md#rule-notification-play-no-recursion](../player/rules.md#rule-notification-play-no-recursion) | contract-test |
 | INC-2026-0023 | updater | APK 安装入口长期依赖 FileProvider+Intent 跨进程授权，2 次修复未收敛 → 迁移到 PackageInstaller.Session | — | manual |
 | INC-2026-0024 | player | 冷启动恢复后通知栏与 mini player 状态分叉 | [player/rules.md#rule-restored-play-command-source-isolation](../player/rules.md#rule-restored-play-command-source-isolation) | contract-test |
+| INC-2026-0025 | player | 上一首被进度回零语义吞掉 | [player/rules.md#rule-previous-command-uses-queue-transition](../player/rules.md#rule-previous-command-uses-queue-transition) | contract-test |

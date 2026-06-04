@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hank.musicfree.core.ui.logUiClick
 import com.hank.musicfree.feature.playerui.PlayerViewModel
 import com.hank.musicfree.feature.playerui.component.queue.PlayQueueSheet
 import com.hank.musicfree.player.model.PlayerState
@@ -41,8 +42,14 @@ fun MiniPlayer(
         onOpenPlayer = onNavigateToPlayer,
         onTogglePlayPause = viewModel::togglePlayPause,
         onOpenQueue = { showQueueSheet = true },
-        onSkipNext = {},
-        onSkipPrev = {},
+        onSkipNext = {
+            logUiClick("mini_player.gesture.skip_next", screen = "mini_player")
+            viewModel.skipToNext()
+        },
+        onSkipPrev = {
+            logUiClick("mini_player.gesture.skip_previous", screen = "mini_player")
+            viewModel.skipToPrevious()
+        },
         modifier = modifier,
     )
 

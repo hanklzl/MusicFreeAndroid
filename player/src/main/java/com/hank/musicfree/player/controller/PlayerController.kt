@@ -355,20 +355,26 @@ class PlayerController @Inject constructor(
 
     fun skipToPrevious() {
         pendingRestorePosition = null
-        withConnectedController { controller ->
-            val position = controller.currentPosition
-            if (position > 3_000L) {
-                controller.seekTo(0L)
-                return@withConnectedController
-            }
-            val previousIndex = playQueue.peekPreviousIndex(repeatMode) ?: return@withConnectedController
-            val prev = playQueue.items.getOrNull(previousIndex) ?: return@withConnectedController
-            startQueuePlaybackTransition(
-                targetIndex = previousIndex,
-                targetItem = prev,
-                operation = "skip_previous",
-            )
-        }
+        val currentIndex = playQueue.currentIndex
+        val currentItem = playQueue.currentItem
+        val previousIndex = playQueue.peekPreviousIndex(repeatMode) ?: return
+        val previous = playQueue.items.getOrNull(previousIndex) ?: return
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "player_skip_previous",
+            fields = mapOf(
+                "fromIndex" to currentIndex,
+                "toIndex" to previousIndex,
+                "fromItemId" to currentItem?.id,
+                "toItemId" to previous.id,
+                "platform" to previous.platform,
+            ) + previous.diagnosticFields(prefix = "to"),
+        )
+        startQueuePlaybackTransition(
+            targetIndex = previousIndex,
+            targetItem = previous,
+            operation = "skip_previous",
+        )
     }
 
     override fun skipToPreviousFromNotification() {

@@ -1,6 +1,7 @@
 package com.hank.musicfree.player.controller
 
 import android.content.Context
+import androidx.media3.session.MediaController
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.RepeatMode
 import com.hank.musicfree.logging.LogCategory
@@ -10,7 +11,10 @@ import com.hank.musicfree.player.listening.ListenTracker
 import com.hank.musicfree.player.queue.PlayQueueSnapshot
 import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
 import java.util.concurrent.CopyOnWriteArrayList
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -188,6 +192,35 @@ class PlayerControllerQueueStateTest {
             controller.skipToNext()
             assertEquals(1, controller.queueState.value.currentIndex)
         } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `skipToPrevious advances queue even when current position exceeds restart threshold`() {
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
+        val mockMediaController = mock<MediaController> {
+            on { currentPosition } doReturn 42_000L
+        }
+        controller.setMediaControllerForTest(mockMediaController)
+
+        try {
+            val items = listOf(item("1"), item("2"), item("3"))
+            controller.restoreQueue(
+                items = items,
+                startIndex = 2,
+                savedPositionMs = 42_000L,
+                savedDurationMs = 180_000L,
+                playWhenRestored = false,
+            )
+
+            controller.skipToPrevious()
+
+            assertEquals(1, controller.queueState.value.currentIndex)
+            assertEquals(item("2"), controller.playQueue.currentItem)
+            verify(mockMediaController, never()).seekTo(0L)
+        } finally {
+            controller.setMediaControllerForTest(null)
             controller.release()
         }
     }

@@ -2,7 +2,35 @@
 
 > 文档状态：当前规范（Dev Harness — Player Incidents）
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [Incidents Index](../incidents/index.md) ｜ [player/rules.md](./rules.md)
-> 最后校验：2026-05-26
+> 最后校验：2026-06-05
+
+## INC-2026-0025 — 上一首被进度回零语义吞掉
+
+- id: INC-2026-0025
+- area: player
+- date: 2026-06-05
+- status: active
+- rule_ref: docs/dev-harness/player/rules.md#rule-previous-command-uses-queue-transition
+- guard:
+    type: contract-test
+    target: player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerQueueStateTest.kt, feature/player-ui/src/test/java/com/hank/musicfree/feature/playerui/component/MiniPlayerContentTest.kt
+- fix_ref: 本次上一首队列迁移修复
+
+### 根因
+
+`PlayerController.skipToPrevious()` 在当前播放进度超过 3 秒时直接 `seekTo(0)` 并早退，导致播放详情页等入口只能把当前歌曲进度重置，无法继续切到上一首。mini player 横向滑动虽然在 `MiniPlayerContent` 内识别了左右手势，但 wrapper 传入的是空 lambda，手势同样无法触发切歌。
+
+### 复发条件
+
+修改上一首 / 下一首入口后，以下任一断言被破坏：
+
+- 当前进度超过 3 秒时，`skipToPrevious()` 没有把 `queueState.currentIndex` 切到前一项。
+- `skipToPrevious()` 重新调用 `MediaController.seekTo(0L)` 替代队列迁移。
+- mini player 横向右滑 / 左滑没有分别调用 `PlayerViewModel.skipToPrevious()` / `skipToNext()`。
+
+### 教训
+
+上一首是队列导航命令，不是 seek 命令；所有 UI 入口必须复用 controller 的队列迁移语义，并用 Compose 手势测试覆盖 wrapper wiring。
 
 ## INC-2026-0024 — 冷启动恢复后通知栏与 mini player 状态分叉
 

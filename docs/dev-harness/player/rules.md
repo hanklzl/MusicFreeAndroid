@@ -5,7 +5,7 @@
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
 > 设计来源：[Dev Harness 基础设施设计](../../superpowers/specs/2026-05-09-dev-harness-foundation-design.md)、[播放器状态栏避让设计](../../superpowers/specs/2026-05-04-player-statusbar-inset-design.md)、[播放页歌词交互修正设计](../../superpowers/specs/2026-05-05-player-lyrics-interaction-fix-design.md)、[歌词纯秒小数时间戳修复设计](../../superpowers/specs/2026-05-10-lyric-second-only-timestamp-fix-design.md)
-> 最后校验：2026-05-26
+> 最后校验：2026-06-05
 
 ## 强制入口
 
@@ -57,6 +57,15 @@ implemented_by: INC-2026-0024
 - `PlaybackService.onPlayerCommandRequest` 处理 empty-session `COMMAND_PLAY_PAUSE` 时 MUST 区分命令来源：`controller.packageName == packageName` 的 app 内 controller 命令不得转发到 `PlaybackNotificationCommandHandler.play()`；仅外部 / 系统控制器可走通知栏 empty-session 兜底。
 - 该链路日志 MUST 至少包含 `controllerPackage`、`isAppController`、`sessionMediaItemCount`、`playerPlaybackState`、`queueIndex`、`queueSize`、`currentItemId`，用于反馈包判断系统媒体控件与 app 内 player state 是否分叉。
 - 任何改 `PlayerController.play()`、`PlaybackService.onPlayerCommandRequest` 或 `PlaybackNotificationCommandHandler` 诊断字段的 PR MUST 跑 `:player:testDebugUnitTest --tests *PlayerControllerNotificationControlsTest* --tests *PlaybackServiceCommandRoutingTest*`。
+
+## 上一首命令必须走队列迁移 {#rule-previous-command-uses-queue-transition}
+
+implemented_by: INC-2026-0025
+
+- `PlayerController.skipToPrevious()` MUST 通过 `PlayQueue.peekPreviousIndex(repeatMode)` 解析目标，并调用 `startQueuePlaybackTransition(operation = "skip_previous")`，与 `skipToNext()` 保持同一条队列切歌语义。
+- MUST NOT 用 `currentPosition > threshold -> seekTo(0)` 替代上一首；播放详情页、mini player、通知栏等入口的上一首命令都必须能切到队列前一项。
+- mini player 横向手势 MUST 连接到 `PlayerViewModel.skipToPrevious()` / `skipToNext()`，不得留下空 lambda。
+- 任何改 `PlayerController.skipToPrevious()`、mini player 手势或播放控制上一首入口的 PR MUST 跑 `:player:testDebugUnitTest --tests *PlayerControllerQueueStateTest*` 与 `:feature:player-ui:testDebugUnitTest --tests *MiniPlayerContentTest*`。
 
 ## 歌词解析时间戳格式 {#rule-lyric-parser-supports-second-only-timestamp}
 

@@ -1,5 +1,6 @@
 package com.hank.musicfree.feature.playerui.component
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -7,14 +8,21 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.ui.FidelityAnchors
+import com.hank.musicfree.feature.playerui.PlayerViewModel
 import com.hank.musicfree.player.model.PlayerState
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -40,6 +48,22 @@ class MiniPlayerContentTest {
         hasNext = true,
         prevTitle = null,
         nextTitle = null,
+    )
+
+    private fun playerStateWithMedia() = PlayerState.EMPTY.copy(
+        currentItem = MusicItem(
+            id = "1",
+            platform = "local",
+            title = "Test Song",
+            artist = "Test Artist",
+            album = null,
+            duration = 180_000L,
+            url = null,
+            artwork = null,
+            qualities = null,
+        ),
+        duration = 180_000L,
+        position = 42_000L,
     )
 
     @Test
@@ -72,6 +96,49 @@ class MiniPlayerContentTest {
             assertEquals(1, openPlayerClicks)
             assertEquals(1, playPauseClicks)
             assertEquals(1, queueClicks)
+        }
+    }
+
+    @Test
+    fun `mini player wrapper routes horizontal swipes to skip commands`() {
+        val playerState = MutableStateFlow(playerStateWithMedia())
+        val viewModel = mock<PlayerViewModel> {
+            on { this.playerState } doReturn playerState
+        }
+
+        composeRule.setContent {
+            MusicFreeTheme {
+                MiniPlayer(
+                    onNavigateToPlayer = {},
+                    viewModel = viewModel,
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        val root = composeRule.onNodeWithTag(FidelityAnchors.Player.MiniRoot)
+        root.assertIsDisplayed()
+
+        root.performTouchInput {
+            swipe(
+                start = Offset(centerX - width * 0.2f, centerY),
+                end = Offset(centerX + width * 0.2f, centerY),
+                durationMillis = 200,
+            )
+        }
+        composeRule.runOnIdle {
+            verify(viewModel).skipToPrevious()
+        }
+
+        root.performTouchInput {
+            swipe(
+                start = Offset(centerX + width * 0.2f, centerY),
+                end = Offset(centerX - width * 0.2f, centerY),
+                durationMillis = 200,
+            )
+        }
+        composeRule.runOnIdle {
+            verify(viewModel).skipToNext()
         }
     }
 
