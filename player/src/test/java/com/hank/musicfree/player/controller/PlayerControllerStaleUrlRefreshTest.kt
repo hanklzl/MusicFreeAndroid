@@ -68,6 +68,37 @@ class PlayerControllerStaleUrlRefreshTest {
     }
 
     @Test
+    fun `remote container parse failure triggers evict and resolveFresh and updates current item`() {
+        val refresher = RecordingStaleUrlRefresher(
+            freshUrl = "https://cdn.example.test/fresh-after-parse-error.mp3",
+        )
+        val registry = TrackHeaderRegistry()
+        val controller = controller(refresher = refresher, registry = registry)
+        try {
+            val cachedBadSource = remoteItem("1", url = "https://cdn.example.test/bad-cache.mp3")
+            controller.playQueue.setQueue(listOf(cachedBadSource), startIndex = 0)
+
+            controller.handleStaleUrlErrorForTest(containerUnsupportedError())
+
+            waitUntil("current item is refreshed after parse error") {
+                controller.playQueue.currentItem?.url == "https://cdn.example.test/fresh-after-parse-error.mp3"
+            }
+            assertEquals(
+                listOf("test" to "1"),
+                refresher.evictCalls.map { it.first to it.second },
+            )
+            assertEquals(PlayQuality.STANDARD, refresher.evictCalls.single().third)
+            assertEquals(listOf("1"), refresher.resolveFreshIds)
+            assertEquals(
+                PlayQuality.STANDARD,
+                registry.get("https://cdn.example.test/fresh-after-parse-error.mp3")?.quality,
+            )
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
     fun `registry entry after stale-URL refresh carries quality`() {
         val refresher = RecordingStaleUrlRefresher(
             freshUrl = "https://cdn.example.test/fresh2.mp3",
@@ -269,6 +300,12 @@ class PlayerControllerStaleUrlRefreshTest {
         "http 403",
         null,
         PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
+    )
+
+    private fun containerUnsupportedError(): PlaybackException = PlaybackException(
+        "container unsupported",
+        null,
+        PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
     )
 
     private fun remoteItem(id: String, url: String?): MusicItem = MusicItem(

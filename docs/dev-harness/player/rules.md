@@ -5,7 +5,7 @@
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
 > 设计来源：[Dev Harness 基础设施设计](../../superpowers/specs/2026-05-09-dev-harness-foundation-design.md)、[播放器状态栏避让设计](../../superpowers/specs/2026-05-04-player-statusbar-inset-design.md)、[播放页歌词交互修正设计](../../superpowers/specs/2026-05-05-player-lyrics-interaction-fix-design.md)、[歌词纯秒小数时间戳修复设计](../../superpowers/specs/2026-05-10-lyric-second-only-timestamp-fix-design.md)
-> 最后校验：2026-06-05
+> 最后校验：2026-06-13
 
 ## 强制入口
 
@@ -40,6 +40,15 @@ implemented_by: INC-2026-0012
 
 - `PlaybackService` MUST 在 `onTaskRemoved`、`onDestroy` 中按 RN 行为停止当前播放或保留媒体通知（依现有实现，详见 `2026-05-04-playback-notification-design.md`）。
 - 不在本 rule 强制具体策略；只要求改动 PR 对照该 spec。
+
+## 远端源解析失败必须刷新缓存源 {#rule-remote-source-parse-failure-refreshes-cache-source}
+
+implemented_by: INC-2026-0026
+
+- `PlayerController` 遇到远端播放源的 `ERROR_CODE_IO_BAD_HTTP_STATUS`、`ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE`、`ERROR_CODE_PARSING_CONTAINER_MALFORMED` 或 `ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED` 后，MUST 先走一次 cache entry eviction + fresh media source resolve，再重新 `setMediaItem / prepare / play`。
+- 同一首歌同一轮队列位置内该刷新预算 MUST 只有一次；刷新失败或刷新后仍失败时，才继续走换源 / 自动暂停 / 自动切下一首策略。
+- 本地播放源（`platform == "local"` 或 `file://` / `content://`）MUST NOT 走远端缓存刷新；这类 3003 更可能是本地文件本身不可解析。
+- 任何改 `refreshStaleUrlAfterFailure`、Media3 error code 分流或 `StaleUrlRefresher` 的 PR MUST 跑 `:player:testDebugUnitTest --tests *PlayerControllerStaleUrlRefreshTest* --tests *PlayerControllerPlaybackFailurePolicyTest*`。
 
 ## 通知播放命令不得递归回调 {#rule-notification-play-no-recursion}
 

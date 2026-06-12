@@ -5,7 +5,7 @@
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
 > 设计来源：v1.2.5 cache-reuse-logs 任务（plan 文件已归档于 `~/.claude/plans/purring-inventing-zebra.md`）
-> 最后校验：2026-05-23
+> 最后校验：2026-06-13
 
 ---
 
@@ -114,7 +114,7 @@ resolvePlayableItem()
 | LRU 驱逐（PinningCacheEvictor） | 字节不足时最近最少使用（v1.2.5 新增） | `media_cache_lru_evict` ★ | `evictedCount`, `evictedBytes`, `evictedKeys[10]`, `bytesNeeded`, `pinnedSizeBytes`, `maxBytes`, `pinOverflowSuspended`, `durationMs` |
 | 用户手动清空 | Settings → SettingsCacheCleaner | `media_cache_evict{scope=manual}` | — |
 | 配额上限调小 | `updateMaxBytes` | `media_cache_evict{scope=byte_cap}` + `media_cache_max_bytes_changed` ★ | `newBytes`, `previousUsed`, `freedBytes` |
-| 按 key 驱逐（stale_url） | `SimpleCacheHolder.evictForKey` | `media_cache_evict{scope=stale_url}` + `media_cache_evict_for_key` ★ | `platform`, `id`, `quality`, `removedQualityCount`, `freedBytes`, `triggerSource` |
+| 按 key 驱逐（stale_url 语义） | `SimpleCacheHolder.evictForKey`；覆盖 stale URL、HTTP bad status、invalid content type、远端 container parse failure / bad byte-cache | `media_cache_evict{scope=stale_url}` + `media_cache_evict_for_key` ★ | `platform`, `id`, `quality`, `removedQualityCount`, `freedBytes`, `triggerSource` |
 | 低磁盘空间 | 初始化时检测 | `media_cache_lowspace` | — |
 | 启动 schema 迁移 | SimpleCache 格式升级 | `media_cache_schema_migration` | — |
 | 初始化配置记录 | 冷启动（v1.2.5 新增） | `media_cache_init` ★ | `configuredBytes`, `effectiveCapBytes`, `availableBytes`, `storageScope`, `cacheDirPath` |
@@ -143,8 +143,8 @@ resolvePlayableItem()
 | `media3_datasource_error` | 已有 | `sid`, `errorCode`, `httpStatus`, `position`, `cacheKey`, `retryCount` |
 | `play_session_start` | 已有 | `sid`, `platform`, `id`, `requestedQuality`, `networkType`, `isOnline` |
 | `media_cache_lru_evict` | ★ v1.2.5 新增 | `evictedCount`, `evictedBytes`, `evictedKeys[10]`, `bytesNeeded`, `pinnedSizeBytes`, `maxBytes`, `pinOverflowSuspended`, `durationMs` |
-| `media_cache_evict` | 已有 | `scope`（manual / byte_cap / stale_url） |
-| `media_cache_evict_for_key` | ★ v1.2.5 新增 | `platform`, `id`, `quality`, `removedQualityCount`, `freedBytes`, `triggerSource` |
+| `media_cache_evict` | 已有 | `scope`（manual / byte_cap / stale_url；stale_url 当前也覆盖坏远端字节缓存刷新） |
+| `media_cache_evict_for_key` | ★ v1.2.5 新增 | `platform`, `id`, `quality`, `removedQualityCount`, `freedBytes`, `triggerSource`（stale_url 当前也覆盖坏远端字节缓存刷新） |
 | `media_cache_init` | ★ v1.2.5 新增 | `configuredBytes`, `effectiveCapBytes`, `availableBytes`, `storageScope`（internal/external）, `cacheDirPath` |
 | `media_cache_max_bytes_changed` | ★ v1.2.5 新增 | `newBytes`, `previousUsed`, `freedBytes` |
 | `media_cache_schema_migration` | 已有 | — |
@@ -270,6 +270,37 @@ cat tools/logan/out/decoded/*.txt \
 cat tools/logan/out/decoded/*.txt \
   | jq -c 'select(.event == "media_cache_lowspace")' \
   | jq '{timestamp, availableBytes: .fields.availableBytes, configuredBytes: .fields.configuredBytes, fallbackBytes: .fields.fallbackBytes}'
+```
+
+### Recipe 5："播放中失败后自动跳下一首 / Media3 3003"
+
+目标：区分订阅源 URL 解析失败、本地文件不可解析，以及远端 SimpleCache 已缓存坏字节。
+
+```bash
+# 先列出播放失败策略事件，errorCode=3003 表示 Media3 container parse unsupported
+cat tools/logan/out/decoded/*.txt \
+  | jq -c 'select(.event == "playback_failure_skip_next" or .event == "playback_failure_next_unavailable")' \
+  | jq -r '[.timestamp, .event, .fields.sid, .fields.platform, .fields.itemId, .fields.errorCode, .fields.reason] | @tsv'
+```
+
+**判断**：
+
+- 同一 sid 附近有 `media3_datasource_open{cacheHit=true, bytesFromCache>0, bytesFromUpstream=0}`，随后 3003 / sniff failure → 优先怀疑远端 SimpleCache 中已有坏字节，必须触发一次 `media_cache_evict_for_key` + `plugin_media_source_refreshed_after_failure`。
+- `media3_datasource_open` 指向 `file://` 或 `content://`，并且此前 `cache_hit{source=local}` → 更可能是本地文件不可解析；不要按远端缓存刷新处理。
+- 只有 `resolve_plugin_call_end{hasUrl=false}` 或 `plugin_media_source_refresh_failed{reason=no_fresh_url}`，且没有 Media3 datasource 读流证据 → 再回到插件 / 订阅源返回值排查。
+
+```bash
+SID="ps_xxxxxx"
+
+# 查看同一个播放会话内的解析、读流、驱逐、刷新和最终失败事件
+cat tools/logan/out/decoded/*.txt \
+  | jq -c --arg sid "$SID" '
+      select(.fields.sid == $sid)
+      | select(.event | test(
+          "resolve_plugin_call_end|media3_datasource_open|media3_datasource_error|media_cache_evict_for_key|plugin_media_source_refreshed_after_failure|playback_failure"
+        ))
+    ' \
+  | jq -r '[.timestamp, .event, .fields.cacheKey, .fields.cacheHit, .fields.bytesFromCache, .fields.bytesFromUpstream, .fields.errorCode, .fields.reason] | @tsv'
 ```
 
 ---

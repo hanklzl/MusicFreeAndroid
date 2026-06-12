@@ -98,10 +98,10 @@ class PlayerController @Inject constructor(
 
     /**
      * Per-(platform, id) flag tracking whether we already attempted to evict and
-     * re-resolve the current play URL after an `ERROR_CODE_IO_BAD_HTTP_STATUS`
-     * failure. Cleared on queue advance so revisiting the same item later (after
-     * skipping forward or back) gets a fresh budget. Process-local; not persisted.
-     * Spec §5.7 of `2026-05-11-plugin-engine-alignment-design.md`.
+     * re-resolve the current play URL after an input/source failure that may be
+     * caused by a stale URL or corrupted byte-cache entry. Cleared on queue advance
+     * so revisiting the same item later gets a fresh budget. Process-local; not
+     * persisted. Spec §5.7 of `2026-05-11-plugin-engine-alignment-design.md`.
      */
     private val staleUrlRetryState = ConcurrentHashMap<Pair<String, String>, Boolean>()
     private val playFailureSourceRetryState = ConcurrentHashMap<Pair<String, String>, Boolean>()
@@ -1281,8 +1281,7 @@ class PlayerController @Inject constructor(
         item: MusicItem,
         expectedIndex: Int,
     ): Boolean {
-        if (error.errorCode != PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS) return false
-        if (item.isLocalPlaybackSource()) return false
+        if (!shouldRefreshSourceAfterFailure(error, item)) return false
 
         val key = item.platform to item.id
         if (staleUrlRetryState.putIfAbsent(key, true) != null) {
@@ -1414,6 +1413,17 @@ class PlayerController @Inject constructor(
             }
         }
         return applied
+    }
+
+    private fun shouldRefreshSourceAfterFailure(error: PlaybackException, item: MusicItem): Boolean {
+        if (item.isLocalPlaybackSource()) return false
+        return when (error.errorCode) {
+            PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
+            PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE,
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED -> true
+            else -> false
+        }
     }
 
     private suspend fun changeSourceAfterFailure(

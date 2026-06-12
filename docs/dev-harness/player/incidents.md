@@ -2,7 +2,38 @@
 
 > 文档状态：当前规范（Dev Harness — Player Incidents）
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [Incidents Index](../incidents/index.md) ｜ [player/rules.md](./rules.md)
-> 最后校验：2026-06-05
+> 最后校验：2026-06-13
+
+## INC-2026-0026 — 远端坏字节缓存导致 3003 反复自动切歌
+
+- id: INC-2026-0026
+- area: player
+- date: 2026-06-13
+- status: active
+- rule_ref: docs/dev-harness/player/rules.md#rule-remote-source-parse-failure-refreshes-cache-source
+- guard:
+    type: contract-test
+    target: player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerStaleUrlRefreshTest.kt
+- fix_ref: 2026-06-13 v1.2.14 反馈包播放失败排查
+
+### 根因
+
+反馈包中多次 `playback_failure_skip_next` / `playback_failure_next_unavailable` 的 Media3 errorCode 为 `3003`（container unsupported）。对应 sid 前后的 `media3_datasource_open` 显示远端 cache key 命中 SimpleCache，`bytesFromCache=131076`、`bytesFromUpstream=0`，随后 extractor sniff 失败；旧逻辑只在 `ERROR_CODE_IO_BAD_HTTP_STATUS` 时驱逐缓存并重新解析 URL，导致坏的远端字节缓存可被反复复用并立即触发自动切歌。
+
+同一反馈包也出现 `content://` 本地源解析失败；这类失败不应走远端缓存刷新，需按本地文件不可解析继续诊断。
+
+### 复发条件
+
+修改播放失败恢复逻辑后，以下任一断言被破坏：
+
+- 远端 `ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED` 没有调用 `StaleUrlRefresher.evictCacheEntry()` 和 `resolveFresh()`。
+- 远端 `ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE` / `ERROR_CODE_PARSING_CONTAINER_MALFORMED` 未进入同一条刷新路径。
+- `file://` / `content://` / `platform=="local"` 的本地源 3003 被误判为远端坏缓存并触发刷新。
+- 同一首歌同一轮失败恢复允许无限刷新，绕过后续换源或自动切歌策略。
+
+### 教训
+
+Media3 3003 不一定是订阅源无法返回 URL；如果日志里先出现稳定 cache key 命中且只读到固定小段缓存，再出现 extractor sniff 失败，应优先怀疑远端字节缓存已被写入非音频或截断内容。HTTP bad status、invalid content type、container malformed / unsupported 都必须共用一次性的远端缓存刷新预算。
 
 ## INC-2026-0025 — 上一首被进度回零语义吞掉
 
