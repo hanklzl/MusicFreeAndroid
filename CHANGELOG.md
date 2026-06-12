@@ -6,6 +6,27 @@
 
 <!-- next-release -->
 
+## [v1.2.15] - 2026-06-13
+
+### 变更详情
+
+#### 修复
+- fix(player): 修复坏远端缓存触发反复切歌 (d6c89dd)
+
+#### 文档
+- docs(changelog): release v1.2.14 [skip ci] (04857d2)
+
+#### 杂项
+- chore(release): bump to v1.2.15 (59b78dc)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.15-arm64-v8a.apk` · 7.6MB · sha256 `51951945d71f`
+- x86_64: `MusicFreeAndroid-v1.2.15-x86_64.apk` · 7.6MB · sha256 `e87e61307c73`
+- mapping: `mapping-v1.2.15.zip` · sha256 `4c39131d58a0` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.14] - 2026-06-05
 
 ### 变更详情
