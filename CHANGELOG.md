@@ -6,6 +6,27 @@
 
 <!-- next-release -->
 
+## [v1.2.16] - 2026-06-13
+
+### 变更详情
+
+#### 修复
+- fix(player): 清理刷新失败后的坏远端缓存 (95571e7)
+
+#### 文档
+- docs(changelog): release v1.2.15 [skip ci] (97f46e6)
+
+#### 杂项
+- chore(release): bump to v1.2.16 (4c3fdc0)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.16-arm64-v8a.apk` · 7.6MB · sha256 `553cb4fc5164`
+- x86_64: `MusicFreeAndroid-v1.2.16-x86_64.apk` · 7.6MB · sha256 `137666d1ad2c`
+- mapping: `mapping-v1.2.16.zip` · sha256 `84eb67e6b102` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.15] - 2026-06-13
 
 ### 变更详情
