@@ -47,6 +47,7 @@ implemented_by: INC-2026-0026
 
 - `PlayerController` 遇到远端播放源的 `ERROR_CODE_IO_BAD_HTTP_STATUS`、`ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE`、`ERROR_CODE_PARSING_CONTAINER_MALFORMED` 或 `ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED` 后，MUST 先走一次 cache entry eviction + fresh media source resolve，再重新 `setMediaItem / prepare / play`。
 - 同一首歌同一轮队列位置内该刷新预算 MUST 只有一次；刷新失败或刷新后仍失败时，才继续走换源 / 自动暂停 / 自动切下一首策略。
+- 刷新后的远端源若仍因 invalid content type / container malformed / container unsupported 失败，MUST 再驱逐一次刚写入的字节缓存，但 MUST NOT 再次 `resolveFresh()`，避免下次用户重试先命中刷新失败留下的坏缓存。
 - 本地播放源（`platform == "local"` 或 `file://` / `content://`）MUST NOT 走远端缓存刷新；这类 3003 更可能是本地文件本身不可解析。
 - 任何改 `refreshStaleUrlAfterFailure`、Media3 error code 分流或 `StaleUrlRefresher` 的 PR MUST 跑 `:player:testDebugUnitTest --tests *PlayerControllerStaleUrlRefreshTest* --tests *PlayerControllerPlaybackFailurePolicyTest*`。
 

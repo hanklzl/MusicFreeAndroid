@@ -30,10 +30,13 @@
 - 远端 `ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE` / `ERROR_CODE_PARSING_CONTAINER_MALFORMED` 未进入同一条刷新路径。
 - `file://` / `content://` / `platform=="local"` 的本地源 3003 被误判为远端坏缓存并触发刷新。
 - 同一首歌同一轮失败恢复允许无限刷新，绕过后续换源或自动切歌策略。
+- 刷新后的远端 URL 仍然 3003 时，只记录 `playback_stale_url_retry_exhausted`，但没有再次驱逐刷新后写入的坏字节缓存；用户下一次手动重试又先命中同一个稳定 cache key 的坏缓存。
 
 ### 教训
 
 Media3 3003 不一定是订阅源无法返回 URL；如果日志里先出现稳定 cache key 命中且只读到固定小段缓存，再出现 extractor sniff 失败，应优先怀疑远端字节缓存已被写入非音频或截断内容。HTTP bad status、invalid content type、container malformed / unsupported 都必须共用一次性的远端缓存刷新预算。
+
+2026-06-13 v1.2.15 反馈包复盘补充：`世界真细小` 的 `元力QQ:187297:super` 首次失败先从 SimpleCache 读到 `131076` 字节，驱逐后 `resolveFresh()` 拿到新 `car-er.kuwo.cn/*.mgg` URL；刷新后的第二次播放从 upstream 仍只读到 `131076` 字节并 3003。刷新预算必须保持一次，但这次新写入的坏字节也要驱逐，否则下一次用户手动重试会先命中本地坏缓存。`Mamma Mia` 同一反馈包另有两条不同根因：`元力WY/1868436337` 的插件 API 返回 `code=201` 且无 URL 后回退到原始 `share.duanx.cn` URL，最终 SSL 握手失败；`元力QQ/302986918` 命中本地 `content://` 下载文件后 3003，本地源不属于远端缓存刷新范围。
 
 ## INC-2026-0025 — 上一首被进度回零语义吞掉
 

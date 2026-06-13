@@ -1285,6 +1285,14 @@ class PlayerController @Inject constructor(
 
         val key = item.platform to item.id
         if (staleUrlRetryState.putIfAbsent(key, true) != null) {
+            val quality = currentPlayQuality
+            if (shouldEvictCacheAfterRefreshExhausted(error, item)) {
+                evictStaleSourceCache(
+                    item = item,
+                    quality = quality,
+                    reason = "refreshed_source_failed",
+                )
+            }
             MfLog.error(
                 category = LogCategory.PLAYER,
                 event = "playback_stale_url_retry_exhausted",
@@ -1292,6 +1300,7 @@ class PlayerController @Inject constructor(
                 fields = mapOf(
                     "platform" to item.platform,
                     "itemId" to item.id,
+                    "quality" to quality.name.lowercase(),
                     "errorCode" to error.errorCode,
                 ),
             )
@@ -1301,20 +1310,11 @@ class PlayerController @Inject constructor(
         val quality = currentPlayQuality
         val startedAt = System.nanoTime()
 
-        runCatching {
-            staleUrlRefresher.evictCacheEntry(item.platform, item.id, quality)
-        }.onFailure { evictErr ->
-            MfLog.error(
-                category = LogCategory.PLAYER,
-                event = "plugin_media_source_cache_evict_failed",
-                throwable = evictErr,
-                fields = mapOf(
-                    "platform" to item.platform,
-                    "itemId" to item.id,
-                    "quality" to quality.name.lowercase(),
-                ),
-            )
-        }
+        evictStaleSourceCache(
+            item = item,
+            quality = quality,
+            reason = "before_refresh",
+        )
 
         val fresh = runCatching {
             // Reuse current play session sid so the refresh event correlates with
@@ -1413,6 +1413,38 @@ class PlayerController @Inject constructor(
             }
         }
         return applied
+    }
+
+    private suspend fun evictStaleSourceCache(
+        item: MusicItem,
+        quality: PlayQuality,
+        reason: String,
+    ) {
+        runCatching {
+            staleUrlRefresher.evictCacheEntry(item.platform, item.id, quality)
+        }.onFailure { evictErr ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "plugin_media_source_cache_evict_failed",
+                throwable = evictErr,
+                fields = mapOf(
+                    "platform" to item.platform,
+                    "itemId" to item.id,
+                    "quality" to quality.name.lowercase(),
+                    "reason" to reason,
+                ),
+            )
+        }
+    }
+
+    private fun shouldEvictCacheAfterRefreshExhausted(error: PlaybackException, item: MusicItem): Boolean {
+        if (item.isLocalPlaybackSource()) return false
+        return when (error.errorCode) {
+            PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE,
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED -> true
+            else -> false
+        }
     }
 
     private fun shouldRefreshSourceAfterFailure(error: PlaybackException, item: MusicItem): Boolean {

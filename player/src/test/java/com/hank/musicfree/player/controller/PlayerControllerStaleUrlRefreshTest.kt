@@ -152,6 +152,42 @@ class PlayerControllerStaleUrlRefreshTest {
     }
 
     @Test
+    fun `refreshed remote parse failure evicts refreshed byte cache without resolving again`() {
+        val refresher = RecordingStaleUrlRefresher(
+            freshUrl = "https://cdn.example.test/fresh-after-parse-error.mp3",
+        )
+        val controller = controller(refresher = refresher)
+        try {
+            controller.playQueue.setQueue(
+                listOf(remoteItem("1", url = "https://cdn.example.test/bad-cache.mp3")),
+                startIndex = 0,
+            )
+
+            controller.handleStaleUrlErrorForTest(containerUnsupportedError())
+            waitUntil("first parse failure refreshes item") {
+                controller.playQueue.currentItem?.url == "https://cdn.example.test/fresh-after-parse-error.mp3"
+            }
+
+            controller.handleStaleUrlErrorForTest(containerUnsupportedError())
+            waitUntil("refreshed bad byte cache is evicted", timeoutMs = 800L) {
+                refresher.evictCalls.size == 2
+            }
+
+            assertEquals(
+                listOf("test" to "1", "test" to "1"),
+                refresher.evictCalls.map { it.first to it.second },
+            )
+            assertEquals(
+                "refresh budget stays one-shot for a queue position",
+                listOf("1"),
+                refresher.resolveFreshIds,
+            )
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
     fun `non-HTTP error does not trigger refresh`() {
         val refresher = RecordingStaleUrlRefresher(
             freshUrl = "https://cdn.example.test/fresh.mp3",
