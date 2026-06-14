@@ -108,6 +108,7 @@ fun BasicSettingsContent(
     onClearMusicCache: () -> Unit,
     onClearLyricCache: () -> Unit,
     onClearImageCache: () -> Unit,
+    onNavigateToCacheManagement: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
     onDebugErrorLogEnabledChange: (Boolean) -> Unit,
     onDebugTraceLogEnabledChange: (Boolean) -> Unit,
@@ -394,6 +395,16 @@ fun BasicSettingsContent(
                     value = "${state.maxMusicCacheSizeMb} MB",
                     enabled = true,
                     onClick = { activeDialog = BasicSettingsDialog.MaxMusicCacheSize },
+                )
+                SettingActionRow(
+                    title = "歌曲缓存管理",
+                    enabled = true,
+                    testTag = FidelityAnchors.Settings.BasicCacheManagement,
+                    trailingText = "按歌曲清理",
+                    onClick = {
+                        logUiClick("settings.row.cache_management", "settings", "歌曲缓存管理")
+                        onNavigateToCacheManagement()
+                    },
                 )
                 SettingActionRow(
                     title = "清除音乐缓存",

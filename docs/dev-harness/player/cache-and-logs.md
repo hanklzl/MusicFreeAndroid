@@ -5,7 +5,7 @@
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
 > 设计来源：v1.2.5 cache-reuse-logs 任务（plan 文件已归档于 `~/.claude/plans/purring-inventing-zebra.md`）
-> 最后校验：2026-06-13
+> 最后校验：2026-06-14
 
 ---
 
@@ -105,14 +105,14 @@ resolvePlayableItem()
 | 行数上限 | 800 行 → `pruneOldest` 删一半 | `media_cache_prune` | `totalBefore`, `totalAfter`, `trigger=row_cap` |
 | 字节配额 | 用户配置的 1/10 → `pruneToLimit` | `media_cache_trim` | `trigger=byte_cap`, `evictedItems[]`（前 10 条）|
 | 内存 LRU | LRU 200 自动驱逐（v1.2.5 新增） | `media_cache_memory_evict` ★ | — |
-| 主动删除 | `deleteEntry` / `deleteItem` / `deleteByPlatform` / `clearAll` | `media_cache_delete_entry` ★ | `trigger`（stale_url / manual / 等）|
+| 主动删除 | `deleteEntry` / `deleteItem` / `deleteByPlatform` / `clearAll`；Settings → 缓存管理按 `(platform,id)` 清理指定歌曲时走 `deleteItem` | `media_cache_delete_entry` ★ | `trigger`（stale_url / manual / 等）|
 
 ### Layer 3：ExoPlayer SimpleCache
 
 | 触发来源 | 描述 | 日志事件 | 关键字段 |
 |----------|------|----------|----------|
 | LRU 驱逐（PinningCacheEvictor） | 字节不足时最近最少使用（v1.2.5 新增） | `media_cache_lru_evict` ★ | `evictedCount`, `evictedBytes`, `evictedKeys[10]`, `bytesNeeded`, `pinnedSizeBytes`, `maxBytes`, `pinOverflowSuspended`, `durationMs` |
-| 用户手动清空 | Settings → SettingsCacheCleaner | `media_cache_evict{scope=manual}` | — |
+| 用户手动清空 | Settings → SettingsCacheCleaner；Settings → 缓存管理按 `(platform,id)` 清理指定歌曲时也会同步驱逐对应 SimpleCache key | `media_cache_evict{scope=manual}` | — |
 | 配额上限调小 | `updateMaxBytes` | `media_cache_evict{scope=byte_cap}` + `media_cache_max_bytes_changed` ★ | `newBytes`, `previousUsed`, `freedBytes` |
 | 按 key 驱逐（stale_url 语义） | `SimpleCacheHolder.evictForKey`；覆盖 stale URL、HTTP bad status、invalid content type、远端 container parse failure / bad byte-cache | `media_cache_evict{scope=stale_url}` + `media_cache_evict_for_key` ★ | `platform`, `id`, `quality`, `removedQualityCount`, `freedBytes`, `triggerSource` |
 | 低磁盘空间 | 初始化时检测 | `media_cache_lowspace` | — |
@@ -131,6 +131,8 @@ resolvePlayableItem()
 |------|------|----------|
 | `cache_hit` | 已有 | `source`（local / repo_db）, `sid`, `platform`, `id`, `quality` |
 | `cache_miss` | 已有 | `sid`, `platform`, `id`, `quality`, `cacheControl` |
+| `playback_queue_item_updated` | v1.2.17 新增 | `operation=play_item`, `platform`, `itemId`, `queueIndex`, `oldHasLocalPath`, `newHasLocalPath`, `oldUrlScheme`, `newUrlScheme` |
+| `playback_media_item_prepare` | v1.2.17 新增 | `platform`, `itemId`, `mediaUriScheme`, `mediaUriHost`, `mediaUriHash`, `mediaUriLocalSource`, `hasLocalPath`, `urlScheme` |
 | `resolve_local_db_lookup` | ★ v1.2.5 新增 | `sid`, `platform`, `musicItemId`, `found`（true=被 bug fix 救了） |
 | `local_short_circuit_fallback` | ★ v1.2.5 增强 | `localPathTail`, `isContentUri` |
 | `resolve_plugin_call_start` | 已有 | `sid`, `pluginName` |
@@ -158,6 +160,8 @@ resolvePlayableItem()
 | `media_cache_trim` | ★ v1.2.5 增强 | `trigger`（byte_cap）, `evictedItems[]`（前 10 条 id+platform）|
 | `media_cache_memory_evict` | ★ v1.2.5 新增 | `platform`, `id`，Room repo 内存 LRU 200 驱逐 |
 | `media_cache_delete_entry` | ★ v1.2.5 新增 | `platform`, `id`, `trigger`（stale_url / manual / 等）|
+| `clear_local_playback_association` | v1.2.17 新增 | `platform`, `itemId`, `changed`；Settings 指定歌曲清理时用于解除插件歌曲下载 / 本地播放关联 |
+| `settings_song_cache_clear` | v1.2.17 新增 | `platform`, `itemId`, `localAssociationCleared`, `durationMs`, `result` |
 
 ---
 
@@ -297,10 +301,46 @@ cat tools/logan/out/decoded/*.txt \
   | jq -c --arg sid "$SID" '
       select(.fields.sid == $sid)
       | select(.event | test(
-          "resolve_plugin_call_end|media3_datasource_open|media3_datasource_error|media_cache_evict_for_key|plugin_media_source_refreshed_after_failure|playback_failure"
+          "playback_media_item_prepare|resolve_plugin_call_end|media3_datasource_open|media3_datasource_error|media_cache_evict_for_key|plugin_media_source_refreshed_after_failure|playback_failure"
         ))
     ' \
-  | jq -r '[.timestamp, .event, .fields.cacheKey, .fields.cacheHit, .fields.bytesFromCache, .fields.bytesFromUpstream, .fields.errorCode, .fields.reason] | @tsv'
+  | jq -r '[.timestamp, .event, .fields.mediaUriScheme, .fields.mediaUriHost, .fields.cacheKey, .fields.cacheHit, .fields.bytesFromCache, .fields.bytesFromUpstream, .fields.errorCode, .fields.reason] | @tsv'
+```
+
+### Recipe 6："清理后重新点歌仍播放旧 content://"
+
+目标：确认队列中同一首歌的旧 `localPath` 是否被新的搜索 / 歌单点击结果覆盖，以及用户是否通过 Settings 指定歌曲恢复入口清理过该项。
+
+```bash
+PLATFORM="your_platform"
+MUSIC_ID="your_music_id"
+
+# 检查 playItem 是否用最新点击项刷新了队列里的旧项
+cat tools/logan/out/decoded/*.txt \
+  | jq -c --arg p "$PLATFORM" --arg id "$MUSIC_ID" '
+      select(.event == "playback_queue_item_updated"
+        and .fields.platform == $p
+        and .fields.itemId == $id)
+    ' \
+  | jq -r '[.timestamp, .fields.queueIndex, .fields.oldHasLocalPath, .fields.oldUrlScheme, .fields.newHasLocalPath, .fields.newUrlScheme] | @tsv'
+
+# 检查最终交给 Media3 的 URI 是否还停留在 content://
+cat tools/logan/out/decoded/*.txt \
+  | jq -c --arg p "$PLATFORM" --arg id "$MUSIC_ID" '
+      select(.event == "playback_media_item_prepare"
+        and .fields.platform == $p
+        and .fields.itemId == $id)
+    ' \
+  | jq -r '[.timestamp, .fields.mediaUriScheme, .fields.mediaUriHost, .fields.mediaUriHash, .fields.hasLocalPath, .fields.urlScheme] | @tsv'
+
+# 检查用户是否从 Settings → 缓存管理清理指定歌曲
+cat tools/logan/out/decoded/*.txt \
+  | jq -c --arg p "$PLATFORM" --arg id "$MUSIC_ID" '
+      select((.event == "settings_song_cache_clear" or .event == "clear_local_playback_association")
+        and .fields.platform == $p
+        and .fields.itemId == $id)
+    ' \
+  | jq -r '[.timestamp, .event, .fields.result, .fields.localAssociationCleared, .fields.changed, .fields.durationMs] | @tsv'
 ```
 
 ---

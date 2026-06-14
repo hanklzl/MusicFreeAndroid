@@ -147,6 +147,47 @@ class MusicRepository @Inject constructor(
             }
         }
 
+    suspend fun clearLocalPlaybackAssociation(platform: String, id: String): Boolean =
+        logDataWrite(
+            operation = "clear_local_playback_association",
+            fields = mapOf(
+                "platform" to platform,
+                "itemId" to id,
+            ),
+            resultFields = { changed -> mapOf("changed" to changed) },
+        ) {
+            if (platform == LOCAL_PLATFORM) {
+                return@logDataWrite false
+            }
+            db.withTransaction {
+                val hadDownloadedTrack = db.downloadedTrackDao().exists(id, platform)
+                db.downloadedTrackDao().deleteByKey(id, platform)
+
+                val existing = musicDao.getById(id, platform)?.toModel(converters)
+                    ?: return@withTransaction hadDownloadedTrack
+                val hadLocalFields = !existing.localPath.isNullOrBlank() ||
+                    existing.raw.containsKey("downloaded") ||
+                    existing.raw.containsKey("downloadQuality") ||
+                    existing.raw.containsKey("downloadedAt") ||
+                    existing.raw.containsKey("mediaStoreUri")
+                if (!hadLocalFields) {
+                    return@withTransaction hadDownloadedTrack
+                }
+
+                musicDao.update(
+                    existing.copy(
+                        localPath = null,
+                        raw = existing.raw -
+                            "downloaded" -
+                            "downloadQuality" -
+                            "downloadedAt" -
+                            "mediaStoreUri",
+                    ).toEntity(converters),
+                )
+                true
+            }
+        }
+
     suspend fun deleteByPlatform(platform: String) =
         logDataWrite(
             operation = "delete_music_by_platform",

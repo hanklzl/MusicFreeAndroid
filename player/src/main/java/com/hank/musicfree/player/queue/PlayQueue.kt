@@ -92,6 +92,21 @@ class PlayQueue {
         return true
     }
 
+    fun replaceAt(expectedIndex: Int, expectedItem: MusicItem, item: MusicItem): Boolean {
+        if (expectedIndex !in _items.indices) return false
+        if (_items[expectedIndex] != expectedItem) return false
+        _items[expectedIndex] = item
+        originalOrder = originalOrder?.let { saved ->
+            val updated = saved.toMutableList()
+            val originalIndex = updated.indexOfFirst { it == expectedItem }
+            if (originalIndex >= 0) {
+                updated[originalIndex] = item
+            }
+            updated
+        }
+        return true
+    }
+
     /**
      * Returns the item that would play after [currentItem] without advancing the queue.
      * Returns null when there is no following item (e.g. queue is empty or [RepeatMode.OFF]

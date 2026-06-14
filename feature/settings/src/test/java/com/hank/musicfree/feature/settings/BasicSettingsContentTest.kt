@@ -309,6 +309,21 @@ class BasicSettingsContentTest {
         }
     }
 
+    @Test
+    fun `cache section exposes song cache management entry`() {
+        var navigateToCacheManagement = false
+        setContent(onNavigateToCacheManagement = { navigateToCacheManagement = true })
+
+        scrollToTag(FidelityAnchors.Settings.BasicSectionCache)
+        composeRule.onNodeWithTag(FidelityAnchors.Settings.BasicCacheManagement).assertIsDisplayed()
+        composeRule.onNodeWithText("歌曲缓存管理").assertIsDisplayed()
+        composeRule.onNodeWithTag(FidelityAnchors.Settings.BasicCacheManagement).performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(true, navigateToCacheManagement)
+        }
+    }
+
     private fun setContent(
         state: BasicSettingsUiState = BasicSettingsUiState(
             maxSearchHistoryLength = 50,
@@ -378,6 +393,7 @@ class BasicSettingsContentTest {
         onClearMusicCache: () -> Unit = {},
         onClearLyricCache: () -> Unit = {},
         onClearImageCache: () -> Unit = {},
+        onNavigateToCacheManagement: () -> Unit = {},
         onDebugErrorLogEnabledChange: (Boolean) -> Unit = {},
         onDebugTraceLogEnabledChange: (Boolean) -> Unit = {},
         onDebugDevLogEnabledChange: (Boolean) -> Unit = {},
@@ -425,6 +441,7 @@ class BasicSettingsContentTest {
                     onClearMusicCache = onClearMusicCache,
                     onClearLyricCache = onClearLyricCache,
                     onClearImageCache = onClearImageCache,
+                    onNavigateToCacheManagement = onNavigateToCacheManagement,
                     onNavigateToFileSelector = {},
                     onDebugErrorLogEnabledChange = onDebugErrorLogEnabledChange,
                     onDebugTraceLogEnabledChange = onDebugTraceLogEnabledChange,

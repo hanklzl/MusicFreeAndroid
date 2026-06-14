@@ -58,6 +58,7 @@ fun SettingsScreen(
     onNavigateToPermissions: () -> Unit,
     onNavigateToFileSelector: () -> Unit,
     onNavigateToSetCustomTheme: () -> Unit,
+    onNavigateToCacheManagement: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToLocalFileSelector: () -> Unit = onNavigateToFileSelector,
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -190,6 +191,7 @@ fun SettingsScreen(
                 onClearMusicCache = viewModel::clearMusicCache,
                 onClearLyricCache = viewModel::clearLyricCache,
                 onClearImageCache = viewModel::clearImageCache,
+                onNavigateToCacheManagement = onNavigateToCacheManagement,
                 onNavigateToFileSelector = onNavigateToFileSelector,
                 onCreateFeedbackPackage = {
                     showFeedbackConfirm = true

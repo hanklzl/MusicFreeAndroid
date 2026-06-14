@@ -5,20 +5,30 @@ import coil3.imageLoader
 import com.hank.musicfree.core.telemetry.PlayCacheTelemetry
 import com.hank.musicfree.data.repository.LyricRepository
 import com.hank.musicfree.data.repository.MediaCacheRepository
+import com.hank.musicfree.data.repository.MusicRepository
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.player.cache.SimpleCacheHolder
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+
+data class SongCacheClearResult(
+    val platform: String,
+    val itemId: String,
+    val localAssociationCleared: Boolean,
+    val durationMs: Long,
+)
 
 class SettingsCacheCleaner @Inject constructor(
     private val mediaCacheRepository: MediaCacheRepository,
     private val simpleCacheHolder: SimpleCacheHolder,
     private val playCacheTelemetry: PlayCacheTelemetry,
     private val lyricRepository: LyricRepository,
+    private val musicRepository: MusicRepository,
     @param:ApplicationContext private val context: Context,
 ) {
     /**
@@ -52,6 +62,67 @@ class SettingsCacheCleaner @Inject constructor(
 
     suspend fun clearLyricCache() {
         lyricRepository.clearAll()
+    }
+
+    suspend fun clearSongPlaybackCache(platform: String, itemId: String): SongCacheClearResult {
+        val sanitizedPlatform = platform.trim()
+        val sanitizedItemId = itemId.trim()
+        require(sanitizedPlatform.isNotEmpty()) { "platform is required" }
+        require(sanitizedItemId.isNotEmpty()) { "itemId is required" }
+
+        val startedAt = System.nanoTime()
+        return try {
+            mediaCacheRepository.deleteItem(sanitizedPlatform, sanitizedItemId)
+            val localAssociationCleared = musicRepository.clearLocalPlaybackAssociation(
+                platform = sanitizedPlatform,
+                id = sanitizedItemId,
+            )
+            val durationMs = elapsedMs(startedAt)
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = "settings_song_cache_clear",
+                fields = mapOf(
+                    "platform" to sanitizedPlatform,
+                    "itemId" to sanitizedItemId,
+                    "localAssociationCleared" to localAssociationCleared,
+                    "durationMs" to durationMs,
+                    "result" to LogFields.Result.SUCCESS,
+                ),
+            )
+            SongCacheClearResult(
+                platform = sanitizedPlatform,
+                itemId = sanitizedItemId,
+                localAssociationCleared = localAssociationCleared,
+                durationMs = durationMs,
+            )
+        } catch (error: CancellationException) {
+            MfLog.detail(
+                category = LogCategory.DATA,
+                event = "settings_song_cache_clear",
+                fields = mapOf(
+                    "platform" to sanitizedPlatform,
+                    "itemId" to sanitizedItemId,
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.CANCELLED,
+                    "reason" to LogFields.Reason.CANCELLED,
+                ),
+            )
+            throw error
+        } catch (error: Throwable) {
+            MfLog.error(
+                category = LogCategory.DATA,
+                event = "settings_song_cache_clear",
+                throwable = error,
+                fields = mapOf(
+                    "platform" to sanitizedPlatform,
+                    "itemId" to sanitizedItemId,
+                    "durationMs" to elapsedMs(startedAt),
+                    "result" to LogFields.Result.FAILURE,
+                    "reason" to "exception",
+                ),
+            )
+            throw error
+        }
     }
 
     suspend fun clearImageCache() = withContext(Dispatchers.IO) {

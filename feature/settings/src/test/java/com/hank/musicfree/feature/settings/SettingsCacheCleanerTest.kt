@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.telemetry.PlayCacheTelemetry
 import com.hank.musicfree.data.repository.LyricRepository
 import com.hank.musicfree.data.repository.MediaCacheRepository
+import com.hank.musicfree.data.repository.MusicRepository
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLogger
 import com.hank.musicfree.player.cache.SimpleCacheHolder
@@ -13,6 +14,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,12 +45,14 @@ class SettingsCacheCleanerTest {
 
         val mediaCacheRepository = mockk<MediaCacheRepository>()
         val lyricRepository = mockk<LyricRepository>()
+        val musicRepository = mockk<MusicRepository>()
 
         val cleaner = SettingsCacheCleaner(
             mediaCacheRepository = mediaCacheRepository,
             simpleCacheHolder = simpleCacheHolder,
             playCacheTelemetry = makeNoOpTelemetry(),
             lyricRepository = lyricRepository,
+            musicRepository = musicRepository,
             context = ctx,
         )
 
@@ -66,12 +70,14 @@ class SettingsCacheCleanerTest {
 
         val simpleCacheHolder = mockk<SimpleCacheHolder>()
         val lyricRepository = mockk<LyricRepository>()
+        val musicRepository = mockk<MusicRepository>()
 
         val cleaner = SettingsCacheCleaner(
             mediaCacheRepository = mediaCacheRepository,
             simpleCacheHolder = simpleCacheHolder,
             playCacheTelemetry = makeNoOpTelemetry(),
             lyricRepository = lyricRepository,
+            musicRepository = musicRepository,
             context = ctx,
         )
 
@@ -89,16 +95,45 @@ class SettingsCacheCleanerTest {
 
         val mediaCacheRepository = mockk<MediaCacheRepository>()
         val lyricRepository = mockk<LyricRepository>()
+        val musicRepository = mockk<MusicRepository>()
 
         val cleaner = SettingsCacheCleaner(
             mediaCacheRepository = mediaCacheRepository,
             simpleCacheHolder = simpleCacheHolder,
             playCacheTelemetry = makeNoOpTelemetry(),
             lyricRepository = lyricRepository,
+            musicRepository = musicRepository,
             context = ctx,
         )
 
         val freed = cleaner.clearAudioFileCache()
         assertTrue("freed bytes must be >= 0 even when cache was already empty", freed >= 0L)
+    }
+
+    @Test
+    fun `clearSongPlaybackCache clears media cache and local playback association`() = runTest {
+        val mediaCacheRepository = mockk<MediaCacheRepository>()
+        coEvery { mediaCacheRepository.deleteItem("元力QQ", "302986918") } returns Unit
+        val musicRepository = mockk<MusicRepository>()
+        coEvery { musicRepository.clearLocalPlaybackAssociation("元力QQ", "302986918") } returns true
+        val simpleCacheHolder = mockk<SimpleCacheHolder>()
+        val lyricRepository = mockk<LyricRepository>()
+
+        val cleaner = SettingsCacheCleaner(
+            mediaCacheRepository = mediaCacheRepository,
+            simpleCacheHolder = simpleCacheHolder,
+            playCacheTelemetry = makeNoOpTelemetry(),
+            lyricRepository = lyricRepository,
+            musicRepository = musicRepository,
+            context = ctx,
+        )
+
+        val result = cleaner.clearSongPlaybackCache("元力QQ", "302986918")
+
+        assertEquals("元力QQ", result.platform)
+        assertEquals("302986918", result.itemId)
+        assertEquals(true, result.localAssociationCleared)
+        coVerify { mediaCacheRepository.deleteItem("元力QQ", "302986918") }
+        coVerify { musicRepository.clearLocalPlaybackAssociation("元力QQ", "302986918") }
     }
 }

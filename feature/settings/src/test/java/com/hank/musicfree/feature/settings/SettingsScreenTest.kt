@@ -113,6 +113,7 @@ class SettingsScreenTest {
                     onNavigateToPermissions = {},
                     onNavigateToFileSelector = {},
                     onNavigateToSetCustomTheme = {},
+                    onNavigateToCacheManagement = {},
                     viewModel = viewModel,
                 )
             }

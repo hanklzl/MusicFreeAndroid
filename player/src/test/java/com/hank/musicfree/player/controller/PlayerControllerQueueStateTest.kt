@@ -103,6 +103,33 @@ class PlayerControllerQueueStateTest {
     }
 
     @Test
+    fun `playItem replaces existing queue item with latest source fields`() {
+        val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
+        try {
+            val staleLocal = item("3").copy(
+                url = "content://media/external/audio/media/1000008551",
+                localPath = "content://media/external/audio/media/1000008551",
+            )
+            val freshRemote = item("3").copy(
+                title = "Fresh Song 3",
+                url = "https://cdn.example.test/fresh.mp3",
+                localPath = null,
+            )
+            controller.playQueue(listOf(item("1"), item("2"), staleLocal), startIndex = 0)
+
+            controller.playItem(freshRemote)
+
+            val snapshot = controller.queueState.value
+            assertEquals(2, snapshot.currentIndex)
+            assertEquals("https://cdn.example.test/fresh.mp3", snapshot.items[2].url)
+            assertEquals(null, snapshot.items[2].localPath)
+            assertEquals("Fresh Song 3", snapshot.items[2].title)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
     fun `addToQueue emits snapshot with appended item`() {
         val controller = PlayerController(context, listenTracker = mock<ListenTracker>(), currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(), playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog))
         try {

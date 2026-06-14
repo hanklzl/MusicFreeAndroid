@@ -2,6 +2,7 @@ package com.hank.musicfree.player.controller
 
 import android.content.ComponentName
 import android.content.Context
+import android.net.Uri
 import android.os.Looper
 import androidx.annotation.VisibleForTesting
 import androidx.media3.common.PlaybackException
@@ -278,6 +279,21 @@ class PlayerController @Inject constructor(
             it.id == item.id && it.platform == item.platform
         }
         val targetIndex = if (index >= 0) {
+            val existing = playQueue.items[index]
+            if (existing != item && playQueue.replaceAt(index, existing, item)) {
+                emitQueueState()
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "playback_queue_item_updated",
+                    fields = mapOf(
+                        "operation" to "play_item",
+                        "platform" to item.platform,
+                        "itemId" to item.id,
+                        "queueIndex" to index,
+                    ) + existing.diagnosticFields(prefix = "old") +
+                        item.diagnosticFields(prefix = "new"),
+                )
+            }
             index
         } else {
             playQueue.add(item)
@@ -859,6 +875,19 @@ class PlayerController @Inject constructor(
             try {
                 recordHistory(playable)
                 val mediaItem = playable.toMediaItem(defaultArtworkUri)
+                val preparedUri = mediaItem.localConfiguration?.uri
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "playback_media_item_prepare",
+                    fields = mapOf(
+                        "platform" to playable.platform,
+                        "itemId" to playable.id,
+                        "mediaUriScheme" to preparedUri?.scheme.orEmpty(),
+                        "mediaUriHost" to preparedUri?.host.orEmpty(),
+                        "mediaUriHash" to preparedUri?.toString()?.let(playCacheTelemetry::urlHash).orEmpty(),
+                        "mediaUriLocalSource" to preparedUri.isLocalPlaybackUri(),
+                    ) + playable.diagnosticFields(),
+                )
                 controller.setMediaItem(mediaItem)
                 controller.prepare()
                 controller.play()
@@ -1732,7 +1761,34 @@ class PlayerController @Inject constructor(
             key("hasQualities") to !qualities.isNullOrEmpty(),
             key("hasUrl") to !url.isNullOrBlank(),
             key("hasLocalPath") to !localPath.isNullOrBlank(),
+            key("urlScheme") to url.uriScheme().orEmpty(),
+            key("urlHost") to url.uriHost().orEmpty(),
+            key("urlLocalSource") to url.isLocalPlaybackSource(),
+            key("localPathScheme") to localPath.uriScheme().orEmpty(),
+            key("localPathHost") to localPath.uriHost().orEmpty(),
+            key("localPathLocalSource") to localPath.isLocalPlaybackSource(),
         )
+    }
+
+    private fun String?.uriScheme(): String? =
+        this?.takeIf { it.isNotBlank() }?.let { value ->
+            runCatching { Uri.parse(value).scheme }.getOrNull()
+        }
+
+    private fun String?.uriHost(): String? =
+        this?.takeIf { it.isNotBlank() }?.let { value ->
+            runCatching { Uri.parse(value).host }.getOrNull()
+        }
+
+    private fun String?.isLocalPlaybackSource(): Boolean {
+        val value = this?.takeIf { it.isNotBlank() } ?: return false
+        val scheme = runCatching { Uri.parse(value).scheme }.getOrNull()
+        return scheme == null || scheme == "file" || scheme == "content"
+    }
+
+    private fun Uri?.isLocalPlaybackUri(): Boolean {
+        val scheme = this?.scheme ?: return false
+        return scheme == "file" || scheme == "content"
     }
 
     companion object {

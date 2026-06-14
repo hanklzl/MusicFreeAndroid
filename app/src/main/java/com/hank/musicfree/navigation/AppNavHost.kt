@@ -18,6 +18,7 @@ import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.UiLogEvents
 import com.hank.musicfree.core.navigation.AlbumDetailRoute
 import com.hank.musicfree.core.navigation.ArtistDetailRoute
+import com.hank.musicfree.core.navigation.CacheManagementRoute
 import com.hank.musicfree.core.navigation.DownloadingRoute
 import com.hank.musicfree.core.navigation.FileSelectorRoute
 import com.hank.musicfree.core.navigation.HistoryRoute
@@ -62,6 +63,7 @@ import com.hank.musicfree.feature.home.toplist.navigation.topListDetailScreen
 import com.hank.musicfree.feature.home.toplist.navigation.topListScreen
 import com.hank.musicfree.feature.playerui.navigation.playerScreen
 import com.hank.musicfree.feature.search.navigation.searchScreen
+import com.hank.musicfree.feature.settings.cachemanagement.navigation.cacheManagementScreen
 import com.hank.musicfree.feature.settings.fileselector.navigation.fileSelectorLiteScreen
 import com.hank.musicfree.feature.settings.navigation.permissionsScreen
 import com.hank.musicfree.feature.settings.navigation.settingsScreen
@@ -230,6 +232,10 @@ fun AppNavHost(
             onNavigateToPermissions = { navController.navigate(PermissionsRoute) },
             onNavigateToFileSelector = { navController.navigate(FileSelectorRoute) },
             onNavigateToSetCustomTheme = { navController.navigate(SetCustomThemeRoute) },
+            onNavigateToCacheManagement = { navController.navigate(CacheManagementRoute) },
+        )
+        cacheManagementScreen(
+            onBack = { navController.popBackStack() },
         )
         fileSelectorLiteScreen(
             onBack = { navController.popBackStack() },

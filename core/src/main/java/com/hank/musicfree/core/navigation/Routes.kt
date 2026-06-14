@@ -103,6 +103,9 @@ data object PermissionsRoute
 data object FileSelectorRoute
 
 @Serializable
+data object CacheManagementRoute
+
+@Serializable
 data class PlaylistDetailRoute(val playlistId: String)
 
 @Serializable
