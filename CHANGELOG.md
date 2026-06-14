@@ -6,6 +6,27 @@
 
 <!-- next-release -->
 
+## [v1.2.17] - 2026-06-14
+
+### 变更详情
+
+#### 修复
+- fix(player): 增加单曲缓存恢复入口 (6d61f8b)
+
+#### 文档
+- docs(changelog): release v1.2.16 [skip ci] (e048783)
+
+#### 杂项
+- chore(release): bump to v1.2.17 (bfee542)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.17-arm64-v8a.apk` · 7.6MB · sha256 `e31798155c24`
+- x86_64: `MusicFreeAndroid-v1.2.17-x86_64.apk` · 7.7MB · sha256 `b5d4141a3033`
+- mapping: `mapping-v1.2.17.zip` · sha256 `7068cb96c33f` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.16] - 2026-06-13
 
 ### 变更详情
