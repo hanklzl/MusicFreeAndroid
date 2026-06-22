@@ -6,6 +6,28 @@
 
 <!-- next-release -->
 
+## [v1.2.18] - 2026-06-23
+
+### 变更详情
+
+#### 修复
+- fix(player): 修复字节缓存有效性 (d076279)
+
+#### 文档
+- docs(home): 设计歌单详情页「定位当前播放」悬浮按钮 (53f90c9)
+- docs(changelog): release v1.2.17 [skip ci] (4a5b6a1)
+
+#### 杂项
+- chore(release): bump to v1.2.18 (fe3b4b8)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.18-arm64-v8a.apk` · 7.6MB · sha256 `6ae947a7ab1c`
+- x86_64: `MusicFreeAndroid-v1.2.18-x86_64.apk` · 7.7MB · sha256 `6b15de592e78`
+- mapping: `mapping-v1.2.18.zip` · sha256 `41045e75f20c` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.17] - 2026-06-14
 
 ### 变更详情
