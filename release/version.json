@@ -1,37 +1,38 @@
 {
   "schemaVersion": 2,
-  "version": "1.2.17",
-  "versionCode": 10217,
-  "releasedAt": "2026-06-14T04:07:35Z",
-  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.2.17",
+  "version": "1.2.18",
+  "versionCode": 10218,
+  "releasedAt": "2026-06-22T18:25:53Z",
+  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.2.18",
   "changeLog": [
-    "fix(player): 增加单曲缓存恢复入口 (6d61f8b)",
-    "docs(changelog): release v1.2.16 [skip ci] (e048783)",
-    "chore(release): bump to v1.2.17 (bfee542)",
-    "arm64-v8a: `MusicFreeAndroid-v1.2.17-arm64-v8a.apk` · 7.6MB · sha256 `e31798155c24`",
-    "x86_64: `MusicFreeAndroid-v1.2.17-x86_64.apk` · 7.7MB · sha256 `b5d4141a3033`",
-    "mapping: `mapping-v1.2.17.zip` · sha256 `7068cb96c33f` (R8 反混淆用)"
+    "fix(player): 修复字节缓存有效性 (d076279)",
+    "docs(home): 设计歌单详情页「定位当前播放」悬浮按钮 (53f90c9)",
+    "docs(changelog): release v1.2.17 [skip ci] (4a5b6a1)",
+    "chore(release): bump to v1.2.18 (fe3b4b8)",
+    "arm64-v8a: `MusicFreeAndroid-v1.2.18-arm64-v8a.apk` · 7.6MB · sha256 `6ae947a7ab1c`",
+    "x86_64: `MusicFreeAndroid-v1.2.18-x86_64.apk` · 7.7MB · sha256 `6b15de592e78`",
+    "mapping: `mapping-v1.2.18.zip` · sha256 `41045e75f20c` (R8 反混淆用)"
   ],
   "variants": {
     "arm64-v8a": {
       "download": [
-        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.17/MusicFreeAndroid-v1.2.17-arm64-v8a.apk",
-        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.17/release/MusicFreeAndroid-v1.2.17-arm64-v8a.apk"
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.18/MusicFreeAndroid-v1.2.18-arm64-v8a.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.18/release/MusicFreeAndroid-v1.2.18-arm64-v8a.apk"
       ],
-      "size": 7942709,
-      "sha256": "e31798155c24251c8bac8c00ae3828238beaf9e9ea15528da494fce15bf95839"
+      "size": 7959097,
+      "sha256": "6ae947a7ab1cc7a9f4459e7a05e8ffa1bfaf0f4451fd62afb201b041eabe40ef"
     },
     "x86_64": {
       "download": [
-        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.17/MusicFreeAndroid-v1.2.17-x86_64.apk",
-        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.17/release/MusicFreeAndroid-v1.2.17-x86_64.apk"
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.18/MusicFreeAndroid-v1.2.18-x86_64.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.18/release/MusicFreeAndroid-v1.2.18-x86_64.apk"
       ],
-      "size": 7977865,
-      "sha256": "b5d4141a303358a25a071b8b574f15bc05b823b62f03ba5cce9ed9091755e7a6"
+      "size": 7994253,
+      "sha256": "6b15de592e780fce8f5463ae4038d532ffaef4c05e1b37ff784aa0c5984b15d6"
     }
   },
   "mapping": {
-    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.17/mapping-v1.2.17.zip",
-    "sha256": "7068cb96c33f2515d5eacb06e185b8a6a75fb1b8b056b0c74714cb06d9c5d427"
+    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.18/mapping-v1.2.18.zip",
+    "sha256": "41045e75f20c6c9ff6d97dd0f150b57777adf382740a5f48346606271f54e761"
   }
 }
