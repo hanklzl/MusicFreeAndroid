@@ -411,6 +411,104 @@ class PluginMediaSourceServiceCacheTest {
         verify(cache, never()).put(any(), any(), any())
     }
 
+    @Test
+    fun `verified byte-cache source reads cached source without calling plugin`() = runTest {
+        val plugin = plugin(
+            platform = "kuwo",
+            supportsMedia = true,
+            url = "https://kuwo.example/should-not-be-asked.mp3",
+            cacheControl = null,
+        )
+        val cache = mock<MediaCacheRepository>()
+        whenever(cache.get(any(), eq(PlayQuality.STANDARD))).thenReturn(
+            CachedSource(
+                url = "https://cache.example/verified.mp3",
+                headers = mapOf("Referer" to "https://music.example"),
+                userAgent = "VerifiedUA",
+            ),
+        )
+        val service = service(
+            plugins = listOf(plugin),
+            alternatives = emptyMap(),
+            cache = cache,
+        )
+
+        val result = service.resolveCachedSourceForVerifiedByteCache(
+            item = item("kuwo"),
+            quality = PlayQuality.STANDARD,
+            sid = "ps_1",
+        )
+
+        assertEquals("https://cache.example/verified.mp3", result?.item?.url)
+        assertEquals(MediaSourceCachePolicy.NoCache, result?.cachePolicy)
+        verify(plugin, never()).getMediaSource(any(), any())
+    }
+
+    @Test
+    fun `verified byte-cache source does not load plugin when plugin is missing`() = runTest {
+        val cache = mock<MediaCacheRepository>()
+        whenever(cache.get(any(), eq(PlayQuality.STANDARD))).thenReturn(
+            CachedSource(
+                url = "https://cache.example/verified.mp3",
+                headers = null,
+                userAgent = null,
+            ),
+        )
+        val manager = mock<PluginManager>()
+        val metaStore = mock<PluginMetaStore>()
+        whenever(manager.plugins).thenReturn(MutableStateFlow(emptyList()))
+        whenever(manager.getPlugin("kuwo")).thenReturn(null)
+        whenever(metaStore.alternativePlugins).thenReturn(flowOf(emptyMap()))
+        whenever(metaStore.disabledPlugins).thenReturn(flowOf(emptySet()))
+        whenever(manager.pluginMetaStore).thenReturn(metaStore)
+        val service = PluginMediaSourceService(
+            pluginManager = manager,
+            mediaCacheRepository = cache,
+            musicRepository = mock<MusicRepository>(),
+            localFileProbe = LocalFileProbe { false },
+            playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(MfLog),
+        )
+
+        val result = service.resolveCachedSourceForVerifiedByteCache(
+            item = item("kuwo"),
+            quality = PlayQuality.STANDARD,
+            sid = "ps_1",
+        )
+
+        assertEquals("https://cache.example/verified.mp3", result?.item?.url)
+        verify(manager, never()).ensurePluginsLoaded()
+    }
+
+    @Test
+    fun `verified byte-cache source missing cached source returns null and logs rejection`() = runTest {
+        val logger = CacheRecordingLogger()
+        MfLog.install(logger)
+        val plugin = plugin(
+            platform = "kuwo",
+            supportsMedia = true,
+            url = "https://kuwo.example/should-not-be-asked.mp3",
+            cacheControl = null,
+        )
+        val cache = mock<MediaCacheRepository>()
+        whenever(cache.get(any(), eq(PlayQuality.STANDARD))).thenReturn(null)
+        val service = service(
+            plugins = listOf(plugin),
+            alternatives = emptyMap(),
+            cache = cache,
+        )
+
+        val result = service.resolveCachedSourceForVerifiedByteCache(
+            item = item("kuwo"),
+            quality = PlayQuality.STANDARD,
+            sid = "ps_1",
+        )
+
+        assertEquals(null, result)
+        val rejected = logger.events.single { it.event == "byte_cache_fast_path_rejected" }
+        assertEquals("cached_source_missing", rejected.fields["reason"])
+        verify(plugin, never()).getMediaSource(any(), any())
+    }
+
     // ---------- Fixtures ----------
 
     private fun service(

@@ -1,8 +1,10 @@
 package com.hank.musicfree.di
 
+import com.hank.musicfree.core.cache.ByteCacheStatusStore
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.downloader.io.NetworkMonitor
 import com.hank.musicfree.player.controller.PlayerController
+import com.hank.musicfree.player.cache.ByteCacheInspector
 import com.hank.musicfree.player.prefetch.PrefetchCoordinator
 import com.hank.musicfree.player.source.HeaderInjectingDataSourceFactory
 import com.hank.musicfree.player.source.PlaybackCacheKeyRegistrar
@@ -30,6 +32,8 @@ object PrefetchModule {
         networkMonitor: NetworkMonitor,
         cacheKeyRegistrar: PlaybackCacheKeyRegistrar,
         headerInjectingDataSourceFactory: HeaderInjectingDataSourceFactory,
+        byteCacheStatusStore: ByteCacheStatusStore,
+        byteCacheInspector: ByteCacheInspector,
     ): PrefetchCoordinator = PrefetchCoordinator(
         resolver = resolver,
         progressFlow = playerController.progressTickFlow,
@@ -38,5 +42,7 @@ object PrefetchModule {
         currentQualityFlow = playerController.currentQualityFlow,
         cacheKeyRegistrar = cacheKeyRegistrar,
         headerInjectingDataSourceFactory = headerInjectingDataSourceFactory,
+        byteCacheStatusStore = byteCacheStatusStore,
+        byteCacheInspector = byteCacheInspector,
     )
 }

@@ -16,7 +16,10 @@ import com.hank.musicfree.logging.MfLog
  * (falls back to plain LRU) so the cache stays usable.
  */
 @AndroidXOptIn(markerClass = [UnstableApi::class])
-class PinningCacheEvictor(private val maxBytes: Long) : CacheEvictor {
+class PinningCacheEvictor(
+    private val maxBytes: Long,
+    private val onSpanKeyRemoved: (String) -> Unit = {},
+) : CacheEvictor {
 
     private val delegate = LeastRecentlyUsedCacheEvictor(maxBytes)
     @Volatile private var pinned: Set<String> = emptySet()
@@ -39,7 +42,10 @@ class PinningCacheEvictor(private val maxBytes: Long) : CacheEvictor {
         evictSkippingPinned(cache, toFree)
     }
     override fun onSpanAdded(cache: Cache, span: CacheSpan) = delegate.onSpanAdded(cache, span)
-    override fun onSpanRemoved(cache: Cache, span: CacheSpan) = delegate.onSpanRemoved(cache, span)
+    override fun onSpanRemoved(cache: Cache, span: CacheSpan) {
+        delegate.onSpanRemoved(cache, span)
+        onSpanKeyRemoved(span.key)
+    }
     override fun onSpanTouched(cache: Cache, oldSpan: CacheSpan, newSpan: CacheSpan) =
         delegate.onSpanTouched(cache, oldSpan, newSpan)
 

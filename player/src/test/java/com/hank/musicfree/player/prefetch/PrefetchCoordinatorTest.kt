@@ -1,5 +1,10 @@
 package com.hank.musicfree.player.prefetch
 
+import com.hank.musicfree.core.cache.ByteCacheKey
+import com.hank.musicfree.core.cache.ByteCacheStatus
+import com.hank.musicfree.core.cache.ByteCacheStatusStore
+import com.hank.musicfree.core.cache.ByteCacheValidationMethod
+import com.hank.musicfree.core.cache.ByteCacheValidity
 import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import com.hank.musicfree.core.media.MediaSourceResolution
 import com.hank.musicfree.core.media.MediaSourceResolver
@@ -12,6 +17,8 @@ import com.hank.musicfree.player.source.TrackHeaderRegistry
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLogger
+import com.hank.musicfree.player.cache.ByteCacheInspection
+import com.hank.musicfree.player.cache.ByteCacheInspector
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -32,6 +39,7 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class PrefetchCoordinatorTest {
 
@@ -166,6 +174,144 @@ class PrefetchCoordinatorTest {
             trigger = anyOrNull(),
         )
         coordinator.stop()
+    }
+
+    @Test
+    fun `playable verified plus complete inspection skips head prefetch`() = runTest {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        try {
+            val resolver: MediaSourceResolver = mock()
+            val cacheKeyRegistrar: PlaybackCacheKeyRegistrar = mock()
+            val statusStore = object : ByteCacheStatusStore {
+                override suspend fun get(key: ByteCacheKey): ByteCacheStatus = ByteCacheStatus(
+                    key = key,
+                    validity = ByteCacheValidity.PlayableVerified,
+                    cachedBytes = 512_000L,
+                    contentLength = 512_000L,
+                    validationMethod = ByteCacheValidationMethod.PlaybackCompleted,
+                    sourceFingerprint = null,
+                    invalidReason = null,
+                    verifiedAt = 123L,
+                    updatedAt = 456L,
+                )
+
+                override suspend fun upsert(status: ByteCacheStatus) = Unit
+
+                override suspend fun markInvalid(
+                    key: ByteCacheKey,
+                    reason: com.hank.musicfree.core.cache.ByteCacheInvalidReason,
+                    updatedAt: Long,
+                ) = Unit
+
+                override suspend fun delete(key: ByteCacheKey) = Unit
+
+                override suspend fun deleteBySong(platform: String, musicId: String) = Unit
+            }
+            val inspector: ByteCacheInspector = mock()
+            whenever(
+                inspector.inspect(
+                    ByteCacheKey(
+                        platform = itemB.platform,
+                        musicId = itemB.id,
+                        quality = PlayQuality.STANDARD,
+                    ),
+                ),
+            ).thenReturn(
+                ByteCacheInspection(
+                    key = ByteCacheKey(
+                        platform = itemB.platform,
+                        musicId = itemB.id,
+                        quality = PlayQuality.STANDARD,
+                    ),
+                    validity = ByteCacheValidity.Complete,
+                    cachedBytes = 512_000L,
+                    contentLength = 512_000L,
+                    holeCount = 0,
+                ),
+            )
+            val progress = MutableSharedFlow<ProgressTick>()
+            val nextItem = MutableStateFlow<MusicItem?>(itemB)
+            val isWifi = MutableStateFlow(true)
+            val qualityFlow = MutableStateFlow(PlayQuality.STANDARD)
+
+            val coordinator = PrefetchCoordinator(
+                resolver = resolver,
+                progressFlow = progress,
+                nextItemFlow = nextItem,
+                isWifiFlow = isWifi,
+                currentQualityFlow = qualityFlow,
+                cacheKeyRegistrar = cacheKeyRegistrar,
+                byteCacheStatusStore = statusStore,
+                byteCacheInspector = inspector,
+                dispatcher = StandardTestDispatcher(testScheduler),
+            )
+            coordinator.start()
+            advanceUntilIdle()
+
+            progress.emit(ProgressTick(itemA, 150_000L, 200_000L))
+            advanceUntilIdle()
+
+            verify(resolver, never()).resolve(anyOrNull(), anyOrNull(), anyOrNull())
+            verify(cacheKeyRegistrar, never()).register(
+                platform = anyOrNull(),
+                itemId = anyOrNull(),
+                url = anyOrNull(),
+                headers = anyOrNull(),
+                userAgent = anyOrNull(),
+                quality = anyOrNull(),
+                cachePolicy = anyOrNull(),
+                trigger = anyOrNull(),
+            )
+            val skipped = logger.events.single { it.event == "prefetch_head_skipped_verified" }
+            assertEquals("netease", skipped.fields["platform"])
+            assertEquals("b2", skipped.fields["itemId"])
+            assertEquals("standard", skipped.fields["quality"])
+            coordinator.stop()
+        } finally {
+            MfLog.resetForTest()
+        }
+    }
+
+    @Test
+    fun `successful warm head logs prefetch head success with bytes read`() = runTest {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        try {
+            val resolver = CapturingResolver { _, quality, _ ->
+                if (quality == "standard") standardResolution(MediaSourceCachePolicy.NoCache) else null
+            }
+            val cacheKeyRegistrar: PlaybackCacheKeyRegistrar = mock()
+            val progress = MutableSharedFlow<ProgressTick>()
+            val nextItem = MutableStateFlow<MusicItem?>(itemB)
+            val isWifi = MutableStateFlow(true)
+            val qualityFlow = MutableStateFlow(PlayQuality.STANDARD)
+            val coordinator = object : PrefetchCoordinator(
+                resolver = resolver,
+                progressFlow = progress,
+                nextItemFlow = nextItem,
+                isWifiFlow = isWifi,
+                currentQualityFlow = qualityFlow,
+                cacheKeyRegistrar = cacheKeyRegistrar,
+                dispatcher = StandardTestDispatcher(testScheduler),
+            ) {
+                override fun warmHead(url: String): Long = 4096L
+            }
+            coordinator.start()
+            advanceUntilIdle()
+
+            progress.emit(ProgressTick(itemA, 150_000L, 200_000L))
+            advanceUntilIdle()
+
+            val success = logger.events.single { it.event == "prefetch_head_success" }
+            assertEquals(4096L, success.fields["bytesRead"])
+            assertEquals("netease", success.fields["platform"])
+            assertEquals("b2", success.fields["itemId"])
+            assertEquals("standard", success.fields["quality"])
+            coordinator.stop()
+        } finally {
+            MfLog.resetForTest()
+        }
     }
 
     // 2. progress >= 0.6 on Wi-Fi triggers exactly once
@@ -413,8 +559,9 @@ class PrefetchCoordinatorTest {
             cacheKeyRegistrar = cacheKeyRegistrar,
             dispatcher = StandardTestDispatcher(testScheduler),
         ) {
-            override fun warmHead(url: String) {
+            override fun warmHead(url: String): Long {
                 warmHeadCalled = true
+                return 0L
             }
         }
         coordinator.start()
@@ -465,8 +612,9 @@ class PrefetchCoordinatorTest {
             cacheKeyRegistrar = cacheKeyRegistrar,
             dispatcher = StandardTestDispatcher(testScheduler),
         ) {
-            override fun warmHead(url: String) {
+            override fun warmHead(url: String): Long {
                 warmHeadCalled = true
+                return 0L
             }
         }
         coordinator.start()
@@ -519,8 +667,9 @@ class PrefetchCoordinatorTest {
                 cacheKeyRegistrar = cacheKeyRegistrar,
                 dispatcher = StandardTestDispatcher(testScheduler),
             ) {
-                override fun warmHead(url: String) {
+                override fun warmHead(url: String): Long {
                     warmHeadCalled = true
+                    return 0L
                 }
             }
             coordinator.start()
@@ -576,8 +725,9 @@ class PrefetchCoordinatorTest {
                 cacheKeyRegistrar = cacheKeyRegistrar,
                 dispatcher = StandardTestDispatcher(testScheduler),
             ) {
-                override fun warmHead(url: String) {
+                override fun warmHead(url: String): Long {
                     warmHeadCalled = true
+                    return 0L
                 }
             }
             coordinator.start()
@@ -643,7 +793,7 @@ class PrefetchCoordinatorTest {
                 cacheKeyRegistrar = cacheKeyRegistrar,
                 dispatcher = StandardTestDispatcher(testScheduler),
             ) {
-                override fun warmHead(url: String) {
+                override fun warmHead(url: String): Long {
                     callOrder += "warmHead"
                     throw CancellationException("warm cancel")
                 }
@@ -746,8 +896,9 @@ class PrefetchCoordinatorTest {
                 cacheKeyRegistrar = cacheKeyRegistrar,
                 dispatcher = StandardTestDispatcher(testScheduler),
             ) {
-                override fun warmHead(url: String) {
+                override fun warmHead(url: String): Long {
                     warmHeadCalled = true
+                    return 0L
                 }
             }
             coordinator.start()
@@ -764,7 +915,7 @@ class PrefetchCoordinatorTest {
             assertEquals(Triple(itemB, "standard", null), resolver.calls.single())
             assertEquals(false, warmHeadCalled)
             assertEquals(1, logger.events.count { it.event == "prefetch_skipped" })
-            assertEquals(0, logger.events.count { it.event == "prefetch_success" })
+            assertEquals(0, logger.events.count { it.event == "prefetch_head_success" })
             coordinator.stop()
         } finally {
             MfLog.resetForTest()

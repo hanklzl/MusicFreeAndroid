@@ -1,6 +1,9 @@
 package com.hank.musicfree.data.repository
 
 import androidx.collection.LruCache
+import com.hank.musicfree.core.cache.ByteCacheKey
+import com.hank.musicfree.core.cache.ByteCacheStatusStore
+import com.hank.musicfree.core.cache.EmptyByteCacheStatusStore
 import com.hank.musicfree.core.cache.SimpleCacheEvictor
 import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
@@ -30,6 +33,7 @@ class MediaCacheRepository private constructor(
     private val dao: MediaCacheDao,
     private val limitProvider: suspend () -> Long,
     private val onSimpleCacheEvict: (platform: String, id: String, quality: PlayQuality?) -> Unit = { _, _, _ -> },
+    private val byteCacheStatusStore: ByteCacheStatusStore = EmptyByteCacheStatusStore,
 ) {
     // NOTE: @Inject is intentionally absent here.
     // MediaCacheRepository is provided via MediaCacheBindingModule in :app,
@@ -51,7 +55,8 @@ class MediaCacheRepository private constructor(
         dao: MediaCacheDao,
         now: () -> Long,
         limitProvider: suspend () -> Long,
-    ) : this(dao, limitProvider) {
+        byteCacheStatusStore: ByteCacheStatusStore = EmptyByteCacheStatusStore,
+    ) : this(dao, limitProvider, byteCacheStatusStore = byteCacheStatusStore) {
         this.nowFn = now
     }
 
@@ -61,7 +66,8 @@ class MediaCacheRepository private constructor(
         now: () -> Long,
         limitProvider: suspend () -> Long,
         onSimpleCacheEvict: (platform: String, id: String, quality: PlayQuality?) -> Unit,
-    ) : this(dao, limitProvider, onSimpleCacheEvict) {
+        byteCacheStatusStore: ByteCacheStatusStore = EmptyByteCacheStatusStore,
+    ) : this(dao, limitProvider, onSimpleCacheEvict, byteCacheStatusStore) {
         this.nowFn = now
     }
 
@@ -185,6 +191,7 @@ class MediaCacheRepository private constructor(
                 ),
             )
             onSimpleCacheEvict(platform, id, null)
+            byteCacheStatusStore.deleteBySong(platform, id)
         } catch (error: CancellationException) {
             MfLog.detail(
                 category = LogCategory.DATA,
@@ -276,6 +283,7 @@ class MediaCacheRepository private constructor(
             ),
         )
         onSimpleCacheEvict(platform, id, quality)
+        byteCacheStatusStore.delete(ByteCacheKey(platform = platform, musicId = id, quality = quality))
     }
 
     /** Delete all rows for the platform from DB and from memory. */
@@ -288,6 +296,7 @@ class MediaCacheRepository private constructor(
             val prefix = "$platform@"
             val keysToDrop = memory.snapshot().keys.filter { it.startsWith(prefix) }
             keysToDrop.forEach { memory.remove(it) }
+            byteCacheStatusStore.deleteByPlatform(platform)
         }
     }
 
@@ -306,6 +315,7 @@ class MediaCacheRepository private constructor(
         ) {
             dao.deleteAll()
             memory.evictAll()
+            byteCacheStatusStore.deleteAll()
         }
     }
 
@@ -338,7 +348,9 @@ class MediaCacheRepository private constructor(
         val startedAt = System.nanoTime()
         try {
             val totalBefore = dao.count()
+            val removedEntries = dao.getOldestEntries().take(LIMIT / 2)
             dao.deleteOldest(LIMIT / 2)
+            removedEntries.forEach { byteCacheStatusStore.deleteBySong(it.platform, it.id) }
             memory.evictAll()
             val totalAfter = dao.count()
             MfLog.detail(
@@ -384,6 +396,7 @@ class MediaCacheRepository private constructor(
                 val entryBytes = entry.sourcesJson.toByteArray().size.toLong()
                 dao.delete(entry.platform, entry.id)
                 memory.remove(memoryKey(entry.platform, entry.id))
+                byteCacheStatusStore.deleteBySong(entry.platform, entry.id)
                 totalBytes -= entryBytes
                 removedBytes += entryBytes
                 removedCount += 1
@@ -515,12 +528,14 @@ class MediaCacheRepository private constructor(
             dao: MediaCacheDao,
             appPreferences: AppPreferences,
             evictor: SimpleCacheEvictor,
+            byteCacheStatusStore: ByteCacheStatusStore = EmptyByteCacheStatusStore,
         ): MediaCacheRepository = MediaCacheRepository(
             dao = dao,
             limitProvider = {
                 (appPreferences.maxMusicCacheSizeBytes.first() / REPO_QUOTA_DIVISOR).coerceAtLeast(1L)
             },
             onSimpleCacheEvict = { p, i, q -> evictor.evictForKey(p, i, q) },
+            byteCacheStatusStore = byteCacheStatusStore,
         )
     }
 

@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.ByteCacheStatusDao
 import com.hank.musicfree.data.db.dao.DownloadTaskDao
 import com.hank.musicfree.data.db.dao.DownloadedTrackDao
 import com.hank.musicfree.data.db.dao.ListenStatsDao
@@ -16,6 +17,7 @@ import com.hank.musicfree.data.db.dao.PluginMetadataCacheDao
 import com.hank.musicfree.data.db.dao.RuntimeSnapshotDao
 import com.hank.musicfree.data.db.dao.StarredSheetDao
 import com.hank.musicfree.data.db.dao.TrafficDailyDao
+import com.hank.musicfree.data.db.entity.ByteCacheStatusEntity
 import com.hank.musicfree.data.db.entity.DownloadTaskEntity
 import com.hank.musicfree.data.db.entity.DownloadedTrackEntity
 import com.hank.musicfree.data.db.entity.ListenEventArtistEntity
@@ -47,8 +49,9 @@ import com.hank.musicfree.data.db.entity.TrafficDailyEntity
         ListenEventArtistEntity::class,
         TrafficDailyEntity::class,
         RuntimeSnapshotEntity::class,
+        ByteCacheStatusEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -65,4 +68,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun listenStatsDao(): ListenStatsDao
     abstract fun trafficDailyDao(): TrafficDailyDao
     abstract fun runtimeSnapshotDao(): RuntimeSnapshotDao
+    abstract fun byteCacheStatusDao(): ByteCacheStatusDao
 }

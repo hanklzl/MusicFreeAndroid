@@ -11,10 +11,19 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
+import com.hank.musicfree.core.cache.ByteCacheInvalidReason
+import com.hank.musicfree.core.cache.ByteCacheKey
+import com.hank.musicfree.core.cache.ByteCacheStatus
+import com.hank.musicfree.core.cache.ByteCacheStatusStore
+import com.hank.musicfree.core.cache.ByteCacheValidationMethod
+import com.hank.musicfree.core.cache.ByteCacheValidity
+import com.hank.musicfree.core.cache.EmptyByteCacheStatusStore
 import com.hank.musicfree.core.media.EmptyMediaSourceResolver
 import com.hank.musicfree.core.media.EmptyStaleUrlRefresher
+import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.core.media.StaleUrlRefresher
+import com.hank.musicfree.core.media.canWriteByteCache
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlaybackMode
 import com.hank.musicfree.core.model.PlaybackRuntimeSettings
@@ -26,6 +35,8 @@ import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.player.ext.defaultAlbumArtworkUri
 import com.hank.musicfree.player.ext.toMediaItem
+import com.hank.musicfree.player.cache.ByteCacheInspection
+import com.hank.musicfree.player.cache.ByteCacheInspector
 import com.hank.musicfree.player.model.PlaybackState
 import com.hank.musicfree.player.model.PlayerState
 import com.hank.musicfree.player.network.PlaybackNetworkStateProvider
@@ -84,6 +95,8 @@ class PlayerController @Inject constructor(
         trackHeaderRegistry,
     ),
     private val staleUrlRefresher: StaleUrlRefresher = EmptyStaleUrlRefresher,
+    private val byteCacheStatusStore: ByteCacheStatusStore = EmptyByteCacheStatusStore,
+    private val byteCacheInspector: ByteCacheInspector = ByteCacheInspector(),
     private val listenTracker: ListenTracker,
     private val currentSidProvider: CurrentSidProvider,
     private val playCacheTelemetry: PlayCacheTelemetry,
@@ -106,6 +119,10 @@ class PlayerController @Inject constructor(
      */
     private val staleUrlRetryState = ConcurrentHashMap<Pair<String, String>, Boolean>()
     private val playFailureSourceRetryState = ConcurrentHashMap<Pair<String, String>, Boolean>()
+    private val byteCacheFatalErrorState = ConcurrentHashMap<ByteCacheKey, Boolean>()
+
+    @Volatile
+    private var currentPlaybackCachePolicy: MediaSourceCachePolicy = MediaSourceCachePolicy.NoCache
 
     /**
      * Quality currently active in the player. Captured at `setMediaItemAndPlay`
@@ -131,6 +148,11 @@ class PlayerController @Inject constructor(
     @VisibleForTesting
     internal fun setMediaControllerForTest(controller: MediaController?) {
         mediaController = controller
+    }
+
+    @VisibleForTesting
+    internal fun markCurrentPlaybackSourceForTest(cachePolicy: MediaSourceCachePolicy) {
+        currentPlaybackCachePolicy = cachePolicy
     }
 
     val playQueue = PlayQueue()
@@ -674,6 +696,8 @@ class PlayerController @Inject constructor(
                     if (savedPosition > 0L) controller.seekTo(savedPosition)
                     if (wasPlaying) controller.play()
                     currentPlayQuality = quality
+                    currentPlaybackCachePolicy = resolution.cachePolicy
+                    byteCacheFatalErrorState.remove(byteCacheKey(playable, quality))
                     // Switching quality starts a fresh playback for the current item,
                     // so any prior stale-url retry credit no longer applies.
                     staleUrlRetryState.clear()
@@ -739,6 +763,8 @@ class PlayerController @Inject constructor(
                 ) + item.diagnosticFields(),
             )
             currentPlayQuality = playbackRuntimeSettings.defaultPlayQuality()
+            currentPlaybackCachePolicy = MediaSourceCachePolicy.NoCache
+            byteCacheFatalErrorState.remove(byteCacheKey(item, currentPlayQuality))
             playCacheTelemetry.playSessionStart(
                 sid = sid,
                 platform = item.platform,
@@ -786,6 +812,8 @@ class PlayerController @Inject constructor(
                 ) + targetItem.diagnosticFields(),
             )
             currentPlayQuality = playbackRuntimeSettings.defaultPlayQuality()
+            currentPlaybackCachePolicy = MediaSourceCachePolicy.NoCache
+            byteCacheFatalErrorState.remove(byteCacheKey(targetItem, currentPlayQuality))
             playCacheTelemetry.playSessionStart(
                 sid = sid,
                 platform = targetItem.platform,
@@ -945,10 +973,20 @@ class PlayerController @Inject constructor(
                     "durationMs" to elapsedMs(startedAt),
                 ) + item.diagnosticFields(),
             )
+            val fallback = tryVerifiedByteCache(
+                item = item,
+                sid = sid,
+                reason = "fallback",
+            )
+            if (fallback != null) return fallback
             _errorEvents.emit("播放失败: 音源解析超时")
             null
         }
     }
+
+    @VisibleForTesting
+    internal suspend fun resolvePlayableItemForTest(item: MusicItem, sid: String? = null): MusicItem? =
+        resolvePlayableItemForPlayback(item = item, sid = sid, operation = "test")
 
     private fun rollbackPlaybackSelection(
         expectedIndex: Int,
@@ -988,6 +1026,12 @@ class PlayerController @Inject constructor(
         if (item.isLocalPlaybackSource()) return item
 
         val startedAt = System.nanoTime()
+        tryVerifiedByteCache(
+            item = item,
+            sid = sid,
+            reason = "fast_path",
+        )?.let { return it }
+
         val resolution = try {
             mediaSourceResolver.resolve(item, sid = sid)
         } catch (error: CancellationException) {
@@ -1027,6 +1071,7 @@ class PlayerController @Inject constructor(
         val resolvedUrl = playable?.url
         return if (playable != null && !resolvedUrl.isNullOrBlank()) {
             val source = resolution.source
+            currentPlaybackCachePolicy = resolution.cachePolicy
             registerPlayCacheKey(
                 item = item,
                 url = resolvedUrl,
@@ -1050,7 +1095,23 @@ class PlayerController @Inject constructor(
                 ) + item.diagnosticFields(),
             )
             playable
-        } else if (!item.url.isNullOrBlank()) {
+        } else {
+            tryVerifiedByteCache(
+                item = item,
+                sid = sid,
+                reason = "fallback",
+            ) ?: resolveFallbackOriginalOrFailure(
+                item = item,
+                startedAt = startedAt,
+            )
+        }
+    }
+
+    private suspend fun resolveFallbackOriginalOrFailure(
+        item: MusicItem,
+        startedAt: Long,
+    ): MusicItem? {
+        return if (!item.url.isNullOrBlank()) {
             MfLog.detail(
                 category = LogCategory.PLAYER,
                 event = "playback_resolve_fallback_original_url",
@@ -1079,6 +1140,113 @@ class PlayerController @Inject constructor(
             _errorEvents.emit("播放失败: 无法解析音源")
             null
         }
+    }
+
+    private suspend fun tryVerifiedByteCache(
+        item: MusicItem,
+        sid: String?,
+        reason: String,
+    ): MusicItem? {
+        if (item.isLocalPlaybackSource()) return null
+        val quality = currentPlayQuality
+        val key = byteCacheKey(item, quality)
+        if (byteCacheFatalErrorState.containsKey(key)) return null
+        val status = byteCacheStatusStore.get(key)
+        if (status?.validity != ByteCacheValidity.PlayableVerified) {
+            logByteCacheFastPathRejected(
+                sid = sid,
+                item = item,
+                quality = quality,
+                reason = status?.validity?.wire ?: "status_missing",
+            )
+            return null
+        }
+
+        val inspection = byteCacheInspector.inspect(key)
+        if (inspection.validity != ByteCacheValidity.Complete) {
+            byteCacheStatusStore.markInvalid(
+                key = key,
+                reason = ByteCacheInvalidReason.BadByteCache,
+                updatedAt = System.currentTimeMillis(),
+            )
+            logByteCacheFastPathRejected(
+                sid = sid,
+                item = item,
+                quality = quality,
+                reason = when {
+                    inspection.contentLength == null -> "no_content_length"
+                    inspection.validity == ByteCacheValidity.Partial -> "partial"
+                    else -> inspection.validity.wire
+                },
+            )
+            return null
+        }
+
+        val effectiveSid = sid ?: currentSidProvider.peek().orEmpty()
+        val cached = mediaSourceResolver.resolveCachedSourceForVerifiedByteCache(
+            item = item,
+            quality = quality,
+            sid = effectiveSid,
+        )
+        val playable = cached?.item
+        val resolvedUrl = playable?.url
+        if (cached == null || playable == null || resolvedUrl.isNullOrBlank()) {
+            logByteCacheFastPathRejected(
+                sid = sid,
+                item = item,
+                quality = quality,
+                reason = "cached_source_missing",
+            )
+            return null
+        }
+        if (cached.cachePolicy == MediaSourceCachePolicy.NoStore) {
+            logByteCacheFastPathRejected(
+                sid = sid,
+                item = item,
+                quality = quality,
+                reason = "no_store",
+            )
+            return null
+        }
+        if (!canPlayOverCurrentNetwork(playable)) {
+            logByteCacheFastPathRejected(
+                sid = sid,
+                item = item,
+                quality = quality,
+                reason = "network_blocked",
+            )
+            return null
+        }
+
+        currentPlaybackCachePolicy = cached.cachePolicy
+        val source = cached.source
+        registerPlayCacheKey(
+            item = item,
+            url = resolvedUrl,
+            headers = source.headers.orEmpty(),
+            userAgent = source.userAgent,
+            quality = quality,
+            cachePolicy = cached.cachePolicy,
+            trigger = PlaybackCacheKeyRegistrar.Trigger.PLAYBACK,
+        )
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = if (reason == "fallback") {
+                "playback_resolve_fallback_byte_cache"
+            } else {
+                "byte_cache_fast_path_hit"
+            },
+            fields = mapOf(
+                "sid" to sid,
+                "platform" to item.platform,
+                "itemId" to item.id,
+                "quality" to quality.name.lowercase(),
+                "cachedBytes" to inspection.cachedBytes,
+                "contentLength" to inspection.contentLength,
+                "reason" to reason,
+            ),
+        )
+        return playable
     }
 
     private suspend fun canPlayOverCurrentNetwork(item: MusicItem): Boolean {
@@ -1234,6 +1402,16 @@ class PlayerController @Inject constructor(
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_ENDED) {
+                val endedItem = playQueue.currentItem
+                val endedQuality = currentPlayQuality
+                val endedPolicy = currentPlaybackCachePolicy
+                scope.launch {
+                    verifyByteCacheOnPlaybackEnded(
+                        item = endedItem,
+                        quality = endedQuality,
+                        cachePolicy = endedPolicy,
+                    )
+                }
                 listenTracker.onTrackEnded(playQueue.currentItem)
                 handleTrackEnded()
             }
@@ -1290,9 +1468,19 @@ class PlayerController @Inject constructor(
         handlePlaybackError(error)
     }
 
+    @VisibleForTesting
+    internal suspend fun handlePlaybackEndedForTest() {
+        verifyByteCacheOnPlaybackEnded(
+            item = playQueue.currentItem,
+            quality = currentPlayQuality,
+            cachePolicy = currentPlaybackCachePolicy,
+        )
+    }
+
     private fun handlePlaybackError(error: PlaybackException) {
         val item = playQueue.currentItem ?: return
         val expectedIndex = playQueue.currentIndex
+        byteCacheFatalErrorState[byteCacheKey(item, currentPlayQuality)] = true
 
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             val staleUrlRecovered = refreshStaleUrlAfterFailure(error, item, expectedIndex)
@@ -1320,6 +1508,7 @@ class PlayerController @Inject constructor(
                     item = item,
                     quality = quality,
                     reason = "refreshed_source_failed",
+                    invalidReason = byteCacheInvalidReasonFor(error),
                 )
             }
             MfLog.error(
@@ -1343,6 +1532,7 @@ class PlayerController @Inject constructor(
             item = item,
             quality = quality,
             reason = "before_refresh",
+            invalidReason = byteCacheInvalidReasonFor(error),
         )
 
         val fresh = runCatching {
@@ -1448,9 +1638,16 @@ class PlayerController @Inject constructor(
         item: MusicItem,
         quality: PlayQuality,
         reason: String,
+        invalidReason: ByteCacheInvalidReason = ByteCacheInvalidReason.StaleUrl,
     ) {
         runCatching {
             staleUrlRefresher.evictCacheEntry(item.platform, item.id, quality)
+            markByteCacheInvalid(
+                item = item,
+                quality = quality,
+                invalidReason = invalidReason,
+                reason = reason,
+            )
         }.onFailure { evictErr ->
             MfLog.error(
                 category = LogCategory.PLAYER,
@@ -1465,6 +1662,157 @@ class PlayerController @Inject constructor(
             )
         }
     }
+
+    private suspend fun markByteCacheInvalid(
+        item: MusicItem,
+        quality: PlayQuality,
+        invalidReason: ByteCacheInvalidReason,
+        reason: String,
+    ) {
+        val key = byteCacheKey(item, quality)
+        byteCacheStatusStore.markInvalid(
+            key = key,
+            reason = invalidReason,
+            updatedAt = System.currentTimeMillis(),
+        )
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "byte_cache_invalidated",
+            fields = mapOf(
+                "platform" to item.platform,
+                "itemId" to item.id,
+                "quality" to quality.name.lowercase(),
+                "reason" to invalidReason.wire,
+                "trigger" to reason,
+            ),
+        )
+    }
+
+    private suspend fun verifyByteCacheOnPlaybackEnded(
+        item: MusicItem?,
+        quality: PlayQuality,
+        cachePolicy: MediaSourceCachePolicy,
+    ) {
+        if (item == null || item.isLocalPlaybackSource()) return
+        if (cachePolicy == MediaSourceCachePolicy.NoStore) {
+            logByteCacheFastPathRejected(
+                sid = currentSidProvider.peek(),
+                item = item,
+                quality = quality,
+                reason = "no_store",
+            )
+            return
+        }
+
+        val key = byteCacheKey(item, quality)
+        val inspection = byteCacheInspector.inspect(key)
+        val hadFatalError = byteCacheFatalErrorState.remove(key) == true
+        if (inspection.validity == ByteCacheValidity.Complete && !hadFatalError) {
+            val now = System.currentTimeMillis()
+            byteCacheStatusStore.upsert(
+                ByteCacheStatus(
+                    key = key,
+                    validity = ByteCacheValidity.PlayableVerified,
+                    cachedBytes = inspection.cachedBytes,
+                    contentLength = requireNotNull(inspection.contentLength),
+                    validationMethod = ByteCacheValidationMethod.PlaybackCompleted,
+                    sourceFingerprint = item.url?.let(::sourceFingerprint),
+                    invalidReason = null,
+                    verifiedAt = now,
+                    updatedAt = now,
+                ),
+            )
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "byte_cache_verified",
+                fields = byteCacheLogFields(item, quality, inspection),
+            )
+            return
+        }
+
+        if (inspection.validity != ByteCacheValidity.None && !hadFatalError) {
+            byteCacheStatusStore.upsert(
+                ByteCacheStatus(
+                    key = key,
+                    validity = ByteCacheValidity.Partial,
+                    cachedBytes = inspection.cachedBytes,
+                    contentLength = inspection.contentLength,
+                    validationMethod = ByteCacheValidationMethod.SpanInspection,
+                    sourceFingerprint = item.url?.let(::sourceFingerprint),
+                    invalidReason = null,
+                    verifiedAt = null,
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
+        }
+        logByteCacheFastPathRejected(
+            sid = currentSidProvider.peek(),
+            item = item,
+            quality = quality,
+            reason = when {
+                hadFatalError -> "error"
+                inspection.contentLength == null -> "no_content_length"
+                else -> inspection.validity.wire
+            },
+        )
+    }
+
+    private fun byteCacheKey(item: MusicItem, quality: PlayQuality): ByteCacheKey =
+        ByteCacheKey(
+            platform = item.platform,
+            musicId = item.id,
+            quality = quality,
+        )
+
+    private fun logByteCacheFastPathRejected(
+        sid: String?,
+        item: MusicItem,
+        quality: PlayQuality,
+        reason: String,
+    ) {
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "byte_cache_fast_path_rejected",
+            fields = mapOf(
+                "sid" to sid,
+                "platform" to item.platform,
+                "musicItemId" to item.id,
+                "quality" to quality.name.lowercase(),
+                "reason" to reason,
+            ),
+        )
+    }
+
+    private fun byteCacheLogFields(
+        item: MusicItem,
+        quality: PlayQuality,
+        inspection: ByteCacheInspection,
+    ): Map<String, Any?> = mapOf(
+        "sid" to currentSidProvider.peek(),
+        "platform" to item.platform,
+        "musicItemId" to item.id,
+        "quality" to quality.name.lowercase(),
+        "cachedBytes" to inspection.cachedBytes,
+        "contentLength" to inspection.contentLength,
+        "holeCount" to inspection.holeCount,
+    )
+
+    private fun sourceFingerprint(url: String): String {
+        val parsed = runCatching { Uri.parse(url) }.getOrNull()
+        return listOf(
+            "host=${parsed?.host.orEmpty()}",
+            "urlHash=${playCacheTelemetry.urlHash(url)}",
+        ).joinToString(";")
+    }
+
+    private fun byteCacheInvalidReasonFor(error: PlaybackException): ByteCacheInvalidReason =
+        when (error.errorCode) {
+            PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> ByteCacheInvalidReason.HttpBadStatus
+            PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE -> ByteCacheInvalidReason.InvalidContentType
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED -> ByteCacheInvalidReason.ContainerParseFailure
+            else -> ByteCacheInvalidReason.StaleUrl
+        }
 
     private fun shouldEvictCacheAfterRefreshExhausted(error: PlaybackException, item: MusicItem): Boolean {
         if (item.isLocalPlaybackSource()) return false

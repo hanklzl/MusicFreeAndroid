@@ -1,5 +1,9 @@
 package com.hank.musicfree.data.repository
 
+import com.hank.musicfree.core.cache.ByteCacheInvalidReason
+import com.hank.musicfree.core.cache.ByteCacheKey
+import com.hank.musicfree.core.cache.ByteCacheStatus
+import com.hank.musicfree.core.cache.ByteCacheStatusStore
 import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
@@ -82,6 +86,7 @@ class MediaCacheRepositoryTest {
             coEvery { upsert(any()) } returns Unit
             coEvery { totalSizeBytes() } returns 0L
             coEvery { count() } returns 800
+            coEvery { getOldestEntries() } returns listOf(MediaCacheEntity("kg", "old", "{}", 1L))
             coEvery { deleteOldest(400) } returns Unit
         }
         MediaCacheRepository(dao) { 1L }
@@ -127,6 +132,31 @@ class MediaCacheRepositoryTest {
     }
 
     @Test
+    fun `put deletes byte cache status for metadata entries trimmed by byte limit`() = runTest {
+        val dao: MediaCacheDao = mockk {
+            coEvery { get(any(), any()) } returns null
+            coEvery { upsert(any()) } returns Unit
+            coEvery { totalSizeBytes() } returns 120L
+            coEvery { getOldestEntries() } returns listOf(
+                MediaCacheEntity("kg", "old", "12345", 100L),
+                MediaCacheEntity("kg", "new", "12345", 200L),
+            )
+            coEvery { delete("kg", "old") } returns Unit
+            coEvery { count() } returns 1
+        }
+        val statusStore = RecordingByteCacheStatusStore()
+
+        MediaCacheRepository(
+            dao = dao,
+            now = { 300L },
+            limitProvider = { 115L },
+            byteCacheStatusStore = statusStore,
+        ).put(item, PlayQuality.STANDARD, MediaSourceResult("http://a", null, null, PlayQuality.STANDARD))
+
+        assertEquals(listOf("kg" to "old"), statusStore.deletedSongs)
+    }
+
+    @Test
     fun `deleteEntry triggers onSimpleCacheEvict with quality`() = runTest {
         val json = """{"STANDARD":{"url":"http://a"}}"""
         val dao: MediaCacheDao = mockk {
@@ -149,6 +179,26 @@ class MediaCacheRepositoryTest {
     }
 
     @Test
+    fun `deleteEntry deletes byte cache status for matching quality`() = runTest {
+        val json = """{"STANDARD":{"url":"http://a"}}"""
+        val dao: MediaCacheDao = mockk {
+            coEvery { get("kg", "1") } returns MediaCacheEntity("kg", "1", json, 100L)
+            coEvery { delete("kg", "1") } returns Unit
+        }
+        val statusStore = RecordingByteCacheStatusStore()
+        val repo = MediaCacheRepository(
+            dao = dao,
+            now = { 1L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            byteCacheStatusStore = statusStore,
+        )
+
+        repo.deleteEntry("kg", "1", PlayQuality.STANDARD)
+
+        assertEquals(listOf(ByteCacheKey("kg", "1", PlayQuality.STANDARD)), statusStore.deletedKeys)
+    }
+
+    @Test
     fun `deleteItem triggers onSimpleCacheEvict with null quality`() = runTest {
         val dao: MediaCacheDao = mockk {
             coEvery { delete("kg", "1") } returns Unit
@@ -166,6 +216,60 @@ class MediaCacheRepositoryTest {
         assertEquals("kg", p)
         assertEquals("1", id)
         assertTrue("quality should be null for deleteItem", q == null)
+    }
+
+    @Test
+    fun `deleteItem deletes byte cache status for the song`() = runTest {
+        val dao: MediaCacheDao = mockk {
+            coEvery { delete("kg", "1") } returns Unit
+        }
+        val statusStore = RecordingByteCacheStatusStore()
+        val repo = MediaCacheRepository(
+            dao = dao,
+            now = { 1L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            byteCacheStatusStore = statusStore,
+        )
+
+        repo.deleteItem("kg", "1")
+
+        assertEquals(listOf("kg" to "1"), statusStore.deletedSongs)
+    }
+
+    @Test
+    fun `deleteByPlatform deletes byte cache statuses for the platform`() = runTest {
+        val dao: MediaCacheDao = mockk {
+            coEvery { deleteByPlatform("kg") } returns Unit
+        }
+        val statusStore = RecordingByteCacheStatusStore()
+        val repo = MediaCacheRepository(
+            dao = dao,
+            now = { 1L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            byteCacheStatusStore = statusStore,
+        )
+
+        repo.deleteByPlatform("kg")
+
+        assertEquals(listOf("kg"), statusStore.deletedPlatforms)
+    }
+
+    @Test
+    fun `clearAll deletes all byte cache statuses`() = runTest {
+        val dao: MediaCacheDao = mockk {
+            coEvery { deleteAll() } returns Unit
+        }
+        val statusStore = RecordingByteCacheStatusStore()
+        val repo = MediaCacheRepository(
+            dao = dao,
+            now = { 1L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            byteCacheStatusStore = statusStore,
+        )
+
+        repo.clearAll()
+
+        assertEquals(1, statusStore.deleteAllCount)
     }
 
     // ---- 10% sub-quota tests (Task 5.4) ----
@@ -210,5 +314,36 @@ class MediaCacheRepositoryTest {
         // The oldest entry must have been deleted to bring the total under 100 bytes
         coVerify(exactly = 1) { dao.delete("kg", "old") }
         coVerify(exactly = 0) { dao.delete("kg", "new") }
+    }
+
+    private class RecordingByteCacheStatusStore : ByteCacheStatusStore {
+        val deletedKeys = mutableListOf<ByteCacheKey>()
+        val deletedSongs = mutableListOf<Pair<String, String>>()
+        val deletedPlatforms = mutableListOf<String>()
+        var deleteAllCount = 0
+
+        override suspend fun get(key: ByteCacheKey): ByteCacheStatus? = null
+        override suspend fun upsert(status: ByteCacheStatus) = Unit
+        override suspend fun markInvalid(
+            key: ByteCacheKey,
+            reason: ByteCacheInvalidReason,
+            updatedAt: Long,
+        ) = Unit
+
+        override suspend fun delete(key: ByteCacheKey) {
+            deletedKeys += key
+        }
+
+        override suspend fun deleteBySong(platform: String, musicId: String) {
+            deletedSongs += platform to musicId
+        }
+
+        override suspend fun deleteByPlatform(platform: String) {
+            deletedPlatforms += platform
+        }
+
+        override suspend fun deleteAll() {
+            deleteAllCount += 1
+        }
     }
 }

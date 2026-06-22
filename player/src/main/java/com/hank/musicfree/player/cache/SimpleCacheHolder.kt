@@ -5,6 +5,9 @@ import androidx.annotation.OptIn as AndroidXOptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.cache.SimpleCache
+import com.hank.musicfree.core.cache.ByteCacheKey
+import com.hank.musicfree.core.cache.ByteCacheStatusStore
+import com.hank.musicfree.core.cache.EmptyByteCacheStatusStore
 import com.hank.musicfree.core.cache.SimpleCacheEvictor
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.telemetry.PlayCacheTelemetry
@@ -31,9 +34,10 @@ import kotlinx.coroutines.runBlocking
 @Singleton
 @AndroidXOptIn(markerClass = [UnstableApi::class])
 class SimpleCacheHolder @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val appPreferences: AppPreferences,
     private val playCacheTelemetry: PlayCacheTelemetry,
+    private val byteCacheStatusStore: ByteCacheStatusStore = EmptyByteCacheStatusStore,
 ) : SimpleCacheEvictor {
     private val ref = AtomicReference<SimpleCache?>(null)
     private val initFailed = AtomicBoolean(false)
@@ -49,6 +53,7 @@ class SimpleCacheHolder @Inject constructor(
         ref.get()?.release()
         ref.set(null)
         cacheDir().deleteRecursively()
+        deleteAllByteCacheStatuses()
         tryCreate()?.also { ref.set(it) }
     }
 
@@ -116,6 +121,7 @@ class SimpleCacheHolder @Inject constructor(
                     ),
                 )
             }
+            deleteByteCacheStatusForKey(platform = platform, id = id, quality = quality)
         }.onFailure { throwable ->
             MfLog.error(
                 category = LogCategory.PLAYER,
@@ -195,6 +201,7 @@ class SimpleCacheHolder @Inject constructor(
                 ref.get()?.release()
                 ref.set(null)
             }
+            deleteAllByteCacheStatuses()
             playCacheTelemetry.cacheEvict(
                 scope = "byte_cap",
                 count = 1,
@@ -288,7 +295,10 @@ class SimpleCacheHolder @Inject constructor(
         )
         SimpleCache(
             cacheDir,
-            PinningCacheEvictor(effective).also { pinningEvictor = it },
+            PinningCacheEvictor(
+                maxBytes = effective,
+                onSpanKeyRemoved = ::deleteByteCacheStatusForSimpleCacheKey,
+            ).also { pinningEvictor = it },
             StandaloneDatabaseProvider(context),
         )
     }.onFailure { error ->
@@ -304,6 +314,66 @@ class SimpleCacheHolder @Inject constructor(
     private fun cacheDir(): File =
         context.getExternalFilesDir(null)?.resolve("media-cache")
             ?: context.cacheDir.resolve("media-cache")
+
+    private fun deleteByteCacheStatusForSimpleCacheKey(simpleCacheKey: String) {
+        val firstSeparator = simpleCacheKey.indexOf(':')
+        val lastSeparator = simpleCacheKey.lastIndexOf(':')
+        if (firstSeparator <= 0 || lastSeparator <= firstSeparator) return
+        val quality = PlayQuality.values().firstOrNull {
+            it.name.equals(simpleCacheKey.substring(lastSeparator + 1), ignoreCase = true)
+        } ?: return
+        deleteByteCacheStatusForKey(
+            platform = simpleCacheKey.substring(0, firstSeparator),
+            id = simpleCacheKey.substring(firstSeparator + 1, lastSeparator),
+            quality = quality,
+        )
+    }
+
+    private fun deleteByteCacheStatusForKey(
+        platform: String,
+        id: String,
+        quality: PlayQuality?,
+    ) {
+        runCatching {
+            runBlocking {
+                if (quality == null) {
+                    byteCacheStatusStore.deleteBySong(platform, id)
+                } else {
+                    byteCacheStatusStore.delete(ByteCacheKey(platform, id, quality))
+                }
+            }
+        }.onFailure { error ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "byte_cache_status_delete_failed",
+                throwable = error,
+                fields = mapOf(
+                    "platform" to platform,
+                    "itemId" to id,
+                    "quality" to quality?.name?.lowercase(),
+                    "reason" to (error.javaClass.simpleName ?: "exception"),
+                ),
+            )
+        }
+    }
+
+    private fun deleteAllByteCacheStatuses() {
+        runCatching {
+            runBlocking {
+                byteCacheStatusStore.deleteAll()
+            }
+        }.onFailure { error ->
+            MfLog.error(
+                category = LogCategory.PLAYER,
+                event = "byte_cache_status_delete_failed",
+                throwable = error,
+                fields = mapOf(
+                    "scope" to "all",
+                    "reason" to (error.javaClass.simpleName ?: "exception"),
+                ),
+            )
+        }
+    }
 
     companion object {
         /** Minimum free disk space (2 GB) below which the cache is capped at [LOWSPACE_FALLBACK]. */

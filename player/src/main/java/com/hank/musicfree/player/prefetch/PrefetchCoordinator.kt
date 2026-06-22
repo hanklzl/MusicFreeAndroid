@@ -5,12 +5,16 @@ import androidx.annotation.OptIn as AndroidXOptIn
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSpec
+import com.hank.musicfree.core.cache.ByteCacheKey
+import com.hank.musicfree.core.cache.ByteCacheStatusStore
+import com.hank.musicfree.core.cache.ByteCacheValidity
 import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import com.hank.musicfree.core.media.MediaSourceResolver
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.player.cache.ByteCacheInspector
 import com.hank.musicfree.player.source.HeaderInjectingDataSourceFactory
 import com.hank.musicfree.player.source.PlaybackCacheKeyRegistrar
 import kotlinx.coroutines.CoroutineDispatcher
@@ -54,6 +58,8 @@ open class PrefetchCoordinator(
     private val cacheKeyRegistrar: PlaybackCacheKeyRegistrar,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val headerInjectingDataSourceFactory: HeaderInjectingDataSourceFactory? = null,
+    private val byteCacheStatusStore: ByteCacheStatusStore? = null,
+    private val byteCacheInspector: ByteCacheInspector? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
     private var runningJob: Job? = null
@@ -81,15 +87,40 @@ open class PrefetchCoordinator(
 
     private suspend fun runPrefetch(next: MusicItem, quality: PlayQuality) {
         val requestedQuality = quality.wireName()
+        val requestedKey = ByteCacheKey(
+            platform = next.platform,
+            musicId = next.id,
+            quality = quality,
+        )
         MfLog.detail(
             category = LogCategory.PLAYER,
             event = "prefetch_start",
             fields = mapOf(
                 "platform" to next.platform,
-                "id" to next.id,
+                "itemId" to next.id,
                 "requestedQuality" to requestedQuality,
             ),
         )
+        val statusStore = byteCacheStatusStore
+        val inspector = byteCacheInspector
+        if (statusStore != null && inspector != null) {
+            val status = statusStore.get(requestedKey)
+            val inspection = inspector.inspect(requestedKey)
+            if (status?.validity == ByteCacheValidity.PlayableVerified &&
+                inspection.validity == ByteCacheValidity.Complete
+            ) {
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "prefetch_head_skipped_verified",
+                    fields = mapOf(
+                        "platform" to next.platform,
+                        "itemId" to next.id,
+                        "quality" to requestedQuality,
+                    ),
+                )
+                return
+            }
+        }
         val explicitResolution = runCatching { resolver.resolve(next, requestedQuality, null) }.getOrElse { error ->
             if (error is CancellationException) throw error
             MfLog.detail(
@@ -193,24 +224,25 @@ open class PrefetchCoordinator(
             return
         }
 
-        MfLog.detail(
-            category = LogCategory.PLAYER,
-            event = "prefetch_success",
-            fields = logFieldSet(
-                next = next,
-                requestedQuality = requestedQuality,
-                effectiveQuality = effectiveQualityWire,
-                quality = effectiveQualityWire,
-                cachePolicy = cachePolicy,
-                fallback = fallbackUsed,
-                fallbackUnknownQuality = fallbackUnknownQuality,
-            ),
-        )
-
         // Head-warm: open a CacheDataSource and read 512 KB from the start of the resolved URL.
         // Subsequent playback will hit those bytes.
         try {
-            warmHead(resolution.source.url)
+            val bytesRead = warmHead(resolution.source.url)
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "prefetch_head_success",
+                fields = logFieldSet(
+                    next = next,
+                    requestedQuality = requestedQuality,
+                    effectiveQuality = effectiveQualityWire,
+                    quality = effectiveQualityWire,
+                    cachePolicy = cachePolicy,
+                    fallback = fallbackUsed,
+                    fallbackUnknownQuality = fallbackUnknownQuality,
+                ).plus(
+                    mapOf("bytesRead" to bytesRead),
+                ),
+            )
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
@@ -237,9 +269,9 @@ open class PrefetchCoordinator(
 
     private fun PlayQuality.wireName(): String = this.name.lowercase()
 
-    protected open fun warmHead(url: String) {
-        val factory = headerInjectingDataSourceFactory ?: return
-        if (url.isBlank()) return
+    protected open fun warmHead(url: String): Long {
+        val factory = headerInjectingDataSourceFactory ?: return 0L
+        if (url.isBlank()) return 0L
         val dataSpec = DataSpec.Builder()
             .setUri(Uri.parse(url))
             .setPosition(0L)
@@ -255,6 +287,7 @@ open class PrefetchCoordinator(
                 if (n == C.RESULT_END_OF_INPUT) break
                 totalRead += n
             }
+            return totalRead.toLong()
         } finally {
             runCatching { dataSource.close() }
         }
@@ -272,7 +305,7 @@ open class PrefetchCoordinator(
     ): Map<String, Any> {
         val fields = mutableMapOf<String, Any>(
             "platform" to next.platform,
-            "id" to next.id,
+            "itemId" to next.id,
             "requestedQuality" to requestedQuality,
             "effectiveQuality" to effectiveQuality,
             "quality" to quality,

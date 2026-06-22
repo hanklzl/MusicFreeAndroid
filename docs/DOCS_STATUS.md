@@ -5,9 +5,9 @@
 > 直接执行：是
 > 当前入口：[AGENTS](../AGENTS.md)
 > 备注：执行任务前先看本文件，再进入具体文档。
-> 最后校验：2026-05-23
+> 最后校验：2026-06-23
 >
-> 最后校验日期：2026-05-23
+> 最后校验日期：2026-06-23
 > 
 > 该文档是本仓库文档治理的单一入口。执行任务前，先看这里再看具体文档。
 
@@ -48,6 +48,7 @@
 | [docs/dev-harness/ui/rules.md](./dev-harness/ui/rules.md) | 当前规范（Dev Harness — UI） | 是 | Screen 切换动画、普通 AppBar、沉浸式状态栏、UI 设计原则 |
 | [docs/dev-harness/plugin/rules.md](./dev-harness/plugin/rules.md) | 当前规范（Dev Harness — Plugin） | 是 | QuickJS 线程模型、网络通道门控、PluginManager 编排 |
 | [docs/dev-harness/player/rules.md](./dev-harness/player/rules.md) | 当前规范（Dev Harness — Player） | 是 | PlayerController 连接、沉浸式 chrome、歌词跟随防抖 |
+| [docs/dev-harness/player/cache-and-logs.md](./dev-harness/player/cache-and-logs.md) | 当前规范（Dev Harness — Player / Cache & Logs） | 是 | 三层播放缓存、byte-cache validity、verified byte-cache 快路径与 Logan 排查入口 |
 | [docs/dev-harness/test/rules.md](./dev-harness/test/rules.md) | 当前规范（Dev Harness — Test） | 是 | runTest 范式、instrumentation 主线程模型、DataStore 隔离、runner 基线、JVM 内存基线 |
 | [docs/dev-harness/runtime/rules.md](./dev-harness/runtime/rules.md) | 当前规范（Dev Harness — Runtime State） | 是 | RuntimeStore、SnapshotStore、Activity 重建恢复、进程冷启动恢复、Route seed、冷启动非阻塞恢复规则 |
 | [docs/dev-harness/startup/rules.md](./dev-harness/startup/rules.md) | 当前规范（Dev Harness — Startup） | 是 | 启动类型分类、启动关键顺序、主线程启动预算、后台流程非阻塞与启动结构化日志 |
@@ -79,6 +80,7 @@
 | [docs/superpowers/specs/2026-05-19-runtime-store-architecture-design.md](./superpowers/specs/2026-05-19-runtime-store-architecture-design.md) | 当前规范（RuntimeStore 运行时架构） | 是（作为实现计划输入） | RuntimeStore + SnapshotStore 分层、插件/播放/下载/搜索/详情/Route seed 持久化恢复设计 |
 | [docs/superpowers/specs/2026-05-19-startup-telemetry-design.md](./superpowers/specs/2026-05-19-startup-telemetry-design.md) | 当前规范（启动耗时分段与日志） | 是（作为实现计划输入） | 启动分段耗时、冷启动 / Activity 重建启动分类、首屏与后台流程结构化日志设计 |
 | [docs/superpowers/specs/2026-05-23-user-action-timeline-design.md](./superpowers/specs/2026-05-23-user-action-timeline-design.md) | 当前规范（用户操作时间线） | 是（作为实现计划输入） | UI/导航/生命周期 17 个标准事件、`Modifier.loggedClick` 与 `LoggedIconButton` 工具、logan-viewer 端 ActionMatcher 规则集与混排 ActionCard 渲染设计 |
+| [docs/superpowers/specs/2026-06-23-byte-cache-validity-design.md](./superpowers/specs/2026-06-23-byte-cache-validity-design.md) | 当前规范（在线歌曲字节缓存有效性） | 是（作为实现计划输入） | 播放过的在线歌曲按 `None / Partial / Complete / PlayableVerified / StaleOrInvalid` 判定字节缓存有效性，并为 `no-cache` 歌曲提供 verified byte-cache 快路径与兜底复用设计 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/parity-audit/README.md](./parity-audit/README.md) | 当前规范（Parity Audit 专项） | 是 | parity-audit-skill 管理的状态、scenario catalog 与运行产物目录索引 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |
@@ -88,6 +90,7 @@
 | [docs/superpowers/specs/2026-03-19-musicfree-android-native-rewrite-design.md](./superpowers/specs/2026-03-19-musicfree-android-native-rewrite-design.md) | 当前参考 | 否 | 项目早期总体设计，版本细节以 AGENTS 为准 |
 | [docs/superpowers/specs/2026-04-02-journey-driven-iteration-workflow-design.md](./superpowers/specs/2026-04-02-journey-driven-iteration-workflow-design.md) | 历史记录 | 否 | 设计提出的 `specs/` 资产层未在当前仓库落地 |
 | [docs/superpowers/plans/2026-04-11-homepage-ui-fidelity-design.md](./superpowers/plans/2026-04-11-homepage-ui-fidelity-design.md) | 历史记录 | 否 | 首页专项执行快照 |
+| [docs/superpowers/plans/2026-06-23-byte-cache-validity-plan.md](./superpowers/plans/2026-06-23-byte-cache-validity-plan.md) | 历史记录 | 是（按用户确认的有效性模型执行） | 在线歌曲字节缓存有效性实现计划快照 |
 | [docs/superpowers/plans/2026-04-02-journey-workflow-bootstrap.md](./superpowers/plans/2026-04-02-journey-workflow-bootstrap.md) | 历史记录 | 否 | 工作流引导计划快照 |
 | [docs/superpowers/plans/2026-03-20-milestone6-plugin-engine-search.md](./superpowers/plans/2026-03-20-milestone6-plugin-engine-search.md) | 历史记录 | 否 | 里程碑执行快照 |
 | [docs/superpowers/plans/2026-03-20-milestone4-local-music-playback-ui.md](./superpowers/plans/2026-03-20-milestone4-local-music-playback-ui.md) | 历史记录 | 否 | 里程碑执行快照 |

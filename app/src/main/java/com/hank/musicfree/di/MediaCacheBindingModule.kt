@@ -1,5 +1,6 @@
 package com.hank.musicfree.di
 
+import com.hank.musicfree.core.cache.ByteCacheStatusStore
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.db.dao.MediaCacheDao
 import com.hank.musicfree.data.repository.MediaCacheRepository
@@ -30,9 +31,11 @@ object MediaCacheBindingModule {
         dao: MediaCacheDao,
         appPreferences: AppPreferences,
         simpleCacheHolder: SimpleCacheHolder,
+        byteCacheStatusStore: ByteCacheStatusStore,
     ): MediaCacheRepository = MediaCacheRepository.create(
         dao = dao,
         appPreferences = appPreferences,
         evictor = simpleCacheHolder,
+        byteCacheStatusStore = byteCacheStatusStore,
     )
 }

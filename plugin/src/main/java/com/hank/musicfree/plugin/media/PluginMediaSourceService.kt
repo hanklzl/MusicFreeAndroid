@@ -61,6 +61,40 @@ class PluginMediaSourceService @Inject constructor(
         sid: String?,
     ): MediaSourceResolution? = doResolve(item, quality, useCache = false, sid = sid)
 
+    override suspend fun resolveCachedSourceForVerifiedByteCache(
+        item: MusicItem,
+        quality: PlayQuality,
+        sid: String,
+    ): MediaSourceResolution? {
+        val sourcePlugin = pluginManager.getPlugin(item.platform)
+        val cachePolicy = MediaSourceCachePolicy.parse(sourcePlugin?.info?.cacheControl)
+        if (cachePolicy == MediaSourceCachePolicy.NoStore) {
+            logVerifiedByteCacheRejected(
+                sid = sid,
+                item = item,
+                quality = quality,
+                reason = "no_store",
+            )
+            return null
+        }
+        val cached = mediaCacheRepository.get(item, quality)
+        if (cached == null) {
+            logVerifiedByteCacheRejected(
+                sid = sid,
+                item = item,
+                quality = quality,
+                reason = "cached_source_missing",
+            )
+            return null
+        }
+        return cached.toResolution(
+            item = item,
+            quality = quality,
+            resolverPlatform = sourcePlugin?.info?.platform ?: item.platform,
+            cachePolicy = cachePolicy,
+        )
+    }
+
     /**
      * Single-quality cache eviction; called from `PlayerController` when ExoPlayer
      * reports `ERROR_CODE_IO_BAD_HTTP_STATUS` on a URL we already played.
@@ -419,6 +453,25 @@ class PluginMediaSourceService @Inject constructor(
         redirected = false,
         cachePolicy = cachePolicy,
     )
+
+    private fun logVerifiedByteCacheRejected(
+        sid: String,
+        item: MusicItem,
+        quality: PlayQuality,
+        reason: String,
+    ) {
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "byte_cache_fast_path_rejected",
+            fields = mapOf(
+                "sid" to sid,
+                "platform" to item.platform,
+                "musicItemId" to item.id,
+                "quality" to quality.name.lowercase(),
+                "reason" to reason,
+            ),
+        )
+    }
 
     private suspend fun LoadedPlugin.resolveWith(
         item: MusicItem,

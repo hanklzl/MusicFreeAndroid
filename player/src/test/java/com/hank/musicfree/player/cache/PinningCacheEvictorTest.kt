@@ -2,9 +2,13 @@ package com.hank.musicfree.player.cache
 
 import androidx.annotation.OptIn as AndroidXOptIn
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.cache.Cache
+import androidx.media3.datasource.cache.CacheSpan
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.kotlin.mock
 
 @AndroidXOptIn(markerClass = [UnstableApi::class])
 class PinningCacheEvictorTest {
@@ -28,5 +32,20 @@ class PinningCacheEvictorTest {
         evictor.updatePinned(setOf("a:1:s"))
         evictor.notePinnedSize(70L) // 70% exactly — NOT > 70%
         assertTrue(evictor.shouldSkip("a:1:s"))
+    }
+
+    @Test fun `span removal reports removed key`() {
+        val removedKeys = mutableListOf<String>()
+        val evictor = PinningCacheEvictor(
+            maxBytes = 100L,
+            onSpanKeyRemoved = { removedKeys += it },
+        )
+
+        evictor.onSpanRemoved(
+            mock<Cache>(),
+            CacheSpan("kg:1:standard", 0L, 10L),
+        )
+
+        assertEquals(listOf("kg:1:standard"), removedKeys)
     }
 }

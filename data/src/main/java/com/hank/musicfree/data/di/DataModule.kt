@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import com.hank.musicfree.core.cache.ByteCacheStatusStore
 import com.hank.musicfree.core.local.Mp3MetadataReader
 import com.hank.musicfree.core.model.PlaybackRuntimeSettings
 import com.hank.musicfree.core.runtime.SnapshotStore
@@ -17,6 +18,7 @@ import com.hank.musicfree.data.backup.checkpointWal
 import com.hank.musicfree.data.db.AppDatabase
 import com.hank.musicfree.data.db.SeedFavoriteCallback
 import com.hank.musicfree.data.db.converter.Converters
+import com.hank.musicfree.data.db.dao.ByteCacheStatusDao
 import com.hank.musicfree.data.db.dao.DownloadTaskDao
 import com.hank.musicfree.data.db.dao.DownloadedTrackDao
 import com.hank.musicfree.data.db.dao.ListenStatsDao
@@ -33,6 +35,7 @@ import com.hank.musicfree.data.db.migration.MIGRATION_10_11
 import com.hank.musicfree.data.db.migration.MIGRATION_11_12
 import com.hank.musicfree.data.db.migration.MIGRATION_12_13
 import com.hank.musicfree.data.db.migration.MIGRATION_13_14
+import com.hank.musicfree.data.db.migration.MIGRATION_14_15
 import com.hank.musicfree.data.db.migration.MIGRATION_9_10
 import com.hank.musicfree.data.datastore.AppPlaybackRuntimeSettings
 import com.hank.musicfree.data.local.Mp3MetadataReaderImpl
@@ -40,6 +43,7 @@ import com.hank.musicfree.data.repository.AppPlaylistDefaultSortProvider
 import com.hank.musicfree.data.repository.PlaylistDefaultSortProvider
 import com.hank.musicfree.data.repository.PluginMetadataCacheGateway
 import com.hank.musicfree.data.repository.PluginMetadataCacheRepository
+import com.hank.musicfree.data.repository.RoomByteCacheStatusStore
 import com.hank.musicfree.data.runtime.RoomRuntimeSnapshotStore
 import dagger.Module
 import dagger.Provides
@@ -66,6 +70,7 @@ object DataModule {
                 MIGRATION_11_12,
                 MIGRATION_12_13,
                 MIGRATION_13_14,
+                MIGRATION_14_15,
             )
             .addCallback(SeedFavoriteCallback)
             .build()
@@ -108,8 +113,15 @@ object DataModule {
     fun provideRuntimeSnapshotDao(db: AppDatabase): RuntimeSnapshotDao = db.runtimeSnapshotDao()
 
     @Provides
+    fun provideByteCacheStatusDao(db: AppDatabase): ByteCacheStatusDao = db.byteCacheStatusDao()
+
+    @Provides
     @Singleton
     fun provideSnapshotStore(impl: RoomRuntimeSnapshotStore): SnapshotStore = impl
+
+    @Provides
+    @Singleton
+    fun provideByteCacheStatusStore(impl: RoomByteCacheStatusStore): ByteCacheStatusStore = impl
 
     @Provides
     @Singleton
@@ -161,7 +173,7 @@ object DataModule {
         databaseCheckpoint = appDatabase::checkpointWal,
         layout = layout,
         appMetadata = appMetadata,
-        databaseVersion = 14,
+        databaseVersion = 15,
         json = json,
     )
 

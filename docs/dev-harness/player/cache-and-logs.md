@@ -5,7 +5,7 @@
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
 > 设计来源：v1.2.5 cache-reuse-logs 任务（plan 文件已归档于 `~/.claude/plans/purring-inventing-zebra.md`）
-> 最后校验：2026-06-14
+> 最后校验：2026-06-23
 
 ---
 
@@ -81,10 +81,38 @@ resolvePlayableItem()
 | 插件搜索结果点击已下载歌曲 | localPath 为空，走网络 | `resolveLocal()` 反查 DB 兜底注入，`resolve_local_db_lookup{found=true}` |
 | 插件在线歌单点已下载歌曲 | 同上，走网络 | 同上 |
 
+### Layer 3 字节缓存有效性（2026-06-23 起）
+
+SimpleCache 的“存在 spans”不等于可安全播放。播放器额外维护 `byte_cache_status` Room 表，用 `ByteCacheKey = "${platform}:${id}:${quality}"` 记录字节缓存状态：
+
+| 状态 | 含义 | 可作为播放快路径 |
+|------|------|------------------|
+| `None` | 没有可用 span | 否 |
+| `Partial` | 有 span，但不完整或缺 contentLength | 否 |
+| `Complete` | SimpleCache span 连续覆盖 contentLength | 否，仅代表文件完整 |
+| `PlayableVerified` | 完整播放结束后再次检查仍为 `Complete`，可证明该缓存曾可播放 | 是 |
+| `StaleOrInvalid` | URL 过期、HTTP/解析失败或坏字节缓存导致失效 | 否 |
+
+`PlayerController` 在一次在线歌曲播放自然结束时检查 `ByteCacheInspector.inspect(key)`；只有 `cachePolicy != no-store` 且检查为 `Complete`，才写入 `PlayableVerified`。预取只会产生 partial/complete span，不会写 `PlayableVerified`。
+
+### Verified byte-cache 快路径
+
+`no-cache` 的常规解析语义不变：在线时不会把 Room `media_cache` 当作普通命中。但若某首歌已经是 `PlayableVerified`，播放器可以走一个窄入口复用历史 source 作为 SimpleCache index：
+
+1. `ByteCacheStatusStore(key) == PlayableVerified`
+2. `ByteCacheInspector(key) == Complete`
+3. 插件 `cacheControl != no-store`
+4. `PluginMediaSourceService.resolveCachedSourceForVerifiedByteCache()` 从 `media_cache` 读取历史 URL/headers/userAgent，不调用插件 JS，也不触发 `ensurePluginsLoaded()`
+
+快路径失败后回到常规插件解析；常规解析失败或超时时，会再尝试一次 verified byte-cache fallback。若检查发现 partial、缺 contentLength 或坏缓存，会写 `StaleOrInvalid`，避免下次继续快路径。
+
+手动清理、Room media_cache 行数/字节淘汰、SimpleCache LRU 驱逐、SimpleCache 全量清空或配额缩小时，`byte_cache_status` 记录会被删除并回到 `None`，而不是保留 `StaleOrInvalid`。
+
 ### 关键设计约束
 
 - **插件 `cacheControl` 默认为 null → NoCache**：绝大多数插件未声明，Layer 2 默认不读不写。
 - **SimpleCache cache key 的关键依赖**：`TrackHeaderRegistry` 必须在 `setMediaItem` 之前注册 `url → cacheKey`，否则 key 退化为 URL 字符串。签名 URL 每次变化则字节层永远不复用。
+- **`no-store` 禁止 byte-cache 状态升级和 verified fallback**：该策略下不写 `PlayableVerified`，也不从历史 source 走 verified 快路径。
 
 ---
 
@@ -107,6 +135,8 @@ resolvePlayableItem()
 | 内存 LRU | LRU 200 自动驱逐（v1.2.5 新增） | `media_cache_memory_evict` ★ | — |
 | 主动删除 | `deleteEntry` / `deleteItem` / `deleteByPlatform` / `clearAll`；Settings → 缓存管理按 `(platform,id)` 清理指定歌曲时走 `deleteItem` | `media_cache_delete_entry` ★ | `trigger`（stale_url / manual / 等）|
 
+主动删除 `deleteEntry` / `deleteItem` / `deleteByPlatform` / `clearAll`，以及 row-cap / byte-cap 淘汰，会同步清理 `byte_cache_status`；stale URL / HTTP / container parse failure 路径会写 `StaleOrInvalid`，避免状态表继续显示 `PlayableVerified`。
+
 ### Layer 3：ExoPlayer SimpleCache
 
 | 触发来源 | 描述 | 日志事件 | 关键字段 |
@@ -118,6 +148,8 @@ resolvePlayableItem()
 | 低磁盘空间 | 初始化时检测 | `media_cache_lowspace` | — |
 | 启动 schema 迁移 | SimpleCache 格式升级 | `media_cache_schema_migration` | — |
 | 初始化配置记录 | 冷启动（v1.2.5 新增） | `media_cache_init` ★ | `configuredBytes`, `effectiveCapBytes`, `availableBytes`, `storageScope`, `cacheDirPath` |
+
+SimpleCache span 被移除时，`PinningCacheEvictor` 会按 `${platform}:${id}:${quality}` 解析 key 并删除对应 `byte_cache_status`；全量清空或配额缩小时会删除全部状态。
 
 ---
 
@@ -151,6 +183,14 @@ resolvePlayableItem()
 | `media_cache_max_bytes_changed` | ★ v1.2.5 新增 | `newBytes`, `previousUsed`, `freedBytes` |
 | `media_cache_schema_migration` | 已有 | — |
 | `media_cache_lowspace` | 已有 | `availableBytes`, `requestedBytes` |
+| `byte_cache_inspect` | 2026-06-23 新增 | `platform`, `itemId`, `quality`, `cacheKey`, `status`, `cachedBytes`, `contentLength`, `holeCount` |
+| `byte_cache_verified` | 2026-06-23 新增 | `sid`, `platform`, `musicItemId`, `quality`, `cachedBytes`, `contentLength`, `holeCount` |
+| `byte_cache_fast_path_hit` | 2026-06-23 新增 | `sid`, `platform`, `itemId`, `quality`, `cachedBytes`, `contentLength`, `reason`（fast_path / fallback） |
+| `playback_resolve_fallback_byte_cache` | 2026-06-23 新增 | 同 `byte_cache_fast_path_hit`，表示常规解析失败后的 fallback |
+| `byte_cache_fast_path_rejected` | 2026-06-23 新增 | `sid`, `platform`, `musicItemId`, `quality`, `reason`（status_missing / partial / no_content_length / no_store / cached_source_missing 等） |
+| `byte_cache_invalidated` | 2026-06-23 新增 | `platform`, `itemId`, `quality`, `reason`, `trigger` |
+| `prefetch_head_success` | 2026-06-23 调整 | `platform`, `itemId`, `quality`, `bytesRead` |
+| `prefetch_head_skipped_verified` | 2026-06-23 新增 | `platform`, `itemId`, `quality` |
 
 ### LogCategory.DATA
 
@@ -162,6 +202,7 @@ resolvePlayableItem()
 | `media_cache_delete_entry` | ★ v1.2.5 新增 | `platform`, `id`, `trigger`（stale_url / manual / 等）|
 | `clear_local_playback_association` | v1.2.17 新增 | `platform`, `itemId`, `changed`；Settings 指定歌曲清理时用于解除插件歌曲下载 / 本地播放关联 |
 | `settings_song_cache_clear` | v1.2.17 新增 | `platform`, `itemId`, `localAssociationCleared`, `durationMs`, `result` |
+| `byte_cache_status_write` | 2026-06-23 新增 | `platform`, `musicItemId`, `quality`, `status`, `validationMethod`, `cachedBytes`, `contentLength`, `invalidReason` |
 
 ---
 
@@ -230,7 +271,38 @@ cat tools/logan/out/decoded/*.txt \
   | jq -c --arg p "$PLATFORM" 'select(.event == "local_short_circuit_fallback" and .fields.platform == $p)'
 ```
 
-### Recipe 3："突然缓存全没了"
+### Recipe 3："已经完整播放过，但下次没有用缓存"
+
+目标：确认 byte-cache 是否升级为 `PlayableVerified`，以及快路径为什么被拒绝。
+
+```bash
+PLATFORM="your_platform"
+MUSIC_ID="your_music_id"
+
+# 看完整播放后是否写入 PlayableVerified
+cat tools/logan/out/decoded/*.txt \
+  | jq -c --arg p "$PLATFORM" --arg id "$MUSIC_ID" \
+      'select(.event == "byte_cache_status_write" and .fields.platform == $p and .fields.musicItemId == $id)'
+
+# 看播放时是否走了快路径 / fallback
+cat tools/logan/out/decoded/*.txt \
+  | jq -c --arg p "$PLATFORM" --arg id "$MUSIC_ID" \
+      'select((.event == "byte_cache_fast_path_hit" or .event == "playback_resolve_fallback_byte_cache") and .fields.platform == $p and (.fields.itemId == $id or .fields.musicItemId == $id))'
+
+# 看快路径拒绝原因
+cat tools/logan/out/decoded/*.txt \
+  | jq -c --arg p "$PLATFORM" --arg id "$MUSIC_ID" \
+      'select(.event == "byte_cache_fast_path_rejected" and .fields.platform == $p and (.fields.itemId == $id or .fields.musicItemId == $id)) | .fields'
+```
+
+**判断**：
+
+- `byte_cache_status_write.status=playable_verified` 出现 → 完整播放验证已写入。
+- `byte_cache_fast_path_rejected.reason=partial/no_content_length` → 只有预取或半首歌缓存，不能作为播放快路径。
+- `reason=no_store` → 插件声明禁止缓存，不能使用 verified fallback。
+- `reason=cached_source_missing` → byte-cache 还在，但 Room `media_cache` 的历史 source 已被清理，无法构造 MediaItem/headers。
+
+### Recipe 4："突然缓存全没了"
 
 目标：找出缓存被清空或大幅驱逐的时间点与原因。
 
