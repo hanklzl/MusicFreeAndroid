@@ -4,15 +4,20 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -20,12 +25,16 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -39,7 +48,12 @@ import com.hank.musicfree.core.ui.AddToPlaylistSheetState
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 import com.hank.musicfree.core.ui.MusicItemAction
 import com.hank.musicfree.core.ui.MusicItemRow
+import com.hank.musicfree.core.ui.logUiClick
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +67,7 @@ fun PlaylistDetailScreen(
     val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
     val allPlaylists by viewModel.allPlaylists.collectAsStateWithLifecycle()
     val downloadedKeys by viewModel.downloadedKeys.collectAsStateWithLifecycle()
+    val currentPlayingItem by viewModel.currentPlayingItem.collectAsStateWithLifecycle()
 
     PlaylistDetailContent(
         state = state,
@@ -60,6 +75,7 @@ fun PlaylistDetailScreen(
         allPlaylists = allPlaylists,
         downloadedKeys = downloadedKeys,
         favoriteResolver = viewModel::isFavoriteFlow,
+        currentPlayingItem = currentPlayingItem,
         onBack = onBack,
         onNavigateToSearchMusicList = onNavigateToSearchMusicList,
         onNavigateToMusicListEditorLite = onNavigateToMusicListEditorLite,
@@ -86,6 +102,7 @@ internal fun PlaylistDetailContent(
     allPlaylists: List<Playlist>,
     favoriteResolver: (MusicItem) -> Flow<Boolean>,
     downloadedKeys: Set<String> = emptySet(),
+    currentPlayingItem: MusicItem? = null,
     onBack: () -> Unit,
     onNavigateToSearchMusicList: (String) -> Unit,
     onNavigateToMusicListEditorLite: (String) -> Unit,
@@ -97,6 +114,33 @@ internal fun PlaylistDetailContent(
     var showSortDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showScrollToCurrentFab by remember { mutableStateOf(false) }
+    var suppressProgrammaticScrollFab by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    val scrollScope = rememberCoroutineScope()
+    val currentPlayingIndex = remember(items, currentPlayingItem) {
+        items.indexOfFirst { it.hasSameMediaIdentity(currentPlayingItem) }
+    }
+
+    LaunchedEffect(listState, currentPlayingIndex) {
+        if (currentPlayingIndex < 0) {
+            showScrollToCurrentFab = false
+            return@LaunchedEffect
+        }
+        snapshotFlow { listState.isScrollInProgress }
+            .distinctUntilChanged()
+            .collectLatest { isScrolling ->
+                when {
+                    isScrolling && !suppressProgrammaticScrollFab -> {
+                        showScrollToCurrentFab = true
+                    }
+                    !isScrolling -> {
+                        delay(SCROLL_TO_CURRENT_FAB_HIDE_DELAY_MS)
+                        showScrollToCurrentFab = false
+                    }
+                }
+            }
+    }
 
     MusicFreeScreenScaffold(
         title = playlist?.name ?: "歌单",
@@ -141,45 +185,90 @@ internal fun PlaylistDetailContent(
             ) { Text("加载中…") }
             return@MusicFreeScreenScaffold
         }
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-            item(key = "header") {
-                PlaylistDetailHeader(
-                    playlist = playlist,
-                    musicCount = items.size,
-                    onPlayAll = {
-                        actions.playAll(0)
-                    },
-                    onSearch = { onNavigateToSearchMusicList(playlist.id) },
-                )
-            }
-
-            if (items.isEmpty()) {
-                item(key = "empty") {
-                    EmptyState(onSearchAdd = { onNavigateToSearchMusicList(playlist.id) })
-                }
-            } else {
-                itemsIndexed(items = items, key = { _, item -> "${item.platform}::${item.id}" }) { index, item ->
-                    val isFavorite by favoriteResolver(item)
-                        .collectAsStateWithLifecycle(initialValue = false)
-                    MusicItemRow(
-                        item = item,
-                        isFavorite = isFavorite,
-                        downloaded = downloadedKeys.contains("${item.id}@${item.platform}"),
-                        actions = setOf(
-                            MusicItemAction.PlayNext,
-                            MusicItemAction.ToggleFavorite,
-                            MusicItemAction.AddToPlaylist,
-                            MusicItemAction.RemoveFromPlaylist,
-                        ),
-                        onClick = { actions.playAll(index) },
-                        onAction = { action ->
-                            when (action) {
-                                MusicItemAction.ToggleFavorite -> actions.toggleFavorite(item)
-                                MusicItemAction.RemoveFromPlaylist -> actions.removeFromPlaylist(item)
-                                MusicItemAction.PlayNext -> { /* TODO: PlayerController.playNext when API exists */ }
-                                MusicItemAction.AddToPlaylist -> actions.showAddToPlaylistSheet(item)
-                            }
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("PlaylistDetail_list"),
+                contentPadding = PaddingValues(bottom = 96.dp),
+            ) {
+                item(key = "header") {
+                    PlaylistDetailHeader(
+                        playlist = playlist,
+                        musicCount = items.size,
+                        onPlayAll = {
+                            actions.playAll(0)
                         },
+                        onSearch = { onNavigateToSearchMusicList(playlist.id) },
+                    )
+                }
+
+                if (items.isEmpty()) {
+                    item(key = "empty") {
+                        EmptyState(onSearchAdd = { onNavigateToSearchMusicList(playlist.id) })
+                    }
+                } else {
+                    itemsIndexed(items = items, key = { _, item -> "${item.platform}::${item.id}" }) { index, item ->
+                        val isFavorite by favoriteResolver(item)
+                            .collectAsStateWithLifecycle(initialValue = false)
+                        MusicItemRow(
+                            item = item,
+                            isFavorite = isFavorite,
+                            downloaded = downloadedKeys.contains("${item.id}@${item.platform}"),
+                            actions = setOf(
+                                MusicItemAction.PlayNext,
+                                MusicItemAction.ToggleFavorite,
+                                MusicItemAction.AddToPlaylist,
+                                MusicItemAction.RemoveFromPlaylist,
+                            ),
+                            onClick = { actions.playAll(index) },
+                            onAction = { action ->
+                                when (action) {
+                                    MusicItemAction.ToggleFavorite -> actions.toggleFavorite(item)
+                                    MusicItemAction.RemoveFromPlaylist -> actions.removeFromPlaylist(item)
+                                    MusicItemAction.PlayNext -> { /* TODO: PlayerController.playNext when API exists */ }
+                                    MusicItemAction.AddToPlaylist -> actions.showAddToPlaylistSheet(item)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+            if (showScrollToCurrentFab && currentPlayingIndex >= 0) {
+                FloatingActionButton(
+                    onClick = {
+                        val targetItem = items[currentPlayingIndex]
+                        logUiClick(
+                            targetId = "playlist_detail.fab.scroll_to_current",
+                            screen = "playlist_detail",
+                            targetLabel = "定位到当前播放歌曲",
+                            extra = mapOf(
+                                "playlistId" to playlist.id,
+                                "itemId" to targetItem.id,
+                                "platform" to targetItem.platform,
+                                "itemIndex" to currentPlayingIndex,
+                            ),
+                        )
+                        showScrollToCurrentFab = false
+                        scrollScope.launch {
+                            suppressProgrammaticScrollFab = true
+                            try {
+                                listState.animateScrollToItem(
+                                    index = currentPlayingIndex + PLAYLIST_DETAIL_HEADER_ITEM_COUNT,
+                                )
+                            } finally {
+                                suppressProgrammaticScrollFab = false
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 24.dp, bottom = 24.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MyLocation,
+                        contentDescription = "定位到当前播放歌曲",
                     )
                 }
             }
@@ -242,6 +331,12 @@ internal fun PlaylistDetailContent(
     }
 
 }
+
+private const val PLAYLIST_DETAIL_HEADER_ITEM_COUNT = 1
+private const val SCROLL_TO_CURRENT_FAB_HIDE_DELAY_MS = 5_000L
+
+private fun MusicItem.hasSameMediaIdentity(other: MusicItem?): Boolean =
+    other != null && id == other.id && platform == other.platform
 
 internal data class PlaylistDetailActions(
     val playAll: (Int) -> Unit,

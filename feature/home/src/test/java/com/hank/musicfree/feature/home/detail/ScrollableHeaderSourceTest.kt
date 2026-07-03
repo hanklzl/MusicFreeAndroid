@@ -29,7 +29,7 @@ class ScrollableHeaderSourceTest {
         )
         assertContainsInOrder(
             source = source,
-            first = "LazyColumn(modifier = Modifier.fillMaxSize().padding(padding))",
+            first = "LazyColumn(",
             second = "item(key = \"header\")",
             third = "PlaylistDetailHeader(",
         )

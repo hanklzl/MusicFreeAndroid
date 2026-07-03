@@ -6,7 +6,7 @@
 > 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md)、[AGENTS](../../../AGENTS.md)
 > RN 参考：`../../../../MusicFree/src/core/musicSheet/`、`../../../../MusicFree/src/pages/sheetDetail/`、`../../../../MusicFree/src/components/panels/types/addToMusicSheet.tsx`
 > UI Harness 规则：[screen-chrome-rules](../../ui-harness/screen-chrome-rules.md)
-> 最后校验：2026-05-04
+> 最后校验：2026-07-04
 
 ## 背景
 
@@ -266,6 +266,8 @@ EmptyState (musics.isEmpty())
 
 行的 inline 删除图标按钮**移除**（原功能改放 row ⋮）。"播放全部" 按钮把当前已排序列表写入 `PlayQueue` 并播第一首（沿用现有 `PlayerController` API）。
 
+当前播放定位对齐 RN `../../../../MusicFree/src/components/musicList/index.tsx`：歌单列表拿 `PlayerController.playerState.currentItem` 作为 `currentPlayingItem`，按 `id + platform`（等价 RN `isSameMediaItem`）在当前 `musics` 中查找。用户滚动歌单且当前播放歌曲存在于本歌单时，右下角显示 `FloatingActionButton`；点击后记录 `ui_click{targetId=playlist_detail.fab.scroll_to_current, screen=playlist_detail}`，并滚动到对应行。当前播放歌曲不在本歌单或歌单为空时不显示该入口。
+
 `PlaylistDetailViewModel` 状态：`combine(repo.observePlaylist(id), repo.observeMusicInPlaylist(id))` → `PlaylistDetailUiState(playlist, musics, sortMode, isLoading)`。
 
 ### Dialogs（`:feature:home/playlist/PlaylistDialogs.kt`）
@@ -367,6 +369,7 @@ Toast 复用现有项目主流提示组件（沿现状：`SnackbarHost` 或 `Toa
 
 - `HomeScreen`："我的歌单" tab 第一格永远是 favorite，封面是心形资源。
 - `PlaylistDetailScreen`：favorite 时无"删除"overflow 项；切换 SortMode 后行顺序变化。
+- `PlaylistDetailScreen`：当前播放歌曲在本歌单中时，滚动列表后出现定位当前播放的 `FloatingActionButton`；点击后滚到对应歌曲行，匹配只依赖 `id + platform`。
 - `AddToPlaylistBottomSheet`：点"新建歌单"→ 创建对话框 → 提交后回调中带新歌单 id 并完成添加。
 - `MusicItemMoreMenu` 按 `actions` 集合渲染对应项。
 

@@ -62,6 +62,10 @@ class PlaylistDetailViewModel @Inject constructor(
         .map { keys -> keys.mapTo(HashSet()) { it.value } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+    val currentPlayingItem: StateFlow<MusicItem?> = playerController.playerState
+        .map { it.currentItem }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())
     val sheetState: StateFlow<AddToPlaylistSheetState> = _sheetState.asStateFlow()
 
