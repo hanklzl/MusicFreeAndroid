@@ -81,6 +81,7 @@
 | [docs/superpowers/specs/2026-05-19-startup-telemetry-design.md](./superpowers/specs/2026-05-19-startup-telemetry-design.md) | 当前规范（启动耗时分段与日志） | 是（作为实现计划输入） | 启动分段耗时、冷启动 / Activity 重建启动分类、首屏与后台流程结构化日志设计 |
 | [docs/superpowers/specs/2026-05-23-user-action-timeline-design.md](./superpowers/specs/2026-05-23-user-action-timeline-design.md) | 当前规范（用户操作时间线） | 是（作为实现计划输入） | UI/导航/生命周期 17 个标准事件、`Modifier.loggedClick` 与 `LoggedIconButton` 工具、logan-viewer 端 ActionMatcher 规则集与混排 ActionCard 渲染设计 |
 | [docs/superpowers/specs/2026-06-23-byte-cache-validity-design.md](./superpowers/specs/2026-06-23-byte-cache-validity-design.md) | 当前规范（在线歌曲字节缓存有效性） | 是（作为实现计划输入） | 播放过的在线歌曲按 `None / Partial / Complete / PlayableVerified / StaleOrInvalid` 判定字节缓存有效性，并为 `no-cache` 歌曲提供 verified byte-cache 快路径与兜底复用设计 |
+| [docs/superpowers/specs/2026-07-04-listening-preference-recommendation-design.md](./superpowers/specs/2026-07-04-listening-preference-recommendation-design.md) | 当前规范（听歌偏好推荐歌单） | 是（作为实现计划输入） | 基于本地听歌画像，用现有插件推荐歌单与歌单搜索能力召回候选，并在 Android 本地重排生成今日推荐歌单 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/parity-audit/README.md](./parity-audit/README.md) | 当前规范（Parity Audit 专项） | 是 | parity-audit-skill 管理的状态、scenario catalog 与运行产物目录索引 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |
