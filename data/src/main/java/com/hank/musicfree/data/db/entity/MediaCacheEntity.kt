@@ -20,4 +20,9 @@ data class MediaCacheEntity(
     val id: String,
     val sourcesJson: String,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    val title: String? = null,
+    val artist: String? = null,
+    val album: String? = null,
+    val artwork: String? = null,
+    @ColumnInfo(name = "duration_ms") val durationMs: Long? = null,
 )

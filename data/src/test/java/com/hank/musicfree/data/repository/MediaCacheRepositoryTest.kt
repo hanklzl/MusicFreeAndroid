@@ -4,10 +4,13 @@ import com.hank.musicfree.core.cache.ByteCacheInvalidReason
 import com.hank.musicfree.core.cache.ByteCacheKey
 import com.hank.musicfree.core.cache.ByteCacheStatus
 import com.hank.musicfree.core.cache.ByteCacheStatusStore
+import com.hank.musicfree.core.cache.ByteCacheValidationMethod
+import com.hank.musicfree.core.cache.ByteCacheValidity
 import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.data.db.dao.MediaCacheDao
+import com.hank.musicfree.data.db.dao.MediaCacheCatalogRow
 import com.hank.musicfree.data.db.entity.MediaCacheEntity
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -15,6 +18,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -77,6 +81,190 @@ class MediaCacheRepositoryTest {
         val parsed = org.json.JSONObject(saved.sourcesJson)
         assertEquals("http://a", parsed.getJSONObject("STANDARD").getString("url"))
         assertEquals("http://h", parsed.getJSONObject("HIGH").getString("url"))
+    }
+
+    @Test
+    fun `put persists display metadata for cache catalog`() = runTest {
+        val capturedEntity = slot<MediaCacheEntity>()
+        val dao: MediaCacheDao = mockk {
+            coEvery { get("kg", "1") } returns null
+            coEvery { upsert(capture(capturedEntity)) } returns Unit
+            coEvery { totalSizeBytes() } returns 0L
+            coEvery { count() } returns 1
+        }
+
+        MediaCacheRepository(dao) { 123L }.put(
+            item.copy(
+                album = "Album",
+                artwork = "https://img.test/a.jpg",
+                duration = 180_000L,
+            ),
+            PlayQuality.STANDARD,
+            MediaSourceResult("https://audio.test/a.mp3", null, null, PlayQuality.STANDARD),
+        )
+
+        val saved = capturedEntity.captured
+        assertEquals("T", saved.title)
+        assertEquals("A", saved.artist)
+        assertEquals("Album", saved.album)
+        assertEquals("https://img.test/a.jpg", saved.artwork)
+        assertEquals(180_000L, saved.durationMs)
+    }
+
+    @Test
+    fun `listOnlineCacheCatalog merges source qualities and byte cache statuses`() = runTest {
+        val sourcesJson = """
+            {
+              "STANDARD": {"url": "https://audio.test/standard.mp3"},
+              "HIGH": {"url": "https://audio.test/high.mp3"}
+            }
+        """.trimIndent()
+        val dao: MediaCacheDao = mockk {
+            coEvery { listCatalogRows() } returns listOf(
+                catalogRow(
+                    sourcesJson = sourcesJson,
+                    updatedAt = 10L,
+                    sourceMetadataBytes = 123L,
+                    title = "Song",
+                    artist = "Singer",
+                ),
+            )
+        }
+        val statusStore = RecordingByteCacheStatusStore().apply {
+            statuses += byteCacheStatus(
+                quality = PlayQuality.STANDARD,
+                validity = ByteCacheValidity.PlayableVerified,
+                cachedBytes = 4_096L,
+                contentLength = 8_192L,
+                updatedAt = 20L,
+            )
+        }
+
+        val catalog = MediaCacheRepository(
+            dao = dao,
+            now = { 123L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            byteCacheStatusStore = statusStore,
+        ).listOnlineCacheCatalog()
+
+        assertEquals(1, catalog.size)
+        val song = catalog.single()
+        assertEquals("Song", song.title)
+        assertEquals("Singer", song.artist)
+        assertEquals(4_219L, song.totalBytes)
+        assertEquals(20L, song.updatedAt)
+        assertEquals(2, song.qualities.size)
+
+        val standard = song.qualities[0]
+        assertEquals(PlayQuality.STANDARD, standard.quality)
+        assertEquals(OnlineCacheQualityStatus.Reusable, standard.status)
+        assertEquals(4_096L, standard.cachedBytes)
+        assertEquals(8_192L, standard.contentLength)
+        assertEquals(20L, standard.updatedAt)
+
+        val high = song.qualities[1]
+        assertEquals(PlayQuality.HIGH, high.quality)
+        assertEquals(OnlineCacheQualityStatus.SourceOnly, high.status)
+        assertEquals(0L, high.cachedBytes)
+        assertNull(high.contentLength)
+        assertEquals(10L, high.updatedAt)
+    }
+
+    @Test
+    fun `listOnlineCacheCatalog falls back to unknown title for malformed json`() = runTest {
+        val dao: MediaCacheDao = mockk {
+            coEvery { listCatalogRows() } returns listOf(
+                catalogRow(
+                    sourcesJson = "{bad-json",
+                    updatedAt = 5L,
+                    sourceMetadataBytes = 9L,
+                ),
+            )
+        }
+
+        val catalog = MediaCacheRepository(
+            dao = dao,
+            now = { 123L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            byteCacheStatusStore = RecordingByteCacheStatusStore(),
+        ).listOnlineCacheCatalog()
+
+        assertEquals(1, catalog.size)
+        val song = catalog.single()
+        assertEquals("未知歌曲", song.title)
+        assertEquals("未知歌手", song.artist)
+        assertEquals(9L, song.totalBytes)
+        assertEquals(1, song.qualities.size)
+
+        val quality = song.qualities.single()
+        assertNull(quality.quality)
+        assertEquals(OnlineCacheQualityStatus.Invalid, quality.status)
+        assertEquals(0L, quality.cachedBytes)
+        assertNull(quality.contentLength)
+        assertEquals(5L, quality.updatedAt)
+        assertNull(quality.invalidReason)
+    }
+
+    @Test
+    fun `listOnlineCacheCatalog keeps stale invalid reason typed`() = runTest {
+        val dao: MediaCacheDao = mockk {
+            coEvery { listCatalogRows() } returns listOf(
+                catalogRow(
+                    sourcesJson = """{"HIGH":{"url":"https://audio.test/high.mp3"}}""",
+                    updatedAt = 10L,
+                    sourceMetadataBytes = 55L,
+                    title = "Song",
+                    artist = "Singer",
+                ),
+            )
+        }
+        val statusStore = RecordingByteCacheStatusStore().apply {
+            statuses += byteCacheStatus(
+                quality = PlayQuality.HIGH,
+                validity = ByteCacheValidity.StaleOrInvalid,
+                cachedBytes = 0L,
+                contentLength = null,
+                updatedAt = 20L,
+                invalidReason = ByteCacheInvalidReason.BadByteCache,
+            )
+        }
+
+        val quality = MediaCacheRepository(
+            dao = dao,
+            now = { 123L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            byteCacheStatusStore = statusStore,
+        ).listOnlineCacheCatalog().single().qualities.single()
+
+        assertEquals(OnlineCacheQualityStatus.Invalid, quality.status)
+        assertEquals(ByteCacheInvalidReason.BadByteCache, quality.invalidReason)
+    }
+
+    @Test
+    fun `listOnlineCacheCatalog trims display fallback fields`() = runTest {
+        val dao: MediaCacheDao = mockk {
+            coEvery { listCatalogRows() } returns listOf(
+                catalogRow(
+                    sourcesJson = """{"STANDARD":{"url":"https://audio.test/standard.mp3"}}""",
+                    updatedAt = 10L,
+                    sourceMetadataBytes = 60L,
+                    title = "   ",
+                    artist = "  Cache Artist  ",
+                    libraryTitle = "  Library Song  ",
+                    listenTitle = "  Listen Song  ",
+                ),
+            )
+        }
+
+        val song = MediaCacheRepository(
+            dao = dao,
+            now = { 123L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            byteCacheStatusStore = RecordingByteCacheStatusStore(),
+        ).listOnlineCacheCatalog().single()
+
+        assertEquals("Library Song", song.title)
+        assertEquals("Cache Artist", song.artist)
     }
 
     @Test
@@ -199,6 +387,64 @@ class MediaCacheRepositoryTest {
     }
 
     @Test
+    fun `deleteEntry clears status-only quality when source row lacks quality`() = runTest {
+        val json = """{"STANDARD":{"url":"http://a"}}"""
+        val dao: MediaCacheDao = mockk {
+            coEvery { get("kg", "1") } returns MediaCacheEntity("kg", "1", json, 100L)
+        }
+        val statusStore = RecordingByteCacheStatusStore()
+        val evictCalls = mutableListOf<Triple<String, String, PlayQuality?>>()
+        val repo = MediaCacheRepository(
+            dao = dao,
+            now = { 1L },
+            limitProvider = { MediaCacheRepository.DEFAULT_MAX_CACHE_SIZE_BYTES },
+            onSimpleCacheEvict = { p, id, q -> evictCalls.add(Triple(p, id, q)) },
+            byteCacheStatusStore = statusStore,
+        )
+
+        repo.deleteEntry("kg", "1", PlayQuality.HIGH)
+
+        assertEquals(listOf(Triple("kg", "1", PlayQuality.HIGH)), evictCalls)
+        assertEquals(listOf(ByteCacheKey("kg", "1", PlayQuality.HIGH)), statusStore.deletedKeys)
+        coVerify(exactly = 0) { dao.upsert(any()) }
+        coVerify(exactly = 0) { dao.delete(any(), any()) }
+    }
+
+    @Test
+    fun `deleteEntry preserves display metadata when remaining qualities are reupserted`() = runTest {
+        val json = """{"STANDARD":{"url":"http://a"},"HIGH":{"url":"http://h"}}"""
+        val capturedEntity = slot<MediaCacheEntity>()
+        val dao: MediaCacheDao = mockk {
+            coEvery { get("kg", "1") } returns MediaCacheEntity(
+                platform = "kg",
+                id = "1",
+                sourcesJson = json,
+                updatedAt = 100L,
+                title = "Title",
+                artist = "Artist",
+                album = "Album",
+                artwork = "https://img.test/a.jpg",
+                durationMs = 180_000L,
+            )
+            coEvery { upsert(capture(capturedEntity)) } returns Unit
+        }
+
+        MediaCacheRepository(dao) { 200L }.deleteEntry("kg", "1", PlayQuality.HIGH)
+
+        val saved = capturedEntity.captured
+        assertEquals("Title", saved.title)
+        assertEquals("Artist", saved.artist)
+        assertEquals("Album", saved.album)
+        assertEquals("https://img.test/a.jpg", saved.artwork)
+        assertEquals(180_000L, saved.durationMs)
+        assertEquals(200L, saved.updatedAt)
+
+        val parsed = org.json.JSONObject(saved.sourcesJson)
+        assertTrue(parsed.has("STANDARD"))
+        assertFalse(parsed.has("HIGH"))
+    }
+
+    @Test
     fun `deleteItem triggers onSimpleCacheEvict with null quality`() = runTest {
         val dao: MediaCacheDao = mockk {
             coEvery { delete("kg", "1") } returns Unit
@@ -317,12 +563,17 @@ class MediaCacheRepositoryTest {
     }
 
     private class RecordingByteCacheStatusStore : ByteCacheStatusStore {
+        val statuses = mutableListOf<ByteCacheStatus>()
         val deletedKeys = mutableListOf<ByteCacheKey>()
         val deletedSongs = mutableListOf<Pair<String, String>>()
         val deletedPlatforms = mutableListOf<String>()
         var deleteAllCount = 0
 
         override suspend fun get(key: ByteCacheKey): ByteCacheStatus? = null
+        override suspend fun listAll(): List<ByteCacheStatus> = statuses
+        override suspend fun listBySong(platform: String, musicId: String): List<ByteCacheStatus> =
+            statuses.filter { it.key.platform == platform && it.key.musicId == musicId }
+
         override suspend fun upsert(status: ByteCacheStatus) = Unit
         override suspend fun markInvalid(
             key: ByteCacheKey,
@@ -346,4 +597,67 @@ class MediaCacheRepositoryTest {
             deleteAllCount += 1
         }
     }
+
+    private fun catalogRow(
+        sourcesJson: String,
+        updatedAt: Long,
+        sourceMetadataBytes: Long,
+        platform: String = "kg",
+        itemId: String = "1",
+        title: String? = null,
+        artist: String? = null,
+        album: String? = null,
+        artwork: String? = null,
+        durationMs: Long? = null,
+        libraryTitle: String? = null,
+        libraryArtist: String? = null,
+        libraryAlbum: String? = null,
+        libraryArtwork: String? = null,
+        libraryDurationMs: Long? = null,
+        listenTitle: String? = null,
+        listenArtist: String? = null,
+        listenAlbum: String? = null,
+        listenArtwork: String? = null,
+        listenDurationMs: Long? = null,
+    ): MediaCacheCatalogRow = MediaCacheCatalogRow(
+        platform = platform,
+        itemId = itemId,
+        sourcesJson = sourcesJson,
+        updatedAt = updatedAt,
+        sourceMetadataBytes = sourceMetadataBytes,
+        title = title,
+        artist = artist,
+        album = album,
+        artwork = artwork,
+        durationMs = durationMs,
+        libraryTitle = libraryTitle,
+        libraryArtist = libraryArtist,
+        libraryAlbum = libraryAlbum,
+        libraryArtwork = libraryArtwork,
+        libraryDurationMs = libraryDurationMs,
+        listenTitle = listenTitle,
+        listenArtist = listenArtist,
+        listenAlbum = listenAlbum,
+        listenArtwork = listenArtwork,
+        listenDurationMs = listenDurationMs,
+    )
+
+    private fun byteCacheStatus(
+        quality: PlayQuality,
+        validity: ByteCacheValidity,
+        cachedBytes: Long,
+        contentLength: Long?,
+        updatedAt: Long,
+        invalidReason: ByteCacheInvalidReason? = null,
+    ): ByteCacheStatus = ByteCacheStatus(
+        key = ByteCacheKey(platform = "kg", musicId = "1", quality = quality),
+        validity = validity,
+        cachedBytes = cachedBytes,
+        contentLength = contentLength,
+        validationMethod = ByteCacheValidationMethod.PlaybackCompleted,
+        sourceFingerprint = "fingerprint",
+        invalidReason = invalidReason,
+        verifiedAt = if (validity == ByteCacheValidity.PlayableVerified) updatedAt else null,
+        updatedAt = updatedAt,
+    )
 }

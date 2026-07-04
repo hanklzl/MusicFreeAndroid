@@ -70,6 +70,34 @@ class RoomByteCacheStatusStoreTest {
     }
 
     @Test
+    fun `listAll returns mapped statuses ordered by updatedAt descending`() = runTest {
+        val older = status(key(platform = "qq", musicId = "song-1"), updatedAt = 100L)
+        val newest = status(key(platform = "kuwo", musicId = "song-2"), updatedAt = 300L)
+        val middle = status(key(platform = "qq", musicId = "song-3"), updatedAt = 200L)
+
+        store.upsert(older)
+        store.upsert(newest)
+        store.upsert(middle)
+
+        assertEquals(listOf(newest, middle, older), store.listAll())
+    }
+
+    @Test
+    fun `listBySong filters song statuses ordered by updatedAt descending`() = runTest {
+        val targetOlder = status(key(PlayQuality.STANDARD, platform = "qq", musicId = "song-1"), updatedAt = 100L)
+        val otherSong = status(key(PlayQuality.HIGH, platform = "qq", musicId = "song-2"), updatedAt = 400L)
+        val targetNewest = status(key(PlayQuality.SUPER, platform = "qq", musicId = "song-1"), updatedAt = 300L)
+        val otherPlatform = status(key(PlayQuality.LOW, platform = "kuwo", musicId = "song-1"), updatedAt = 200L)
+
+        store.upsert(targetOlder)
+        store.upsert(otherSong)
+        store.upsert(targetNewest)
+        store.upsert(otherPlatform)
+
+        assertEquals(listOf(targetNewest, targetOlder), store.listBySong("qq", "song-1"))
+    }
+
+    @Test
     fun `deleteBySong removes all qualities`() = runTest {
         store.upsert(status(key(PlayQuality.STANDARD)))
         store.upsert(status(key(PlayQuality.HIGH)))
@@ -102,7 +130,10 @@ class RoomByteCacheStatusStoreTest {
         assertNull(store.get(key(platform = "kuwo", musicId = "song-2")))
     }
 
-    private fun status(key: ByteCacheKey) = ByteCacheStatus(
+    private fun status(
+        key: ByteCacheKey,
+        updatedAt: Long = 1L,
+    ) = ByteCacheStatus(
         key = key,
         validity = ByteCacheValidity.Partial,
         cachedBytes = 100L,
@@ -111,7 +142,7 @@ class RoomByteCacheStatusStoreTest {
         sourceFingerprint = null,
         invalidReason = null,
         verifiedAt = null,
-        updatedAt = 1L,
+        updatedAt = updatedAt,
     )
 
     private fun key(

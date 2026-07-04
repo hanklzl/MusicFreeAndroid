@@ -317,6 +317,8 @@ class BasicSettingsContentTest {
         scrollToTag(FidelityAnchors.Settings.BasicSectionCache)
         composeRule.onNodeWithTag(FidelityAnchors.Settings.BasicCacheManagement).assertIsDisplayed()
         composeRule.onNodeWithText("歌曲缓存管理").assertIsDisplayed()
+        composeRule.onNodeWithText("查看列表").assertIsDisplayed()
+        composeRule.onNodeWithText("按歌曲清理").assertDoesNotExist()
         composeRule.onNodeWithTag(FidelityAnchors.Settings.BasicCacheManagement).performClick()
 
         composeRule.runOnIdle {

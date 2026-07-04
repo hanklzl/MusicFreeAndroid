@@ -36,6 +36,7 @@ import com.hank.musicfree.data.db.migration.MIGRATION_11_12
 import com.hank.musicfree.data.db.migration.MIGRATION_12_13
 import com.hank.musicfree.data.db.migration.MIGRATION_13_14
 import com.hank.musicfree.data.db.migration.MIGRATION_14_15
+import com.hank.musicfree.data.db.migration.MIGRATION_15_16
 import com.hank.musicfree.data.db.migration.MIGRATION_9_10
 import com.hank.musicfree.data.datastore.AppPlaybackRuntimeSettings
 import com.hank.musicfree.data.local.Mp3MetadataReaderImpl
@@ -71,6 +72,7 @@ object DataModule {
                 MIGRATION_12_13,
                 MIGRATION_13_14,
                 MIGRATION_14_15,
+                MIGRATION_15_16,
             )
             .addCallback(SeedFavoriteCallback)
             .build()
@@ -173,7 +175,7 @@ object DataModule {
         databaseCheckpoint = appDatabase::checkpointWal,
         layout = layout,
         appMetadata = appMetadata,
-        databaseVersion = 15,
+        databaseVersion = 16,
         json = json,
     )
 

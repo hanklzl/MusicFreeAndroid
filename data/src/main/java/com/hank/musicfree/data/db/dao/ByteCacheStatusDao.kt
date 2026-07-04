@@ -16,6 +16,18 @@ interface ByteCacheStatusDao {
     )
     suspend fun get(platform: String, musicId: String, quality: String): ByteCacheStatusEntity?
 
+    @Query("SELECT * FROM byte_cache_status ORDER BY updated_at DESC")
+    suspend fun listAll(): List<ByteCacheStatusEntity>
+
+    @Query(
+        """
+        SELECT * FROM byte_cache_status
+        WHERE platform = :platform AND music_id = :musicId
+        ORDER BY updated_at DESC
+        """,
+    )
+    suspend fun listBySong(platform: String, musicId: String): List<ByteCacheStatusEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ByteCacheStatusEntity)
 

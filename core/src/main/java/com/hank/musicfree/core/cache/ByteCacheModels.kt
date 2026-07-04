@@ -68,6 +68,10 @@ enum class ByteCacheInvalidReason(val wire: String) {
 interface ByteCacheStatusStore {
     suspend fun get(key: ByteCacheKey): ByteCacheStatus?
 
+    suspend fun listAll(): List<ByteCacheStatus> = emptyList()
+
+    suspend fun listBySong(platform: String, musicId: String): List<ByteCacheStatus> = emptyList()
+
     suspend fun upsert(status: ByteCacheStatus)
 
     suspend fun markInvalid(

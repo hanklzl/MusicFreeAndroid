@@ -400,7 +400,7 @@ fun BasicSettingsContent(
                     title = "歌曲缓存管理",
                     enabled = true,
                     testTag = FidelityAnchors.Settings.BasicCacheManagement,
-                    trailingText = "按歌曲清理",
+                    trailingText = "查看列表",
                     onClick = {
                         logUiClick("settings.row.cache_management", "settings", "歌曲缓存管理")
                         onNavigateToCacheManagement()

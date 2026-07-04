@@ -2,6 +2,7 @@ package com.hank.musicfree.feature.settings
 
 import android.content.Context
 import coil3.imageLoader
+import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.telemetry.PlayCacheTelemetry
 import com.hank.musicfree.data.repository.LyricRepository
 import com.hank.musicfree.data.repository.MediaCacheRepository
@@ -20,6 +21,15 @@ data class SongCacheClearResult(
     val platform: String,
     val itemId: String,
     val localAssociationCleared: Boolean,
+    val durationMs: Long,
+)
+
+data class OnlineCacheClearResult(
+    val scope: String,
+    val platform: String?,
+    val itemId: String?,
+    val quality: PlayQuality?,
+    val freedBytes: Long,
     val durationMs: Long,
 )
 
@@ -62,6 +72,128 @@ class SettingsCacheCleaner @Inject constructor(
 
     suspend fun clearLyricCache() {
         lyricRepository.clearAll()
+    }
+
+    suspend fun clearOnlineSongCache(
+        platform: String,
+        itemId: String,
+        quality: PlayQuality?,
+    ): OnlineCacheClearResult {
+        val sanitizedPlatform = platform.trim()
+        val sanitizedItemId = itemId.trim()
+        val scope = if (quality == null) "song" else "quality"
+        val startedAt = System.nanoTime()
+        return try {
+            require(sanitizedPlatform.isNotEmpty()) { "platform is required" }
+            require(sanitizedItemId.isNotEmpty()) { "itemId is required" }
+
+            withContext(Dispatchers.IO) {
+                if (quality == null) {
+                    mediaCacheRepository.deleteItem(sanitizedPlatform, sanitizedItemId)
+                } else {
+                    mediaCacheRepository.deleteEntry(sanitizedPlatform, sanitizedItemId, quality)
+                }
+            }
+            val durationMs = elapsedMs(startedAt)
+            val result = OnlineCacheClearResult(
+                scope = scope,
+                platform = sanitizedPlatform,
+                itemId = sanitizedItemId,
+                quality = quality,
+                freedBytes = 0L,
+                durationMs = durationMs,
+            )
+            logOnlineCacheClear(result, LogFields.Result.SUCCESS)
+            result
+        } catch (error: CancellationException) {
+            logOnlineCacheClear(
+                result = OnlineCacheClearResult(
+                    scope = scope,
+                    platform = sanitizedPlatform,
+                    itemId = sanitizedItemId,
+                    quality = quality,
+                    freedBytes = 0L,
+                    durationMs = elapsedMs(startedAt),
+                ),
+                status = LogFields.Result.CANCELLED,
+                reason = LogFields.Reason.CANCELLED,
+            )
+            throw error
+        } catch (error: Throwable) {
+            val isInvalidInput = error is IllegalArgumentException &&
+                (sanitizedPlatform.isEmpty() || sanitizedItemId.isEmpty())
+            logOnlineCacheClear(
+                result = OnlineCacheClearResult(
+                    scope = scope,
+                    platform = sanitizedPlatform,
+                    itemId = sanitizedItemId,
+                    quality = quality,
+                    freedBytes = 0L,
+                    durationMs = elapsedMs(startedAt),
+                ),
+                status = LogFields.Result.FAILURE,
+                reason = if (isInvalidInput) "invalid_input" else "exception",
+                throwable = error,
+            )
+            throw error
+        }
+    }
+
+    suspend fun clearAllOnlinePlaybackCache(): OnlineCacheClearResult {
+        val startedAt = System.nanoTime()
+        return try {
+            val freedBytes = withContext(Dispatchers.IO) {
+                val audioBytesBefore = simpleCacheHolder.usedBytes()
+                val metadataBytesBefore = mediaCacheRepository.estimatedBytes()
+                simpleCacheHolder.clearCache()
+                mediaCacheRepository.clearAll()
+                val audioBytesAfter = simpleCacheHolder.usedBytes()
+                val metadataBytesAfter = mediaCacheRepository.estimatedBytes()
+                val audioFreedBytes = (audioBytesBefore - audioBytesAfter).coerceAtLeast(0L)
+                val metadataFreedBytes = (metadataBytesBefore - metadataBytesAfter).coerceAtLeast(0L)
+                playCacheTelemetry.cacheEvict(scope = "manual", count = 1, freedBytes = audioFreedBytes)
+                audioFreedBytes + metadataFreedBytes
+            }
+            val result = OnlineCacheClearResult(
+                scope = "all",
+                platform = null,
+                itemId = null,
+                quality = null,
+                freedBytes = freedBytes,
+                durationMs = elapsedMs(startedAt),
+            )
+            logOnlineCacheClear(result, LogFields.Result.SUCCESS)
+            result
+        } catch (error: CancellationException) {
+            logOnlineCacheClear(
+                result = OnlineCacheClearResult(
+                    scope = "all",
+                    platform = null,
+                    itemId = null,
+                    quality = null,
+                    freedBytes = 0L,
+                    durationMs = elapsedMs(startedAt),
+                ),
+                status = LogFields.Result.CANCELLED,
+                reason = LogFields.Reason.CANCELLED,
+            )
+            throw error
+        } catch (error: Throwable) {
+            logOnlineCacheClear(
+                result = OnlineCacheClearResult(
+                    scope = "all",
+                    platform = null,
+                    itemId = null,
+                    quality = null,
+                    freedBytes = 0L,
+                    durationMs = elapsedMs(startedAt),
+                ),
+                status = LogFields.Result.FAILURE,
+                reason = "exception",
+                throwable = error,
+            )
+            throw error
+        }
     }
 
     suspend fun clearSongPlaybackCache(platform: String, itemId: String): SongCacheClearResult {
@@ -155,6 +287,38 @@ class SettingsCacheCleaner @Inject constructor(
                 ),
             )
             throw error
+        }
+    }
+
+    private fun logOnlineCacheClear(
+        result: OnlineCacheClearResult,
+        status: String,
+        reason: String? = null,
+        throwable: Throwable? = null,
+    ) {
+        val fields = mapOf(
+            "scope" to result.scope,
+            "platform" to result.platform,
+            "itemId" to result.itemId,
+            "quality" to result.quality?.name?.lowercase(),
+            "freedBytes" to result.freedBytes,
+            "durationMs" to result.durationMs,
+            "result" to status,
+            "reason" to reason,
+        )
+        if (throwable == null) {
+            MfLog.detail(
+                category = LogCategory.SETTINGS,
+                event = "settings_online_cache_clear",
+                fields = fields,
+            )
+        } else {
+            MfLog.error(
+                category = LogCategory.SETTINGS,
+                event = "settings_online_cache_clear",
+                throwable = throwable,
+                fields = fields,
+            )
         }
     }
 

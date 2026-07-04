@@ -51,7 +51,7 @@ import com.hank.musicfree.data.db.entity.TrafficDailyEntity
         RuntimeSnapshotEntity::class,
         ByteCacheStatusEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

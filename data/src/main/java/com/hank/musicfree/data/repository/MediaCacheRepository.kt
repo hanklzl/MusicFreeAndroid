@@ -1,8 +1,11 @@
 package com.hank.musicfree.data.repository
 
 import androidx.collection.LruCache
+import com.hank.musicfree.core.cache.ByteCacheInvalidReason
 import com.hank.musicfree.core.cache.ByteCacheKey
+import com.hank.musicfree.core.cache.ByteCacheStatus
 import com.hank.musicfree.core.cache.ByteCacheStatusStore
+import com.hank.musicfree.core.cache.ByteCacheValidity
 import com.hank.musicfree.core.cache.EmptyByteCacheStatusStore
 import com.hank.musicfree.core.cache.SimpleCacheEvictor
 import com.hank.musicfree.core.model.MediaSourceResult
@@ -10,6 +13,7 @@ import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.data.datastore.AppPreferences
 import com.hank.musicfree.data.db.dao.MediaCacheDao
+import com.hank.musicfree.data.db.dao.MediaCacheCatalogRow
 import com.hank.musicfree.data.db.entity.MediaCacheEntity
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
@@ -27,6 +31,37 @@ data class CachedSource(
     val headers: Map<String, String>?,
     val userAgent: String?,
 )
+
+data class OnlineCacheSongRow(
+    val platform: String,
+    val itemId: String,
+    val title: String,
+    val artist: String,
+    val album: String?,
+    val artwork: String?,
+    val durationMs: Long?,
+    val updatedAt: Long,
+    val sourceMetadataBytes: Long,
+    val totalBytes: Long,
+    val qualities: List<OnlineCacheQualityRow>,
+)
+
+data class OnlineCacheQualityRow(
+    val quality: PlayQuality?,
+    val status: OnlineCacheQualityStatus,
+    val cachedBytes: Long,
+    val contentLength: Long?,
+    val updatedAt: Long,
+    val invalidReason: ByteCacheInvalidReason?,
+)
+
+enum class OnlineCacheQualityStatus {
+    Reusable,
+    Complete,
+    Partial,
+    SourceOnly,
+    Invalid,
+}
 
 @Singleton
 class MediaCacheRepository private constructor(
@@ -161,11 +196,31 @@ class MediaCacheRepository private constructor(
                 source.userAgent?.let { put("userAgent", it) }
             }
             json.put(quality.name, q)
-            dao.upsert(MediaCacheEntity(item.platform, item.id, json.toString(), now()))
+            dao.upsert(
+                MediaCacheEntity(
+                    platform = item.platform,
+                    id = item.id,
+                    sourcesJson = json.toString(),
+                    updatedAt = now(),
+                    title = item.title,
+                    artist = item.artist,
+                    album = item.album,
+                    artwork = item.artwork,
+                    durationMs = item.duration,
+                ),
+            )
             // Invalidate memory so the next read re-seeds from authoritative DB state
             memory.remove(memoryKey(item.platform, item.id))
             pruneToLimit(limitProvider())
             if (dao.count() >= LIMIT) pruneOldest()
+        }
+    }
+
+    suspend fun listOnlineCacheCatalog(): List<OnlineCacheSongRow> = mutex.withLock {
+        val statusesBySong = byteCacheStatusStore.listAll()
+            .groupBy { it.key.platform to it.key.musicId }
+        dao.listCatalogRows().map { row ->
+            row.toOnlineCacheSongRow(statusesBySong[row.platform to row.itemId].orEmpty())
         }
     }
 
@@ -245,9 +300,14 @@ class MediaCacheRepository private constructor(
             )
             return@withLock
         }
-        val obj = parseSourcesJson(existing.sourcesJson)
+        val memoryCacheKey = memoryKey(platform, id)
+        val obj = parseSourcesJson(existing.sourcesJson, quality = quality)
         if (obj == null || !obj.has(quality.name)) {
-            if (obj != null) memory.put(memoryKey(platform, id), obj)
+            if (obj == null) {
+                memory.remove(memoryCacheKey)
+            } else {
+                memory.put(memoryCacheKey, obj)
+            }
             MfLog.detail(
                 category = LogCategory.DATA,
                 event = "media_cache_delete_entry",
@@ -255,20 +315,24 @@ class MediaCacheRepository private constructor(
                     "platform" to platform,
                     "itemId" to id,
                     "quality" to quality.name.lowercase(),
-                    "result" to "noop",
+                    "result" to LogFields.Result.SUCCESS,
+                    "reason" to if (obj == null) "invalid_source_json" else "source_missing",
                     "rowDeleted" to false,
+                    "remainingQualities" to obj?.length(),
                 ),
             )
+            onSimpleCacheEvict(platform, id, quality)
+            byteCacheStatusStore.delete(ByteCacheKey(platform = platform, musicId = id, quality = quality))
             return@withLock
         }
         obj.remove(quality.name)
         val rowDeleted = obj.length() == 0
         if (rowDeleted) {
             dao.delete(platform, id)
-            memory.remove(memoryKey(platform, id))
+            memory.remove(memoryCacheKey)
         } else {
-            dao.upsert(MediaCacheEntity(platform, id, obj.toString(), now()))
-            memory.put(memoryKey(platform, id), obj)
+            dao.upsert(existing.copy(sourcesJson = obj.toString(), updatedAt = now()))
+            memory.put(memoryCacheKey, obj)
         }
         MfLog.detail(
             category = LogCategory.DATA,
@@ -498,12 +562,92 @@ class MediaCacheRepository private constructor(
         "platform" to platform,
     )
 
+    private fun MediaCacheCatalogRow.toOnlineCacheSongRow(
+        statuses: List<ByteCacheStatus>,
+    ): OnlineCacheSongRow {
+        val qualityRows = toOnlineCacheQualityRows(statuses)
+        val latestQualityUpdate = qualityRows.maxOfOrNull { it.updatedAt } ?: updatedAt
+        val latestUpdatedAt = maxOf(updatedAt, latestQualityUpdate)
+        return OnlineCacheSongRow(
+            platform = platform,
+            itemId = itemId,
+            title = firstNonBlank(title, libraryTitle, listenTitle) ?: UNKNOWN_TITLE,
+            artist = firstNonBlank(artist, libraryArtist, listenArtist) ?: UNKNOWN_ARTIST,
+            album = firstNonBlank(album, libraryAlbum, listenAlbum),
+            artwork = firstNonBlank(artwork, libraryArtwork, listenArtwork),
+            durationMs = durationMs ?: libraryDurationMs ?: listenDurationMs,
+            updatedAt = latestUpdatedAt,
+            sourceMetadataBytes = sourceMetadataBytes,
+            totalBytes = sourceMetadataBytes + qualityRows.sumOf { it.cachedBytes },
+            qualities = qualityRows,
+        )
+    }
+
+    private fun MediaCacheCatalogRow.toOnlineCacheQualityRows(
+        statuses: List<ByteCacheStatus>,
+    ): List<OnlineCacheQualityRow> {
+        val sourceQualities = parseCatalogSourceQualities(sourcesJson) ?: return listOf(
+            OnlineCacheQualityRow(
+                quality = null,
+                status = OnlineCacheQualityStatus.Invalid,
+                cachedBytes = 0L,
+                contentLength = null,
+                updatedAt = updatedAt,
+                invalidReason = null,
+            ),
+        )
+        val statusesByQuality = statuses.associateBy { it.key.quality }
+        return (sourceQualities + statusesByQuality.keys)
+            .distinct()
+            .sortedBy { it.ordinal }
+            .map { quality ->
+                statusesByQuality[quality]?.toOnlineCacheQualityRow()
+                    ?: OnlineCacheQualityRow(
+                        quality = quality,
+                        status = OnlineCacheQualityStatus.SourceOnly,
+                        cachedBytes = 0L,
+                        contentLength = null,
+                        updatedAt = updatedAt,
+                        invalidReason = null,
+                    )
+            }
+    }
+
+    private fun parseCatalogSourceQualities(sourcesJson: String): List<PlayQuality>? = runCatching {
+        val obj = JSONObject(sourcesJson)
+        obj.keys().asSequence()
+            .mapNotNull { qualityName -> PlayQuality.entries.firstOrNull { it.name == qualityName } }
+            .toList()
+    }.getOrNull()
+
+    private fun ByteCacheStatus.toOnlineCacheQualityRow(): OnlineCacheQualityRow = OnlineCacheQualityRow(
+        quality = key.quality,
+        status = when (validity) {
+            ByteCacheValidity.PlayableVerified -> OnlineCacheQualityStatus.Reusable
+            ByteCacheValidity.Complete -> OnlineCacheQualityStatus.Complete
+            ByteCacheValidity.Partial,
+            ByteCacheValidity.None -> OnlineCacheQualityStatus.Partial
+            ByteCacheValidity.StaleOrInvalid -> OnlineCacheQualityStatus.Invalid
+        },
+        cachedBytes = cachedBytes,
+        contentLength = contentLength,
+        updatedAt = updatedAt,
+        invalidReason = invalidReason,
+    )
+
+    private fun firstNonBlank(vararg values: String?): String? =
+        values.firstNotNullOfOrNull { value ->
+            value?.trim()?.takeIf { it.isNotEmpty() }
+        }
+
     private fun elapsedMs(startedAt: Long): Long = (System.nanoTime() - startedAt) / 1_000_000
 
     companion object {
         const val LIMIT = 800
         const val MEMORY_LIMIT = 200
         private const val EVICTED_SAMPLE = 10
+        private const val UNKNOWN_TITLE = "未知歌曲"
+        private const val UNKNOWN_ARTIST = "未知歌手"
         const val DEFAULT_MAX_CACHE_SIZE_BYTES = 512L * 1024L * 1024L
 
         /**

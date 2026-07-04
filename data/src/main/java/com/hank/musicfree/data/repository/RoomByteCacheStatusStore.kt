@@ -21,6 +21,12 @@ class RoomByteCacheStatusStore @Inject constructor(
     override suspend fun get(key: ByteCacheKey): ByteCacheStatus? =
         dao.get(key.platform, key.musicId, key.quality.name)?.toModel()
 
+    override suspend fun listAll(): List<ByteCacheStatus> =
+        dao.listAll().map { it.toModel() }
+
+    override suspend fun listBySong(platform: String, musicId: String): List<ByteCacheStatus> =
+        dao.listBySong(platform, musicId).map { it.toModel() }
+
     override suspend fun upsert(status: ByteCacheStatus) {
         dao.upsert(status.toEntity())
         logWrite(status)
