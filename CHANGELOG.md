@@ -6,6 +6,29 @@
 
 <!-- next-release -->
 
+## [v1.2.19] - 2026-07-04
+
+### 变更详情
+
+#### 新功能
+- feat(settings): 优化歌曲缓存管理列表 (6ce70e8)
+- feat(playlist): 对齐歌单当前播放定位按钮 (770d4b8)
+
+#### 文档
+- docs(recommendation): 设计听歌偏好推荐歌单 (7e21cfa)
+- docs(changelog): release v1.2.18 [skip ci] (be3e02b)
+
+#### 杂项
+- chore(release): 发布 v1.2.19 (2cce34e)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.19-arm64-v8a.apk` · 7.7MB · sha256 `239d2010954a`
+- x86_64: `MusicFreeAndroid-v1.2.19-x86_64.apk` · 7.7MB · sha256 `4586c1236141`
+- mapping: `mapping-v1.2.19.zip` · sha256 `93c13942638a` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.18] - 2026-06-23
 
 ### 变更详情
