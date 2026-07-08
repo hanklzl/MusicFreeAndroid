@@ -25,9 +25,9 @@ cd MusicFreeAndroid
 ### 环境要求
 
 - JDK 21
-- Android SDK Platform 36
-- Gradle Wrapper 9.4.1（自动下载，无需手装）
-- minSdk 29 / targetSdk 36
+- Android SDK Platform 37
+- Gradle Wrapper 9.6.1（自动下载，无需手装）
+- minSdk 29 / targetSdk 37
 
 ## 项目架构概览
 

@@ -25,14 +25,15 @@ val releaseSigningEnvironmentVariables = listOf(
 )
 val releaseLoganEnvironmentVariables = listOf("LOGAN_AES_KEY", "LOGAN_AES_IV")
 
-val releaseSigningRequested = gradle.startParameter.taskNames.any { taskName ->
-    val normalizedTaskName = taskName.substringAfterLast(':')
-    normalizedTaskName.equals("assembleRelease", ignoreCase = true) ||
-        normalizedTaskName.equals("bundleRelease", ignoreCase = true) ||
-        normalizedTaskName.equals("packageRelease", ignoreCase = true) ||
-        normalizedTaskName.equals("build", ignoreCase = true) ||
-        normalizedTaskName.endsWith("Release", ignoreCase = true)
-}
+val releaseSigningRequested =
+    !gradle.startParameter.isDryRun && gradle.startParameter.taskNames.any { taskName ->
+        val normalizedTaskName = taskName.substringAfterLast(':')
+        normalizedTaskName.equals("assembleRelease", ignoreCase = true) ||
+            normalizedTaskName.equals("bundleRelease", ignoreCase = true) ||
+            normalizedTaskName.equals("packageRelease", ignoreCase = true) ||
+            normalizedTaskName.equals("build", ignoreCase = true) ||
+            normalizedTaskName.endsWith("Release", ignoreCase = true)
+    }
 
 fun requiredReleaseSigningEnv(name: String): String =
     providers.environmentVariable(name).orNull
@@ -122,6 +123,17 @@ android {
         }
     }
 
+    packaging {
+        jniLibs {
+            keepDebugSymbols += setOf(
+                "**/libandroidx.graphics.path.so",
+                "**/libdatastore_shared_counter.so",
+                "**/liblogan.so",
+                "**/libquickjs.so",
+            )
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -142,18 +154,18 @@ kotlin {
 
 dependencies {
     // Modules
-    implementation(project(":core"))
-    implementation(project(":data"))
-    implementation(project(":player"))
-    implementation(project(":plugin"))
-    implementation(project(":feature:home"))
-    implementation(project(":feature:player-ui"))
-    implementation(project(":feature:search"))
-    implementation(project(":feature:settings"))
-    implementation(project(":feature:listen-stats"))
-    implementation(project(":logging"))
-    implementation(project(":downloader"))
-    implementation(project(":updater"))
+    implementation(dependencies.project(":core"))
+    implementation(dependencies.project(":data"))
+    implementation(dependencies.project(":player"))
+    implementation(dependencies.project(":plugin"))
+    implementation(dependencies.project(":feature:home"))
+    implementation(dependencies.project(":feature:player-ui"))
+    implementation(dependencies.project(":feature:search"))
+    implementation(dependencies.project(":feature:settings"))
+    implementation(dependencies.project(":feature:listen-stats"))
+    implementation(dependencies.project(":logging"))
+    implementation(dependencies.project(":downloader"))
+    implementation(dependencies.project(":updater"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)

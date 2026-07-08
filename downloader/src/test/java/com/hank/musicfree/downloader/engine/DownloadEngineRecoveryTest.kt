@@ -13,6 +13,7 @@ import com.hank.musicfree.downloader.io.NetworkState
 import com.hank.musicfree.downloader.model.DownloadStatus
 import com.hank.musicfree.downloader.prefs.DownloadConfig
 import kotlin.io.path.createTempDirectory
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -30,6 +31,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
+@OptIn(ExperimentalCoroutinesApi::class)
 class DownloadEngineRecoveryTest {
 
     private lateinit var db: AppDatabase

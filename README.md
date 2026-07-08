@@ -4,8 +4,8 @@
 [![Release](https://img.shields.io/github/v/release/hanklzl/MusicFreeAndroid)](https://github.com/hanklzl/MusicFreeAndroid/releases/latest)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 ![MinSDK](https://img.shields.io/badge/minSdk-29-brightgreen)
-![Kotlin](https://img.shields.io/badge/kotlin-2.3-purple)
-![Compose](https://img.shields.io/badge/compose-2026.04-blue)
+![Kotlin](https://img.shields.io/badge/kotlin-2.4-purple)
+![Compose](https://img.shields.io/badge/compose-2026.06-blue)
 
 > MusicFree 的 Android 原生重写版。无内置音源，通过用户安装的插件实现搜索、播放、歌单、歌词等能力。
 

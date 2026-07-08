@@ -379,7 +379,8 @@ class SettingsViewModelTest {
 
         viewModel.clearMusicCache()
         advanceUntilIdle()
-        verify(cleaner).clearMusicCache()
+        verify(cleaner).clearAudioFileCache()
+        verify(cleaner).clearMediaUrlMetadataCache()
         assertEquals("音乐缓存已清理", viewModel.basicSettingsUiState.value.cacheActionMessage)
 
         viewModel.clearLyricCache()

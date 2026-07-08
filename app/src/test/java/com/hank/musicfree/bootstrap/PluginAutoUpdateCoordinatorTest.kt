@@ -91,7 +91,7 @@ class PluginAutoUpdateCoordinatorTest {
             on { pluginAutoUpdateLastAtEpochMs } doReturn flowOf(NOW - TWENTY_FIVE_HOURS_MS)
         }
         val pluginManager = mock<PluginManager> {
-            onBlocking { updateAllPlugins() } doReturn PluginOperationResult(
+            on { updateAllPlugins() } doReturn PluginOperationResult(
                 operationType = PluginOperationType.UPDATE_ALL,
                 targetPlugins = listOf("wy"),
                 successCount = 1,

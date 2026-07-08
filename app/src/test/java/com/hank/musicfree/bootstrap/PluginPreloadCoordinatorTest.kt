@@ -37,7 +37,7 @@ class PluginPreloadCoordinatorTest {
         val logger = RecordingLogger()
         MfLog.install(logger)
         val pluginManager = mock<PluginManager> {
-            onBlocking { ensurePluginsLoaded() } doSuspendableAnswer {
+            on { ensurePluginsLoaded() } doSuspendableAnswer {
                 throw RuntimeException("boom")
             }
         }

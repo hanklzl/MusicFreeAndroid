@@ -7,3 +7,9 @@ plugins {
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.ksp) apply false
 }
+
+subprojects {
+    tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+        jvmArgs("-Xshare:off")
+    }
+}

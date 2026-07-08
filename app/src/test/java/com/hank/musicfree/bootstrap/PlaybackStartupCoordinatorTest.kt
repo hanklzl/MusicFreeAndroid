@@ -45,14 +45,14 @@ class PlaybackStartupCoordinatorTest {
             try {
                 val testItem = item("1")
                 val queueRepo = mock<PlayQueueRepository> {
-                    onBlocking { saveQueue(any()) } doAnswer { Unit }
+                    on { saveQueue(any()) } doAnswer { Unit }
                 }
                 val prefs = mock<AppPreferences> {
                     on { currentMusicIndex } doReturn flowOf(0)
                     on { currentMusicPositionMs } doReturn flowOf(0L)
                     on { currentMusicDurationMs } doReturn flowOf(0L)
-                    onBlocking { setCurrentMusicPositionMs(12_345L) } doAnswer { Unit }
-                    onBlocking { setCurrentMusicDurationMs(60_000L) } doAnswer { Unit }
+                    on { setCurrentMusicPositionMs(12_345L) } doAnswer { Unit }
+                    on { setCurrentMusicDurationMs(60_000L) } doAnswer { Unit }
                 }
                 val playerStateFlow = MutableStateFlow(
                     PlayerState.EMPTY.copy(
@@ -94,16 +94,16 @@ class PlaybackStartupCoordinatorTest {
                 val testItem = item("1")
                 val secondItem = item("2")
                 val queueRepo = mock<PlayQueueRepository> {
-                    onBlocking { saveQueue(any()) } doAnswer { Unit }
+                    on { saveQueue(any()) } doAnswer { Unit }
                 }
 
                 val prefs = mock<AppPreferences> {
                     on { currentMusicIndex } doReturn flowOf(0)
                     on { currentMusicPositionMs } doReturn flowOf(0L)
                     on { currentMusicDurationMs } doReturn flowOf(0L)
-                    onBlocking { setCurrentMusicPositionMs(any()) } doAnswer { Unit }
-                    onBlocking { setCurrentMusicDurationMs(any()) } doAnswer { Unit }
-                    onBlocking { setCurrentMusicIndex(any<Int>()) } doAnswer { Unit }
+                    on { setCurrentMusicPositionMs(any()) } doAnswer { Unit }
+                    on { setCurrentMusicDurationMs(any()) } doAnswer { Unit }
+                    on { setCurrentMusicIndex(any<Int>()) } doAnswer { Unit }
                 }
 
                 val queueStateFlow = MutableStateFlow(PlayQueueSnapshot.EMPTY)
@@ -144,15 +144,15 @@ class PlaybackStartupCoordinatorTest {
                 val testItem = item("1")
                 val failure = RuntimeException("index failed")
                 val queueRepo = mock<PlayQueueRepository> {
-                    onBlocking { saveQueue(any()) } doAnswer { Unit }
+                    on { saveQueue(any()) } doAnswer { Unit }
                 }
                 val prefs = mock<AppPreferences> {
                     on { currentMusicIndex } doReturn flowOf(0)
                     on { currentMusicPositionMs } doReturn flowOf(0L)
                     on { currentMusicDurationMs } doReturn flowOf(0L)
-                    onBlocking { setCurrentMusicPositionMs(any()) } doAnswer { Unit }
-                    onBlocking { setCurrentMusicDurationMs(any()) } doAnswer { Unit }
-                    onBlocking { setCurrentMusicIndex(any<Int>()) } doAnswer { throw failure }
+                    on { setCurrentMusicPositionMs(any()) } doAnswer { Unit }
+                    on { setCurrentMusicDurationMs(any()) } doAnswer { Unit }
+                    on { setCurrentMusicIndex(any<Int>()) } doAnswer { throw failure }
                 }
                 val queueStateFlow = MutableStateFlow(PlayQueueSnapshot.EMPTY)
                 val controller = mock<PlayerController> {

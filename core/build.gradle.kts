@@ -37,7 +37,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":logging"))
+    implementation(dependencies.project(":logging"))
 
     implementation(libs.androidx.core.ktx)
     implementation(platform(libs.androidx.compose.bom))

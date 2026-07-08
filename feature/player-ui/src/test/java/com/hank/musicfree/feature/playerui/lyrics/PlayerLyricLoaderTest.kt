@@ -17,6 +17,7 @@ import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.MfLogger
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -42,6 +43,7 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PlayerLyricLoaderTest {
 
     private val lyricRepository: LyricRepository = mock()

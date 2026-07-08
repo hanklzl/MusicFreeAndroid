@@ -46,13 +46,13 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":core"))
-    implementation(project(":player"))
-    implementation(project(":data"))
-    implementation(project(":logging"))
-    implementation(project(":plugin"))
-    implementation(project(":downloader"))
-    implementation(project(":updater"))
+    implementation(dependencies.project(":core"))
+    implementation(dependencies.project(":player"))
+    implementation(dependencies.project(":data"))
+    implementation(dependencies.project(":logging"))
+    implementation(dependencies.project(":plugin"))
+    implementation(dependencies.project(":downloader"))
+    implementation(dependencies.project(":updater"))
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))

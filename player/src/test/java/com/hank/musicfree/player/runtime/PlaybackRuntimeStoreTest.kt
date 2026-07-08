@@ -204,7 +204,7 @@ class PlaybackRuntimeStoreTest {
 
     private class FakePlayQueueRepository(queue: List<MusicItem>) {
         val repository: PlayQueueRepository = mock {
-            onBlocking { getQueue() } doReturn queue
+            on { getQueue() } doReturn queue
         }
     }
 

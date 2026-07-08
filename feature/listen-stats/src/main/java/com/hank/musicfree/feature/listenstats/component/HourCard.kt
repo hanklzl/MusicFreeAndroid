@@ -17,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
@@ -50,15 +51,18 @@ fun HourCard(buckets: List<HourBucket>, modifier: Modifier = Modifier) {
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 (0..23).forEach { h ->
-                    val ratio = (byHour[h]!!.toFloat() / maxSec).coerceIn(0f, 1f)
+                    val seconds = byHour.getValue(h)
+                    val ratio = (seconds.toFloat() / maxSec).coerceIn(0f, 1f)
                     // 外层普通 Box 承担 Row 的 weight，TooltipBox 嵌在内部，
                     // 避免 TooltipBox 直接吃 weight 时不参与 Row 权重布局导致 24 根柱体重叠。
                     Box(Modifier.weight(1f)) {
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                TooltipAnchorPosition.Above,
+                            ),
                             tooltip = {
                                 PlainTooltip {
-                                    Text("${h}:00 · ${formatListenDuration(byHour[h]!!)}")
+                                    Text("${h}:00 · ${formatListenDuration(seconds)}")
                                 }
                             },
                             state = rememberTooltipState(),

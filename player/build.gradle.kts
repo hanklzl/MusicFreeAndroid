@@ -37,9 +37,9 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":core"))
-    implementation(project(":logging"))
-    implementation(project(":data"))
+    implementation(dependencies.project(":core"))
+    implementation(dependencies.project(":logging"))
+    implementation(dependencies.project(":data"))
 
     // Hilt
     implementation(libs.hilt.android)

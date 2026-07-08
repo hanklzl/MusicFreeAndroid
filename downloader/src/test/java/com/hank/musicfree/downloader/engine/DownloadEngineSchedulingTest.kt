@@ -20,6 +20,7 @@ import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.MfLogger
 import kotlin.io.path.createTempDirectory
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -39,6 +40,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
+@OptIn(ExperimentalCoroutinesApi::class)
 class DownloadEngineSchedulingTest {
 
     private lateinit var db: AppDatabase

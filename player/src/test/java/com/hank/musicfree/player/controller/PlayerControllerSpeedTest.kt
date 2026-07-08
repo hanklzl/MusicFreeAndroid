@@ -135,9 +135,10 @@ class PlayerControllerSpeedTest {
                 // Drive the Main looper so the coroutine launched by changeQuality can run.
                 Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
                 received.await(2, TimeUnit.SECONDS)
-                val errorMessage = errorRef.get()
-                assertNotNull("Expected error event for unresolvable quality", errorMessage)
-                assertTrue(errorMessage!!.contains("不支持") || errorMessage!!.contains("音质"))
+                val errorMessage = requireNotNull(errorRef.get()) {
+                    "Expected error event for unresolvable quality"
+                }
+                assertTrue(errorMessage.contains("不支持") || errorMessage.contains("音质"))
             } finally {
                 collectJob.cancel()
             }

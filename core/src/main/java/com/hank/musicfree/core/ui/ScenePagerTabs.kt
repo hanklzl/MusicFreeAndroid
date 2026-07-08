@@ -3,14 +3,11 @@ package com.hank.musicfree.core.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabIndicatorScope
 import androidx.compose.material3.TabPosition
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
@@ -22,9 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -98,12 +93,11 @@ fun <K : Any> MusicFreeScenePagerTabs(
     }
 
     Column(modifier = modifier) {
-        ScrollableTabRow(
+        PrimaryScrollableTabRow(
             selectedTabIndex = selectedIndex,
             edgePadding = edgePadding,
-            indicator = { tabPositions ->
+            indicator = {
                 ScenePagerIndicator(
-                    tabPositions = tabPositions,
                     currentPage = pagerState.currentPage,
                     currentPageOffsetFraction = pagerState.currentPageOffsetFraction,
                 )
@@ -145,29 +139,30 @@ fun <K : Any> MusicFreeScenePagerTabs(
 }
 
 @Composable
-private fun ScenePagerIndicator(
-    tabPositions: List<TabPosition>,
+private fun TabIndicatorScope.ScenePagerIndicator(
     currentPage: Int,
     currentPageOffsetFraction: Float,
 ) {
-    val indicatorMetrics = calculateScenePagerIndicatorMetricsFromTabPositions(
-        tabPositions = tabPositions,
-        currentPage = currentPage,
-        currentPageOffsetFraction = currentPageOffsetFraction,
-    ) ?: return
-
     TabRowDefaults.SecondaryIndicator(
-        modifier = Modifier.scenePagerIndicatorOffset(indicatorMetrics),
-    )
-}
+        modifier = Modifier.tabIndicatorLayout { measurable, constraints, tabPositions ->
+            val indicatorMetrics = calculateScenePagerIndicatorMetricsFromTabPositions(
+                tabPositions = tabPositions,
+                currentPage = currentPage,
+                currentPageOffsetFraction = currentPageOffsetFraction,
+            ) ?: return@tabIndicatorLayout layout(0, 0) {}
 
-private fun Modifier.scenePagerIndicatorOffset(
-    metrics: ScenePagerIndicatorMetrics,
-): Modifier {
-    return fillMaxWidth()
-        .wrapContentSize(Alignment.BottomStart)
-        .offset { IntOffset(x = metrics.left.roundToPx(), y = 0) }
-        .width(metrics.width)
+            val indicatorWidth = indicatorMetrics.width.roundToPx()
+            val placeable = measurable.measure(
+                constraints.copy(
+                    minWidth = indicatorWidth,
+                    maxWidth = indicatorWidth,
+                ),
+            )
+            layout(constraints.maxWidth, placeable.height) {
+                placeable.placeRelative(indicatorMetrics.left.roundToPx(), 0)
+            }
+        },
+    )
 }
 
 internal fun <K : Any> resolveScenePagerSelectedIndex(

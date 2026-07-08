@@ -63,19 +63,7 @@ class OkHttpDownloader @Inject constructor(
                 throw HttpDownloadException("HTTP ${resp.code}")
             }
             val total = resp.header("Content-Length")?.toLongOrNull() ?: -1L
-            val body = resp.body ?: run {
-                MfLog.error(
-                    category = LogCategory.DOWNLOAD,
-                    event = "download_http_failed",
-                    fields = downloadFields(url = url, target = target) + mapOf(
-                        "statusCode" to resp.code,
-                        "durationMs" to elapsedMs(startedAt),
-                        "result" to LogFields.Result.FAILURE,
-                        "reason" to "empty_body",
-                    ),
-                )
-                throw HttpDownloadException("empty body")
-            }
+            val body = resp.body
             target.parentFile?.mkdirs()
             val source = body.source()
             var downloaded = 0L

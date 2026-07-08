@@ -28,7 +28,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.hank.musicfree.core.permissions.requiredAudioPermission
 import com.hank.musicfree.core.permissions.requiredNotificationPermission
 import com.hank.musicfree.core.theme.FontSizes

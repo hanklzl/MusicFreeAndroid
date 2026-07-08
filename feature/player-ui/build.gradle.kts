@@ -45,12 +45,12 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":core"))
-    implementation(project(":data"))
-    implementation(project(":plugin"))
-    implementation(project(":player"))
-    implementation(project(":downloader"))
-    implementation(project(":logging"))
+    implementation(dependencies.project(":core"))
+    implementation(dependencies.project(":data"))
+    implementation(dependencies.project(":plugin"))
+    implementation(dependencies.project(":player"))
+    implementation(dependencies.project(":downloader"))
+    implementation(dependencies.project(":logging"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)

@@ -48,7 +48,7 @@ class PlayerControllerSetupContractTest {
     private fun repoRoot(): File {
         var dir = File(".").canonicalFile
         while (dir.parentFile != null && !File(dir, "settings.gradle.kts").exists()) {
-            dir = dir.parentFile
+            dir = requireNotNull(dir.parentFile)
         }
         return dir
     }

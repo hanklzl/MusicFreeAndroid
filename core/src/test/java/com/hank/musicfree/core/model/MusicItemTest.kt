@@ -40,8 +40,9 @@ class MusicItemTest {
             PlayQuality.LOW to QualityInfo(url = "https://example.com/low.mp3", size = 2_000_000L),
         )
         val item = MusicItem("1", "plugin1", "Song", "Artist", null, 240_000, null, null, qualities)
-        assertEquals(2, item.qualities!!.size)
-        assertEquals("https://example.com/high.mp3", item.qualities!![PlayQuality.HIGH]?.url)
+        val itemQualities = requireNotNull(item.qualities)
+        assertEquals(2, itemQualities.size)
+        assertEquals("https://example.com/high.mp3", itemQualities[PlayQuality.HIGH]?.url)
     }
 
     @Test

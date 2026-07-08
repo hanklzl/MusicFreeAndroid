@@ -1,6 +1,6 @@
 package com.hank.musicfree.feature.home.pluginfeature
 
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,7 +21,7 @@ fun PluginCapabilityTabs(
     val selectedTabIndex = plugins.indexOfFirst { it.platform == selectedPlatform }
         .takeIf { it >= 0 }
         ?: 0
-    ScrollableTabRow(
+    PrimaryScrollableTabRow(
         selectedTabIndex = selectedTabIndex,
         containerColor = MusicFreeTheme.colors.background,
         contentColor = MusicFreeTheme.colors.primary,

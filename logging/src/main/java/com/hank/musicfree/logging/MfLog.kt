@@ -92,9 +92,7 @@ private object NoOpLogger : MfLogger {
         event: String,
         throwable: Throwable?,
         fields: Map<String, Any?>,
-    ) {
-        Unit
-    }
+    ) = Unit
 
     override fun flush() = Unit
 }

@@ -1,7 +1,7 @@
 package com.hank.musicfree.feature.playerui.component.rate
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.hank.musicfree.core.model.PlaybackSpeeds

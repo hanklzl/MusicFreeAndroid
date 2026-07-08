@@ -1,5 +1,6 @@
 package com.hank.musicfree.feature.settings
 
+import android.content.ClipData
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
@@ -25,16 +26,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import androidx.compose.ui.text.AnnotatedString
 import androidx.core.content.FileProvider
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hank.musicfree.core.navigation.SettingsType
 import com.hank.musicfree.core.theme.FontSizes
@@ -50,6 +52,7 @@ import com.hank.musicfree.core.ui.logUiClick
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.UiLogEvents
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -68,7 +71,8 @@ fun SettingsScreen(
     val errorLogUiState by viewModel.errorLogUiState.collectAsStateWithLifecycle()
     val backupRestoreUiState by viewModel.backupRestoreUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val clipboardScope = rememberCoroutineScope()
     var showFeedbackConfirm by remember { mutableStateOf(false) }
     val createBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
@@ -292,8 +296,12 @@ fun SettingsScreen(
         ErrorLogDialog(
             content = errorLogUiState.content,
             onCopy = {
-                clipboardManager.setText(AnnotatedString(errorLogUiState.content))
-                Toast.makeText(context, "错误日志已复制", Toast.LENGTH_SHORT).show()
+                clipboardScope.launch {
+                    clipboard.setClipEntry(
+                        ClipEntry(ClipData.newPlainText("MusicFree error log", errorLogUiState.content)),
+                    )
+                    Toast.makeText(context, "错误日志已复制", Toast.LENGTH_SHORT).show()
+                }
             },
             onDismiss = viewModel::dismissErrorLog,
         )

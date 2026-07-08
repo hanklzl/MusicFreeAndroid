@@ -91,7 +91,7 @@ class PluginMediaSourceServiceLocalShortCircuitTest {
         val itemFromPlugin = musicItem(localPath = null)
         val itemInDb = itemFromPlugin.copy(localPath = downloadedPath)
         val musicRepo = mock<MusicRepository> {
-            onBlocking { getById(itemFromPlugin.id, itemFromPlugin.platform) } doReturn itemInDb
+            on { getById(itemFromPlugin.id, itemFromPlugin.platform) } doReturn itemInDb
         }
         val probe = LocalFileProbe { true }
         val plugin = pluginWithUrl("kuwo", "https://kuwo.example/stream.mp3")
@@ -113,7 +113,7 @@ class PluginMediaSourceServiceLocalShortCircuitTest {
     fun `resolve falls through to plugin when item localPath is null and track not downloaded`() = runTest {
         val itemFromPlugin = musicItem(localPath = null)
         val musicRepo = mock<MusicRepository> {
-            onBlocking { getById(itemFromPlugin.id, itemFromPlugin.platform) } doReturn null
+            on { getById(itemFromPlugin.id, itemFromPlugin.platform) } doReturn null
         }
         val probe = LocalFileProbe { true }
         val plugin = pluginWithUrl("kuwo", "https://kuwo.example/stream.mp3")

@@ -22,6 +22,8 @@ import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private const val DEFAULT_CACHE_BYTES = 512L * 1024L * 1024L
+
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class SimpleCacheHolderTest {
@@ -35,7 +37,9 @@ class SimpleCacheHolderTest {
     fun setup() {
         mockPrefs = mock()
         whenever(mockPrefs.mediaCacheSchemaVersion).thenReturn(flowOf(1))
-        whenever(mockPrefs.maxMusicCacheSizeBytes).thenReturn(flowOf(SimpleCacheHolder.DEFAULT_BYTES))
+        whenever(mockPrefs.maxMusicCacheSizeBytes).thenReturn(
+            flowOf(DEFAULT_CACHE_BYTES),
+        )
         val noOpLogger = object : MfLogger {
             override fun trace(category: com.hank.musicfree.logging.LogCategory, event: String, fields: Map<String, Any?>) = Unit
             override fun detail(category: com.hank.musicfree.logging.LogCategory, event: String, fields: Map<String, Any?>) = Unit

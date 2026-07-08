@@ -1,5 +1,6 @@
 package com.hank.musicfree.feature.playerui.component.more
 
+import android.content.ClipData
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,15 +39,16 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -55,6 +57,7 @@ import com.hank.musicfree.core.theme.FontSizes
 import com.hank.musicfree.core.theme.IconSizes
 import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.core.theme.rpx
+import kotlinx.coroutines.launch
 
 internal const val PlayerMoreOptionsSheetContentTestTag = "player.more.sheet.content"
 internal const val PlayerMoreOptionsRowTestTag = "player.more.sheet.row"
@@ -118,7 +121,14 @@ internal fun PlayerMoreOptionsSheetContent(
     modifier: Modifier = Modifier,
     onInfoCopied: () -> Unit = {},
 ) {
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val clipboardScope = rememberCoroutineScope()
+    fun copyText(text: String) {
+        clipboardScope.launch {
+            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("MusicFree", text)))
+            onInfoCopied()
+        }
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -133,16 +143,14 @@ internal fun PlayerMoreOptionsSheetContent(
                 text = "ID: ${item.platform}@${item.id}",
                 icon = Icons.Outlined.Badge,
                 onClick = {
-                    clipboardManager.setText(AnnotatedString(item.mediaKeyJson()))
-                    onInfoCopied()
+                    copyText(item.mediaKeyJson())
                 },
             )
             PlayerMoreOptionsRow(
                 text = "作者: ${item.artist}",
                 icon = Icons.Outlined.Person,
                 onClick = {
-                    clipboardManager.setText(AnnotatedString(item.artist))
-                    onInfoCopied()
+                    copyText(item.artist)
                 },
             )
             val album = item.album
@@ -151,8 +159,7 @@ internal fun PlayerMoreOptionsSheetContent(
                     text = "专辑: $album",
                     icon = Icons.Outlined.Album,
                     onClick = {
-                        clipboardManager.setText(AnnotatedString(album))
-                        onInfoCopied()
+                        copyText(album)
                     },
                 )
             }

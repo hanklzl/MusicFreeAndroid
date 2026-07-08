@@ -29,7 +29,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hank.musicfree.core.theme.FontSizes
 import com.hank.musicfree.core.theme.MusicFreeTheme
@@ -106,6 +106,9 @@ private fun RecommendSheetsScene(
     onLoadMore: () -> Unit,
     onOpenSheetDetail: (MusicSheetItemBase) -> Unit,
 ) {
+    val errorMessage = state.errorMessage
+    val emptyMessage = state.emptyMessage
+
     if (state.tags.isNotEmpty()) {
         LazyRow(
             modifier = Modifier
@@ -136,14 +139,14 @@ private fun RecommendSheetsScene(
             }
         }
 
-        !state.errorMessage.isNullOrBlank() && state.sheets.isEmpty() -> {
+        !errorMessage.isNullOrBlank() && state.sheets.isEmpty() -> {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    text = state.errorMessage ?: "加载推荐歌单失败",
+                    text = errorMessage,
                     color = MusicFreeTheme.colors.danger,
                     fontSize = FontSizes.content,
                 )
@@ -153,8 +156,8 @@ private fun RecommendSheetsScene(
             }
         }
 
-        state.sheets.isEmpty() && !state.emptyMessage.isNullOrBlank() -> {
-            EmptyState(state.emptyMessage ?: "当前没有推荐歌单")
+        state.sheets.isEmpty() && !emptyMessage.isNullOrBlank() -> {
+            EmptyState(emptyMessage)
         }
 
         else -> {

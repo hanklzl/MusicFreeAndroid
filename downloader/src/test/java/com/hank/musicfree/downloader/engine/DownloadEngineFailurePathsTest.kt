@@ -15,6 +15,7 @@ import com.hank.musicfree.downloader.model.DownloadFailReason
 import com.hank.musicfree.downloader.model.DownloadStatus
 import com.hank.musicfree.downloader.model.MediaKey
 import com.hank.musicfree.downloader.prefs.DownloadConfig
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -31,6 +32,7 @@ import kotlin.io.path.createTempDirectory
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
+@OptIn(ExperimentalCoroutinesApi::class)
 class DownloadEngineFailurePathsTest {
 
     private lateinit var db: AppDatabase

@@ -207,7 +207,6 @@ class SettingsCacheCleanerTest {
             mediaCacheRepository.deleteEntry("kg", "1", PlayQuality.STANDARD)
         } coAnswers {
             mutationThreadNames += Thread.currentThread().name
-            Unit
         }
         val cleaner = createCleaner(mediaCacheRepository = mediaCacheRepository)
 
@@ -286,7 +285,6 @@ class SettingsCacheCleanerTest {
         }
         every { simpleCacheHolder.clearCache() } answers {
             mutationThreadNames += Thread.currentThread().name
-            Unit
         }
         val mediaCacheRepository = mockk<MediaCacheRepository>()
         var estimatedBytesCallCount = 0
@@ -296,7 +294,6 @@ class SettingsCacheCleanerTest {
         }
         coEvery { mediaCacheRepository.clearAll() } coAnswers {
             mutationThreadNames += Thread.currentThread().name
-            Unit
         }
         val cleaner = createCleaner(
             mediaCacheRepository = mediaCacheRepository,

@@ -45,12 +45,12 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":core"))
-    implementation(project(":data"))
-    implementation(project(":player"))
-    implementation(project(":plugin"))
-    implementation(project(":updater"))
-    implementation(project(":logging"))
+    implementation(dependencies.project(":core"))
+    implementation(dependencies.project(":data"))
+    implementation(dependencies.project(":player"))
+    implementation(dependencies.project(":plugin"))
+    implementation(dependencies.project(":updater"))
+    implementation(dependencies.project(":logging"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)

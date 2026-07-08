@@ -772,7 +772,8 @@ class SettingsViewModel @Inject constructor(
 
     fun clearMusicCache() {
         runCacheAction(successMessage = "音乐缓存已清理") {
-            cacheCleaner.clearMusicCache()
+            cacheCleaner.clearAudioFileCache()
+            cacheCleaner.clearMediaUrlMetadataCache()
         }
     }
 

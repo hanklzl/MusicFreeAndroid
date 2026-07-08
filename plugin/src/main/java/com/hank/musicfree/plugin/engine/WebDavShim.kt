@@ -82,7 +82,7 @@ class WebDavShim(
         val startedAt = System.currentTimeMillis()
         val response = client.newCall(builder.build()).await()
         return response.use { resp ->
-            val responseBody = resp.body?.string().orEmpty()
+            val responseBody = resp.body.string()
             MfLog.detail(
                 category = LogCategory.PLUGIN,
                 event = "webdav_request",

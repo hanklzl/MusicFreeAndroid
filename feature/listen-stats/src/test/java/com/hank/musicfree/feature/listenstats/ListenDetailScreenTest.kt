@@ -2,7 +2,7 @@ package com.hank.musicfree.feature.listenstats
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.hank.musicfree.core.theme.MusicFreeTheme
 import com.hank.musicfree.data.repository.listenstats.model.ListenedSong
 import com.hank.musicfree.feature.listenstats.component.SongDetailRow

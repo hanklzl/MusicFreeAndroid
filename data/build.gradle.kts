@@ -38,8 +38,8 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":core"))
-    implementation(project(":logging"))
+    implementation(dependencies.project(":core"))
+    implementation(dependencies.project(":logging"))
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 

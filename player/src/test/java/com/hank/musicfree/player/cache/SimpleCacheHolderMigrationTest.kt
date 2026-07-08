@@ -24,6 +24,8 @@ import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private const val DEFAULT_CACHE_BYTES = 512L * 1024L * 1024L
+
 /**
  * Robolectric smoke tests for [CacheSchemaMigrator] integration with a real [SimpleCache].
  *
@@ -70,7 +72,9 @@ class SimpleCacheHolderMigrationTest {
         val mockPrefs = mock<AppPreferences>()
         // Already migrated: version = 1
         whenever(mockPrefs.mediaCacheSchemaVersion).thenReturn(flowOf(1))
-        whenever(mockPrefs.maxMusicCacheSizeBytes).thenReturn(flowOf(SimpleCacheHolder.DEFAULT_BYTES))
+        whenever(mockPrefs.maxMusicCacheSizeBytes).thenReturn(
+            flowOf(DEFAULT_CACHE_BYTES),
+        )
         val telemetry = PlayCacheTelemetry(noOpLogger)
         val holder = SimpleCacheHolder(ctx, mockPrefs, telemetry)
         try {
@@ -85,7 +89,9 @@ class SimpleCacheHolderMigrationTest {
     fun `migrateOnceIfNeeded runs migration when schema version is 0`() {
         val mockPrefs = mock<AppPreferences>()
         whenever(mockPrefs.mediaCacheSchemaVersion).thenReturn(flowOf(0))
-        whenever(mockPrefs.maxMusicCacheSizeBytes).thenReturn(flowOf(SimpleCacheHolder.DEFAULT_BYTES))
+        whenever(mockPrefs.maxMusicCacheSizeBytes).thenReturn(
+            flowOf(DEFAULT_CACHE_BYTES),
+        )
         // setMediaCacheSchemaVersion can be called — no assertion needed, just must not throw
         val telemetry = PlayCacheTelemetry(noOpLogger)
         val holder = SimpleCacheHolder(ctx, mockPrefs, telemetry)

@@ -176,9 +176,7 @@ class BackupRepositoryTest {
             event: String,
             throwable: Throwable?,
             fields: Map<String, Any?>,
-        ) {
-            Unit
-        }
+        ) = Unit
 
         override fun flush() {}
     }
