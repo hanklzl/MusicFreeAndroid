@@ -10,6 +10,7 @@ import com.hank.musicfree.core.cache.ByteCacheValidity
 import com.hank.musicfree.core.media.MediaSourceCachePolicy
 import com.hank.musicfree.core.media.MediaSourceResolution
 import com.hank.musicfree.core.media.MediaSourceResolver
+import com.hank.musicfree.core.media.StaleUrlRefresher
 import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
@@ -64,6 +65,45 @@ class PlayerControllerByteCacheValidityTest {
             assertEquals(ByteCacheValidity.PlayableVerified, store.upserts.single().validity)
             assertEquals(1_024L, store.upserts.single().contentLength)
             assertEquals(ByteCacheValidationMethod.PlaybackCompleted, store.upserts.single().validationMethod)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `playback ended early invalidates complete byte cache instead of verifying it`() = runBlocking {
+        val store = RecordingByteCacheStatusStore()
+        val refresher = RecordingStaleUrlRefresher()
+        val inspector = FakeByteCacheInspector(
+            ByteCacheInspection(
+                key = key("short"),
+                validity = ByteCacheValidity.Complete,
+                cachedBytes = 702_831L,
+                contentLength = 702_831L,
+                holeCount = 0,
+            ),
+        )
+        val controller = controller(
+            resolver = RecordingResolver(normalUrl = "https://cdn.example.test/short.mp3"),
+            statusStore = store,
+            inspector = inspector,
+            staleUrlRefresher = refresher,
+        )
+        try {
+            val item = item("short", null, duration = 180_000L)
+            controller.restoreQueue(
+                items = listOf(item),
+                startIndex = 0,
+                savedPositionMs = 76_000L,
+                savedDurationMs = 76_000L,
+            )
+            controller.markCurrentPlaybackSourceForTest(MediaSourceCachePolicy.NoCache)
+
+            controller.handlePlaybackEndedForTest()
+
+            assertEquals(emptyList<ByteCacheStatus>(), store.upserts)
+            assertEquals(listOf(key("short") to ByteCacheInvalidReason.BadByteCache), store.invalidations)
+            assertEquals(listOf(Triple("test", "short", PlayQuality.STANDARD)), refresher.evictCalls)
         } finally {
             controller.release()
         }
@@ -237,9 +277,11 @@ class PlayerControllerByteCacheValidityTest {
         resolver: MediaSourceResolver,
         statusStore: ByteCacheStatusStore,
         inspector: ByteCacheInspector,
+        staleUrlRefresher: StaleUrlRefresher = RecordingStaleUrlRefresher(),
     ) = PlayerController(
         context = context,
         mediaSourceResolver = resolver,
+        staleUrlRefresher = staleUrlRefresher,
         byteCacheStatusStore = statusStore,
         byteCacheInspector = inspector,
         listenTracker = mock<ListenTracker>(),
@@ -253,13 +295,17 @@ class PlayerControllerByteCacheValidityTest {
         quality = PlayQuality.STANDARD,
     )
 
-    private fun item(id: String, url: String?) = MusicItem(
+    private fun item(
+        id: String,
+        url: String?,
+        duration: Long = 1_000L,
+    ) = MusicItem(
         id = id,
         platform = "test",
         title = "Song $id",
         artist = "Artist",
         album = null,
-        duration = 1_000L,
+        duration = duration,
         url = url,
         artwork = null,
         qualities = null,
@@ -299,6 +345,20 @@ class PlayerControllerByteCacheValidityTest {
             keys += key
             return inspection.copy(key = key)
         }
+    }
+
+    private class RecordingStaleUrlRefresher : StaleUrlRefresher {
+        val evictCalls = mutableListOf<Triple<String, String, PlayQuality>>()
+
+        override suspend fun evictCacheEntry(platform: String, id: String, quality: PlayQuality) {
+            evictCalls += Triple(platform, id, quality)
+        }
+
+        override suspend fun resolveFresh(
+            item: MusicItem,
+            quality: String?,
+            sid: String?,
+        ): MediaSourceResolution? = null
     }
 
     private class RecordingResolver(

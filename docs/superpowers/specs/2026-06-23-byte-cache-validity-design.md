@@ -123,7 +123,7 @@ URL 只能作为拉流入口和 source fingerprint 的输入，不能作为字�
 | `None` | SimpleCache 没有该 key 的可用 span，或状态记录已被淘汰 | 否 |
 | `Partial` | 有缓存 span，但不足以覆盖完整内容；典型来源是预取头部或中途切歌 | 否 |
 | `Complete` | SimpleCache span 连续覆盖 `0 until contentLength`，且 `contentLength > 0` | 谨慎；优先升级为验证态 |
-| `PlayableVerified` | 在 `Complete` 基础上，曾经自然播放到结束或通过等价播放成功信号确认 | 是 |
+| `PlayableVerified` | 在 `Complete` 基础上，曾经自然播放到结束，且播放完成位置未明显早于歌曲元数据时长，或通过等价播放成功信号确认 | 是 |
 | `StaleOrInvalid` | 该 key 最近因坏源、坏缓存或远端失效被标记不可用 | 否，必须重新解析或重新拉流 |
 
 状态降级规则：
@@ -171,6 +171,7 @@ sourceFingerprint = sha1(
 - 播放自然进入 ended，且当前 item 没有 Media3 fatal error。
 - 本次 DataSource 生命周期没有 `media3_datasource_error`。
 - 当前 key 的完整性检查仍为 `Complete`。
+- 若 `MusicItem.duration` 有有效元数据，ended 时的播放位置 / Media3 duration 不得明显早于歌曲时长；远端返回可正常 EOF 的短片段时，必须标记 `StaleOrInvalid(reason=bad_byte_cache, trigger=early_eof)` 并驱逐对应 key。
 
 满足条件后写入：
 
@@ -183,7 +184,7 @@ cachedBytes = inspectedCachedBytes
 sourceFingerprint = latestFingerprint
 ```
 
-暂停、seek、中途切歌、播放到一半应用被杀，都不会升级为 `PlayableVerified`。
+暂停、seek、中途切歌、播放到一半应用被杀、以及明显提前 EOF 的短片段，都不会升级为 `PlayableVerified`。
 
 ### 4.3 Hash 的位置
 

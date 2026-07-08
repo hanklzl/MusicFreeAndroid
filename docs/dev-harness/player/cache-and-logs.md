@@ -90,10 +90,10 @@ SimpleCache 的“存在 spans”不等于可安全播放。播放器额外维�
 | `None` | 没有可用 span | 否 |
 | `Partial` | 有 span，但不完整或缺 contentLength | 否 |
 | `Complete` | SimpleCache span 连续覆盖 contentLength | 否，仅代表文件完整 |
-| `PlayableVerified` | 完整播放结束后再次检查仍为 `Complete`，可证明该缓存曾可播放 | 是 |
+| `PlayableVerified` | 完整播放结束后再次检查仍为 `Complete`，且播放完成位置未明显早于歌曲元数据时长，可证明该缓存曾可播放 | 是 |
 | `StaleOrInvalid` | URL 过期、HTTP/解析失败或坏字节缓存导致失效 | 否 |
 
-`PlayerController` 在一次在线歌曲播放自然结束时检查 `ByteCacheInspector.inspect(key)`；只有 `cachePolicy != no-store` 且检查为 `Complete`，才写入 `PlayableVerified`。预取只会产生 partial/complete span，不会写 `PlayableVerified`。
+`PlayerController` 在一次在线歌曲播放自然结束时检查 `ByteCacheInspector.inspect(key)`；只有 `cachePolicy != no-store`、检查为 `Complete`，且 ended 时的播放位置 / Media3 duration 未明显早于 `MusicItem.duration`，才写入 `PlayableVerified`。若远端只返回可正常 EOF 的短片段（例如播放位置明显停在歌曲中段），该 key 必须按 `early_eof` 标记为坏字节缓存并驱逐，不得升级。预取只会产生 partial/complete span，不会写 `PlayableVerified`。
 
 ### Verified byte-cache 快路径
 
@@ -144,7 +144,7 @@ SimpleCache 的“存在 spans”不等于可安全播放。播放器额外维�
 | LRU 驱逐（PinningCacheEvictor） | 字节不足时最近最少使用（v1.2.5 新增） | `media_cache_lru_evict` ★ | `evictedCount`, `evictedBytes`, `evictedKeys[10]`, `bytesNeeded`, `pinnedSizeBytes`, `maxBytes`, `pinOverflowSuspended`, `durationMs` |
 | 用户手动清空 | Settings → SettingsCacheCleaner；Settings → 缓存管理按 `(platform,id)` 清理指定歌曲时也会同步驱逐对应 SimpleCache key | `media_cache_evict{scope=manual}` | — |
 | 配额上限调小 | `updateMaxBytes` | `media_cache_evict{scope=byte_cap}` + `media_cache_max_bytes_changed` ★ | `newBytes`, `previousUsed`, `freedBytes` |
-| 按 key 驱逐（stale_url 语义） | `SimpleCacheHolder.evictForKey`；覆盖 stale URL、HTTP bad status、invalid content type、远端 container parse failure / bad byte-cache | `media_cache_evict{scope=stale_url}` + `media_cache_evict_for_key` ★ | `platform`, `id`, `quality`, `removedQualityCount`, `freedBytes`, `triggerSource` |
+| 按 key 驱逐（stale_url 语义） | `SimpleCacheHolder.evictForKey`；覆盖 stale URL、HTTP bad status、invalid content type、远端 container parse failure / bad byte-cache / early EOF 短片段 | `media_cache_evict{scope=stale_url}` + `media_cache_evict_for_key` ★ | `platform`, `id`, `quality`, `removedQualityCount`, `freedBytes`, `triggerSource` |
 | 低磁盘空间 | 初始化时检测 | `media_cache_lowspace` | — |
 | 启动 schema 迁移 | SimpleCache 格式升级 | `media_cache_schema_migration` | — |
 | 初始化配置记录 | 冷启动（v1.2.5 新增） | `media_cache_init` ★ | `configuredBytes`, `effectiveCapBytes`, `availableBytes`, `storageScope`, `cacheDirPath` |
@@ -185,6 +185,7 @@ SimpleCache span 被移除时，`PinningCacheEvictor` 会按 `${platform}:${id}:
 | `media_cache_lowspace` | 已有 | `availableBytes`, `requestedBytes` |
 | `byte_cache_inspect` | 2026-06-23 新增 | `platform`, `itemId`, `quality`, `cacheKey`, `status`, `cachedBytes`, `contentLength`, `holeCount` |
 | `byte_cache_verified` | 2026-06-23 新增 | `sid`, `platform`, `musicItemId`, `quality`, `cachedBytes`, `contentLength`, `holeCount` |
+| `byte_cache_early_eof_rejected` | 2026-07-08 新增 | `sid`, `platform`, `musicItemId`, `quality`, `cachedBytes`, `contentLength`, `expectedDurationMs`, `observedPlaybackMs`, `endedPositionMs`, `reportedDurationMs`, `remainingDurationMs`, `reason=early_eof` |
 | `byte_cache_fast_path_hit` | 2026-06-23 新增 | `sid`, `platform`, `itemId`, `quality`, `cachedBytes`, `contentLength`, `reason`（fast_path / fallback） |
 | `playback_resolve_fallback_byte_cache` | 2026-06-23 新增 | 同 `byte_cache_fast_path_hit`，表示常规解析失败后的 fallback |
 | `byte_cache_fast_path_rejected` | 2026-06-23 新增 | `sid`, `platform`, `musicItemId`, `quality`, `reason`（status_missing / partial / no_content_length / no_store / cached_source_missing 等） |

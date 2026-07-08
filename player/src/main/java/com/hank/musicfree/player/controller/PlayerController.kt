@@ -1405,11 +1405,16 @@ class PlayerController @Inject constructor(
                 val endedItem = playQueue.currentItem
                 val endedQuality = currentPlayQuality
                 val endedPolicy = currentPlaybackCachePolicy
+                val controllerRef = mediaController
+                val endedPositionMs = controllerRef?.currentPosition.positivePlaybackMs()
+                val reportedDurationMs = controllerRef?.duration.positivePlaybackMs()
                 scope.launch {
                     verifyByteCacheOnPlaybackEnded(
                         item = endedItem,
                         quality = endedQuality,
                         cachePolicy = endedPolicy,
+                        endedPositionMs = endedPositionMs,
+                        reportedDurationMs = reportedDurationMs,
                     )
                 }
                 listenTracker.onTrackEnded(playQueue.currentItem)
@@ -1470,10 +1475,13 @@ class PlayerController @Inject constructor(
 
     @VisibleForTesting
     internal suspend fun handlePlaybackEndedForTest() {
+        val playbackState = _playerState.value
         verifyByteCacheOnPlaybackEnded(
             item = playQueue.currentItem,
             quality = currentPlayQuality,
             cachePolicy = currentPlaybackCachePolicy,
+            endedPositionMs = playbackState.position.positivePlaybackMs(),
+            reportedDurationMs = playbackState.duration.positivePlaybackMs(),
         )
     }
 
@@ -1692,6 +1700,8 @@ class PlayerController @Inject constructor(
         item: MusicItem?,
         quality: PlayQuality,
         cachePolicy: MediaSourceCachePolicy,
+        endedPositionMs: Long? = null,
+        reportedDurationMs: Long? = null,
     ) {
         if (item == null || item.isLocalPlaybackSource()) return
         if (cachePolicy == MediaSourceCachePolicy.NoStore) {
@@ -1707,6 +1717,39 @@ class PlayerController @Inject constructor(
         val key = byteCacheKey(item, quality)
         val inspection = byteCacheInspector.inspect(key)
         val hadFatalError = byteCacheFatalErrorState.remove(key) == true
+        val earlyCompletion = earlyPlaybackCompletion(
+            item = item,
+            endedPositionMs = endedPositionMs,
+            reportedDurationMs = reportedDurationMs,
+        )
+        if (inspection.validity == ByteCacheValidity.Complete && !hadFatalError && earlyCompletion != null) {
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "byte_cache_early_eof_rejected",
+                fields = byteCacheLogFields(item, quality, inspection) + mapOf(
+                    "expectedDurationMs" to earlyCompletion.expectedDurationMs,
+                    "observedPlaybackMs" to earlyCompletion.observedPlaybackMs,
+                    "endedPositionMs" to endedPositionMs,
+                    "reportedDurationMs" to reportedDurationMs,
+                    "remainingDurationMs" to earlyCompletion.remainingDurationMs,
+                    "result" to LogFields.Result.SKIPPED,
+                    "reason" to "early_eof",
+                ),
+            )
+            evictStaleSourceCache(
+                item = item,
+                quality = quality,
+                reason = "early_eof",
+                invalidReason = ByteCacheInvalidReason.BadByteCache,
+            )
+            logByteCacheFastPathRejected(
+                sid = currentSidProvider.peek(),
+                item = item,
+                quality = quality,
+                reason = "early_eof",
+            )
+            return
+        }
         if (inspection.validity == ByteCacheValidity.Complete && !hadFatalError) {
             val now = System.currentTimeMillis()
             byteCacheStatusStore.upsert(
@@ -1754,6 +1797,23 @@ class PlayerController @Inject constructor(
                 inspection.contentLength == null -> "no_content_length"
                 else -> inspection.validity.wire
             },
+        )
+    }
+
+    private fun earlyPlaybackCompletion(
+        item: MusicItem,
+        endedPositionMs: Long?,
+        reportedDurationMs: Long?,
+    ): EarlyPlaybackCompletion? {
+        val expectedDurationMs = item.duration.takeIf { it > MIN_EARLY_EOF_EXPECTED_DURATION_MS } ?: return null
+        val observedPlaybackMs = listOfNotNull(endedPositionMs, reportedDurationMs).maxOrNull() ?: return null
+        val remainingDurationMs = expectedDurationMs - observedPlaybackMs
+        if (remainingDurationMs <= EARLY_EOF_TOLERANCE_MS) return null
+        if (observedPlaybackMs * 100L >= expectedDurationMs * EARLY_EOF_MIN_COMPLETION_PERCENT) return null
+        return EarlyPlaybackCompletion(
+            expectedDurationMs = expectedDurationMs,
+            observedPlaybackMs = observedPlaybackMs,
+            remainingDurationMs = remainingDurationMs,
         )
     }
 
@@ -2134,6 +2194,9 @@ class PlayerController @Inject constructor(
         return scheme == null || scheme == "file" || scheme == "content"
     }
 
+    private fun Long?.positivePlaybackMs(): Long? =
+        this?.takeIf { it > 0L }
+
     private fun Uri?.isLocalPlaybackUri(): Boolean {
         val scheme = this?.scheme ?: return false
         return scheme == "file" || scheme == "content"
@@ -2143,8 +2206,17 @@ class PlayerController @Inject constructor(
         private const val POSITION_UPDATE_INTERVAL_MS = 200L
         private const val HISTORY_MAX_SIZE = 200
         private const val PLAYBACK_RESOLVE_TIMEOUT_MS = 45_000L
+        private const val MIN_EARLY_EOF_EXPECTED_DURATION_MS = 60_000L
+        private const val EARLY_EOF_TOLERANCE_MS = 15_000L
+        private const val EARLY_EOF_MIN_COMPLETION_PERCENT = 90L
     }
 }
+
+private data class EarlyPlaybackCompletion(
+    val expectedDurationMs: Long,
+    val observedPlaybackMs: Long,
+    val remainingDurationMs: Long,
+)
 
 private fun Int?.toPlaybackState(): PlaybackState = when (this) {
     Player.STATE_IDLE -> PlaybackState.IDLE
