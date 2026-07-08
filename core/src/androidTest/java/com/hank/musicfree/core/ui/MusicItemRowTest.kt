@@ -1,7 +1,12 @@
 package com.hank.musicfree.core.ui
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -120,5 +125,73 @@ class MusicItemRowTest {
         rule.onNodeWithTag("MusicItemMoreMenu_trigger").performClick()
         rule.onNodeWithTag("MusicItemMoreMenu_AddToPlaylist").performClick()
         assertEquals(MusicItemAction.AddToPlaylist, captured)
+    }
+
+    @Test fun currentPlayingShowsWaveAndStateDescription() {
+        rule.setContent {
+            MusicFreeTheme {
+                MusicItemRow(
+                    item = item(),
+                    isFavorite = false,
+                    actions = emptySet(),
+                    onClick = {},
+                    onAction = {},
+                    playbackState = MusicItemRowPlaybackState.CurrentPlaying,
+                )
+            }
+        }
+
+        rule.onNodeWithTag("MusicItemRow_current_playing_wave").assertIsDisplayed()
+        rule.onAllNodesWithTag("MusicItemRow_current_wave_bar").assertCountEquals(3)
+        rule.onNodeWithTag("MusicItemRow_current_paused_wave").assertDoesNotExist()
+        rule.onNodeWithTag("MusicItemRow_root").assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.StateDescription,
+                "当前歌曲，播放中",
+            ),
+        )
+    }
+
+    @Test fun currentPausedShowsSameWaveShapeAsStaticState() {
+        rule.setContent {
+            MusicFreeTheme {
+                MusicItemRow(
+                    item = item(),
+                    isFavorite = false,
+                    actions = emptySet(),
+                    onClick = {},
+                    onAction = {},
+                    playbackState = MusicItemRowPlaybackState.CurrentPaused,
+                )
+            }
+        }
+
+        rule.onNodeWithTag("MusicItemRow_current_paused_wave").assertIsDisplayed()
+        rule.onAllNodesWithTag("MusicItemRow_current_wave_bar").assertCountEquals(3)
+        rule.onNodeWithTag("MusicItemRow_current_playing_wave").assertDoesNotExist()
+        rule.onNodeWithTag("MusicItemRow_root").assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.StateDescription,
+                "当前歌曲，已暂停",
+            ),
+        )
+    }
+
+    @Test fun normalRowDoesNotExposeCurrentPlaybackWave() {
+        rule.setContent {
+            MusicFreeTheme {
+                MusicItemRow(
+                    item = item(),
+                    isFavorite = false,
+                    actions = emptySet(),
+                    onClick = {},
+                    onAction = {},
+                )
+            }
+        }
+
+        rule.onAllNodesWithTag("MusicItemRow_current_playing_wave").assertCountEquals(0)
+        rule.onAllNodesWithTag("MusicItemRow_current_paused_wave").assertCountEquals(0)
+        rule.onAllNodesWithTag("MusicItemRow_current_wave_bar").assertCountEquals(0)
     }
 }

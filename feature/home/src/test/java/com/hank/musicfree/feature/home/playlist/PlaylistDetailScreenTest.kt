@@ -5,10 +5,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
@@ -84,7 +87,10 @@ class PlaylistDetailScreenTest {
                         sheetState = AddToPlaylistSheetState(),
                         allPlaylists = emptyList(),
                         favoriteResolver = { flowOf(false) },
-                        currentPlayingItem = currentPlayingItem,
+                        currentPlaybackItemState = CurrentPlaybackItemState(
+                            item = currentPlayingItem,
+                            isPlaying = true,
+                        ),
                         onBack = {},
                         onNavigateToSearchMusicList = {},
                         onNavigateToMusicListEditorLite = {},
@@ -113,9 +119,157 @@ class PlaylistDetailScreenTest {
         composeRule.onNode(hasText("Target Song")).assertIsDisplayed()
     }
 
-    private fun musicItem(id: String, title: String): MusicItem = MusicItem(
+    @Test
+    fun `playlist detail marks current playing row when media identity matches`() {
+        val songs = listOf(
+            musicItem(id = "song-1", platform = "other", title = "Wrong Platform Song"),
+            musicItem(id = "song-1", platform = "test", title = "Target Song"),
+        )
+        val currentState = CurrentPlaybackItemState(
+            item = songs[1].copy(title = "Player cached title"),
+            isPlaying = true,
+        )
+
+        composeRule.setContent {
+            MusicFreeTheme {
+                Box(modifier = Modifier.height(640.dp)) {
+                    PlaylistDetailContent(
+                        state = PlaylistDetailUiState(
+                            playlist = Playlist(id = "playlist-1", name = "Road Trip", coverUri = null),
+                            musics = songs,
+                            isLoading = false,
+                        ),
+                        sheetState = AddToPlaylistSheetState(),
+                        allPlaylists = emptyList(),
+                        favoriteResolver = { flowOf(false) },
+                        currentPlaybackItemState = currentState,
+                        onBack = {},
+                        onNavigateToSearchMusicList = {},
+                        onNavigateToMusicListEditorLite = {},
+                        actions = PlaylistDetailActions.Noop,
+                    )
+                }
+            }
+        }
+
+        composeRule.onAllNodes(
+            hasText("Target Song") and hasAnySibling(hasTestTag("MusicItemRow_current_playing_wave")),
+            useUnmergedTree = true,
+        ).assertCountEquals(1)
+        composeRule.onAllNodes(
+            hasText("Wrong Platform Song") and hasAnySibling(hasTestTag("MusicItemRow_current_playing_wave")),
+            useUnmergedTree = true,
+        ).assertCountEquals(0)
+        composeRule.onAllNodesWithTag("MusicItemRow_current_playing_wave", useUnmergedTree = true)
+            .assertCountEquals(1)
+        composeRule.onAllNodesWithTag("MusicItemRow_current_paused_wave", useUnmergedTree = true)
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `playlist detail keeps current row marked while paused`() {
+        val songs = listOf(
+            musicItem(id = "song-1", platform = "other", title = "Wrong Platform Song"),
+            musicItem(id = "song-1", platform = "test", title = "Target Song"),
+        )
+        val currentState = CurrentPlaybackItemState(
+            item = songs[1].copy(title = "Player cached title"),
+            isPlaying = false,
+        )
+
+        composeRule.setContent {
+            MusicFreeTheme {
+                Box(modifier = Modifier.height(640.dp)) {
+                    PlaylistDetailContent(
+                        state = PlaylistDetailUiState(
+                            playlist = Playlist(id = "playlist-1", name = "Road Trip", coverUri = null),
+                            musics = songs,
+                            isLoading = false,
+                        ),
+                        sheetState = AddToPlaylistSheetState(),
+                        allPlaylists = emptyList(),
+                        favoriteResolver = { flowOf(false) },
+                        currentPlaybackItemState = currentState,
+                        onBack = {},
+                        onNavigateToSearchMusicList = {},
+                        onNavigateToMusicListEditorLite = {},
+                        actions = PlaylistDetailActions.Noop,
+                    )
+                }
+            }
+        }
+
+        composeRule.onAllNodes(
+            hasText("Target Song") and hasAnySibling(hasTestTag("MusicItemRow_current_paused_wave")),
+            useUnmergedTree = true,
+        ).assertCountEquals(1)
+        composeRule.onAllNodes(
+            hasText("Wrong Platform Song") and hasAnySibling(hasTestTag("MusicItemRow_current_paused_wave")),
+            useUnmergedTree = true,
+        ).assertCountEquals(0)
+        composeRule.onAllNodesWithTag("MusicItemRow_current_paused_wave", useUnmergedTree = true)
+            .assertCountEquals(1)
+        composeRule.onAllNodesWithTag("MusicItemRow_current_playing_wave", useUnmergedTree = true)
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `playlist detail absent current song keeps row unmarked and fab hidden after user scroll`() {
+        val songs = (0 until 40).map { index ->
+            musicItem(id = "song-$index", title = "Song $index")
+        }
+        val currentState = CurrentPlaybackItemState(
+            item = musicItem(id = "outside-song", title = "Outside Song"),
+            isPlaying = true,
+        )
+
+        composeRule.setContent {
+            MusicFreeTheme {
+                Box(modifier = Modifier.height(360.dp)) {
+                    PlaylistDetailContent(
+                        state = PlaylistDetailUiState(
+                            playlist = Playlist(id = "playlist-1", name = "Road Trip", coverUri = null),
+                            musics = songs,
+                            isLoading = false,
+                        ),
+                        sheetState = AddToPlaylistSheetState(),
+                        allPlaylists = emptyList(),
+                        favoriteResolver = { flowOf(false) },
+                        currentPlaybackItemState = currentState,
+                        onBack = {},
+                        onNavigateToSearchMusicList = {},
+                        onNavigateToMusicListEditorLite = {},
+                        actions = PlaylistDetailActions.Noop,
+                    )
+                }
+            }
+        }
+
+        composeRule.onAllNodesWithTag("MusicItemRow_current_playing_wave", useUnmergedTree = true)
+            .assertCountEquals(0)
+        composeRule.onAllNodesWithTag("MusicItemRow_current_paused_wave", useUnmergedTree = true)
+            .assertCountEquals(0)
+        composeRule.onAllNodes(hasContentDescription("定位到当前播放歌曲")).assertCountEquals(0)
+
+        composeRule.onNodeWithTag("PlaylistDetail_list").performTouchInput {
+            swipeUp()
+        }
+
+        composeRule.onAllNodes(hasContentDescription("定位到当前播放歌曲") and hasClickAction())
+            .assertCountEquals(0)
+        composeRule.onAllNodesWithTag("MusicItemRow_current_playing_wave", useUnmergedTree = true)
+            .assertCountEquals(0)
+        composeRule.onAllNodesWithTag("MusicItemRow_current_paused_wave", useUnmergedTree = true)
+            .assertCountEquals(0)
+    }
+
+    private fun musicItem(
+        id: String,
+        title: String,
+        platform: String = "test",
+    ): MusicItem = MusicItem(
         id = id,
-        platform = "test",
+        platform = platform,
         title = title,
         artist = "Artist",
         album = "Album",

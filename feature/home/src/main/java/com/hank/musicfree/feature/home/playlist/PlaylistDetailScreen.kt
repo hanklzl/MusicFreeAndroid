@@ -48,6 +48,7 @@ import com.hank.musicfree.core.ui.AddToPlaylistSheetState
 import com.hank.musicfree.core.ui.MusicFreeScreenScaffold
 import com.hank.musicfree.core.ui.MusicItemAction
 import com.hank.musicfree.core.ui.MusicItemRow
+import com.hank.musicfree.core.ui.MusicItemRowPlaybackState
 import com.hank.musicfree.core.ui.logUiClick
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -67,7 +68,7 @@ fun PlaylistDetailScreen(
     val sheetState by viewModel.sheetState.collectAsStateWithLifecycle()
     val allPlaylists by viewModel.allPlaylists.collectAsStateWithLifecycle()
     val downloadedKeys by viewModel.downloadedKeys.collectAsStateWithLifecycle()
-    val currentPlayingItem by viewModel.currentPlayingItem.collectAsStateWithLifecycle()
+    val currentPlaybackItemState by viewModel.currentPlaybackItemState.collectAsStateWithLifecycle()
 
     PlaylistDetailContent(
         state = state,
@@ -75,7 +76,7 @@ fun PlaylistDetailScreen(
         allPlaylists = allPlaylists,
         downloadedKeys = downloadedKeys,
         favoriteResolver = viewModel::isFavoriteFlow,
-        currentPlayingItem = currentPlayingItem,
+        currentPlaybackItemState = currentPlaybackItemState,
         onBack = onBack,
         onNavigateToSearchMusicList = onNavigateToSearchMusicList,
         onNavigateToMusicListEditorLite = onNavigateToMusicListEditorLite,
@@ -102,7 +103,7 @@ internal fun PlaylistDetailContent(
     allPlaylists: List<Playlist>,
     favoriteResolver: (MusicItem) -> Flow<Boolean>,
     downloadedKeys: Set<String> = emptySet(),
-    currentPlayingItem: MusicItem? = null,
+    currentPlaybackItemState: CurrentPlaybackItemState = CurrentPlaybackItemState(),
     onBack: () -> Unit,
     onNavigateToSearchMusicList: (String) -> Unit,
     onNavigateToMusicListEditorLite: (String) -> Unit,
@@ -118,8 +119,8 @@ internal fun PlaylistDetailContent(
     var suppressProgrammaticScrollFab by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val scrollScope = rememberCoroutineScope()
-    val currentPlayingIndex = remember(items, currentPlayingItem) {
-        items.indexOfFirst { it.hasSameMediaIdentity(currentPlayingItem) }
+    val currentPlayingIndex = remember(items, currentPlaybackItemState.item) {
+        items.indexOfFirst { it.hasSameMediaIdentity(currentPlaybackItemState.item) }
     }
 
     LaunchedEffect(listState, currentPlayingIndex) {
@@ -212,10 +213,19 @@ internal fun PlaylistDetailContent(
                     itemsIndexed(items = items, key = { _, item -> "${item.platform}::${item.id}" }) { index, item ->
                         val isFavorite by favoriteResolver(item)
                             .collectAsStateWithLifecycle(initialValue = false)
+                        val rowPlaybackState = when {
+                            !item.hasSameMediaIdentity(currentPlaybackItemState.item) ->
+                                MusicItemRowPlaybackState.None
+                            currentPlaybackItemState.isPlaying ->
+                                MusicItemRowPlaybackState.CurrentPlaying
+                            else ->
+                                MusicItemRowPlaybackState.CurrentPaused
+                        }
                         MusicItemRow(
                             item = item,
                             isFavorite = isFavorite,
                             downloaded = downloadedKeys.contains("${item.id}@${item.platform}"),
+                            playbackState = rowPlaybackState,
                             actions = setOf(
                                 MusicItemAction.PlayNext,
                                 MusicItemAction.ToggleFavorite,

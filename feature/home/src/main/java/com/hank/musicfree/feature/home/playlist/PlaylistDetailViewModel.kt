@@ -39,6 +39,11 @@ data class PlaylistDetailUiState(
     val isLoading: Boolean = true,
 )
 
+data class CurrentPlaybackItemState(
+    val item: MusicItem? = null,
+    val isPlaying: Boolean = false,
+)
+
 @HiltViewModel
 class PlaylistDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -62,9 +67,18 @@ class PlaylistDetailViewModel @Inject constructor(
         .map { keys -> keys.mapTo(HashSet()) { it.value } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    val currentPlayingItem: StateFlow<MusicItem?> = playerController.playerState
-        .map { it.currentItem }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val currentPlaybackItemState: StateFlow<CurrentPlaybackItemState> = playerController.playerState
+        .map { state ->
+            CurrentPlaybackItemState(
+                item = state.currentItem,
+                isPlaying = state.isPlaying,
+            )
+        }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            CurrentPlaybackItemState(),
+        )
 
     private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())
     val sheetState: StateFlow<AddToPlaylistSheetState> = _sheetState.asStateFlow()
