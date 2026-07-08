@@ -56,7 +56,7 @@ android {
     base.archivesName = "MusicFreeAndroid"
     compileSdk {
         version = release(37) {
-            minorApiLevel = 0
+            minorApiLevel = 1
         }
     }
 

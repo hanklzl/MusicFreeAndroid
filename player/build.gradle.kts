@@ -8,7 +8,7 @@ android {
     namespace = "com.hank.musicfree.player"
     compileSdk {
         version = release(37) {
-            minorApiLevel = 0
+            minorApiLevel = 1
         }
     }
 

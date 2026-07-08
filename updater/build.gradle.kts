@@ -10,7 +10,7 @@ android {
     namespace = "com.hank.musicfree.updater"
     compileSdk {
         version = release(37) {
-            minorApiLevel = 0
+            minorApiLevel = 1
         }
     }
 

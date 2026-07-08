@@ -105,13 +105,15 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 
 - Min SDK：29（Android 10）
 - Target SDK：37
-- compileSdk：37.0
+- compileSdk：37.1
 - Java compatibility：`VERSION_17`
 - JVM toolchain：JDK 21
 - Gradle Wrapper：`9.4.1`
 - AGP：`9.2.1`
 - Kotlin：`2.3.21`
 - Compose BOM：`2026.05.01`
+
+备注：AGP `9.2.1` 是当前 Google Maven 稳定线，已可构建 `compileSdk` 37.1，但会提示其官方测试上限为 37.0；按版本 freshness 规范不使用 `android.suppressUnsupportedCompileSdk` 隐藏该提示，待稳定 AGP 支持 37.1 后再升级 AGP。
 
 ## 模块架构
 

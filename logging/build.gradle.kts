@@ -6,7 +6,7 @@ android {
     namespace = "com.hank.musicfree.logging"
     compileSdk {
         version = release(37) {
-            minorApiLevel = 0
+            minorApiLevel = 1
         }
     }
 
