@@ -40,7 +40,7 @@ cd MusicFreeAndroid
 | 模块 | 一句话职责 |
 |---|---|
 | `:core` | 主题、导航路由、基础模型、通用工具 |
-| `:data` | Room、DataStore、Repository |
+| `:data` | Room 3、DataStore、Repository |
 | `:player` | Media3 / ExoPlayer、MediaSessionService、PlayerController |
 | `:plugin` | QuickJS 引擎、JS 桥接、插件管理 |
 | `:feature:*` | 首页、播放器、搜索、设置等具体功能 |

@@ -1,7 +1,7 @@
 package com.hank.musicfree.data.repository
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.cache.ByteCacheInvalidReason
 import com.hank.musicfree.core.cache.ByteCacheKey
@@ -10,6 +10,7 @@ import com.hank.musicfree.core.cache.ByteCacheValidationMethod
 import com.hank.musicfree.core.cache.ByteCacheValidity
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -27,7 +28,7 @@ class RoomByteCacheStatusStoreTest {
     @Before
     fun setUp() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
+        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).withAppSQLiteDriver()
             .allowMainThreadQueries()
             .build()
         store = RoomByteCacheStatusStore(db.byteCacheStatusDao())

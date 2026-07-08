@@ -5,7 +5,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
-import androidx.room.Room
+import androidx.room3.Room
 import com.hank.musicfree.core.cache.ByteCacheStatusStore
 import com.hank.musicfree.core.local.Mp3MetadataReader
 import com.hank.musicfree.core.model.PlaybackRuntimeSettings
@@ -38,6 +38,7 @@ import com.hank.musicfree.data.db.migration.MIGRATION_13_14
 import com.hank.musicfree.data.db.migration.MIGRATION_14_15
 import com.hank.musicfree.data.db.migration.MIGRATION_15_16
 import com.hank.musicfree.data.db.migration.MIGRATION_9_10
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.datastore.AppPlaybackRuntimeSettings
 import com.hank.musicfree.data.local.Mp3MetadataReaderImpl
 import com.hank.musicfree.data.repository.AppPlaylistDefaultSortProvider
@@ -65,6 +66,7 @@ object DataModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "musicfree.db")
+            .withAppSQLiteDriver()
             .addMigrations(
                 MIGRATION_9_10,
                 MIGRATION_10_11,

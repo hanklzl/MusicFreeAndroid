@@ -1,12 +1,13 @@
 package com.hank.musicfree.data.repository
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.model.LyricSourceInfo
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.RawLyricPayload
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.converter.Converters
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -24,7 +25,7 @@ class LyricRepositoryDeleteTest {
 
     @Before fun setUp() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
+        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).withAppSQLiteDriver()
             .allowMainThreadQueries()
             .build()
         repository = LyricRepository(db.lyricCacheDao(), Converters())

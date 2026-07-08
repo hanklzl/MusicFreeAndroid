@@ -1,9 +1,10 @@
 package com.hank.musicfree.data.db.dao
 
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.entity.MusicItemEntity
 import com.hank.musicfree.data.db.entity.PlaylistEntity
 import com.hank.musicfree.data.db.entity.PlaylistMusicCrossRef
@@ -27,7 +28,7 @@ class PlaylistDaoTest {
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
-        ).allowMainThreadQueries().build()
+        ).withAppSQLiteDriver().allowMainThreadQueries().build()
         playlistDao = db.playlistDao()
         musicDao = db.musicDao()
     }

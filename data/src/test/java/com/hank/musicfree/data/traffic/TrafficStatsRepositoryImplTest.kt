@@ -1,10 +1,11 @@
 package com.hank.musicfree.data.traffic
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.network.NetworkType
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.entity.TrafficDailyEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -23,7 +24,7 @@ class TrafficStatsRepositoryImplTest {
 
     @Before fun setup() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
+        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).withAppSQLiteDriver()
             .allowMainThreadQueries()
             .build()
         repo = TrafficStatsRepositoryImpl(db.trafficDailyDao())

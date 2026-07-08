@@ -1,13 +1,14 @@
 package com.hank.musicfree.data.traffic
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.network.NetworkTrafficEventListener
 import com.hank.musicfree.core.network.NetworkType
 import com.hank.musicfree.core.network.NetworkTypeDetector
 import com.hank.musicfree.core.util.Clock
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
@@ -55,7 +56,7 @@ class TrafficAccumulationE2ETest {
 
     @Before fun setup() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
+        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).withAppSQLiteDriver()
             .allowMainThreadQueries()
             .build()
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

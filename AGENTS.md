@@ -126,7 +126,7 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 | 模块                 | 职责                                                    |
 | -------------------- | ------------------------------------------------------- |
 | `:core`              | 主题、导航路由、基础模型、通用工具                      |
-| `:data`              | Room、DataStore、Repository                             |
+| `:data`              | Room 3、DataStore、Repository                           |
 | `:player`            | Media3/ExoPlayer、MediaSessionService、PlayerController |
 | `:plugin`            | QuickJS 引擎、JS 桥接、插件管理                         |
 | `:feature:home`      | 首页、本地音乐、歌单、榜单、详情链路                    |
@@ -142,7 +142,7 @@ MusicFreeAndroid 是 [MusicFree](https://github.com/maotoumao/MusicFree) 的 And
 - DI：Hilt
 - 播放：Media3（ExoPlayer）+ `MediaSessionService`
 - 插件引擎：QuickJS（`quickjs-kt`）
-- 数据库：Room
+- 数据库：Room 3（`androidx.room3`）
 - 偏好存储：DataStore
 - 异步：Kotlin Coroutines + Flow
 - 导航：Navigation Compose + `@Serializable` 路由对象

@@ -1,12 +1,13 @@
 package com.hank.musicfree.data.repository
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.dao.MediaCacheDao
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -32,7 +33,7 @@ class MediaCacheRepositoryLruTest {
 
     @Before fun setUp() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).allowMainThreadQueries().build()
+        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).withAppSQLiteDriver().allowMainThreadQueries().build()
         dao = db.mediaCacheDao()
         repo = MediaCacheRepository(dao)
     }

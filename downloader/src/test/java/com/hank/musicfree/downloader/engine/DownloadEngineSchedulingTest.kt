@@ -1,6 +1,6 @@
 package com.hank.musicfree.downloader.engine
 
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
@@ -8,6 +8,7 @@ import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.QualityFallbackOrder
 import com.hank.musicfree.core.model.QualityInfo
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.converter.Converters
 import com.hank.musicfree.data.repository.MusicRepository
 import com.hank.musicfree.downloader.io.NetworkState
@@ -18,7 +19,6 @@ import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.MfLogger
-import java.util.concurrent.Executor
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -53,13 +53,11 @@ class DownloadEngineSchedulingTest {
     private lateinit var logger: CapturingLogger
 
     @Before fun setup() {
-        val directExecutor = Executor { it.run() }
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
-        ).allowMainThreadQueries()
-            .setQueryExecutor(directExecutor)
-            .setTransactionExecutor(directExecutor)
+        ).withAppSQLiteDriver().allowMainThreadQueries()
+            .setQueryCoroutineContext(UnconfinedTestDispatcher())
             .build()
         http = FakeHttpDownloader()
         writer = FakeMediaStoreWriter()

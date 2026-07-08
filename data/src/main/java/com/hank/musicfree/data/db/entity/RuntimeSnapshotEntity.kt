@@ -1,7 +1,7 @@
 package com.hank.musicfree.data.db.entity
 
-import androidx.room.Entity
-import androidx.room.Index
+import androidx.room3.Entity
+import androidx.room3.Index
 
 @Entity(
     tableName = "runtime_snapshots",

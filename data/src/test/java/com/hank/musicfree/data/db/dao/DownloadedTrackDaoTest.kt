@@ -1,9 +1,10 @@
 package com.hank.musicfree.data.db.dao
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.entity.DownloadedTrackEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -24,7 +25,7 @@ class DownloadedTrackDaoTest {
 
     @Before fun setUp() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).allowMainThreadQueries().build()
+        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).withAppSQLiteDriver().allowMainThreadQueries().build()
         dao = db.downloadedTrackDao()
     }
 

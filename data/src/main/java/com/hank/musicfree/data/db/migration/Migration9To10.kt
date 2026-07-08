@@ -1,11 +1,12 @@
 package com.hank.musicfree.data.db.migration
 
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room3.migration.Migration
+import androidx.sqlite.SQLiteConnection
+import com.hank.musicfree.data.db.execSql
 
 val MIGRATION_9_10 = object : Migration(9, 10) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSql(
             """
             CREATE TABLE IF NOT EXISTS `listen_event` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -24,10 +25,10 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
             )
             """.trimIndent(),
         )
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_listen_event_playedAtMs` ON `listen_event` (`playedAtMs`)")
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_listen_event_musicId_platform` ON `listen_event` (`musicId`, `platform`)")
+        connection.execSql("CREATE INDEX IF NOT EXISTS `index_listen_event_playedAtMs` ON `listen_event` (`playedAtMs`)")
+        connection.execSql("CREATE INDEX IF NOT EXISTS `index_listen_event_musicId_platform` ON `listen_event` (`musicId`, `platform`)")
 
-        db.execSQL(
+        connection.execSql(
             """
             CREATE TABLE IF NOT EXISTS `listen_event_artist` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -38,7 +39,7 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
             )
             """.trimIndent(),
         )
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_listen_event_artist_eventId` ON `listen_event_artist` (`eventId`)")
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_listen_event_artist_artistName` ON `listen_event_artist` (`artistName`)")
+        connection.execSql("CREATE INDEX IF NOT EXISTS `index_listen_event_artist_eventId` ON `listen_event_artist` (`eventId`)")
+        connection.execSql("CREATE INDEX IF NOT EXISTS `index_listen_event_artist_artistName` ON `listen_event_artist` (`artistName`)")
     }
 }

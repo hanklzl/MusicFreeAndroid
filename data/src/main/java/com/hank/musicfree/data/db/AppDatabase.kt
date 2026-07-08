@@ -1,9 +1,7 @@
 package com.hank.musicfree.data.db
 
-import androidx.room.Database
-import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
-import com.hank.musicfree.data.db.converter.Converters
+import androidx.room3.Database
+import androidx.room3.RoomDatabase
 import com.hank.musicfree.data.db.dao.ByteCacheStatusDao
 import com.hank.musicfree.data.db.dao.DownloadTaskDao
 import com.hank.musicfree.data.db.dao.DownloadedTrackDao
@@ -54,7 +52,6 @@ import com.hank.musicfree.data.db.entity.TrafficDailyEntity
     version = 16,
     exportSchema = true,
 )
-@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun musicDao(): MusicDao
     abstract fun playlistDao(): PlaylistDao

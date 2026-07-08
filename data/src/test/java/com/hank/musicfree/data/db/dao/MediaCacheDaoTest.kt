@@ -1,9 +1,10 @@
 package com.hank.musicfree.data.db.dao
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.entity.ListenEventEntity
 import com.hank.musicfree.data.db.entity.MediaCacheEntity
 import com.hank.musicfree.data.db.entity.MusicItemEntity
@@ -24,7 +25,7 @@ class MediaCacheDaoTest {
 
     @Before fun setUp() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).allowMainThreadQueries().build()
+        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).withAppSQLiteDriver().allowMainThreadQueries().build()
         dao = db.mediaCacheDao()
     }
 

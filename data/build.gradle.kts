@@ -26,7 +26,7 @@ android {
 
 }
 
-room {
+room3 {
     schemaDirectory("$projectDir/schemas")
 }
 
@@ -45,7 +45,8 @@ dependencies {
 
     // Room
     implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.migration)
+    implementation(libs.androidx.sqlite.framework)
     ksp(libs.androidx.room.compiler)
 
     // DataStore

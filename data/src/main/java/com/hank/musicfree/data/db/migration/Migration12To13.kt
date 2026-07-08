@@ -1,11 +1,12 @@
 package com.hank.musicfree.data.db.migration
 
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room3.migration.Migration
+import androidx.sqlite.SQLiteConnection
+import com.hank.musicfree.data.db.execSql
 
 val MIGRATION_12_13 = object : Migration(12, 13) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSql(
             """
             CREATE TABLE IF NOT EXISTS traffic_daily (
                 local_date TEXT NOT NULL,

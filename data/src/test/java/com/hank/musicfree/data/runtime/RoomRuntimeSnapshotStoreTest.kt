@@ -1,9 +1,10 @@
 package com.hank.musicfree.data.runtime
 
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.runtime.RuntimeSnapshot
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -23,7 +24,7 @@ class RoomRuntimeSnapshotStoreTest {
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
-        ).build()
+        ).withAppSQLiteDriver().build()
         store = RoomRuntimeSnapshotStore(db.runtimeSnapshotDao())
     }
 

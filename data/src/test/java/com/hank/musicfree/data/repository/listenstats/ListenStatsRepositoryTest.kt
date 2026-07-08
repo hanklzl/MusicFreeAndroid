@@ -1,9 +1,10 @@
 package com.hank.musicfree.data.repository.listenstats
 
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.util.splitArtists
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.entity.ListenEventArtistEntity
 import com.hank.musicfree.data.db.entity.ListenEventEntity
 import com.hank.musicfree.data.repository.listenstats.model.DetailFilter
@@ -32,7 +33,7 @@ class ListenStatsRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
-        ).allowMainThreadQueries().build()
+        ).withAppSQLiteDriver().allowMainThreadQueries().build()
         repo = ListenStatsRepository(db.listenStatsDao(), zoneIdProvider = { ZoneOffset.UTC })
     }
 

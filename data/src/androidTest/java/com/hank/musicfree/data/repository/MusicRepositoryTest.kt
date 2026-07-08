@@ -1,6 +1,6 @@
 package com.hank.musicfree.data.repository
 
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
@@ -8,6 +8,7 @@ import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.QualityInfo
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.converter.Converters
 import com.hank.musicfree.data.db.entity.DownloadedTrackEntity
 import kotlinx.coroutines.flow.first
@@ -29,7 +30,7 @@ class MusicRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
-        ).allowMainThreadQueries().build()
+        ).withAppSQLiteDriver().allowMainThreadQueries().build()
         repo = MusicRepository(db, db.musicDao(), Converters())
     }
 

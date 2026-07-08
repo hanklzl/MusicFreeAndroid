@@ -2,6 +2,7 @@ package com.hank.musicfree.data.backup
 
 import android.content.ContentResolver
 import android.net.Uri
+import androidx.room3.useWriterConnection
 import com.hank.musicfree.data.db.AppDatabase
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
@@ -23,7 +24,7 @@ interface BackupRepository {
 
 class DefaultBackupRepository(
     private val contentResolver: ContentResolver,
-    private val databaseCheckpoint: () -> Unit,
+    private val databaseCheckpoint: suspend () -> Unit,
     private val layout: BackupPrivateLayout,
     private val appMetadata: BackupAppMetadata,
     private val databaseVersion: Int,
@@ -187,8 +188,10 @@ class DefaultBackupRepository(
     }
 }
 
-fun AppDatabase.checkpointWal() {
-    openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { cursor ->
-        cursor.moveToFirst()
+suspend fun AppDatabase.checkpointWal() {
+    useWriterConnection { connection ->
+        connection.usePrepared("PRAGMA wal_checkpoint(FULL)") { statement ->
+            statement.step()
+        }
     }
 }

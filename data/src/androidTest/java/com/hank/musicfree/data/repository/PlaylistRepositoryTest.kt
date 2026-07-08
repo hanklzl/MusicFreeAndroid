@@ -1,6 +1,6 @@
 package com.hank.musicfree.data.repository
 
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
@@ -9,6 +9,7 @@ import com.hank.musicfree.core.model.Playlist
 import com.hank.musicfree.core.model.SortMode
 import com.hank.musicfree.data.cover.PlaylistCoverStore
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.SeedFavoriteCallback
 import com.hank.musicfree.data.db.converter.Converters
 import kotlinx.coroutines.flow.first
@@ -35,7 +36,7 @@ class PlaylistRepositoryTest {
 
     @Before
     fun setup() {
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
+        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).withAppSQLiteDriver()
             .addCallback(SeedFavoriteCallback)
             .allowMainThreadQueries()
             .build()

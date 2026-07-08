@@ -1,6 +1,5 @@
 package com.hank.musicfree.data.db.converter
 
-import androidx.room.TypeConverter
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.QualityInfo
@@ -9,7 +8,6 @@ import org.json.JSONObject
 
 class Converters {
 
-    @TypeConverter
     fun qualitiesToJson(qualities: Map<PlayQuality, QualityInfo>?): String? {
         if (qualities == null) return null
         val json = JSONObject()
@@ -22,7 +20,6 @@ class Converters {
         return json.toString()
     }
 
-    @TypeConverter
     fun jsonToQualities(json: String?): Map<PlayQuality, QualityInfo>? {
         if (json == null) return null
         val obj = JSONObject(json)
@@ -38,7 +35,6 @@ class Converters {
         return map
     }
 
-    @TypeConverter
     fun musicItemToJson(item: MusicItem?): String? {
         if (item == null) return null
         val json = JSONObject()
@@ -57,7 +53,6 @@ class Converters {
         return json.toString()
     }
 
-    @TypeConverter
     fun jsonToMusicItem(json: String?): MusicItem? {
         if (json.isNullOrBlank()) return null
         val obj = JSONObject(json)

@@ -1,12 +1,13 @@
 package com.hank.musicfree.data.repository
 
 import android.content.Context
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.Playlist
 import com.hank.musicfree.data.cover.PlaylistCoverStore
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.SeedFavoriteCallback
 import com.hank.musicfree.data.db.converter.Converters
 import com.hank.musicfree.data.db.entity.PlaylistEntity
@@ -32,7 +33,7 @@ class PlaylistRepositoryFavoriteRecoveryTest {
     fun setup() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val converters = Converters()
-        db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+        db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).withAppSQLiteDriver()
             .addCallback(SeedFavoriteCallback)
             .allowMainThreadQueries()
             .build()
@@ -130,14 +131,14 @@ class PlaylistRepositoryFavoriteRecoveryTest {
     fun seedFavoriteCallback_onOpenRestoresMissingDefaultFavoritePlaylist() = runTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val dbName = "favorite-recovery-${UUID.randomUUID()}.db"
-        val firstDb = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+        val firstDb = Room.databaseBuilder(context, AppDatabase::class.java, dbName).withAppSQLiteDriver()
             .addCallback(SeedFavoriteCallback)
             .allowMainThreadQueries()
             .build()
         firstDb.playlistDao().deletePlaylistById(Playlist.DEFAULT_FAVORITE_ID)
         firstDb.close()
 
-        val reopenedDb = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+        val reopenedDb = Room.databaseBuilder(context, AppDatabase::class.java, dbName).withAppSQLiteDriver()
             .addCallback(SeedFavoriteCallback)
             .allowMainThreadQueries()
             .build()

@@ -1,6 +1,6 @@
 package com.hank.musicfree.data.db.entity
 
-import androidx.room.Entity
+import androidx.room3.Entity
 
 @Entity(tableName = "downloaded_tracks", primaryKeys = ["id", "platform"])
 data class DownloadedTrackEntity(

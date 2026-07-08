@@ -1,12 +1,13 @@
 package com.hank.musicfree.downloader.engine
 
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.QualityFallbackOrder
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.converter.Converters
 import com.hank.musicfree.data.repository.MusicRepository
 import com.hank.musicfree.downloader.io.NetworkState
@@ -26,7 +27,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.util.concurrent.Executor
 import kotlin.io.path.createTempDirectory
 
 @RunWith(RobolectricTestRunner::class)
@@ -44,13 +44,11 @@ class DownloadEngineFailurePathsTest {
     private lateinit var musicRepository: MusicRepository
 
     @Before fun setup() {
-        val syncExec = Executor { it.run() }
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(), AppDatabase::class.java,
-        )
+        ).withAppSQLiteDriver()
             .allowMainThreadQueries()
-            .setQueryExecutor(syncExec)
-            .setTransactionExecutor(syncExec)
+            .setQueryCoroutineContext(UnconfinedTestDispatcher())
             .build()
         http = FakeHttpDownloader()
         writer = FakeMediaStoreWriter()

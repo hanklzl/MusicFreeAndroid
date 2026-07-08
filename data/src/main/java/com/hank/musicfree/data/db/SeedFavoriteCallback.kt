@@ -1,22 +1,22 @@
 package com.hank.musicfree.data.db
 
-import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room3.RoomDatabase
+import androidx.sqlite.SQLiteConnection
 
 object SeedFavoriteCallback : RoomDatabase.Callback() {
-    override fun onCreate(db: SupportSQLiteDatabase) {
-        super.onCreate(db)
-        seedFavoriteRow(db)
+    override suspend fun onCreate(connection: SQLiteConnection) {
+        super.onCreate(connection)
+        seedFavoriteRow(connection)
     }
 
-    override fun onOpen(db: SupportSQLiteDatabase) {
-        super.onOpen(db)
-        seedFavoriteRow(db)
+    override suspend fun onOpen(connection: SQLiteConnection) {
+        super.onOpen(connection)
+        seedFavoriteRow(connection)
     }
 
-    fun seedFavoriteRow(db: SupportSQLiteDatabase) {
+    fun seedFavoriteRow(connection: SQLiteConnection) {
         val now = System.currentTimeMillis()
-        db.execSQL(
+        connection.execSql(
             """
             INSERT OR IGNORE INTO playlists
                 (id, name, coverUri, description, sortMode, createdAt, updatedAt)

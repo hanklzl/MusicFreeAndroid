@@ -1,7 +1,7 @@
 package com.hank.musicfree.data.repository
 
 import android.net.Uri
-import androidx.room.withTransaction
+import androidx.room3.withWriteTransaction
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.Playlist
 import com.hank.musicfree.core.model.SortMode
@@ -218,7 +218,7 @@ class PlaylistRepository @Inject constructor(
         ) {
             val insertedItems = mutableListOf<MusicItem>()
             val addedAt = System.currentTimeMillis()
-            val addedCount = db.withTransaction {
+            val addedCount = db.withWriteTransaction {
                 var addedCount = 0
                 val baseOrder = playlistDao.minSortOrderInPlaylist(playlistId) - items.size
                 for ((index, item) in items.withIndex()) {
@@ -244,7 +244,7 @@ class PlaylistRepository @Inject constructor(
     }
 
     private suspend fun addMusicToPlaylistWithCoverSync(playlistId: String, item: MusicItem): Boolean {
-        val added = db.withTransaction {
+        val added = db.withWriteTransaction {
             addMusicToPlaylistNoCoverSync(
                 playlistId = playlistId,
                 item = item,

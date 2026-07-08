@@ -1,17 +1,17 @@
 package com.hank.musicfree.downloader.engine
 
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.core.app.ApplicationProvider
 import com.hank.musicfree.core.model.PlayQuality
 import com.hank.musicfree.core.model.QualityFallbackOrder
 import com.hank.musicfree.data.db.AppDatabase
+import com.hank.musicfree.data.db.withAppSQLiteDriver
 import com.hank.musicfree.data.db.converter.Converters
 import com.hank.musicfree.data.db.entity.DownloadTaskEntity
 import com.hank.musicfree.data.repository.MusicRepository
 import com.hank.musicfree.downloader.io.NetworkState
 import com.hank.musicfree.downloader.model.DownloadStatus
 import com.hank.musicfree.downloader.prefs.DownloadConfig
-import java.util.concurrent.Executor
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -37,10 +37,12 @@ class DownloadEngineRecoveryTest {
     private lateinit var musicRepository: MusicRepository
 
     @Before fun setup() {
-        val syncExec = Executor { it.run() }
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(), AppDatabase::class.java,
-        ).allowMainThreadQueries().setQueryExecutor(syncExec).setTransactionExecutor(syncExec).build()
+        ).withAppSQLiteDriver()
+            .allowMainThreadQueries()
+            .setQueryCoroutineContext(UnconfinedTestDispatcher())
+            .build()
         converters = Converters()
         musicRepository = MusicRepository(db, db.musicDao(), converters)
     }

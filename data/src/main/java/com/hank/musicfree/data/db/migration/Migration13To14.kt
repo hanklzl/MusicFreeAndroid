@@ -1,11 +1,12 @@
 package com.hank.musicfree.data.db.migration
 
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room3.migration.Migration
+import androidx.sqlite.SQLiteConnection
+import com.hank.musicfree.data.db.execSql
 
 val MIGRATION_13_14 = object : Migration(13, 14) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSql(
             """
             CREATE TABLE IF NOT EXISTS `runtime_snapshots` (
                 `namespace` TEXT NOT NULL,
@@ -20,13 +21,13 @@ val MIGRATION_13_14 = object : Migration(13, 14) {
             )
             """.trimIndent(),
         )
-        db.execSQL(
+        connection.execSql(
             """
             CREATE INDEX IF NOT EXISTS `index_runtime_snapshots_namespace_updatedAtEpochMs`
             ON `runtime_snapshots` (`namespace`, `updatedAtEpochMs`)
             """.trimIndent(),
         )
-        db.execSQL(
+        connection.execSql(
             """
             CREATE INDEX IF NOT EXISTS `index_runtime_snapshots_namespace_expiresAtEpochMs`
             ON `runtime_snapshots` (`namespace`, `expiresAtEpochMs`)

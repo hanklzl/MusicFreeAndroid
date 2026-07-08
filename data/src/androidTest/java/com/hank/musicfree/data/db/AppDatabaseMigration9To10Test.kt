@@ -1,15 +1,8 @@
 package com.hank.musicfree.data.db
 
-import androidx.room.Room
-import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.hank.musicfree.data.db.migration.MIGRATION_9_10
-import com.hank.musicfree.data.db.migration.MIGRATION_10_11
-import com.hank.musicfree.data.db.migration.MIGRATION_11_12
-import com.hank.musicfree.data.db.migration.MIGRATION_12_13
-import com.hank.musicfree.data.db.migration.MIGRATION_13_14
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -21,18 +14,13 @@ private const val TEST_DB = "migration-test"
 class AppDatabaseMigration9To10Test {
 
     @get:Rule
-    val helper: MigrationTestHelper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        AppDatabase::class.java,
-        emptyList(),
-        FrameworkSQLiteOpenHelperFactory(),
-    )
+    val helper = appDatabaseMigrationHelper(TEST_DB)
 
     @Test
-    fun migrate9To10_createsListenEventTables_andCascadeWorks() {
-        helper.createDatabase(TEST_DB, 9).close()
+    fun migrate9To10_createsListenEventTables_andCascadeWorks() = runTest {
+        helper.createDatabase(9).close()
 
-        helper.runMigrationsAndValidate(TEST_DB, 10, true, MIGRATION_9_10).use { db ->
+        helper.runMigrationsAndValidate(10, listOf(MIGRATION_9_10)).use { db ->
             db.execSQL("PRAGMA foreign_keys=ON")
 
             db.execSQL(
@@ -64,19 +52,6 @@ class AppDatabaseMigration9To10Test {
         }
 
         // 跑完 migration 后让 Room 用最新 schema 打开一次，验证 entity 与 db 完全对齐
-        Room.databaseBuilder(
-            InstrumentationRegistry.getInstrumentation().targetContext,
-            AppDatabase::class.java,
-            TEST_DB,
-        ).addMigrations(
-            MIGRATION_9_10,
-            MIGRATION_10_11,
-            MIGRATION_11_12,
-            MIGRATION_12_13,
-            MIGRATION_13_14,
-        ).build().apply {
-            openHelper.writableDatabase
-            close()
-        }
+        openLatestAppDatabase(TEST_DB, *APP_DATABASE_MIGRATIONS)
     }
 }

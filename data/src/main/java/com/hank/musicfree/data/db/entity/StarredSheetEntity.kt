@@ -1,6 +1,6 @@
 package com.hank.musicfree.data.db.entity
 
-import androidx.room.Entity
+import androidx.room3.Entity
 import com.hank.musicfree.core.model.StarredKind
 
 @Entity(

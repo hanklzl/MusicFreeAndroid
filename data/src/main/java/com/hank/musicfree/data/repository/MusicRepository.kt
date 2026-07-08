@@ -10,7 +10,7 @@ import com.hank.musicfree.data.mapper.toModel
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.LogFields
 import com.hank.musicfree.logging.MfLog
-import androidx.room.withTransaction
+import androidx.room3.withWriteTransaction
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -95,7 +95,7 @@ class MusicRepository @Inject constructor(
             ),
             resultFields = { mapOf("count" to 1) },
         ) {
-            db.withTransaction {
+            db.withWriteTransaction {
                 val existing = musicDao.getById(item.id, item.platform)?.toModel(converters)
                 val merged = existing?.let { current ->
                     current.copy(
@@ -129,7 +129,7 @@ class MusicRepository @Inject constructor(
             fields = item.logFields(),
             resultFields = { mapOf("count" to 1) },
         ) {
-            db.withTransaction {
+            db.withWriteTransaction {
                 if (item.platform == LOCAL_PLATFORM) {
                     musicDao.delete(item.toEntity(converters))
                 } else {
@@ -159,19 +159,19 @@ class MusicRepository @Inject constructor(
             if (platform == LOCAL_PLATFORM) {
                 return@logDataWrite false
             }
-            db.withTransaction {
+            db.withWriteTransaction {
                 val hadDownloadedTrack = db.downloadedTrackDao().exists(id, platform)
                 db.downloadedTrackDao().deleteByKey(id, platform)
 
                 val existing = musicDao.getById(id, platform)?.toModel(converters)
-                    ?: return@withTransaction hadDownloadedTrack
+                    ?: return@withWriteTransaction hadDownloadedTrack
                 val hadLocalFields = !existing.localPath.isNullOrBlank() ||
                     existing.raw.containsKey("downloaded") ||
                     existing.raw.containsKey("downloadQuality") ||
                     existing.raw.containsKey("downloadedAt") ||
                     existing.raw.containsKey("mediaStoreUri")
                 if (!hadLocalFields) {
-                    return@withTransaction hadDownloadedTrack
+                    return@withWriteTransaction hadDownloadedTrack
                 }
 
                 musicDao.update(

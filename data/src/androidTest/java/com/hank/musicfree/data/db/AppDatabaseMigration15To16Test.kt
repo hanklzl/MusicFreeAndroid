@@ -1,9 +1,8 @@
 package com.hank.musicfree.data.db
 
-import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hank.musicfree.data.db.migration.MIGRATION_15_16
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -13,16 +12,11 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AppDatabaseMigration15To16Test {
     @get:Rule
-    val helper = MigrationTestHelper(
-        instrumentation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation(),
-        databaseClass = AppDatabase::class.java,
-        specs = emptyList(),
-        openFactory = FrameworkSQLiteOpenHelperFactory(),
-    )
+    val helper = appDatabaseMigrationHelper(TEST_DB)
 
     @Test
-    fun migrationAddsNullableMediaCacheDisplayColumnsAndKeepsRows() {
-        helper.createDatabase(TEST_DB, 15).use { db ->
+    fun migrationAddsNullableMediaCacheDisplayColumnsAndKeepsRows() = runTest {
+        helper.createDatabase(15).use { db ->
             db.execSQL(
                 """
                 INSERT INTO media_cache(platform, id, sourcesJson, updated_at)
@@ -31,7 +25,7 @@ class AppDatabaseMigration15To16Test {
             )
         }
 
-        helper.runMigrationsAndValidate(TEST_DB, 16, true, MIGRATION_15_16).use { db ->
+        helper.runMigrationsAndValidate(16, listOf(MIGRATION_15_16)).use { db ->
             db.query("PRAGMA table_info(media_cache)").use { cursor ->
                 val columns = mutableSetOf<String>()
                 while (cursor.moveToNext()) {

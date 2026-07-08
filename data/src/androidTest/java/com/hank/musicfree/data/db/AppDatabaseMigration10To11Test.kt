@@ -1,15 +1,8 @@
 package com.hank.musicfree.data.db
 
-import androidx.room.Room
-import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.hank.musicfree.data.db.migration.MIGRATION_10_11
-import com.hank.musicfree.data.db.migration.MIGRATION_12_13
-import com.hank.musicfree.data.db.migration.MIGRATION_13_14
-import com.hank.musicfree.data.db.migration.MIGRATION_9_10
-import com.hank.musicfree.data.db.migration.MIGRATION_11_12
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -22,16 +15,11 @@ private const val TEST_DB = "migration-10-11-test"
 class AppDatabaseMigration10To11Test {
 
     @get:Rule
-    val helper: MigrationTestHelper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        AppDatabase::class.java,
-        emptyList(),
-        FrameworkSQLiteOpenHelperFactory(),
-    )
+    val helper = appDatabaseMigrationHelper(TEST_DB)
 
     @Test
-    fun migrate10To11_addsMergeKey_andBackfillsByTitlePlusPrimaryArtist() {
-        helper.createDatabase(TEST_DB, 10).use { db ->
+    fun migrate10To11_addsMergeKey_andBackfillsByTitlePlusPrimaryArtist() = runTest {
+        helper.createDatabase(10).use { db ->
             db.execSQL(
                 """INSERT INTO listen_event(playedAtMs, musicId, platform, title, artistRaw,
                    album, artwork, durationMs, playedSeconds, completed, language, genre)
@@ -52,7 +40,7 @@ class AppDatabaseMigration10To11Test {
             )
         }
 
-        helper.runMigrationsAndValidate(TEST_DB, 11, true, MIGRATION_10_11).use { db ->
+        helper.runMigrationsAndValidate(11, listOf(MIGRATION_10_11)).use { db ->
             val keyA = db.query("SELECT mergeKey FROM listen_event WHERE musicId = 'A'").use { c ->
                 c.moveToFirst(); c.getString(0)
             }
@@ -78,19 +66,6 @@ class AppDatabaseMigration10To11Test {
             ).use { c -> assertTrue("mergeKey index should exist", c.moveToFirst()) }
         }
 
-        Room.databaseBuilder(
-            InstrumentationRegistry.getInstrumentation().targetContext,
-            AppDatabase::class.java,
-            TEST_DB,
-        ).addMigrations(
-            MIGRATION_9_10,
-            MIGRATION_10_11,
-            MIGRATION_11_12,
-            MIGRATION_12_13,
-            MIGRATION_13_14,
-        ).build().apply {
-            openHelper.writableDatabase
-            close()
-        }
+        openLatestAppDatabase(TEST_DB, *APP_DATABASE_MIGRATIONS)
     }
 }
