@@ -6,6 +6,37 @@
 
 <!-- next-release -->
 
+## [v1.2.20] - 2026-07-09
+
+### 变更详情
+
+#### 新功能
+- feat(playlist): 标记当前播放歌曲行 (08b2bd2)
+
+#### 修复
+- fix(player): 拒绝早停字节缓存升级 (f354b38)
+
+#### 文档
+- docs(playlist): 制定当前播放行状态实现计划 (73e2c7b)
+- docs(playlist): 设计当前播放行状态 (bc6916f)
+- docs(changelog): release v1.2.19 [skip ci] (5b5f2bc)
+
+#### 杂项
+- chore(release): 发布 v1.2.20 (b0405bd)
+- chore(deps): 升级依赖并清理告警 (51c1159)
+
+#### 其它
+- build(data): 升级 Room 3 (7f71b10)
+- build(sdk): 升级 compileSdk 到 37.1 (e528847)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.20-arm64-v8a.apk` · 7.9MB · sha256 `0dac9c587a46`
+- x86_64: `MusicFreeAndroid-v1.2.20-x86_64.apk` · 7.9MB · sha256 `47f795547660`
+- mapping: `mapping-v1.2.20.zip` · sha256 `c4bad1097711` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.19] - 2026-07-04
 
 ### 变更详情
