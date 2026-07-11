@@ -75,6 +75,18 @@ class ListenStatsDaoTest {
     }
 
     @Test
+    fun preferenceEvents_usesHalfOpenWindowStableNewestOrderAndLimit() = runTest {
+        seed(playedAtMs = 999, musicId = "before")
+        seed(playedAtMs = 1_000, musicId = "start")
+        seed(playedAtMs = 2_000, musicId = "middle")
+        seed(playedAtMs = 3_000, musicId = "end")
+
+        val events = dao.preferenceEvents(startMs = 1_000, endMs = 3_000, limit = 2)
+
+        assertEquals(listOf("middle", "start"), events.map { it.musicId })
+    }
+
+    @Test
     fun distinctSongs_artists_GroupCorrectly() = runTest {
         seed(playedAtMs = 1, musicId = "m1", artists = listOf("周杰伦", "林俊杰"))
         seed(playedAtMs = 2, musicId = "m1", artists = listOf("周杰伦", "林俊杰"))   // 同歌

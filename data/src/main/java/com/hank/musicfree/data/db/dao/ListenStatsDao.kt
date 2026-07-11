@@ -47,6 +47,18 @@ data class ListenedSongRow(
 @Dao
 interface ListenStatsDao {
 
+    @Query(
+        """SELECT * FROM listen_event
+           WHERE playedAtMs >= :startMs AND playedAtMs < :endMs
+           ORDER BY playedAtMs DESC, id DESC
+           LIMIT :limit""",
+    )
+    suspend fun preferenceEvents(
+        startMs: Long,
+        endMs: Long,
+        limit: Int,
+    ): List<ListenEventEntity>
+
     @Transaction
     suspend fun insertEventWithArtists(
         event: ListenEventEntity,

@@ -1,6 +1,8 @@
 package com.hank.musicfree.feature.home
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -60,6 +62,7 @@ class HomeScreenMockContentTest {
     @Test
     fun `home screen content renders mock rows instead of empty state and wires mock row click callback`() {
         val openedMineSheetIds = mutableListOf<String>()
+        var openedTodayRecommendation = 0
 
         composeRule.setContent {
             MusicFreeTheme {
@@ -88,6 +91,7 @@ class HomeScreenMockContentTest {
                     onOpenStarredSheet = {},
                     onOpenStarredAlbum = {},
                     onTrashClick = {},
+                    onNavigateToTodayRecommendation = { openedTodayRecommendation++ },
                 )
             }
         }
@@ -95,9 +99,11 @@ class HomeScreenMockContentTest {
         composeRule.onAllNodesWithText("暂无歌单").assertCountEquals(0)
         composeRule.onAllNodesWithTag(FidelityAnchorPatterns.mineSheetItem("mock-mine-liked")).assertCountEquals(1)
         composeRule.onNodeWithTag(FidelityAnchorPatterns.mineSheetItem("mock-mine-liked")).performClick()
+        composeRule.onNode(hasText("今日推荐") and hasClickAction()).performClick()
 
         composeRule.runOnIdle {
             assertEquals(listOf("mock-mine-liked"), openedMineSheetIds)
+            assertEquals(1, openedTodayRecommendation)
         }
     }
 

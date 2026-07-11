@@ -18,6 +18,7 @@ import com.hank.musicfree.core.navigation.SettingsRoute
 import com.hank.musicfree.core.navigation.SettingsType
 import com.hank.musicfree.core.navigation.TopListDetailRoute
 import com.hank.musicfree.core.navigation.TopListRoute
+import com.hank.musicfree.core.navigation.TodayRecommendationRoute
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import org.junit.Assert.assertEquals
@@ -210,6 +211,13 @@ class RoutesTest {
         assertNotNull(json)
         val decoded = Json.decodeFromString<RecommendSheetsRoute>(json)
         assertNotNull(decoded)
+    }
+
+    @Test
+    fun `TodayRecommendationRoute is serializable`() {
+        val json = Json.encodeToString(serializer(), TodayRecommendationRoute)
+        val decoded = Json.decodeFromString<TodayRecommendationRoute>(json)
+        assertEquals(TodayRecommendationRoute, decoded)
     }
 
     @Test

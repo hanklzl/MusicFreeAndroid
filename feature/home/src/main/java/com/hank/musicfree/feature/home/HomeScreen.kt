@@ -30,6 +30,7 @@ import com.hank.musicfree.updater.checker.UpdateState
 fun HomeScreen(
     onNavigateToSearch: () -> Unit,
     onNavigateToRecommendSheets: () -> Unit,
+    onNavigateToTodayRecommendation: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToListenStats: () -> Unit,
     onNavigateToTrafficStats: () -> Unit,
@@ -147,6 +148,7 @@ fun HomeScreen(
             logUiClick("home.recommend_sheets", screen = "home")
             onNavigateToRecommendSheets()
         },
+        onNavigateToTodayRecommendation = onNavigateToTodayRecommendation,
         onNavigateToTopList = {
             logUiClick("home.top_list", screen = "home")
             onNavigateToTopList()

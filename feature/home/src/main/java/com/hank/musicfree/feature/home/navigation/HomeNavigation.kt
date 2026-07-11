@@ -10,6 +10,7 @@ import com.hank.musicfree.feature.home.sheets.HomeSheetUiModel
 fun NavGraphBuilder.homeScreen(
     onNavigateToSearch: () -> Unit,
     onNavigateToRecommendSheets: () -> Unit,
+    onNavigateToTodayRecommendation: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onNavigateToListenStats: () -> Unit,
     onNavigateToTrafficStats: () -> Unit,
@@ -27,6 +28,7 @@ fun NavGraphBuilder.homeScreen(
         HomeScreen(
             onNavigateToSearch = onNavigateToSearch,
             onNavigateToRecommendSheets = onNavigateToRecommendSheets,
+            onNavigateToTodayRecommendation = onNavigateToTodayRecommendation,
             onNavigateToHistory = onNavigateToHistory,
             onNavigateToListenStats = onNavigateToListenStats,
             onNavigateToTrafficStats = onNavigateToTrafficStats,

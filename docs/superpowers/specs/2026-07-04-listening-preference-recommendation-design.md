@@ -6,7 +6,16 @@
 > 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md)、[AGENTS](../../../AGENTS.md)
 > 关联规则：[UI rules](../../dev-harness/ui/rules.md)、[Plugin rules](../../dev-harness/plugin/rules.md)、[Runtime rules](../../dev-harness/runtime/rules.md)、[Test rules](../../dev-harness/test/rules.md)
 > RN 参考：[plugin.d.ts](../../../../MusicFree/src/types/plugin.d.ts)、[recommendSheets](../../../../MusicFree/src/pages/recommendSheets/)
-> 最后校验：2026-07-04
+> 最后校验：2026-07-11
+
+## 2026-07-11 第一版实现决策
+
+- 首页保留 RN 对齐的四宫格，在其后新增独立“今日推荐”轻卡片；不替换原“推荐歌单”入口。
+- 偏好画像使用最近 30 个本地自然日内最多 5,000 条 `listen_event`，按最近性、有效播放时长和完成状态加权。
+- 候选召回复用 `getRecommendSheetsByTag` 与 `search(query, 1, "sheet")`；不修改 `PluginApi`。
+- 跨插件最多 4 路并行，同一插件内串行；单次插件调用上限 15 秒。
+- 每日结果与最近曝光统一保存在现有 `runtime_snapshots` 的 `today_recommendation` namespace，保留 8 份、TTL 8 天，不新增 Room 表或 migration。
+- 推荐列表最多 12 项，并限制单一平台占比；手动刷新保留旧内容直到新结果成功。
 
 ## 背景
 
@@ -282,7 +291,7 @@ data class DailyRecommendationSnapshot(
 持久化建议：
 
 - 快照可存 Room 或 RuntimeSnapshot，最终实现按数据规模选择。
-- 推荐曝光记录建议用 Room，避免当天刷新反复推荐同一歌单。
+- 第一版从最近 7 份每日 Snapshot 汇总曝光键，避免当天刷新反复推荐同一歌单。
 - 不使用 DataStore 保存大列表。
 
 刷新策略：
@@ -303,15 +312,13 @@ data class DailyRecommendationSnapshot(
 
 ### 首页入口
 
-首页新增轻入口，形式可以是操作区入口或一张小型“今日推荐”卡片。第一版推荐入口不做营销大 hero，保持首页现有密度。
+首页在现有四宫格后新增独立小型“今日推荐”卡片。第一版不做营销大 hero，也不改动 RN 对齐的四宫格。
 
 展示：
 
-- 3 到 6 个推荐歌单封面。
 - 标题：`今日推荐`
-- 副文案：根据画像置信度选择：
-  - 高置信度：`按你最近的听歌偏好整理`
-  - 低置信度：`先听一些歌，推荐会更准`
+- 第一版副文案：`根据最近听歌偏好，每天为你整理`。
+- 首页只提供轻入口，不启动插件召回；完整推荐结果在进入页面后生成。
 
 ### 今日推荐歌单页
 
@@ -376,14 +383,16 @@ data class DailyRecommendationSnapshot(
 ## Runtime State 分类
 
 - 推荐页当前 loading、toast、刷新中状态：ViewModel local。
-- 当日推荐结果：SnapshotStore 或 Room 快照。
-- 推荐曝光记录：Room。
+- 当日推荐结果：现有 SnapshotStore，namespace 为 `today_recommendation`。
+- 推荐曝光记录：从最近 7 份 Snapshot 中派生，不单独落表。
 - 偏好画像：从 `listen_event` 派生，可缓存轻量 snapshot，但源事实是 Room 事件。
 - 插件实例、QuickJS runtime、Coroutine job 不进入持久化。
 
 ## 数据迁移
 
-如果实现新增 Room 表，必须：
+第一版不新增 Room 表，因而不提升数据库版本。现有 `runtime_snapshots` 同时承载每日结果和短期曝光键。
+
+后续若实现长期负反馈或精确曝光分析并新增 Room 表，必须：
 
 - 提升 `AppDatabase.version`。
 - 新增对应 `Migration(N, N+1)`。
@@ -394,7 +403,7 @@ data class DailyRecommendationSnapshot(
 - `daily_recommendation_snapshot`
 - `recommendation_exposure`
 
-也可以先用已有 `runtime_snapshot` 保存每日结果，但若需要按歌单曝光、刷新去重和历史降权，推荐单独建表。
+只有当短期 Snapshot 无法满足长期分析需求时，才引入独立表；该后续需求不阻塞第一版。
 
 ## 测试计划
 

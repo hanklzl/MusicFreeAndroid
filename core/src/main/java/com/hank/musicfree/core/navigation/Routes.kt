@@ -170,6 +170,9 @@ data class TopListDetailRoute(
 data object RecommendSheetsRoute
 
 @Serializable
+data object TodayRecommendationRoute
+
+@Serializable
 data class PluginSheetDetailRoute(
     val pluginPlatform: String,
     val sheetId: String,

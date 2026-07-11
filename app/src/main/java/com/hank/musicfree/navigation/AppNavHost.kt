@@ -41,6 +41,7 @@ import com.hank.musicfree.core.navigation.SettingsRoute
 import com.hank.musicfree.core.navigation.SettingsType
 import com.hank.musicfree.core.navigation.TopListDetailRoute
 import com.hank.musicfree.core.navigation.TopListRoute
+import com.hank.musicfree.core.navigation.TodayRecommendationRoute
 import com.hank.musicfree.core.navigation.TrafficStatsRoute
 import com.hank.musicfree.feature.home.navigation.homeScreen
 import com.hank.musicfree.feature.home.albumdetail.navigation.AlbumDetailSeedStore
@@ -61,6 +62,7 @@ import com.hank.musicfree.feature.home.downloading.navigation.downloadingScreen
 import com.hank.musicfree.feature.home.local.navigation.localScreen
 import com.hank.musicfree.feature.home.toplist.navigation.topListDetailScreen
 import com.hank.musicfree.feature.home.toplist.navigation.topListScreen
+import com.hank.musicfree.feature.home.todayrecommendation.navigation.todayRecommendationScreen
 import com.hank.musicfree.feature.playerui.navigation.playerScreen
 import com.hank.musicfree.feature.search.navigation.searchScreen
 import com.hank.musicfree.feature.settings.cachemanagement.navigation.cacheManagementScreen
@@ -93,6 +95,7 @@ fun AppNavHost(
         homeScreen(
             onNavigateToSearch = { navController.navigate(SearchRoute) },
             onNavigateToRecommendSheets = { navController.navigate(RecommendSheetsRoute) },
+            onNavigateToTodayRecommendation = { navController.navigate(TodayRecommendationRoute) },
             onNavigateToHistory = { navController.navigate(HistoryRoute) },
             onNavigateToListenStats = { navController.navigate(ListenStatsRoute()) },
             onNavigateToTrafficStats = { navController.navigate(TrafficStatsRoute()) },
@@ -284,6 +287,27 @@ fun AppNavHost(
                 navController.navigate(
                     PluginSheetDetailRoute(
                         pluginPlatform = pluginPlatform,
+                        sheetId = sheet.id,
+                        title = sheet.title,
+                        artist = sheet.artist,
+                        description = sheet.description,
+                        coverImg = sheet.coverImg,
+                        artwork = sheet.artwork,
+                        worksNum = sheet.worksNum,
+                        seedToken = seedToken,
+                    ),
+                )
+            },
+        )
+        todayRecommendationScreen(
+            onBack = { navController.popBackStack() },
+            onOpenPluginList = { navController.navigate(PluginListRoute) },
+            onOpenSheetDetail = { item ->
+                val sheet = item.sheet
+                val seedToken = PluginSheetSeedStore.put(sheet)
+                navController.navigate(
+                    PluginSheetDetailRoute(
+                        pluginPlatform = sheet.platform,
                         sheetId = sheet.id,
                         title = sheet.title,
                         artist = sheet.artist,

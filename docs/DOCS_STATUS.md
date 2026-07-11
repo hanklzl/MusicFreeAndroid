@@ -87,7 +87,7 @@
 | [docs/superpowers/specs/2026-07-08-playlist-current-playing-row-state-design.md](./superpowers/specs/2026-07-08-playlist-current-playing-row-state-design.md) | 当前规范（歌单当前播放行状态） | 是（作为实现计划输入） | 歌单详情列表当前歌曲行展示淡主色背景、左侧竖条和标题前波形；播放中波形可动，暂停中同形静止 |
 | [docs/home-fidelity/homepage/README.md](./home-fidelity/homepage/README.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页取证目录、命名与采集顺序 |
 | [docs/parity-audit/README.md](./parity-audit/README.md) | 当前规范（Parity Audit 专项） | 是 | parity-audit-skill 管理的状态、scenario catalog 与运行产物目录索引 |
-| [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 首页黄金数据态基线 |
+| [docs/superpowers/specs/2026-07-11-homepage-ui-fidelity-manifest.md](./superpowers/specs/2026-07-11-homepage-ui-fidelity-manifest.md) | 当前规范（首页专项） | 是（仅首页专项） | 加入 Android-only 今日推荐轻入口后的首页黄金数据态基线 |
 | [docs/superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md](./superpowers/specs/2026-04-11-homepage-main-ui-mock-design.md) | 当前参考（首页 mock 专项） | 否 | 首页主界面与底部 mini player 的第一阶段 mock 对齐设计 |
 | [docs/superpowers/specs/2026-04-11-homepage-ui-fidelity-design.md](./superpowers/specs/2026-04-11-homepage-ui-fidelity-design.md) | 当前参考 | 否 | 首页 fidelity 设计决策背景 |
 | [docs/superpowers/specs/2026-03-25-home-fidelity-design.md](./superpowers/specs/2026-03-25-home-fidelity-design.md) | 当前参考 | 否 | 首页 fidelity 早期基线设计 |

@@ -30,6 +30,7 @@ import com.hank.musicfree.feature.home.component.HomeDrawerContent
 import com.hank.musicfree.feature.home.component.HomeDrawerDialogs
 import com.hank.musicfree.feature.home.component.HomeNavBar
 import com.hank.musicfree.feature.home.component.HomeOperations
+import com.hank.musicfree.feature.home.component.TodayRecommendationHomeCard
 import com.hank.musicfree.feature.home.sheets.HomeSheetTab
 import com.hank.musicfree.feature.home.sheets.HomeSheetUiModel
 import com.hank.musicfree.feature.home.sheets.homeSheetsSection
@@ -97,6 +98,7 @@ fun HomeScreenContent(
     onOpenStarredSheet: (HomeSheetUiModel) -> Unit,
     onOpenStarredAlbum: (HomeSheetUiModel) -> Unit,
     onTrashClick: (HomeSheetUiModel) -> Unit,
+    onNavigateToTodayRecommendation: () -> Unit = {},
 ) {
     val drawerScope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(
@@ -200,6 +202,9 @@ fun HomeScreenContent(
                         onHistoryClick = onNavigateToHistory,
                         onLocalMusicClick = onNavigateToLocal,
                     )
+                }
+                item {
+                    TodayRecommendationHomeCard(onClick = onNavigateToTodayRecommendation)
                 }
                 homeSheetsSection(
                     uiModel = visualUiModel.playlistSection,

@@ -1,11 +1,12 @@
 # 首页 UI Fidelity 黄金数据态 Manifest
 
-> 文档状态：当前规范（首页专项）
+> 文档状态：历史基线（已由 2026-07-11 v2 取代）
 > 适用范围：首页 UI fidelity 黄金数据态基线。
 > 直接执行：是（仅首页专项）
 > 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md) ｜ [AGENTS](../../../AGENTS.md)
 > 备注：首页截图、录屏、dump 验收前应先恢复到本 manifest。
-> 最后校验：2026-04-11
+> 后继文档：[2026-07-11-homepage-ui-fidelity-manifest.md](./2026-07-11-homepage-ui-fidelity-manifest.md)
+> 最后校验：2026-07-11
 
 
 ## 版本
