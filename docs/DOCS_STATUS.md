@@ -30,6 +30,7 @@
 |---|---|---|---|
 | [AGENTS.md](../AGENTS.md) | 当前规范 | 是 | 仓库工作总规则 |
 | [docs/DOCS_STATUS.md](./DOCS_STATUS.md) | 当前规范 | 是 | 文档状态与治理入口 |
+| [docs/product/2026-07-11-interaction-and-feature-audit.md](./product/2026-07-11-interaction-and-feature-audit.md) | 当前参考（产品交互与功能审计） | 否 | 当前功能成熟度、已确认交互缺口、P0/P1/P2 优先级与后续产品路线建议；实施前需另行确认具体设计 spec |
 | [docs/updater/download-update-module.md](./updater/download-update-module.md) | 当前规范（下载更新模块） | 是 | `:updater` 更新检查、APK 缓存、断点续传、前台服务、静默下载与安装入口 |
 | [docs/ui-harness/screen-chrome-rules.md](./ui-harness/screen-chrome-rules.md) | 已迁移 | 否 | 已并入 [docs/dev-harness/ui/rules.md](./dev-harness/ui/rules.md)；本路径仅保留 redirect stub |
 | [docs/superpowers/specs/2026-05-04-playlist-import-design.md](./superpowers/specs/2026-05-04-playlist-import-design.md) | 当前规范（歌单导入功能） | 是（作为实现计划输入） | 首页导入歌单入口、插件 importMusicSheet 能力识别与批量导入到用户歌单的设计 |
