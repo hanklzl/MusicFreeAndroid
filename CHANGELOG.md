@@ -6,6 +6,28 @@
 
 <!-- next-release -->
 
+## [v1.2.21] - 2026-07-12
+
+### 变更详情
+
+#### 新功能
+- feat(home): 实现纯端今日推荐歌单 (87d98b0)
+
+#### 文档
+- docs(product): 整理交互审计与推荐路线 (3809057)
+- docs(changelog): release v1.2.20 [skip ci] (3c07ad8)
+
+#### 杂项
+- chore(release): 发布 v1.2.21 (19fb166)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.21-arm64-v8a.apk` · 7.9MB · sha256 `44b5e2de9aa2`
+- x86_64: `MusicFreeAndroid-v1.2.21-x86_64.apk` · 7.9MB · sha256 `5b8151452d82`
+- mapping: `mapping-v1.2.21.zip` · sha256 `668a030ab29a` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.20] - 2026-07-09
 
 ### 变更详情
