@@ -17,6 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.util.concurrent.MoreExecutors
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.player.controller.PlayerController
+import com.hank.musicfree.player.fixture.createTestPlayerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -100,7 +101,7 @@ class PlaybackServiceTest {
 
     @Test
     fun notificationSkipNextCommandAdvancesPlayerControllerQueue() {
-        val playerController = PlayerController(context)
+        val playerController = createTestPlayerController(context)
 
         try {
             connectPlayerController(playerController)
@@ -135,7 +136,7 @@ class PlaybackServiceTest {
 
     @Test
     fun notificationSkipPreviousCommandMovesPlayerControllerQueueBack() {
-        val playerController = PlayerController(context)
+        val playerController = createTestPlayerController(context)
 
         try {
             connectPlayerController(playerController)
@@ -158,6 +159,68 @@ class PlaybackServiceTest {
 
             assertEquals(SessionResult.RESULT_SUCCESS, result.resultCode)
             waitUntil("notification previous command moves queue back") {
+                playerController.playerState.value.currentItem?.id == "1"
+            }
+        } finally {
+            runOnAppThread {
+                playerController.reset()
+                playerController.release()
+            }
+        }
+    }
+
+    @Test
+    fun standardSeekToNextMediaItemAdvancesPlayerControllerQueue() {
+        val playerController = createTestPlayerController(context)
+
+        try {
+            connectPlayerController(playerController)
+            runOnAppThread {
+                playerController.playQueue(
+                    listOf(testItem("1"), testItem("2")),
+                    startIndex = 0,
+                )
+            }
+            waitUntil("player controller starts first queued item") {
+                playerController.playerState.value.currentItem?.id == "1"
+            }
+
+            runOnAppThread {
+                controller!!.seekToNextMediaItem()
+            }
+
+            waitUntil("standard next command advances queue") {
+                playerController.playerState.value.currentItem?.id == "2"
+            }
+        } finally {
+            runOnAppThread {
+                playerController.reset()
+                playerController.release()
+            }
+        }
+    }
+
+    @Test
+    fun standardSeekToPreviousMediaItemMovesPlayerControllerQueueBack() {
+        val playerController = createTestPlayerController(context)
+
+        try {
+            connectPlayerController(playerController)
+            runOnAppThread {
+                playerController.playQueue(
+                    listOf(testItem("1"), testItem("2")),
+                    startIndex = 1,
+                )
+            }
+            waitUntil("player controller starts second queued item") {
+                playerController.playerState.value.currentItem?.id == "2"
+            }
+
+            runOnAppThread {
+                controller!!.seekToPreviousMediaItem()
+            }
+
+            waitUntil("standard previous command moves queue back") {
                 playerController.playerState.value.currentItem?.id == "1"
             }
         } finally {

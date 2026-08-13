@@ -4,6 +4,35 @@
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [Incidents Index](../incidents/index.md) ｜ [player/rules.md](./rules.md)
 > 最后校验：2026-06-13
 
+## INC-2026-0027 — 蓝牙 / 车机标准上一首下一首绕过应用队列
+
+- id: INC-2026-0027
+- area: player
+- date: 2026-08-13
+- status: active
+- rule_ref: docs/dev-harness/player/rules.md#rule-external-skip-command-uses-queue-controls
+- guard:
+    type: contract-test
+    target: player/src/test/java/com/hank/musicfree/player/service/PlaybackServiceCommandRoutingTest.kt, player/src/androidTest/java/com/hank/musicfree/player/service/PlaybackServiceTest.kt
+- fix_ref: GitHub Issue #10
+
+### 根因
+
+通知栏自定义上一首 / 下一首按钮走 `PlaybackNotificationActions` 的 custom `SessionCommand`，并能回到 `PlaybackNotificationCommandHandler.skipToPrevious()` / `skipToNext()`。但车机 / 蓝牙 / 系统媒体控件常发标准 Media3 player command：`COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM`、`COMMAND_SEEK_TO_PREVIOUS`、`COMMAND_SEEK_TO_NEXT_MEDIA_ITEM`、`COMMAND_SEEK_TO_NEXT`。旧 `PlaybackService.onPlayerCommandRequest` 只处理 empty-session `COMMAND_PLAY_PAUSE`，没有把这些标准命令映射到应用自己的 `PlayQueue`，而 ExoPlayer session 侧通常只持有当前单曲，导致外部上一首 / 下一首无法切换应用队列。
+
+### 复发条件
+
+修改 `PlaybackService.onPlayerCommandRequest`、`PlaybackNotificationCommandHandler` 或播放通知按钮后，以下任一断言被破坏：
+
+- 标准 previous / next player command 没有分类为队列 previous / next 路由。
+- `MediaController.seekToNextMediaItem()` / `seekToPreviousMediaItem()` 无法推动 `PlayerController` 队列切换。
+- 只保留通知栏 custom command 测试，缺少标准 player command 覆盖。
+- 外部 player command 日志缺少 `controllerPackage`、`sessionMediaItemCount`、`queueIndex`、`queueSize`、`result` 等诊断字段。
+
+### 教训
+
+系统媒体入口不等同于应用通知栏按钮；同一个用户动作在不同控制器上可能走 custom `SessionCommand`，也可能走标准 player command。应用队列由 `PlayerController` 维护时，所有外部上一首 / 下一首入口都必须复用同一条队列迁移语义。
+
 ## INC-2026-0026 — 远端坏字节缓存导致 3003 反复自动切歌
 
 - id: INC-2026-0026

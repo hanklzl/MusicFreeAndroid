@@ -41,6 +41,19 @@ implemented_by: INC-2026-0012
 - `PlaybackService` MUST 在 `onTaskRemoved`、`onDestroy` 中按 RN 行为停止当前播放或保留媒体通知（依现有实现，详见 `2026-05-04-playback-notification-design.md`）。
 - 不在本 rule 强制具体策略；只要求改动 PR 对照该 spec。
 
+## 外部上一首 / 下一首命令必须进应用队列 {#rule-external-skip-command-uses-queue-controls}
+
+implemented_by: INC-2026-0027
+
+- `PlaybackService.onPlayerCommandRequest` MUST 将标准 Media3 上一首 / 下一首命令路由到 `PlaybackNotificationCommandHandler.skipToPrevious()` / `skipToNext()`：
+  - `Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM`
+  - `Player.COMMAND_SEEK_TO_PREVIOUS`
+  - `Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM`
+  - `Player.COMMAND_SEEK_TO_NEXT`
+- MUST NOT 只依赖 `PlaybackNotificationActions` 的 custom `SessionCommand`；车机 / 蓝牙 / 系统媒体控件可能发标准 player command，不一定发通知栏 custom command。
+- 该链路日志 MUST 至少包含 `command`、`route`、`controllerPackage`、`isAppController`、`sessionMediaItemCount`、`playerPlaybackState`、`queueIndex`、`queueSize`、`currentItemId`、`result`。
+- 任何改 `PlaybackService.onPlayerCommandRequest`、`PlaybackNotificationCommandHandler` 或标准上一首 / 下一首命令路由的 PR MUST 跑 `:player:testDebugUnitTest --tests *PlaybackServiceCommandRoutingTest* --tests *PlayerControllerNotificationControlsTest* --tests *PlaybackNotificationActionsTest* --tests *PlayerControllerQueueStateTest*`，并至少编译 `:player:compileDebugAndroidTestKotlin`；有设备/模拟器时还 MUST 跑 `:player:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.hank.musicfree.player.service.PlaybackServiceTest`。
+
 ## 远端源解析失败必须刷新缓存源 {#rule-remote-source-parse-failure-refreshes-cache-source}
 
 implemented_by: INC-2026-0026

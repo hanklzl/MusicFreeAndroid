@@ -37,20 +37,28 @@ object PlaybackNotificationCommandHandler {
         }
     }
 
-    fun skipToPrevious() {
-        controls?.skipToPreviousFromNotification()
+    fun skipToPrevious(): Boolean {
+        val activeControls = controls ?: return false
+        activeControls.skipToPreviousFromNotification()
+        return true
     }
 
-    fun skipToNext() {
-        controls?.skipToNextFromNotification()
+    fun skipToNext(): Boolean {
+        val activeControls = controls ?: return false
+        activeControls.skipToNextFromNotification()
+        return true
     }
 
-    fun play() {
-        controls?.playFromNotification()
+    fun play(): Boolean {
+        val activeControls = controls ?: return false
+        activeControls.playFromNotification()
+        return true
     }
 
-    fun close() {
-        controls?.closeFromNotification()
+    fun close(): Boolean {
+        val activeControls = controls ?: return false
+        activeControls.closeFromNotification()
+        return true
     }
 
     fun diagnosticsSnapshot(): PlaybackNotificationQueueDiagnostics =

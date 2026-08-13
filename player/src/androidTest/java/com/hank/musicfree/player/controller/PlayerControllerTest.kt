@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.RepeatMode
+import com.hank.musicfree.player.fixture.createTestPlayerController
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
@@ -50,7 +51,7 @@ class PlayerControllerTest {
 
     @Before
     fun setUp() {
-        controller = PlayerController(context)
+        controller = createTestPlayerController(context)
         runBlocking {
             withTimeout(5_000L) {
                 controller.connect()
@@ -91,7 +92,7 @@ class PlayerControllerTest {
 
     @Test
     fun playQueueConnectsOnDemandAndEmitsState() {
-        val unconnectedController = PlayerController(context)
+        val unconnectedController = createTestPlayerController(context)
 
         try {
             runOnAppThread {

@@ -52,6 +52,11 @@ class PlaybackService : MediaSessionService() {
         .setUsage(C.USAGE_MEDIA)
         .build()
 
+    internal enum class ExternalQueueCommandRoute(val logCommand: String) {
+        PREVIOUS("seek_to_previous"),
+        NEXT("seek_to_next"),
+    }
+
     private val playbackSessionCallback = object : MediaSession.Callback {
         @AndroidXOptIn(markerClass = [UnstableApi::class])
         override fun onConnect(
@@ -122,6 +127,34 @@ class PlaybackService : MediaSessionService() {
             playerCommand: Int,
         ): Int {
             val sessionMediaItemCount = session.player.mediaItemCount
+            val externalQueueRoute = externalQueueCommandRoute(playerCommand)
+            if (externalQueueRoute != null) {
+                val diagnostics = PlaybackNotificationCommandHandler.diagnosticsSnapshot()
+                val isAppController = controller.packageName == packageName
+                val routed = when (externalQueueRoute) {
+                    ExternalQueueCommandRoute.PREVIOUS ->
+                        PlaybackNotificationCommandHandler.skipToPrevious()
+                    ExternalQueueCommandRoute.NEXT ->
+                        PlaybackNotificationCommandHandler.skipToNext()
+                }
+                MfLog.detail(
+                    category = LogCategory.PLAYER,
+                    event = "playback_external_player_command",
+                    fields = mapOf(
+                        "status" to "start",
+                        "command" to playerCommandName(playerCommand),
+                        "route" to externalQueueRoute.logCommand,
+                        "controllerPackage" to controller.packageName,
+                        "isAppController" to isAppController,
+                        "sessionMediaItemCount" to sessionMediaItemCount,
+                        "playerPlaybackState" to session.player.playbackState,
+                        "queueIndex" to diagnostics.queueIndex,
+                        "queueSize" to diagnostics.queueSize,
+                        "currentItemId" to diagnostics.currentItemId.orEmpty(),
+                        "result" to if (routed) "routed" else "no_attached_controls",
+                    ),
+                )
+            }
             if (playerCommand == Player.COMMAND_PLAY_PAUSE && sessionMediaItemCount == 0) {
                 val diagnostics = PlaybackNotificationCommandHandler.diagnosticsSnapshot()
                 val isAppController = controller.packageName == packageName
@@ -369,6 +402,27 @@ class PlaybackService : MediaSessionService() {
             return playerCommand == Player.COMMAND_PLAY_PAUSE &&
                 sessionMediaItemCount == 0 &&
                 controllerPackage != servicePackage
+        }
+
+        internal fun externalQueueCommandRoute(playerCommand: Int): ExternalQueueCommandRoute? {
+            return when (playerCommand) {
+                Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                Player.COMMAND_SEEK_TO_PREVIOUS -> ExternalQueueCommandRoute.PREVIOUS
+                Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+                Player.COMMAND_SEEK_TO_NEXT -> ExternalQueueCommandRoute.NEXT
+                else -> null
+            }
+        }
+
+        internal fun playerCommandName(playerCommand: Int): String {
+            return when (playerCommand) {
+                Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> "seek_to_previous_media_item"
+                Player.COMMAND_SEEK_TO_PREVIOUS -> "seek_to_previous"
+                Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> "seek_to_next_media_item"
+                Player.COMMAND_SEEK_TO_NEXT -> "seek_to_next"
+                Player.COMMAND_PLAY_PAUSE -> "play_pause"
+                else -> playerCommand.toString()
+            }
         }
 
         internal suspend fun flushLastPositionTo(

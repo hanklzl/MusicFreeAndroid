@@ -48,3 +48,4 @@
 | INC-2026-0024 | player | 冷启动恢复后通知栏与 mini player 状态分叉 | [player/rules.md#rule-restored-play-command-source-isolation](../player/rules.md#rule-restored-play-command-source-isolation) | contract-test |
 | INC-2026-0025 | player | 上一首被进度回零语义吞掉 | [player/rules.md#rule-previous-command-uses-queue-transition](../player/rules.md#rule-previous-command-uses-queue-transition) | contract-test |
 | INC-2026-0026 | player | 远端坏字节缓存导致 3003 反复自动切歌 | [player/rules.md#rule-remote-source-parse-failure-refreshes-cache-source](../player/rules.md#rule-remote-source-parse-failure-refreshes-cache-source) | contract-test |
+| INC-2026-0027 | player | 蓝牙 / 车机标准上一首下一首绕过应用队列 | [player/rules.md#rule-external-skip-command-uses-queue-controls](../player/rules.md#rule-external-skip-command-uses-queue-controls) | contract-test |
