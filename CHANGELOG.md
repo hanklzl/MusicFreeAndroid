@@ -6,6 +6,29 @@
 
 <!-- next-release -->
 
+## [v1.2.22] - 2026-09-04
+
+### 变更详情
+
+#### 修复
+- fix(player): 修复歌单反馈与未知时长缓存 (d9d0a4b)
+- fix(player): 修复蓝牙切歌队列路由 (6e41805)
+
+#### 文档
+- docs(changelog): release v1.2.21 [skip ci] (07878cd)
+
+#### 杂项
+- chore(release): bump to v1.2.22 (e1cbce2)
+- chore(skills): 补充 Android 与项目工作流技能 (882bce8)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.22-arm64-v8a.apk` · 7.9MB · sha256 `8506f2ef54e1`
+- x86_64: `MusicFreeAndroid-v1.2.22-x86_64.apk` · 7.9MB · sha256 `b72f947ebbb5`
+- mapping: `mapping-v1.2.22.zip` · sha256 `b5430d1dcf1d` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.21] - 2026-07-12
 
 ### 变更详情
