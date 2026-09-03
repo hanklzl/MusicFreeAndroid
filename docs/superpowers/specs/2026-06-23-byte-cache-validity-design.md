@@ -3,7 +3,7 @@
 > 文档状态：当前规范（Player / Plugin / Data / Logging 设计）
 > 适用范围：在线播放字节缓存有效性判定、`no-cache` 歌曲复用、插件解析超时兜底、Logan 缓存诊断
 > 直接执行：是（作为 implementation plan 输入）
-> 最后校验：2026-06-23
+> 最后校验：2026-09-04
 > 关联 dev-harness：[player/rules](../../dev-harness/player/rules.md)、[plugin/rules](../../dev-harness/plugin/rules.md)、[test/rules](../../dev-harness/test/rules.md)、[cache-and-logs](../../dev-harness/player/cache-and-logs.md)
 > 上游参考：[歌曲缓存系统优化设计](2026-05-20-song-cache-optimization-design.md)、[在线歌曲缓存稳定 key 与 no-store 治理设计](2026-05-28-media-cache-stable-key-design.md)
 
@@ -172,6 +172,7 @@ sourceFingerprint = sha1(
 - 本次 DataSource 生命周期没有 `media3_datasource_error`。
 - 当前 key 的完整性检查仍为 `Complete`。
 - 若 `MusicItem.duration` 有有效元数据，ended 时的播放位置 / Media3 duration 不得明显早于歌曲时长；远端返回可正常 EOF 的短片段时，必须标记 `StaleOrInvalid(reason=bad_byte_cache, trigger=early_eof)` 并驱逐对应 key。
+- `MusicItem.duration <= 0` 时没有可比较的语义完整性证据，即使自然 ended 且 spans 为 `Complete`，也只能记录 `Complete + SpanInspection`，不得晋升 `PlayableVerified`。历史版本留下的同类 `PlayableVerified` 必须在快路径前按 `unknown_duration` 驱逐并走一次常规 fresh resolve。
 
 满足条件后写入：
 
@@ -303,6 +304,7 @@ Room schema 变更必须按仓库数据库迁移规则升级版本、生成 sche
 | `byte_cache_inspect` | PLAYER | `sid`, `platform`, `itemId`, `quality`, `status`, `cachedBytes`, `contentLength`, `holeCount` |
 | `byte_cache_status_write` | DATA | `platform`, `itemId`, `quality`, `status`, `validationMethod`, `cachedBytes`, `contentLength` |
 | `byte_cache_verified` | PLAYER | `sid`, `platform`, `itemId`, `quality`, `contentLength`, `sourceFingerprint` |
+| `byte_cache_playback_end_validation` | PLAYER | `sid`（ended 时捕获）, `platform`, `itemId`, `quality`, `itemDurationMs`, `endedPositionMs`, `reportedDurationMs`, `cachedBytes`, `contentLength`, `holeCount`, `hadFatalError`, `durationMs`, `result`, `reason` |
 | `playback_resolve_byte_cache_fast_path` | PLAYER | `sid`, `platform`, `itemId`, `quality`, `ageSeconds`, `sourceFingerprint` |
 | `playback_resolve_fallback_byte_cache` | PLAYER | `sid`, `platform`, `itemId`, `quality`, `pluginErrorType`, `ageSeconds` |
 | `byte_cache_fast_path_rejected` | PLAYER | `sid`, `platform`, `itemId`, `quality`, `reason` |

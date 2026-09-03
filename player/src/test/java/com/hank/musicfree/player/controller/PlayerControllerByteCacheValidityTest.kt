@@ -14,6 +14,10 @@ import com.hank.musicfree.core.media.StaleUrlRefresher
 import com.hank.musicfree.core.model.MediaSourceResult
 import com.hank.musicfree.core.model.MusicItem
 import com.hank.musicfree.core.model.PlayQuality
+import com.hank.musicfree.core.telemetry.CurrentSidProvider
+import com.hank.musicfree.logging.LogCategory
+import com.hank.musicfree.logging.MfLog
+import com.hank.musicfree.logging.MfLogger
 import com.hank.musicfree.player.cache.ByteCacheInspection
 import com.hank.musicfree.player.cache.ByteCacheInspector
 import com.hank.musicfree.player.listening.ListenTracker
@@ -21,6 +25,7 @@ import com.hank.musicfree.player.service.PlaybackNotificationCommandHandler
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.mock
@@ -37,6 +42,7 @@ class PlayerControllerByteCacheValidityTest {
     @After
     fun tearDown() {
         PlaybackNotificationCommandHandler.detachAllForTest()
+        MfLog.resetForTest()
     }
 
     @Test
@@ -104,6 +110,136 @@ class PlayerControllerByteCacheValidityTest {
             assertEquals(emptyList<ByteCacheStatus>(), store.upserts)
             assertEquals(listOf(key("short") to ByteCacheInvalidReason.BadByteCache), store.invalidations)
             assertEquals(listOf(Triple("test", "short", PlayQuality.STANDARD)), refresher.evictCalls)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `playback ended with unknown item duration keeps complete cache unverified`() = runBlocking {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val store = RecordingByteCacheStatusStore()
+        val inspector = FakeByteCacheInspector(
+            ByteCacheInspection(
+                key = key("unknown"),
+                validity = ByteCacheValidity.Complete,
+                cachedBytes = 1_665_507L,
+                contentLength = 1_665_507L,
+                holeCount = 0,
+            ),
+        )
+        val controller = controller(
+            resolver = RecordingResolver(normalUrl = "https://cdn.example.test/unknown.mp3"),
+            statusStore = store,
+            inspector = inspector,
+        )
+        try {
+            controller.playQueue.setQueue(listOf(item("unknown", null, duration = 0L)), startIndex = 0)
+            controller.markCurrentPlaybackSourceForTest(MediaSourceCachePolicy.NoCache)
+
+            controller.handlePlaybackEndedForTest()
+
+            assertEquals(ByteCacheValidity.Complete, store.upserts.single().validity)
+            assertEquals(ByteCacheValidationMethod.SpanInspection, store.upserts.single().validationMethod)
+            assertEquals(null, store.upserts.single().verifiedAt)
+            val validation = logger.events.single { it.event == "byte_cache_playback_end_validation" }
+            assertEquals("unknown_duration", validation.fields["reason"])
+            assertEquals("skipped", validation.fields["result"])
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `verified cache with unknown item duration is evicted before normal resolve`() = runBlocking {
+        val store = RecordingByteCacheStatusStore(
+            existing = ByteCacheStatus(
+                key = key("unknown"),
+                validity = ByteCacheValidity.PlayableVerified,
+                cachedBytes = 1_665_507L,
+                contentLength = 1_665_507L,
+                validationMethod = ByteCacheValidationMethod.PlaybackCompleted,
+                sourceFingerprint = "fp",
+                invalidReason = null,
+                verifiedAt = 10L,
+                updatedAt = 10L,
+            ),
+        )
+        val inspector = FakeByteCacheInspector(
+            ByteCacheInspection(
+                key = key("unknown"),
+                validity = ByteCacheValidity.Complete,
+                cachedBytes = 1_665_507L,
+                contentLength = 1_665_507L,
+                holeCount = 0,
+            ),
+        )
+        val resolver = RecordingResolver(
+            normalUrl = "https://cdn.example.test/fresh.mp3",
+            cachedUrl = "https://cdn.example.test/cached.mp3",
+        )
+        val refresher = RecordingStaleUrlRefresher()
+        val controller = controller(
+            resolver = resolver,
+            statusStore = store,
+            inspector = inspector,
+            staleUrlRefresher = refresher,
+        )
+        try {
+            val playable = controller.resolvePlayableItemForTest(item("unknown", null, duration = 0L), sid = "ps_ended")
+
+            assertEquals("https://cdn.example.test/fresh.mp3", playable?.url)
+            assertEquals(listOf("unknown"), resolver.normalResolveIds)
+            assertEquals(emptyList<String>(), resolver.cachedResolveIds)
+            assertEquals(listOf(key("unknown") to ByteCacheInvalidReason.BadByteCache), store.invalidations)
+            assertEquals(listOf(Triple("test", "unknown", PlayQuality.STANDARD)), refresher.evictCalls)
+        } finally {
+            controller.release()
+        }
+    }
+
+    @Test
+    fun `playback end verification logs captured ended sid after current sid changes`() = runBlocking {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val sidProvider = CurrentSidProvider()
+        val endedSid = sidProvider.newSession()
+        val store = RecordingByteCacheStatusStore()
+        val inspector = FakeByteCacheInspector(
+            ByteCacheInspection(
+                key = key("sid"),
+                validity = ByteCacheValidity.Complete,
+                cachedBytes = 2_048L,
+                contentLength = 2_048L,
+                holeCount = 0,
+            ),
+        )
+        val controller = controller(
+            resolver = RecordingResolver(normalUrl = "https://cdn.example.test/sid.mp3"),
+            statusStore = store,
+            inspector = inspector,
+            currentSidProvider = sidProvider,
+        )
+        try {
+            controller.playQueue.setQueue(listOf(item("sid", null, duration = 180_000L)), startIndex = 0)
+            controller.markCurrentPlaybackSourceForTest(MediaSourceCachePolicy.NoCache)
+            sidProvider.newSession()
+
+            controller.handlePlaybackEndedForTest(sid = endedSid)
+
+            val event = logger.events.single { it.event == "byte_cache_verified" }
+            assertEquals(endedSid, event.fields["sid"])
+            val validation = logger.events.single { it.event == "byte_cache_playback_end_validation" }
+            assertEquals(endedSid, validation.fields["sid"])
+            assertEquals(180_000L, validation.fields["itemDurationMs"])
+            assertTrue(validation.fields.containsKey("endedPositionMs"))
+            assertTrue(validation.fields.containsKey("reportedDurationMs"))
+            assertTrue(validation.fields.containsKey("cachedBytes"))
+            assertTrue(validation.fields.containsKey("contentLength"))
+            assertTrue(validation.fields.containsKey("holeCount"))
+            assertTrue(validation.fields.containsKey("hadFatalError"))
+            assertTrue(validation.fields.containsKey("durationMs"))
         } finally {
             controller.release()
         }
@@ -278,6 +414,7 @@ class PlayerControllerByteCacheValidityTest {
         statusStore: ByteCacheStatusStore,
         inspector: ByteCacheInspector,
         staleUrlRefresher: StaleUrlRefresher = RecordingStaleUrlRefresher(),
+        currentSidProvider: CurrentSidProvider = CurrentSidProvider(),
     ) = PlayerController(
         context = context,
         mediaSourceResolver = resolver,
@@ -285,7 +422,7 @@ class PlayerControllerByteCacheValidityTest {
         byteCacheStatusStore = statusStore,
         byteCacheInspector = inspector,
         listenTracker = mock<ListenTracker>(),
-        currentSidProvider = com.hank.musicfree.core.telemetry.CurrentSidProvider(),
+        currentSidProvider = currentSidProvider,
         playCacheTelemetry = com.hank.musicfree.core.telemetry.PlayCacheTelemetry(com.hank.musicfree.logging.MfLog),
     )
 
@@ -407,5 +544,33 @@ class PlayerControllerByteCacheValidityTest {
             redirected = false,
             cachePolicy = policy,
         )
+    }
+
+    private data class RecordedLogEvent(
+        val event: String,
+        val fields: Map<String, Any?>,
+    )
+
+    private class RecordingLogger : MfLogger {
+        val events = mutableListOf<RecordedLogEvent>()
+
+        override fun trace(category: LogCategory, event: String, fields: Map<String, Any?>) {
+            events += RecordedLogEvent(event, fields)
+        }
+
+        override fun detail(category: LogCategory, event: String, fields: Map<String, Any?>) {
+            events += RecordedLogEvent(event, fields)
+        }
+
+        override fun error(
+            category: LogCategory,
+            event: String,
+            throwable: Throwable?,
+            fields: Map<String, Any?>,
+        ) {
+            events += RecordedLogEvent(event, fields)
+        }
+
+        override fun flush() = Unit
     }
 }

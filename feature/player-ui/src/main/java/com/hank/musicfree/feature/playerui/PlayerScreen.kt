@@ -164,6 +164,17 @@ fun PlayerScreen(
         }
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.playlistAddFeedback.collect { feedback ->
+            val message = when (feedback) {
+                PlaylistAddFeedback.Added -> "已添加到歌单"
+                PlaylistAddFeedback.AlreadyExists -> "歌曲已在该歌单中"
+                PlaylistAddFeedback.Failed -> "添加到歌单失败"
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     LaunchedEffect(musicDetailDefaultPage, uiRuntimeState.restoreAttempted, uiRuntimeState.restored) {
         val defaultPage = musicDetailDefaultPage ?: return@LaunchedEffect
         if (!defaultPageApplied && uiRuntimeState.restoreAttempted && !uiRuntimeState.restored) {

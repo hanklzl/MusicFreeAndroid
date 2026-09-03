@@ -5,7 +5,7 @@
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
 > 设计来源：v1.2.5 cache-reuse-logs 任务（plan 文件已归档于 `~/.claude/plans/purring-inventing-zebra.md`）
-> 最后校验：2026-06-23
+> 最后校验：2026-09-04
 
 ---
 
@@ -93,7 +93,7 @@ SimpleCache 的“存在 spans”不等于可安全播放。播放器额外维�
 | `PlayableVerified` | 完整播放结束后再次检查仍为 `Complete`，且播放完成位置未明显早于歌曲元数据时长，可证明该缓存曾可播放 | 是 |
 | `StaleOrInvalid` | URL 过期、HTTP/解析失败或坏字节缓存导致失效 | 否 |
 
-`PlayerController` 在一次在线歌曲播放自然结束时检查 `ByteCacheInspector.inspect(key)`；只有 `cachePolicy != no-store`、检查为 `Complete`，且 ended 时的播放位置 / Media3 duration 未明显早于 `MusicItem.duration`，才写入 `PlayableVerified`。若远端只返回可正常 EOF 的短片段（例如播放位置明显停在歌曲中段），该 key 必须按 `early_eof` 标记为坏字节缓存并驱逐，不得升级。预取只会产生 partial/complete span，不会写 `PlayableVerified`。
+`PlayerController` 在一次在线歌曲播放自然结束时检查 `ByteCacheInspector.inspect(key)`；只有 `cachePolicy != no-store`、检查为 `Complete`、`MusicItem.duration > 0`，且 ended 时的播放位置 / Media3 duration 未明显早于 `MusicItem.duration`，才写入 `PlayableVerified`。若远端只返回可正常 EOF 的短片段（例如播放位置明显停在歌曲中段），该 key 必须按 `early_eof` 标记为坏字节缓存并驱逐，不得升级。`MusicItem.duration <= 0` 时最多记录为 `Complete + SpanInspection`；历史 `PlayableVerified` 会在快路径前按 `unknown_duration` 驱逐并 fresh resolve 一次。预取只会产生 partial/complete span，不会写 `PlayableVerified`。
 
 ### Verified byte-cache 快路径
 
@@ -186,6 +186,7 @@ SimpleCache span 被移除时，`PinningCacheEvictor` 会按 `${platform}:${id}:
 | `byte_cache_inspect` | 2026-06-23 新增 | `platform`, `itemId`, `quality`, `cacheKey`, `status`, `cachedBytes`, `contentLength`, `holeCount` |
 | `byte_cache_verified` | 2026-06-23 新增 | `sid`, `platform`, `musicItemId`, `quality`, `cachedBytes`, `contentLength`, `holeCount` |
 | `byte_cache_early_eof_rejected` | 2026-07-08 新增 | `sid`, `platform`, `musicItemId`, `quality`, `cachedBytes`, `contentLength`, `expectedDurationMs`, `observedPlaybackMs`, `endedPositionMs`, `reportedDurationMs`, `remainingDurationMs`, `reason=early_eof` |
+| `byte_cache_playback_end_validation` | 2026-09-04 新增 | `sid`（结束瞬间快照）, `platform`, `musicItemId`, `quality`, `itemDurationMs`, `endedPositionMs`, `reportedDurationMs`, `cachedBytes`, `contentLength`, `holeCount`, `hadFatalError`, `durationMs`, `result`, `reason` |
 | `byte_cache_fast_path_hit` | 2026-06-23 新增 | `sid`, `platform`, `itemId`, `quality`, `cachedBytes`, `contentLength`, `reason`（fast_path / fallback） |
 | `playback_resolve_fallback_byte_cache` | 2026-06-23 新增 | 同 `byte_cache_fast_path_hit`，表示常规解析失败后的 fallback |
 | `byte_cache_fast_path_rejected` | 2026-06-23 新增 | `sid`, `platform`, `musicItemId`, `quality`, `reason`（status_missing / partial / no_content_length / no_store / cached_source_missing 等） |
@@ -300,6 +301,7 @@ cat tools/logan/out/decoded/*.txt \
 
 - `byte_cache_status_write.status=playable_verified` 出现 → 完整播放验证已写入。
 - `byte_cache_fast_path_rejected.reason=partial/no_content_length` → 只有预取或半首歌缓存，不能作为播放快路径。
+- `reason=unknown_duration` → 歌曲元数据没有可靠时长；自然 EOF 只保留 `Complete`，旧验证态会先驱逐并重新解析。
 - `reason=no_store` → 插件声明禁止缓存，不能使用 verified fallback。
 - `reason=cached_source_missing` → byte-cache 还在，但 Room `media_cache` 的历史 source 已被清理，无法构造 MediaItem/headers。
 

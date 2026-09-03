@@ -4,7 +4,7 @@
 > 适用范围：跨域 incident ID 唯一性、状态汇总、guard 类型反查
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
-> 最后校验：2026-06-13
+> 最后校验：2026-09-04
 
 ## 编号规则
 
@@ -49,3 +49,4 @@
 | INC-2026-0025 | player | 上一首被进度回零语义吞掉 | [player/rules.md#rule-previous-command-uses-queue-transition](../player/rules.md#rule-previous-command-uses-queue-transition) | contract-test |
 | INC-2026-0026 | player | 远端坏字节缓存导致 3003 反复自动切歌 | [player/rules.md#rule-remote-source-parse-failure-refreshes-cache-source](../player/rules.md#rule-remote-source-parse-failure-refreshes-cache-source) | contract-test |
 | INC-2026-0027 | player | 蓝牙 / 车机标准上一首下一首绕过应用队列 | [player/rules.md#rule-external-skip-command-uses-queue-controls](../player/rules.md#rule-external-skip-command-uses-queue-controls) | contract-test |
+| INC-2026-0028 | player | 未知时长短内容被自然 EOF 误判为可播放缓存 | [player/rules.md#rule-byte-cache-unknown-duration-not-verified](../player/rules.md#rule-byte-cache-unknown-duration-not-verified) | contract-test |

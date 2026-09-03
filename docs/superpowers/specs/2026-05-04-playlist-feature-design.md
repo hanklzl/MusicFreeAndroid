@@ -6,7 +6,7 @@
 > 当前入口：[DOCS_STATUS](../../DOCS_STATUS.md)、[AGENTS](../../../AGENTS.md)
 > RN 参考：`../../../../MusicFree/src/core/musicSheet/`、`../../../../MusicFree/src/pages/sheetDetail/`、`../../../../MusicFree/src/components/panels/types/addToMusicSheet.tsx`
 > UI Harness 规则：[screen-chrome-rules](../../ui-harness/screen-chrome-rules.md)
-> 最后校验：2026-07-04
+> 最后校验：2026-09-04
 
 ## 背景
 
@@ -329,10 +329,11 @@ enum class MusicItemAction { PlayNext, ToggleFavorite, AddToPlaylist, RemoveFrom
 |---|---|
 | `deletePlaylist("favorite")` | Repository 抛 `IllegalStateException`；UI 在 favorite 详情页隐藏删除入口 + ViewModel try-catch 兜底 toast"默认歌单不可删除" |
 | favorite 改名 | Repository 抛 `IllegalArgumentException`；UI 中 `EditPlaylistDialog` 对 favorite 的 name 字段 `readOnly = true` |
-| 加歌已存在 | Repository 返回 `false`，UI 静默 + toast"已在歌单中" |
+| 加歌成功 | Repository 返回 `true`，ViewModel 发一次性结果事件，UI toast"已添加到歌单"并关闭选择浮层 |
+| 加歌已存在 | Repository 返回 `false`，日志终态为 `result=skipped, reason=duplicate`，UI toast"歌曲已在该歌单中"并关闭选择浮层 |
 | `coverStore.saveFromUri` 失败 | 返回 `null`；UI toast"封面保存失败"，entity 不写 coverUri，保留旧封面 |
 | `PickVisualMedia` 用户取消 | callback `Uri == null`，静默 |
-| `musicDao.upsert` 失败（极少见） | 异常上抛；ViewModel 捕获 + toast"添加失败" |
+| `musicDao.upsert` 失败（极少见） | Repository 异常上抛；ViewModel 记录 error、toast"添加到歌单失败"并保留选择浮层供重试，不从 `viewModelScope` 再次抛出 |
 | `setSortMode` | 幂等，无失败路径 |
 | 删歌单时封面文件已不存在 | `coverStore.delete` 静默忽略 |
 | Plugin 源 MusicItem 字段不全（artist/album 空） | 入库 NULL；排序时 `orEmpty()` 兜底 |

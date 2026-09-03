@@ -51,6 +51,12 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
+enum class PlaylistAddFeedback {
+    Added,
+    AlreadyExists,
+    Failed,
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
@@ -367,6 +373,9 @@ class PlayerViewModel @Inject constructor(
     private val _sheetState = MutableStateFlow(AddToPlaylistSheetState())
     val sheetState: StateFlow<AddToPlaylistSheetState> = _sheetState.asStateFlow()
 
+    private val _playlistAddFeedback = MutableSharedFlow<PlaylistAddFeedback>(extraBufferCapacity = 4)
+    val playlistAddFeedback: SharedFlow<PlaylistAddFeedback> = _playlistAddFeedback
+
     val allPlaylists: StateFlow<List<Playlist>> =
         playlistRepository.observeAllPlaylists()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -424,13 +433,17 @@ class PlayerViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
-                playlistRepository.addMusicToPlaylist(targetPlaylistId, item)
+                val added = playlistRepository.addMusicToPlaylist(targetPlaylistId, item)
                 hideAddToPlaylistSheet()
+                _playlistAddFeedback.emit(
+                    if (added) PlaylistAddFeedback.Added else PlaylistAddFeedback.AlreadyExists,
+                )
                 logPlayerDetail(
                     event = "player_add_to_playlist",
                     operation = "add_to_playlist",
                     item = item,
-                    result = LogFields.Result.SUCCESS,
+                    result = if (added) LogFields.Result.SUCCESS else LogFields.Result.SKIPPED,
+                    reason = if (added) null else LogFields.Reason.DUPLICATE,
                     extra = mapOf("playlistId" to targetPlaylistId),
                 )
             } catch (error: CancellationException) {
@@ -451,7 +464,7 @@ class PlayerViewModel @Inject constructor(
                     error = error,
                     extra = mapOf("playlistId" to targetPlaylistId),
                 )
-                throw error
+                _playlistAddFeedback.emit(PlaylistAddFeedback.Failed)
             }
         }
     }
@@ -472,13 +485,17 @@ class PlayerViewModel @Inject constructor(
             try {
                 val newId = UUID.randomUUID().toString()
                 playlistRepository.createPlaylist(Playlist(id = newId, name = name, coverUri = null))
-                playlistRepository.addMusicToPlaylist(newId, item)
+                val added = playlistRepository.addMusicToPlaylist(newId, item)
                 hideAddToPlaylistSheet()
+                _playlistAddFeedback.emit(
+                    if (added) PlaylistAddFeedback.Added else PlaylistAddFeedback.AlreadyExists,
+                )
                 logPlayerDetail(
                     event = "player_create_playlist",
                     operation = "create_playlist",
                     item = item,
-                    result = LogFields.Result.SUCCESS,
+                    result = if (added) LogFields.Result.SUCCESS else LogFields.Result.SKIPPED,
+                    reason = if (added) null else LogFields.Reason.DUPLICATE,
                     extra = mapOf(
                         "playlistId" to newId,
                         "playlistName" to name,
@@ -502,7 +519,7 @@ class PlayerViewModel @Inject constructor(
                     error = error,
                     extra = mapOf("playlistName" to name),
                 )
-                throw error
+                _playlistAddFeedback.emit(PlaylistAddFeedback.Failed)
             }
         }
     }

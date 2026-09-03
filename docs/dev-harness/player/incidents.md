@@ -2,7 +2,36 @@
 
 > 文档状态：当前规范（Dev Harness — Player Incidents）
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [Incidents Index](../incidents/index.md) ｜ [player/rules.md](./rules.md)
-> 最后校验：2026-06-13
+> 最后校验：2026-09-04
+
+## INC-2026-0028 — 未知时长短内容被自然 EOF 误判为可播放缓存
+
+- id: INC-2026-0028
+- area: player
+- date: 2026-09-04
+- status: active
+- rule_ref: docs/dev-harness/player/rules.md#rule-byte-cache-unknown-duration-not-verified
+- guard:
+    type: contract-test
+    target: player/src/test/java/com/hank/musicfree/player/controller/PlayerControllerByteCacheValidityTest.kt
+- fix_ref: 2026-09-04 v1.2.21 反馈包播放中途停止排查
+
+### 根因
+
+反馈包中 `世界真细小` 的 `MusicItem.duration=0`，远端返回的约 1.67 MB 内容在 Media3 看来可以正常读到 EOF，SimpleCache spans 也连续覆盖了服务端声明的 content length。旧实现的提前 EOF 校验只有歌曲元数据时长大于 60 秒才生效，因此该内容绕过语义完整性判断，被写成 `PlayableVerified`；之后 verified 快路径完全从本地缓存读取，持续复用同一份可疑短内容。
+
+异步结束验证还有一个相关诊断缺口：切到下一首后才调用 `currentSidProvider.peek()`，会把上一首的 `byte_cache_verified` 事件关联到下一首 sid。
+
+### 复发条件
+
+- `MusicItem.duration <= 0` 的在线歌曲在自然 EOF 后被写成 `PlayableVerified`。
+- 旧的未知时长 `PlayableVerified` 状态仍可进入 cached-source 快路径，没有先驱逐并 fresh resolve。
+- 播放结束验证协程内部重新读取 current sid，而不是使用 `STATE_ENDED` 当下捕获的 sid。
+- 结束验证日志缺少歌曲元数据时长、结束位置或 Media3 reported duration，反馈包无法判断语义截断。
+
+### 教训
+
+HTTP/content-length 完整与音频语义完整是两件事。歌曲时长未知时，自然 EOF 只能证明字节结构完整，不能证明拿到了整首歌；verified 快路径必须要求可比较的歌曲时长证据，并把结束瞬间的时长与 sid 快照一路传入异步验证。
 
 ## INC-2026-0027 — 蓝牙 / 车机标准上一首下一首绕过应用队列
 

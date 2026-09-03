@@ -625,6 +625,68 @@ class PlayerViewModelTest {
     }
 
     @Test
+    fun `addPendingToPlaylist emits added feedback and hides sheet`() = runTest(testDispatcher) {
+        val item = MusicItem(id = "add", platform = "test", title = "Track", artist = "B", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        whenever(playlistRepository.addMusicToPlaylist("playlist", item)).thenReturn(true)
+        val viewModel = createViewModel()
+        val feedback = mutableListOf<PlaylistAddFeedback>()
+        val collectJob = launch { viewModel.playlistAddFeedback.collect(feedback::add) }
+        advanceUntilIdle()
+
+        viewModel.showAddToPlaylistSheet()
+        viewModel.addPendingToPlaylist("playlist")
+        advanceUntilIdle()
+
+        assertEquals(listOf(PlaylistAddFeedback.Added), feedback)
+        assertFalse(viewModel.sheetState.value.visible)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `addPendingToPlaylist emits duplicate feedback instead of success`() = runTest(testDispatcher) {
+        val logger = RecordingLogger()
+        MfLog.install(logger)
+        val item = MusicItem(id = "duplicate", platform = "test", title = "Track", artist = "B", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        whenever(playlistRepository.addMusicToPlaylist("playlist", item)).thenReturn(false)
+        val viewModel = createViewModel()
+        val feedback = mutableListOf<PlaylistAddFeedback>()
+        val collectJob = launch { viewModel.playlistAddFeedback.collect(feedback::add) }
+        advanceUntilIdle()
+
+        viewModel.showAddToPlaylistSheet()
+        viewModel.addPendingToPlaylist("playlist")
+        advanceUntilIdle()
+
+        assertEquals(listOf(PlaylistAddFeedback.AlreadyExists), feedback)
+        assertFalse(viewModel.sheetState.value.visible)
+        val event = logger.events.single { it.event == "player_add_to_playlist" }
+        assertEquals(LogFields.Result.SKIPPED, event.fields["result"])
+        assertEquals(LogFields.Reason.DUPLICATE, event.fields["reason"])
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `addPendingToPlaylist emits failure feedback without dismissing sheet`() = runTest(testDispatcher) {
+        val item = MusicItem(id = "failed", platform = "test", title = "Track", artist = "B", album = null, duration = 1L, url = null, artwork = null, qualities = null)
+        playerStateFlow.value = PlayerState.EMPTY.copy(currentItem = item)
+        whenever(playlistRepository.addMusicToPlaylist("playlist", item)).thenThrow(IllegalStateException("boom"))
+        val viewModel = createViewModel()
+        val feedback = mutableListOf<PlaylistAddFeedback>()
+        val collectJob = launch { viewModel.playlistAddFeedback.collect(feedback::add) }
+        advanceUntilIdle()
+
+        viewModel.showAddToPlaylistSheet()
+        viewModel.addPendingToPlaylist("playlist")
+        advanceUntilIdle()
+
+        assertEquals(listOf(PlaylistAddFeedback.Failed), feedback)
+        assertTrue(viewModel.sheetState.value.visible)
+        collectJob.cancel()
+    }
+
+    @Test
     fun `allPlaylists reflects repository`() = runTest {
         val playlistsFlow = MutableStateFlow(listOf(Playlist(id = "p1", name = "My List", coverUri = null)))
         whenever(playlistRepository.observeAllPlaylists()).thenReturn(playlistsFlow)

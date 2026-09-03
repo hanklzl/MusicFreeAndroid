@@ -5,7 +5,7 @@
 > 直接执行：是
 > 当前入口：[Dev Harness INDEX](../INDEX.md) ｜ [AGENTS](../../../AGENTS.md)
 > 设计来源：[Dev Harness 基础设施设计](../../superpowers/specs/2026-05-09-dev-harness-foundation-design.md)、[播放器状态栏避让设计](../../superpowers/specs/2026-05-04-player-statusbar-inset-design.md)、[播放页歌词交互修正设计](../../superpowers/specs/2026-05-05-player-lyrics-interaction-fix-design.md)、[歌词纯秒小数时间戳修复设计](../../superpowers/specs/2026-05-10-lyric-second-only-timestamp-fix-design.md)
-> 最后校验：2026-06-13
+> 最后校验：2026-09-04
 
 ## 强制入口
 
@@ -63,6 +63,15 @@ implemented_by: INC-2026-0026
 - 刷新后的远端源若仍因 invalid content type / container malformed / container unsupported 失败，MUST 再驱逐一次刚写入的字节缓存，但 MUST NOT 再次 `resolveFresh()`，避免下次用户重试先命中刷新失败留下的坏缓存。
 - 本地播放源（`platform == "local"` 或 `file://` / `content://`）MUST NOT 走远端缓存刷新；这类 3003 更可能是本地文件本身不可解析。
 - 任何改 `refreshStaleUrlAfterFailure`、Media3 error code 分流或 `StaleUrlRefresher` 的 PR MUST 跑 `:player:testDebugUnitTest --tests *PlayerControllerStaleUrlRefreshTest* --tests *PlayerControllerPlaybackFailurePolicyTest*`。
+
+## 未知歌曲时长不得仅凭自然 EOF 晋升验证缓存 {#rule-byte-cache-unknown-duration-not-verified}
+
+implemented_by: INC-2026-0028
+
+- 在线歌曲 `MusicItem.duration <= 0` 时，`Player.STATE_ENDED` + SimpleCache spans `Complete` MUST NOT 单独把该 key 晋升为 `PlayableVerified`；最多写入 `Complete + SpanInspection`。
+- 历史版本已写成 `PlayableVerified`、但当前歌曲时长仍未知的 key，MUST 在使用 verified 快路径前驱逐 source / SimpleCache 并走一次常规 fresh resolve，避免继续复用语义截断但字节完整的短内容。
+- 播放结束验证日志 MUST 固定携带结束瞬间捕获的 `sid`，并包含 `itemDurationMs`、`endedPositionMs`、`reportedDurationMs`、`cachedBytes`、`contentLength`、`holeCount`、`hadFatalError`、`durationMs`；MUST NOT 在异步验证协程中重新读取已经切到下一首的当前 sid。
+- 任何改 `tryVerifiedByteCache`、`verifyByteCacheOnPlaybackEnded` 或 `byteCacheLogFields` 的 PR MUST 跑 `:player:testDebugUnitTest --tests *PlayerControllerByteCacheValidityTest*`。
 
 ## 通知播放命令不得递归回调 {#rule-notification-play-no-recursion}
 

@@ -1152,6 +1152,21 @@ class PlayerController @Inject constructor(
         val key = byteCacheKey(item, quality)
         if (byteCacheFatalErrorState.containsKey(key)) return null
         val status = byteCacheStatusStore.get(key)
+        if (status?.validity == ByteCacheValidity.PlayableVerified && item.duration <= 0L) {
+            evictStaleSourceCache(
+                item = item,
+                quality = quality,
+                reason = "unknown_duration",
+                invalidReason = ByteCacheInvalidReason.BadByteCache,
+            )
+            logByteCacheFastPathRejected(
+                sid = sid,
+                item = item,
+                quality = quality,
+                reason = "unknown_duration",
+            )
+            return null
+        }
         if (status?.validity != ByteCacheValidity.PlayableVerified) {
             logByteCacheFastPathRejected(
                 sid = sid,
@@ -1405,6 +1420,7 @@ class PlayerController @Inject constructor(
                 val endedItem = playQueue.currentItem
                 val endedQuality = currentPlayQuality
                 val endedPolicy = currentPlaybackCachePolicy
+                val endedSid = currentSidProvider.peek()
                 val controllerRef = mediaController
                 val endedPositionMs = controllerRef?.currentPosition.positivePlaybackMs()
                 val reportedDurationMs = controllerRef?.duration.positivePlaybackMs()
@@ -1413,6 +1429,7 @@ class PlayerController @Inject constructor(
                         item = endedItem,
                         quality = endedQuality,
                         cachePolicy = endedPolicy,
+                        sid = endedSid,
                         endedPositionMs = endedPositionMs,
                         reportedDurationMs = reportedDurationMs,
                     )
@@ -1474,12 +1491,13 @@ class PlayerController @Inject constructor(
     }
 
     @VisibleForTesting
-    internal suspend fun handlePlaybackEndedForTest() {
+    internal suspend fun handlePlaybackEndedForTest(sid: String? = currentSidProvider.peek()) {
         val playbackState = _playerState.value
         verifyByteCacheOnPlaybackEnded(
             item = playQueue.currentItem,
             quality = currentPlayQuality,
             cachePolicy = currentPlaybackCachePolicy,
+            sid = sid,
             endedPositionMs = playbackState.position.positivePlaybackMs(),
             reportedDurationMs = playbackState.duration.positivePlaybackMs(),
         )
@@ -1700,13 +1718,35 @@ class PlayerController @Inject constructor(
         item: MusicItem?,
         quality: PlayQuality,
         cachePolicy: MediaSourceCachePolicy,
+        sid: String?,
         endedPositionMs: Long? = null,
         reportedDurationMs: Long? = null,
     ) {
         if (item == null || item.isLocalPlaybackSource()) return
+        val startedAt = System.nanoTime()
         if (cachePolicy == MediaSourceCachePolicy.NoStore) {
+            MfLog.detail(
+                category = LogCategory.PLAYER,
+                event = "byte_cache_playback_end_validation",
+                fields = mapOf(
+                    "sid" to sid,
+                    "platform" to item.platform,
+                    "musicItemId" to item.id,
+                    "quality" to quality.name.lowercase(),
+                    "itemDurationMs" to item.duration,
+                    "endedPositionMs" to endedPositionMs,
+                    "reportedDurationMs" to reportedDurationMs,
+                    "cachedBytes" to null,
+                    "contentLength" to null,
+                    "holeCount" to null,
+                    "hadFatalError" to false,
+                    "result" to LogFields.Result.SKIPPED,
+                    "reason" to "no_store",
+                    "durationMs" to elapsedMs(startedAt),
+                ),
+            )
             logByteCacheFastPathRejected(
-                sid = currentSidProvider.peek(),
+                sid = sid,
                 item = item,
                 quality = quality,
                 reason = "no_store",
@@ -1722,11 +1762,36 @@ class PlayerController @Inject constructor(
             endedPositionMs = endedPositionMs,
             reportedDurationMs = reportedDurationMs,
         )
+        val validationReason = when {
+            hadFatalError -> "fatal_playback_error"
+            earlyCompletion != null -> "early_eof"
+            inspection.validity == ByteCacheValidity.Complete && item.duration <= 0L -> "unknown_duration"
+            inspection.contentLength == null -> "no_content_length"
+            inspection.validity != ByteCacheValidity.Complete -> inspection.validity.wire
+            else -> null
+        }
+        MfLog.detail(
+            category = LogCategory.PLAYER,
+            event = "byte_cache_playback_end_validation",
+            fields = byteCacheLogFields(sid, item, quality, inspection) + mapOf(
+                "itemDurationMs" to item.duration,
+                "endedPositionMs" to endedPositionMs,
+                "reportedDurationMs" to reportedDurationMs,
+                "hadFatalError" to hadFatalError,
+                "result" to when {
+                    hadFatalError -> LogFields.Result.FAILURE
+                    validationReason == null -> LogFields.Result.SUCCESS
+                    else -> LogFields.Result.SKIPPED
+                },
+                "reason" to validationReason,
+                "durationMs" to elapsedMs(startedAt),
+            ),
+        )
         if (inspection.validity == ByteCacheValidity.Complete && !hadFatalError && earlyCompletion != null) {
             MfLog.detail(
                 category = LogCategory.PLAYER,
                 event = "byte_cache_early_eof_rejected",
-                fields = byteCacheLogFields(item, quality, inspection) + mapOf(
+                fields = byteCacheLogFields(sid, item, quality, inspection) + mapOf(
                     "expectedDurationMs" to earlyCompletion.expectedDurationMs,
                     "observedPlaybackMs" to earlyCompletion.observedPlaybackMs,
                     "endedPositionMs" to endedPositionMs,
@@ -1743,10 +1808,32 @@ class PlayerController @Inject constructor(
                 invalidReason = ByteCacheInvalidReason.BadByteCache,
             )
             logByteCacheFastPathRejected(
-                sid = currentSidProvider.peek(),
+                sid = sid,
                 item = item,
                 quality = quality,
                 reason = "early_eof",
+            )
+            return
+        }
+        if (inspection.validity == ByteCacheValidity.Complete && !hadFatalError && item.duration <= 0L) {
+            byteCacheStatusStore.upsert(
+                ByteCacheStatus(
+                    key = key,
+                    validity = ByteCacheValidity.Complete,
+                    cachedBytes = inspection.cachedBytes,
+                    contentLength = requireNotNull(inspection.contentLength),
+                    validationMethod = ByteCacheValidationMethod.SpanInspection,
+                    sourceFingerprint = item.url?.let(::sourceFingerprint),
+                    invalidReason = null,
+                    verifiedAt = null,
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
+            logByteCacheFastPathRejected(
+                sid = sid,
+                item = item,
+                quality = quality,
+                reason = "unknown_duration",
             )
             return
         }
@@ -1768,7 +1855,7 @@ class PlayerController @Inject constructor(
             MfLog.detail(
                 category = LogCategory.PLAYER,
                 event = "byte_cache_verified",
-                fields = byteCacheLogFields(item, quality, inspection),
+                fields = byteCacheLogFields(sid, item, quality, inspection),
             )
             return
         }
@@ -1789,7 +1876,7 @@ class PlayerController @Inject constructor(
             )
         }
         logByteCacheFastPathRejected(
-            sid = currentSidProvider.peek(),
+            sid = sid,
             item = item,
             quality = quality,
             reason = when {
@@ -1844,11 +1931,12 @@ class PlayerController @Inject constructor(
     }
 
     private fun byteCacheLogFields(
+        sid: String?,
         item: MusicItem,
         quality: PlayQuality,
         inspection: ByteCacheInspection,
     ): Map<String, Any?> = mapOf(
-        "sid" to currentSidProvider.peek(),
+        "sid" to sid,
         "platform" to item.platform,
         "musicItemId" to item.id,
         "quality" to quality.name.lowercase(),
