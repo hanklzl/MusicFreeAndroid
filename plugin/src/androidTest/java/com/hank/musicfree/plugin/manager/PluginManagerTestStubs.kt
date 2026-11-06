@@ -10,6 +10,7 @@ import com.hank.musicfree.data.db.converter.Converters
 import com.hank.musicfree.data.db.dao.DownloadedTrackDao
 import com.hank.musicfree.data.db.dao.LyricCacheDao
 import com.hank.musicfree.data.db.dao.MediaCacheDao
+import com.hank.musicfree.data.db.dao.MediaCacheCatalogRow
 import com.hank.musicfree.data.db.entity.DownloadedTrackEntity
 import com.hank.musicfree.data.db.entity.LyricCacheEntity
 import com.hank.musicfree.data.db.entity.MediaCacheEntity
@@ -36,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap
  * a Room database in instrumentation channel tests.
  */
 internal class StubMediaCacheDao : MediaCacheDao {
+    override suspend fun listCatalogRows(): List<MediaCacheCatalogRow> = emptyList()
     override suspend fun get(platform: String, id: String): MediaCacheEntity? = null
     override suspend fun upsert(entity: MediaCacheEntity) = Unit
     override suspend fun count(): Int = 0
@@ -154,5 +156,5 @@ internal fun makeTestManager(
         AppPreferences(prefsDataStore),
         baseClient,
         WebDavShim(baseClient),
-    )
+    ).also { it.bundledSourcesEnabled = false }
 }

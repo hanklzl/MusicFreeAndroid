@@ -298,7 +298,7 @@ class PluginStateMachineTest {
             appPreferences,
             baseClient,
             WebDavShim(baseClient),
-        )
+        ).also { it.bundledSourcesEnabled = false }
     }
 
     private fun pluginsDir(): File {

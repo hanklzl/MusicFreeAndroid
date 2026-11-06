@@ -11,6 +11,7 @@ import com.hank.musicfree.data.repository.MediaCacheRepository
 import com.hank.musicfree.data.repository.PluginMetadataCacheGateway
 import com.hank.musicfree.plugin.api.PluginInfo
 import com.hank.musicfree.plugin.api.PluginUserVariable
+import com.hank.musicfree.plugin.builtin.BuiltinQingSources
 import com.hank.musicfree.plugin.engine.AxiosShim
 import com.hank.musicfree.plugin.engine.BootstrapShim
 import com.hank.musicfree.plugin.engine.JsEngine
@@ -179,6 +180,12 @@ class PluginManager @Inject constructor(
     @VisibleForTesting
     internal var downloadOverride: (suspend (String) -> ByteArray?)? = null
 
+    @VisibleForTesting
+    internal var bundledSourcesEnabled: Boolean = true
+
+    private class ReservedBuiltinPlatform(val platform: String) :
+        IllegalArgumentException("此音源随 APK 更新，不能由外部插件替换")
+
     /**
      * Run an HTTP plugin/subscription download on [Dispatchers.IO] WITHOUT
      * holding [mutex]. Every install/update entry point MUST route its
@@ -239,6 +246,17 @@ class PluginManager @Inject constructor(
         val initStartedAtMs = System.currentTimeMillis()
         val isFirstInit = pluginEngineInitLogged.compareAndSet(false, true)
         withContext(Dispatchers.IO) {
+            var builtinAssetFailure: Exception? = null
+            if (bundledSourcesEnabled) {
+                try {
+                    BuiltinQingSources.materialize(pluginsDir) { path -> context.assets.open(path).use { it.readBytes() } }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    builtinAssetFailure = e
+                    MfLog.error(LogCategory.PLUGIN, "plugin_builtin_assets_failed", throwable = e)
+                }
+            }
             // Destroy any previously loaded plugins (the local entry is a no-op).
             _plugins.value.forEach { it.destroy() }
 
@@ -306,6 +324,15 @@ class PluginManager @Inject constructor(
 
             // Assemble in original file order.
             for (index in files.indices) {
+                val entry = entriesByIndex[index]
+                val platform = entry?.info?.platform ?: entry?.attemptedPlatform
+                val builtin = platform?.let(BuiltinQingSources::entry)
+                if (bundledSourcesEnabled && builtin != null && files[index].name != builtin.fileName) {
+                    // Keep old code on disk for recovery, but APK-owned code is the sole active identity.
+                    pluginsByIndex[index]?.destroy()
+                    MfLog.detail(LogCategory.PLUGIN, "plugin_builtin_supersedes_external", mapOf("platform" to platform))
+                    continue
+                }
                 entriesByIndex[index]?.let { newEntries.add(it) }
                 pluginsByIndex[index]?.let { loadedPlugins.add(it) }
             }
@@ -321,6 +348,15 @@ class PluginManager @Inject constructor(
             )
             _plugins.value = loadedPlugins
             _entries.value = newEntries
+            if (builtinAssetFailure != null) {
+                recordFailedEntry(
+                    targetPath = File(pluginsDir, "builtin-qing-assets.failed").absolutePath,
+                    reason = PluginErrorReason.CannotParse,
+                    detail = "内置音源资源校验或安装失败，请重新安装 APK",
+                    installSource = null,
+                    attemptedPlatform = null,
+                )
+            }
             _loaded.set(true)
 
             // Phase E: schedule background evaluation for any cache-hit entries
@@ -440,7 +476,7 @@ class PluginManager @Inject constructor(
                 info = null,
                 loaded = null,
                 installSource = installSource,
-                attemptedPlatform = null,
+                attemptedPlatform = (e as? ReservedBuiltinPlatform)?.platform,
             ) to null
         }
     }
@@ -451,6 +487,7 @@ class PluginManager @Inject constructor(
      * app version hasn't changed since we wrote the cache row.
      */
     private fun isCacheFresh(cached: CachedPluginMetadata, file: File): Boolean {
+        if (BuiltinQingSources.isProtected(cached.platform)) return false
         return cached.sourceMtimeMs == file.lastModified() &&
             cached.cachedAtAppVersion == currentAppVersion
     }
@@ -1513,9 +1550,12 @@ class PluginManager @Inject constructor(
         )
         try {
             mutex.withLock {
-                _plugins.value.firstOrNull { it.info.platform == platform }
-                    ?.updateUserVariables(variables)
+                // Validate and persist before making a private value available to JS.
                 pluginMetaStore.setUserVariables(platform, variables)
+                _plugins.value.firstOrNull { it.info.platform == platform }
+                    ?.let { plugin ->
+                        plugin.updateUserVariables(BuiltinQingSources.runtimeVariables(platform, plugin.info.hash, variables))
+                    }
             }
             logOperationSuccess(
                 flowId = flowId,
@@ -2323,6 +2363,16 @@ class PluginManager @Inject constructor(
 
             val plugin = try {
                 loadPluginFromFile(stagedFile, installSource)
+            } catch (e: ReservedBuiltinPlatform) {
+                MfLog.error(LogCategory.PLUGIN, "plugin_builtin_external_rejected", fields = mapOf("platform" to e.platform))
+                recordFailedEntry(
+                    targetPath = targetFile.absolutePath + ".rejected",
+                    reason = PluginErrorReason.CannotParse,
+                    detail = "此音源由 APK 管理，外部文件不能覆盖",
+                    installSource = installSource,
+                    attemptedPlatform = null,
+                )
+                return null
             } catch (e: MissingPlatformException) {
                 // Phase C: record structured Failed entry so UI can show the
                 // MissingPlatform reason and offer retry/uninstall actions.
@@ -2341,6 +2391,21 @@ class PluginManager @Inject constructor(
                     targetPath = targetFile.absolutePath,
                     reason = PluginErrorReason.CannotParse,
                     detail = "loadPluginFromFile returned null for $fileName",
+                    installSource = installSource,
+                    attemptedPlatform = null,
+                )
+                return null
+            }
+
+            val protectedTarget = BuiltinQingSources.entries.firstOrNull { it.fileName == fileName }
+            if (bundledSourcesEnabled && protectedTarget != null &&
+                (plugin.info.platform != protectedTarget.platform || plugin.info.hash != protectedTarget.sha256)) {
+                plugin.destroy()
+                MfLog.error(LogCategory.PLUGIN, "plugin_builtin_external_rejected", fields = mapOf("platform" to protectedTarget.platform))
+                recordFailedEntry(
+                    targetPath = targetFile.absolutePath + ".rejected",
+                    reason = PluginErrorReason.CannotParse,
+                    detail = "此音源文件由 APK 管理，外部文件不能覆盖",
                     installSource = installSource,
                     attemptedPlatform = null,
                 )
@@ -2573,6 +2638,16 @@ class PluginManager @Inject constructor(
         operationType: PluginOperationType,
         startedAt: Long,
     ): PluginOperationResult {
+        if (bundledSourcesEnabled && BuiltinQingSources.isTrusted(targetPlugin.info.platform, targetPlugin.info.hash)) {
+            return PluginOperationResult(
+                operationType = operationType,
+                targetPlugins = listOf(targetPlugin.info.platform),
+                successCount = 1,
+                failureCount = 0,
+                startedAtEpochMs = startedAt,
+                finishedAtEpochMs = System.currentTimeMillis(),
+            )
+        }
         val sourceUrl = targetPlugin.info.srcUrl?.trim().orEmpty()
         if (sourceUrl.isBlank()) {
             return PluginOperationResult(
@@ -3081,8 +3156,26 @@ class PluginManager @Inject constructor(
             return null
         }
 
-        // Inject userVariables snapshot for this plugin
-        val userVars = pluginMetaStore.getUserVariables(info.platform).first()
+        if (bundledSourcesEnabled && BuiltinQingSources.isProtected(info.platform) &&
+            !BuiltinQingSources.isTrusted(info.platform, sourceHash)) {
+            engine.close()
+            throw ReservedBuiltinPlatform(info.platform)
+        }
+
+        // Only hash-verified APK sources can receive the private gateway configuration.
+        val storedVariables = try {
+            pluginMetaStore.getUserVariables(info.platform).first()
+        } catch (e: IllegalStateException) {
+            if (!BuiltinQingSources.isTrusted(info.platform, sourceHash) ||
+                e.message != "GATEWAY_CREDENTIALS_UNAVAILABLE") throw e
+            // Keep the verified plugin's settings accessible so the user can replace or clear
+            // unusable device ciphertext. The settings Flow reports the read error explicitly.
+            MfLog.error(LogCategory.PLUGIN, "plugin_private_config_unavailable", fields = mapOf("platform" to info.platform))
+            emptyMap()
+        }
+        val userVars = BuiltinQingSources.runtimeVariables(
+            info.platform, sourceHash, storedVariables,
+        )
         if (userVars.isNotEmpty()) {
             val jsonStr = Json.encodeToString(userVars)
             engine.evaluate<Any?>("globalThis.__userVariables = JSON.parse('${jsonStr.escapeForJsString()}')")

@@ -12,6 +12,11 @@ import com.hank.musicfree.plugin.di.PluginMetaDataStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -23,8 +28,10 @@ data class SubscriptionItem(val name: String, val url: String)
 @Singleton
 class PluginMetaStore @Inject constructor(
     @PluginMetaDataStore private val dataStore: DataStore<Preferences>,
+    private val gatewayCredentialStore: GatewayCredentialStore? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val userVariableMutex = Mutex()
 
     // ── 启用/禁用 ──
 
@@ -161,12 +168,44 @@ class PluginMetaStore @Inject constructor(
 
     // ── 用户变量 ──
 
-    fun getUserVariables(platform: String): Flow<Map<String, String>> = dataStore.data.map { prefs ->
-        prefs[userVariablesKey(platform)]?.let { jsonStr ->
-            runCatching { json.decodeFromString<Map<String, String>>(jsonStr) }
-                .onFailure { logDecodeFailure("user_variables", it, mapOf("platform" to platform)) }
-                .getOrDefault(emptyMap())
-        } ?: emptyMap()
+    fun getUserVariables(platform: String): Flow<Map<String, String>> = combine(
+        dataStore.data,
+        gatewayCredentialStore?.changes ?: flowOf(0L),
+    ) { _, _ ->
+        userVariableMutex.withLock {
+            // Read after pending writes; a stale Flow snapshot must not restore an old secret.
+            val prefs = dataStore.data.first()
+            val values = decodeUserVariables(prefs[userVariablesKey(platform)])
+            val plain = values - GatewayCredentialStore.VARIABLE
+            val legacy = values[GatewayCredentialStore.VARIABLE]
+            if (!GatewayCredentialStore.supports(platform)) {
+                // Retired/renamed plugins must not retain legacy plaintext credentials.
+                if (legacy != null) {
+                    dataStore.edit { it[userVariablesKey(platform)] = json.encodeToString(plain) }
+                }
+                return@withLock plain
+            }
+            val secure = gatewayCredentialStore
+            if (secure == null) {
+                check(legacy.isNullOrBlank()) { "GATEWAY_CREDENTIAL_STORE_REQUIRED" }
+                return@withLock plain
+            }
+            var privateValue = secure.read(platform)
+            if (legacy != null) {
+                if (privateValue == null && legacy.isNotBlank()) {
+                    secure.write(platform, legacy)
+                    privateValue = legacy
+                }
+                dataStore.edit { it[userVariablesKey(platform)] = json.encodeToString(plain) }
+            }
+            if (privateValue == null) plain else plain + (GatewayCredentialStore.VARIABLE to privateValue)
+        }
+    }
+
+    private fun decodeUserVariables(raw: String?): Map<String, String> {
+        if (raw == null) return emptyMap()
+        return try { json.decodeFromString<Map<String, String>>(raw) }
+        catch (_: Exception) { throw IllegalStateException("INVALID_PLUGIN_USER_VARIABLES") }
     }
 
     suspend fun setUserVariables(platform: String, variables: Map<String, String>) {
@@ -174,8 +213,21 @@ class PluginMetaStore @Inject constructor(
         val startedAt = System.nanoTime()
         logWriteStart(operation, platform = platform, count = variables.size)
         try {
-            dataStore.edit { prefs ->
-                prefs[userVariablesKey(platform)] = json.encodeToString(variables)
+            userVariableMutex.withLock {
+                val secret = variables[GatewayCredentialStore.VARIABLE]
+                val supported = GatewayCredentialStore.supports(platform)
+                if (secret != null) require(supported) { "UNSUPPORTED_GATEWAY_PLATFORM" }
+                if (gatewayCredentialStore == null) {
+                    check(secret.isNullOrBlank()) { "GATEWAY_CREDENTIAL_STORE_REQUIRED" }
+                }
+                // Commit removal of legacy plaintext before changing private storage. If this
+                // fails, the old encrypted value remains untouched. If the private write fails,
+                // its atomic replacement preserves the old value and no legacy can resurrect.
+                // Ordinary variables may already be saved when the private write fails.
+                dataStore.edit { prefs ->
+                    prefs[userVariablesKey(platform)] = json.encodeToString(variables - GatewayCredentialStore.VARIABLE)
+                }
+                if (supported) gatewayCredentialStore?.write(platform, secret)
             }
             logWriteSuccess(operation, platform = platform, count = variables.size, durationMs = elapsedMs(startedAt))
         } catch (e: CancellationException) {

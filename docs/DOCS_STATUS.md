@@ -30,6 +30,8 @@
 |---|---|---|---|
 | [AGENTS.md](../AGENTS.md) | 当前规范 | 是 | 仓库工作总规则 |
 | [docs/DOCS_STATUS.md](./DOCS_STATUS.md) | 当前规范 | 是 | 文档状态与治理入口 |
+| [APK 内置青听与设备私有配置](./plugin-parity/qing-bundled-private-config.md) | 当前参考（v1.2.23 发布方案） | 否 | 无默认凭据、设备密文存储、日志边界及验证限制 |
+| [内置青听音源](./plugin-parity/bundled-qing-sources.md) | 当前参考（v1.2.23 发布方案） | 否 | 内置目录、旧身份兼容及外部覆盖防护 |
 | [docs/product/2026-07-11-interaction-and-feature-audit.md](./product/2026-07-11-interaction-and-feature-audit.md) | 当前参考（产品交互与功能审计） | 否 | 当前功能成熟度、已确认交互缺口、P0/P1/P2 优先级与后续产品路线建议；实施前需另行确认具体设计 spec |
 | [docs/updater/download-update-module.md](./updater/download-update-module.md) | 当前规范（下载更新模块） | 是 | `:updater` 更新检查、APK 缓存、断点续传、前台服务、静默下载与安装入口 |
 | [docs/ui-harness/screen-chrome-rules.md](./ui-harness/screen-chrome-rules.md) | 已迁移 | 否 | 已并入 [docs/dev-harness/ui/rules.md](./dev-harness/ui/rules.md)；本路径仅保留 redirect stub |

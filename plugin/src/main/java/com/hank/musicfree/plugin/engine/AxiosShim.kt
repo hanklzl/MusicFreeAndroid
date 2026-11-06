@@ -549,13 +549,13 @@ object AxiosShim {
 
     private fun logRequest(method: String, url: String, headers: Headers, bodyPreview: String? = null) {
         val headerPreview = headersPreview(headers)
-        val sanitizedPreview = bodyPreview?.takePreview(REQUEST_BODY_PREVIEW_CHARS)
+        val sanitizedPreview = PluginHttpLogSanitizer.body(url, bodyPreview, REQUEST_BODY_PREVIEW_CHARS)
         MfLog.detail(
             category = LogCategory.PLUGIN,
             event = "axios_request",
             fields = mapOf(
                 "method" to method,
-                "url" to url,
+                "url" to PluginHttpLogSanitizer.url(url),
                 "host" to LogFields.host(url),
                 "status" to "start",
                 "headerCount" to headers.size,
@@ -574,11 +574,7 @@ object AxiosShim {
         body: String?,
         durationMs: Long,
     ) {
-        val preview = body
-            ?.replace("\n", " ")
-            ?.replace("\r", " ")
-            ?.takePreview(RESPONSE_BODY_PREVIEW_CHARS)
-            ?: ""
+        val preview = PluginHttpLogSanitizer.body(url, body, RESPONSE_BODY_PREVIEW_CHARS) ?: ""
         val headerPreview = headersPreview(headers)
         val successful = status in 200..299
         MfLog.detail(
@@ -586,7 +582,7 @@ object AxiosShim {
             event = "axios_response",
             fields = mapOf(
                 "method" to method,
-                "url" to url,
+                "url" to PluginHttpLogSanitizer.url(url),
                 "host" to LogFields.host(url),
                 "status" to status,
                 "statusCode" to status,
@@ -612,10 +608,10 @@ object AxiosShim {
         MfLog.error(
             category = LogCategory.PLUGIN,
             event = "axios_request_failed",
-            throwable = throwable,
+            throwable = PluginHttpLogSanitizer.failure(throwable),
             fields = mapOf(
                 "method" to method,
-                "url" to url.orEmpty(),
+                "url" to PluginHttpLogSanitizer.url(url),
                 "host" to LogFields.host(url),
                 "status" to "failed",
                 "result" to LogFields.Result.FAILURE,
@@ -636,7 +632,7 @@ object AxiosShim {
             event = "axios_request_cancelled",
             fields = mapOf(
                 "method" to method,
-                "url" to url.orEmpty(),
+                "url" to PluginHttpLogSanitizer.url(url),
                 "host" to LogFields.host(url),
                 "status" to "cancelled",
                 "result" to LogFields.Result.CANCELLED,
@@ -648,17 +644,7 @@ object AxiosShim {
     }
 
     private fun headersPreview(headers: Headers): String {
-        return headers.names().joinToString(",") { name ->
-            val values = headers.values(name)
-            val joined = values.joinToString("|") { value ->
-                value.takePreview(HEADER_VALUE_PREVIEW_CHARS)
-            }
-            "$name=$joined"
-        }.takePreview(HEADER_PREVIEW_CHARS)
-    }
-
-    private fun String.takePreview(maxChars: Int): String {
-        return if (length <= maxChars) this else "${take(maxChars)}..."
+        return PluginHttpLogSanitizer.headers(headers, HEADER_VALUE_PREVIEW_CHARS, HEADER_PREVIEW_CHARS)
     }
 
     private fun buildUrlWithParams(baseUrl: String, config: Map<*, *>?): String {

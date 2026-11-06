@@ -91,7 +91,37 @@ class PluginManagerUserVariablesTest {
         } catch (e: IllegalStateException) {
             assertEquals("refresh failed", e.message)
         }
-        verify(metaStore, never()).setUserVariables("vars", mapOf("cookie" to "abc"))
+        verify(metaStore).setUserVariables("vars", mapOf("cookie" to "abc"))
+    }
+
+    @Test
+    fun `failed private persistence never refreshes runtime`() = runTest {
+        val metaStore = mock<PluginMetaStore>()
+        whenever(metaStore.disabledPlugins).thenReturn(flowOf(emptySet()))
+        whenever(metaStore.pluginOrder).thenReturn(flowOf(emptyList()))
+        whenever(metaStore.setUserVariables(any(), any())).doThrow(IllegalStateException("private storage unavailable"))
+        val manager = manager(metaStore)
+        val plugin = plugin("元力KW")
+        manager.setLoadedPluginsForTest(listOf(plugin))
+        try {
+            manager.setUserVariables("元力KW", mapOf("qingGatewayAuth" to "synthetic"))
+            fail("must fail")
+        } catch (e: IllegalStateException) {
+            assertEquals("private storage unavailable", e.message)
+        }
+        verify(plugin, never()).updateUserVariables(any())
+    }
+
+    @Test
+    fun `private authentication cannot be refreshed into external plugin`() = runTest {
+        val metaStore = mock<PluginMetaStore>()
+        whenever(metaStore.disabledPlugins).thenReturn(flowOf(emptySet()))
+        whenever(metaStore.pluginOrder).thenReturn(flowOf(emptyList()))
+        val manager = manager(metaStore)
+        val plugin = plugin("元力KW")
+        manager.setLoadedPluginsForTest(listOf(plugin))
+        manager.setUserVariables("元力KW", mapOf("cookie" to "ordinary", "qingGatewayAuth" to "test-only"))
+        verify(plugin).updateUserVariables(mapOf("cookie" to "ordinary"))
     }
 
     private fun manager(metaStore: PluginMetaStore): PluginManager {
@@ -115,7 +145,7 @@ class PluginManagerUserVariablesTest {
             appPreferences,
             baseClient,
             WebDavShim(baseClient),
-        )
+        ).also { it.bundledSourcesEnabled = false }
     }
 
     @Suppress("UNCHECKED_CAST")

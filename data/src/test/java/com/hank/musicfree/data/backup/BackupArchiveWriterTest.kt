@@ -29,6 +29,10 @@ class BackupArchiveWriterTest {
     fun `provider only lists allowed app data files in stable order`() {
         val appData = tmpFolder.root
         setupFakeDataRoot(appData, includeDb = true)
+        // A pre-upgrade plugin store and device-only encrypted config must never be exported.
+        appData.resolve("datastore/plugin_meta.preferences_pb").writeText("synthetic-legacy-credential")
+        appData.resolve("no_backup/qing-gateway-credentials").apply { mkdirs() }
+            .resolve("synthetic.gcm").writeText("synthetic-ciphertext")
 
         val provider = BackupFileSetProvider(appData)
         val sourceFiles = provider.listBackupSourceFiles()

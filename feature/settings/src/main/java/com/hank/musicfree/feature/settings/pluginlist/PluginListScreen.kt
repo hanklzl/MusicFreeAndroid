@@ -80,6 +80,7 @@ import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.UiLogEvents
 import com.hank.musicfree.plugin.runtime.PluginState
+import kotlinx.coroutines.flow.catch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -445,8 +446,13 @@ fun PluginListScreen(
     }
 
     userVariablesTarget?.let { target ->
+        var readError by remember(target.info.platform) { mutableStateOf<String?>(null) }
         val variablesFlow = remember(target.info.platform) {
             viewModel.userVariables(target.info.platform)
+                .catch {
+                    readError = "无法读取设备配置。可重新输入后保存；留空保存将清除原配置。"
+                    emit(emptyMap())
+                }
         }
         val savedVariables by variablesFlow.collectAsStateWithLifecycle(initialValue = emptyMap())
         val requestId = activeUserVariableSaveRequestId
@@ -459,7 +465,7 @@ fun PluginListScreen(
             item = target,
             initialValues = savedVariables,
             saving = saving,
-            errorMessage = errorMessage,
+            errorMessage = errorMessage ?: readError,
             onDismiss = {
                 userVariablesTarget = null
                 activeUserVariableSaveRequestId = null
@@ -1017,6 +1023,7 @@ private fun UserVariablesDialog(
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
                 variables.forEach { variable ->
+                    val isPrivate = variable.key == "qingGatewayAuth"
                     OutlinedTextField(
                         value = values[variable.key].orEmpty(),
                         onValueChange = { value ->
@@ -1026,6 +1033,12 @@ private fun UserVariablesDialog(
                         label = { Text(variable.name ?: variable.key) },
                         placeholder = variable.hint?.let { hint -> { Text(hint) } },
                         singleLine = true,
+                        visualTransformation = if (isPrivate) androidx.compose.ui.text.input.PasswordVisualTransformation()
+                            else androidx.compose.ui.text.input.VisualTransformation.None,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = if (isPrivate) androidx.compose.ui.text.input.KeyboardType.Password
+                                else androidx.compose.ui.text.input.KeyboardType.Text,
+                        ),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }

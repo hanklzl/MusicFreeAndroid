@@ -47,7 +47,7 @@ class PluginManagerImportCapabilityTest {
             com.hank.musicfree.data.datastore.AppPreferences(prefsDataStore),
             baseClient,
             WebDavShim(baseClient),
-        )
+        ).also { it.bundledSourcesEnabled = false }
         clearPluginStorage()
     }
 

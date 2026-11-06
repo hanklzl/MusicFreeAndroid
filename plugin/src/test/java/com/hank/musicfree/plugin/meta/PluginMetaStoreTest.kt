@@ -3,6 +3,9 @@ package com.hank.musicfree.plugin.meta
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import javax.crypto.KeyGenerator
 import com.hank.musicfree.logging.LogCategory
 import com.hank.musicfree.logging.MfLog
 import com.hank.musicfree.logging.MfLogger
@@ -52,6 +55,106 @@ class PluginMetaStoreTest {
     fun `new plugin is enabled by default`() = runBlocking {
         assertTrue(store.isPluginEnabled("netease").first())
         assertTrue(store.disabledPlugins.first().isEmpty())
+    }
+
+    @Test
+    fun `gateway credentials are removed from ordinary preferences and migrated to private storage`() = runBlocking {
+        val secret = """{"appId":"synthetic-app","signSecret":"synthetic-secret","appVersion":"test","deviceId":"synthetic-device"}"""
+        val key = KeyGenerator.getInstance("AES").generateKey()
+        val secure = GatewayCredentialStore(tmpFolder.newFolder()) { key }
+        val protectedStore = PluginMetaStore(dataStore, secure)
+        protectedStore.setUserVariables("元力QQ", mapOf(GatewayCredentialStore.VARIABLE to secret, "other" to "value"))
+        val preferenceKey = stringPreferencesKey("user_variables_元力QQ")
+        assertFalse(dataStore.data.first()[preferenceKey]!!.contains("synthetic-secret"))
+        assertFalse(dataStore.data.first()[preferenceKey]!!.contains(GatewayCredentialStore.VARIABLE))
+        assertEquals(secret, protectedStore.getUserVariables("元力QQ").first()[GatewayCredentialStore.VARIABLE])
+        protectedStore.setUserVariables("元力QQ", emptyMap())
+        assertNull(secure.read("元力QQ"))
+
+        // Simulate a pre-upgrade ordinary DataStore entry; migration must not export it again.
+        val encoded = kotlinx.serialization.json.Json.encodeToString(
+            kotlinx.serialization.serializer<Map<String, String>>(), mapOf(GatewayCredentialStore.VARIABLE to secret),
+        )
+        dataStore.edit { it[preferenceKey] = encoded }
+        assertEquals(secret, protectedStore.getUserVariables("元力QQ").first()[GatewayCredentialStore.VARIABLE])
+        assertFalse(dataStore.data.first()[preferenceKey]!!.contains("synthetic-secret"))
+    }
+
+    @Test
+    fun `failed preference commit does not delete private credentials`() = runBlocking {
+        val secret = syntheticCredentials()
+        val key = KeyGenerator.getInstance("AES").generateKey()
+        val secure = GatewayCredentialStore(tmpFolder.newFolder()) { key }
+        secure.write("元力QQ", secret)
+        val preferenceKey = stringPreferencesKey("user_variables_元力QQ")
+        dataStore.edit { it[preferenceKey] = encodeVariables(mapOf(GatewayCredentialStore.VARIABLE to secret)) }
+        val failingStore = object : DataStore<Preferences> by dataStore {
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+                throw java.io.IOException("synthetic write failure")
+            }
+        }
+        try {
+            PluginMetaStore(failingStore, secure).setUserVariables("元力QQ", emptyMap())
+            fail("must fail")
+        } catch (_: java.io.IOException) { }
+        assertEquals(secret, secure.read("元力QQ"))
+        // A successful retry clears both stores; subsequent reads cannot resurrect the legacy.
+        val protectedStore = PluginMetaStore(dataStore, secure)
+        protectedStore.setUserVariables("元力QQ", emptyMap())
+        assertNull(protectedStore.getUserVariables("元力QQ").first()[GatewayCredentialStore.VARIABLE])
+    }
+
+    @Test
+    fun `failed private replacement preserves old ciphertext and removes legacy plaintext`() = runBlocking {
+        val key = KeyGenerator.getInstance("AES").generateKey()
+        var failEncryption = false
+        val secure = GatewayCredentialStore(tmpFolder.newFolder()) {
+            check(!failEncryption) { "synthetic unavailable key" }
+            key
+        }
+        val secret = syntheticCredentials()
+        secure.write("元力QQ", secret)
+        val preferenceKey = stringPreferencesKey("user_variables_元力QQ")
+        dataStore.edit { it[preferenceKey] = encodeVariables(mapOf(GatewayCredentialStore.VARIABLE to secret)) }
+        failEncryption = true
+        try {
+            PluginMetaStore(dataStore, secure).setUserVariables("元力QQ", mapOf(
+                GatewayCredentialStore.VARIABLE to syntheticCredentials("synthetic-replacement"),
+                "other" to "saved",
+            ))
+            fail("must fail")
+        } catch (e: IllegalStateException) {
+            assertEquals("GATEWAY_CREDENTIALS_WRITE_FAILED", e.message)
+        }
+        failEncryption = false
+        assertEquals(secret, secure.read("元力QQ"))
+        assertFalse(dataStore.data.first()[preferenceKey]!!.contains(GatewayCredentialStore.VARIABLE))
+        secure.write("元力QQ", null)
+        assertNull(PluginMetaStore(dataStore, secure).getUserVariables("元力QQ").first()[GatewayCredentialStore.VARIABLE])
+    }
+
+    @Test
+    fun `retired platform legacy credentials are scrubbed without exposing them`() = runBlocking {
+        val preferenceKey = stringPreferencesKey("user_variables_retired")
+        dataStore.edit { it[preferenceKey] = encodeVariables(mapOf(
+            GatewayCredentialStore.VARIABLE to syntheticCredentials(), "other" to "retained",
+        )) }
+        assertEquals(mapOf("other" to "retained"), store.getUserVariables("retired").first())
+        assertFalse(dataStore.data.first()[preferenceKey]!!.contains(GatewayCredentialStore.VARIABLE))
+    }
+
+    private fun syntheticCredentials(secret: String = "synthetic-secret") =
+        """{"appId":"synthetic-app","signSecret":"$secret","appVersion":"test","deviceId":"synthetic-device"}"""
+
+    private fun encodeVariables(variables: Map<String, String>) = kotlinx.serialization.json.Json.encodeToString(
+        kotlinx.serialization.serializer<Map<String, String>>(), variables,
+    )
+
+    @Test
+    fun `gateway config cannot fall back to plaintext without private storage`() = runBlocking {
+        try { store.setUserVariables("元力QQ", mapOf(GatewayCredentialStore.VARIABLE to "synthetic")); fail("must reject") }
+        catch (e: IllegalStateException) { assertEquals("GATEWAY_CREDENTIAL_STORE_REQUIRED", e.message) }
+        assertNull(dataStore.data.first()[stringPreferencesKey("user_variables_元力QQ")])
     }
 
     @Test

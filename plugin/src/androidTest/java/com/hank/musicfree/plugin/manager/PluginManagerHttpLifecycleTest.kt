@@ -66,7 +66,7 @@ class PluginManagerHttpLifecycleTest {
             com.hank.musicfree.data.datastore.AppPreferences(prefsDataStore),
             baseClient,
             WebDavShim(baseClient),
-        )
+        ).also { it.bundledSourcesEnabled = false }
         clearPluginStorage()
         server = MockWebServer()
         server.start()
@@ -158,6 +158,25 @@ class PluginManagerHttpLifecycleTest {
             1,
             pluginManager.plugins.value.count { it.info.platform == PLATFORM },
         )
+    }
+
+    @Test
+    fun bundledSources_rejectRemoteReplacementAndUpdateWithoutNetwork() = runBlocking {
+        pluginManager.bundledSourcesEnabled = true
+        pluginManager.loadAllPlugins()
+        val platform = "元力KW"
+        val original = pluginManager.getPlugin(platform)
+        assertNotNull(original)
+        assertTrue(original!!.info.srcUrl.isNullOrBlank())
+        val url = server.url("/legacy.js").toString()
+        server.enqueue(MockResponse().setBody(scriptForVersion("99.0.0", url).replace(PLATFORM, platform)))
+        val rejected = pluginManager.installFromUrl(url, "remote-legacy.js")
+        assertEquals(null, rejected)
+        assertNextRequestPath("/legacy.js")
+        assertEquals(original.info.hash, pluginManager.getPlugin(platform)!!.info.hash)
+        assertEquals(1, pluginManager.updatePlugin(platform).successCount)
+        assertEquals(1, server.requestCount)
+        assertEquals(1, pluginManager.plugins.value.count { it.info.platform == platform })
     }
 
     private fun clearPluginStorage() = runBlocking {

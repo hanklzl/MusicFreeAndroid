@@ -168,6 +168,6 @@ class PluginManagerLocalRegistrationTest {
             appPreferences,
             baseClient,
             WebDavShim(baseClient),
-        )
+        ).also { it.bundledSourcesEnabled = false }
     }
 }

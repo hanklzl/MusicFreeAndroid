@@ -55,7 +55,7 @@ class PluginManagerUpdateFlowTest {
             appPreferences,
             baseClient,
             WebDavShim(baseClient),
-        )
+        ).also { it.bundledSourcesEnabled = false }
     }
 
     @Test

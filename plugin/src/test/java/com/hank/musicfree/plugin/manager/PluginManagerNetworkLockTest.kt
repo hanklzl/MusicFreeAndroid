@@ -131,6 +131,6 @@ class PluginManagerNetworkLockTest {
             appPreferences,
             baseClient,
             WebDavShim(baseClient),
-        )
+        ).also { it.bundledSourcesEnabled = false }
     }
 }
