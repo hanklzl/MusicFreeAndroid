@@ -73,6 +73,8 @@ jobs:
       - name: Set up Android SDK
         if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
         uses: android-actions/setup-android@v4.0.1
+        with:
+          packages: platform-tools
 
       - name: Validate release secrets
         if: github.event_name != 'schedule' || steps.nightly-guard.outputs.new_commits != '0'
@@ -212,7 +214,7 @@ jobs:
   publish-github-release:
     name: Publish GitHub Release
     needs: build-release-apk
-    if: github.event_name == 'push' && github.ref_type == 'tag'
+    if: github.ref_type == 'tag' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -313,7 +315,7 @@ jobs:
   publish-version-manifest:
     name: Publish version manifest
     needs: [build-release-apk, publish-github-release]
-    if: github.event_name == 'push' && github.ref_type == 'tag'
+    if: github.ref_type == 'tag' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -1,6 +1,6 @@
 # 发布流程
 
-本仓库的发布流水线由 `.github/workflows/android-release-apk.yml` 驱动，对外只暴露一个触发点：**推送 `vX.Y.Z` tag 到 GitHub**。
+本仓库的发布流水线由 `.github/workflows/android-release-apk.yml` 驱动，正常入口为**推送 `vX.Y.Z` tag 到 GitHub**。若工作流此前被停用导致标签事件未触发，可启用后使用 `gh workflow run android-release-apk.yml --ref vX.Y.Z` 对同一标签完整构建、发布与更新版本清单；手动运行分支只构建，不发布。SDK setup 显式安装 `platform-tools`，不再请求已下架的旧 `tools` 包。
 
 ## 一次性配置
 

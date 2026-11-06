@@ -1,6 +1,6 @@
 # APK 内置青听兼容音源
 
-> 文档状态：当前规范（v1.2.23 发布方案）
+> 文档状态：当前规范（v1.2.24 发布方案）
 > 适用范围：BuiltinQingSources、PluginManager 与插件回归测试
 
 APK assets 内置六个不含凭据的 1.2.3 插件：元力KW、元力KG、元力WY、元力QQ、bilibili、元力MG。保留原平台名称和 primaryKey，已有歌单无需转换。APK 升级决定音源码版本；插件不声明外部 srcUrl，单独更新这些插件不会访问订阅服务器。
