@@ -6,6 +6,21 @@
 
 <!-- next-release -->
 
+## [v1.2.24] - 2026-11-06
+
+### 变更详情
+
+#### 修复
+- fix(ci): 修复发布SDK安装并支持标签手动发布 (02fdd20)
+
+### 构建产物
+
+- arm64-v8a: `MusicFreeAndroid-v1.2.24-arm64-v8a.apk` · 8.0MB · sha256 `eae04e21706b`
+- x86_64: `MusicFreeAndroid-v1.2.24-x86_64.apk` · 7.9MB · sha256 `b1d4a200df79`
+- mapping: `mapping-v1.2.24.zip` · sha256 `e42e212fd3ea` (R8 反混淆用)
+
+> 老版本（v1.0.x）客户端首次升级时无法自动识别新 manifest，请前往本页面手动下载与设备架构对应的 APK。
+
 ## [v1.2.22] - 2026-09-04
 
 ### 变更详情
