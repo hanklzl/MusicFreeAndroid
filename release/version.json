@@ -1,39 +1,35 @@
 {
   "schemaVersion": 2,
-  "version": "1.2.22",
-  "versionCode": 10222,
-  "releasedAt": "2026-09-03T17:23:47Z",
-  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.2.22",
+  "version": "1.2.24",
+  "versionCode": 10224,
+  "releasedAt": "2026-11-06T02:24:43Z",
+  "releaseNotesUrl": "https://github.com/hanklzl/MusicFreeAndroid/releases/tag/v1.2.24",
   "changeLog": [
-    "fix(player): 修复歌单反馈与未知时长缓存 (d9d0a4b)",
-    "fix(player): 修复蓝牙切歌队列路由 (6e41805)",
-    "docs(changelog): release v1.2.21 [skip ci] (07878cd)",
-    "chore(release): bump to v1.2.22 (e1cbce2)",
-    "chore(skills): 补充 Android 与项目工作流技能 (882bce8)",
-    "arm64-v8a: `MusicFreeAndroid-v1.2.22-arm64-v8a.apk` · 7.9MB · sha256 `8506f2ef54e1`",
-    "x86_64: `MusicFreeAndroid-v1.2.22-x86_64.apk` · 7.9MB · sha256 `b72f947ebbb5`",
-    "mapping: `mapping-v1.2.22.zip` · sha256 `b5430d1dcf1d` (R8 反混淆用)"
+    "fix(ci): 修复发布SDK安装并支持标签手动发布 (02fdd20)",
+    "arm64-v8a: `MusicFreeAndroid-v1.2.24-arm64-v8a.apk` · 8.0MB · sha256 `eae04e21706b`",
+    "x86_64: `MusicFreeAndroid-v1.2.24-x86_64.apk` · 7.9MB · sha256 `b1d4a200df79`",
+    "mapping: `mapping-v1.2.24.zip` · sha256 `e42e212fd3ea` (R8 反混淆用)"
   ],
   "variants": {
     "arm64-v8a": {
       "download": [
-        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.22/MusicFreeAndroid-v1.2.22-arm64-v8a.apk",
-        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.22/release/MusicFreeAndroid-v1.2.22-arm64-v8a.apk"
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.24/MusicFreeAndroid-v1.2.24-arm64-v8a.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.24/release/MusicFreeAndroid-v1.2.24-arm64-v8a.apk"
       ],
-      "size": 8254427,
-      "sha256": "8506f2ef54e1ddeb14f50fc595bc690e63c28f325245902e464ace4489eaaee0"
+      "size": 8302237,
+      "sha256": "eae04e21706be313bc8845e7fc4d64a3794f226f64bb44687b6c58cd50726f0c"
     },
     "x86_64": {
       "download": [
-        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.22/MusicFreeAndroid-v1.2.22-x86_64.apk",
-        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.22/release/MusicFreeAndroid-v1.2.22-x86_64.apk"
+        "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.24/MusicFreeAndroid-v1.2.24-x86_64.apk",
+        "https://cdn.jsdelivr.net/gh/hanklzl/MusicFreeAndroid@v1.2.24/release/MusicFreeAndroid-v1.2.24-x86_64.apk"
       ],
-      "size": 8235831,
-      "sha256": "b72f947ebbb50b65feead0f25a2d68dcebc83802f76e2658884dd1aafd5e4c33"
+      "size": 8283641,
+      "sha256": "b1d4a200df79245cea4938a51b48a33ef6c069988a746e5e62d35c972a3e2d34"
     }
   },
   "mapping": {
-    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.22/mapping-v1.2.22.zip",
-    "sha256": "b5430d1dcf1dd8daae558a266f487d80a2647bacd671fe01ebd99084c0ed8e8b"
+    "url": "https://github.com/hanklzl/MusicFreeAndroid/releases/download/v1.2.24/mapping-v1.2.24.zip",
+    "sha256": "e42e212fd3ea1b30c1e645e20dba282430c1190e341de3a5922ca3d5888e6ca4"
   }
 }
